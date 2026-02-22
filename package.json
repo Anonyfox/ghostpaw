@@ -25,7 +25,10 @@
     "lint:fix": "biome check --fix",
     "format": "biome format --write",
     "check": "biome check && tsc --noEmit",
-    "prepublishOnly": "npm run check && npm run build"
+    "prepublishOnly": "npm run check && npm run build",
+    "release:patch": "npm version patch && git push && git push --tags",
+    "release:minor": "npm version minor && git push && git push --tags",
+    "release:major": "npm version major && git push && git push --tags"
   },
   "keywords": [
     "ai",
