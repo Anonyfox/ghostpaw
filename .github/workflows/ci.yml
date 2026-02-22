@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.5"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint & format (biome)
+        run: npx biome check
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify artifact runs
+        run: node --experimental-sqlite dist/ghostpaw.mjs --version
+
+      - name: Artifact size guard
+        run: |
+          MAX_KB=512
+          SIZE=$(stat -c%s dist/ghostpaw.mjs 2>/dev/null || stat -f%z dist/ghostpaw.mjs)
+          SIZE_KB=$((SIZE / 1024))
+          echo "Artifact size: ${SIZE_KB} KB (max: ${MAX_KB} KB)"
+          if [ "$SIZE_KB" -gt "$MAX_KB" ]; then
+            echo "::error::Artifact too large: ${SIZE_KB} KB exceeds ${MAX_KB} KB limit"
+            exit 1
+          fi
+
+      - name: Shellcheck
+        run: shellcheck install.sh
