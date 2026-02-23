@@ -67,6 +67,9 @@ export { listAgentProfiles, getAgentProfile } from "./core/agents.js";
 export { DEFAULT_SOUL } from "./core/soul.js";
 export type { InitResult } from "./core/init.js";
 export { initWorkspace } from "./core/init.js";
+export { startDaemon } from "./core/daemon.js";
+export type { InitSystem, ServiceConfig, ServiceResult, ServiceStatus } from "./core/service.js";
+export { detectInitSystem, installService, uninstallService, serviceStatus, serviceLogs } from "./core/service.js";
 export { GhostpawError, ConfigError, ValidationError, ToolError, ProviderError, BudgetExceededError, DatabaseError } from "./lib/errors.js";
 export type { GhostpawErrorCode } from "./lib/errors.js";
 export { Schema, createTool } from "chatoyant";
@@ -183,19 +186,20 @@ ghostpaw v${VERSION} — single-file AI agent runtime
 Usage: ghostpaw [command] [options]
 
 Commands:
-  chat              Interactive chat (default)
-  serve             Web UI + API server
-  run <prompt>      One-shot prompt, exits when done
-  init              Create workspace, configure API keys
-  test              Run extension tests
-  telegram          Start Telegram bot
+  (default)                  daemon (headless) or chat (TTY)
+  run <prompt>               One-shot prompt, exits when done
+  init                       Scaffold workspace (SOUL.md, config.json, etc.)
+  service install            Register as OS service (auto-start + restart)
+  service uninstall          Remove OS service
+  service status             Check if running
+  service logs               Tail service logs
+  telegram                   Start Telegram bot
 
 Options:
   -h, --help        Show this help
   -v, --version     Show version
   -w, --workspace   Workspace directory (default: .)
   -m, --model       Model to use (default: from config)
-  -p, --port <n>    Port for serve command (default: 3000)
 `.trim(),
   );
 }
@@ -207,7 +211,6 @@ async function main(): Promise<void> {
     options: {
       help: { type: "boolean", short: "h" },
       version: { type: "boolean", short: "v" },
-      port: { type: "string", short: "p", default: "3000" },
       workspace: { type: "string", short: "w", default: "." },
       model: { type: "string", short: "m" },
     },
@@ -223,15 +226,20 @@ async function main(): Promise<void> {
     return;
   }
 
-  const command = positionals[0] ?? "chat";
+  const command = positionals[0];
+  const workspace = resolve(values.workspace as string);
 
   switch (command) {
-    case "chat":
-      console.log("ghostpaw interactive chat — not yet implemented");
+    case undefined: {
+      const isTTY = process.stdin.isTTY && process.stdout.isTTY;
+      if (isTTY) {
+        console.log("ghostpaw interactive chat — not yet implemented");
+      } else {
+        const { startDaemon } = await import("./core/daemon.js");
+        await startDaemon(workspace);
+      }
       break;
-    case "serve":
-      console.log(`ghostpaw web UI on port ${values.port} — not yet implemented`);
-      break;
+    }
     case "run": {
       const prompt = positionals.slice(1).join(" ");
       if (!prompt) {
@@ -248,16 +256,53 @@ async function main(): Promise<void> {
     }
     case "init": {
       const { initWorkspace } = await import("./core/init.js");
-      const workspace = resolve(values.workspace as string);
       const result = initWorkspace(workspace);
       for (const path of result.created) console.log(`  created  ${path}`);
       for (const path of result.skipped) console.log(`  exists   ${path}`);
       console.log(`\nWorkspace initialized at ${workspace}`);
       break;
     }
-    case "test":
-      console.log("ghostpaw extension tests — not yet implemented");
+    case "service": {
+      const sub = positionals[1];
+      const { installService, uninstallService, serviceStatus, serviceLogs } = await import(
+        "./core/service.js"
+      );
+      switch (sub) {
+        case "install": {
+          const config = {
+            workspace,
+            nodePath: process.execPath,
+            ghostpawPath: realpathSync(process.argv[1]),
+          };
+          const r = installService(config);
+          console.log(`[${r.initSystem}] ${r.message}`);
+          if (r.path) console.log(`  → ${r.path}`);
+          if (!r.success) process.exit(1);
+          break;
+        }
+        case "uninstall": {
+          const r = uninstallService(workspace);
+          console.log(`[${r.initSystem}] ${r.message}`);
+          break;
+        }
+        case "status": {
+          const s = serviceStatus(workspace);
+          console.log(`init system: ${s.initSystem}`);
+          console.log(`installed:   ${s.installed}`);
+          console.log(`running:     ${s.running}`);
+          if (s.pid) console.log(`pid:         ${s.pid}`);
+          break;
+        }
+        case "logs":
+          await serviceLogs(workspace);
+          break;
+        default:
+          console.error(`Unknown service command: ${sub ?? "(none)"}`);
+          console.error("Usage: ghostpaw service install|uninstall|status|logs");
+          process.exit(1);
+      }
       break;
+    }
     case "telegram":
       console.log("ghostpaw telegram bot — not yet implemented");
       break;

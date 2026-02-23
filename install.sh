@@ -541,13 +541,15 @@ main() {
   echo "  Get started:"
   echo ""
   if [ "$PATH_OK" = true ]; then
-    echo "    ghostpaw init        # set up workspace + API keys"
-    echo "    ghostpaw             # start chatting"
-    echo "    ghostpaw --help      # see all commands"
+    echo "    ghostpaw init              # scaffold workspace"
+    echo "    ghostpaw service install   # register as OS service (auto-start + restart)"
+    echo "    ghostpaw service status    # check if running"
+    echo "    ghostpaw --help            # see all commands"
   else
-    echo "    ${INSTALL_DIR}/ghostpaw init     # set up workspace + API keys"
-    echo "    ${INSTALL_DIR}/ghostpaw          # start chatting"
-    echo "    ${INSTALL_DIR}/ghostpaw --help   # see all commands"
+    echo "    ${INSTALL_DIR}/ghostpaw init              # scaffold workspace"
+    echo "    ${INSTALL_DIR}/ghostpaw service install   # register as OS service"
+    echo "    ${INSTALL_DIR}/ghostpaw service status    # check if running"
+    echo "    ${INSTALL_DIR}/ghostpaw --help            # see all commands"
   fi
   echo ""
   echo "  Docs:  https://github.com/${REPO}"

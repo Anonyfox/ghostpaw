@@ -22,11 +22,12 @@ describe("initWorkspace - fresh directory", () => {
 
     ok(existsSync(join(workDir, "agents")));
     ok(existsSync(join(workDir, "skills")));
+    ok(existsSync(join(workDir, ".ghostpaw")));
     ok(existsSync(join(workDir, "SOUL.md")));
     ok(existsSync(join(workDir, "config.json")));
     ok(existsSync(join(workDir, ".gitignore")));
 
-    strictEqual(result.created.length, 5);
+    strictEqual(result.created.length, 6);
     strictEqual(result.skipped.length, 0);
   });
 
@@ -71,7 +72,7 @@ describe("initWorkspace - idempotency", () => {
     const result = initWorkspace(workDir);
 
     strictEqual(result.created.length, 0);
-    strictEqual(result.skipped.length, 5);
+    strictEqual(result.skipped.length, 6);
   });
 
   it("does not overwrite existing SOUL.md", () => {
@@ -117,6 +118,7 @@ describe("initWorkspace - partial state", () => {
     ok(result.skipped.some((p) => p.includes("agents")));
     ok(result.skipped.some((p) => p.includes("SOUL.md")));
     ok(result.created.some((p) => p.includes("skills")));
+    ok(result.created.some((p) => p.includes(".ghostpaw")));
     ok(result.created.some((p) => p.includes("config.json")));
     ok(result.created.some((p) => p.includes(".gitignore")));
   });

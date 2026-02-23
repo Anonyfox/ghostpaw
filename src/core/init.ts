@@ -74,6 +74,7 @@ export function initWorkspace(workspacePath: string): InitResult {
 
   ensureDir(join(workspacePath, "agents"), result);
   ensureDir(join(workspacePath, "skills"), result);
+  ensureDir(join(workspacePath, ".ghostpaw"), result);
   writeIfMissing(join(workspacePath, "SOUL.md"), DEFAULT_SOUL + "\n", result);
   writeIfMissing(join(workspacePath, "config.json"), buildConfigTemplate() + "\n", result);
   updateGitignore(workspacePath, result);

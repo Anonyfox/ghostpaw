@@ -189,6 +189,65 @@ describe("schema - memory table", () => {
   });
 });
 
+describe("schema - logs table", () => {
+  it("creates the logs table", () => {
+    const rows = db.sqlite
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='logs'")
+      .all();
+    strictEqual(rows.length, 1);
+  });
+
+  it("can insert and retrieve log entries", () => {
+    const now = Date.now();
+    db.sqlite
+      .prepare("INSERT INTO logs (level, message, created_at) VALUES (?, ?, ?)")
+      .run("info", "daemon started", now);
+
+    const row = db.sqlite.prepare("SELECT * FROM logs WHERE id = 1").get() as Record<
+      string,
+      unknown
+    >;
+    strictEqual(row.level, "info");
+    strictEqual(row.message, "daemon started");
+    strictEqual(row.created_at, now);
+  });
+
+  it("auto-increments id", () => {
+    const now = Date.now();
+    db.sqlite
+      .prepare("INSERT INTO logs (level, message, created_at) VALUES (?, ?, ?)")
+      .run("info", "first", now);
+    db.sqlite
+      .prepare("INSERT INTO logs (level, message, created_at) VALUES (?, ?, ?)")
+      .run("error", "second", now + 1);
+
+    const rows = db.sqlite.prepare("SELECT id FROM logs ORDER BY id ASC").all() as Record<
+      string,
+      unknown
+    >[];
+    strictEqual(rows.length, 2);
+    strictEqual(rows[0].id, 1);
+    strictEqual(rows[1].id, 2);
+  });
+
+  it("supports vacuum by timestamp", () => {
+    const old = Date.now() - 100_000;
+    const recent = Date.now();
+    db.sqlite
+      .prepare("INSERT INTO logs (level, message, created_at) VALUES (?, ?, ?)")
+      .run("info", "old entry", old);
+    db.sqlite
+      .prepare("INSERT INTO logs (level, message, created_at) VALUES (?, ?, ?)")
+      .run("info", "recent entry", recent);
+
+    db.sqlite.prepare("DELETE FROM logs WHERE created_at < ?").run(recent - 1000);
+
+    const rows = db.sqlite.prepare("SELECT * FROM logs").all() as Record<string, unknown>[];
+    strictEqual(rows.length, 1);
+    strictEqual(rows[0].message, "recent entry");
+  });
+});
+
 describe("raw sqlite integration", () => {
   it("can query through raw sqlite interface", () => {
     const now = Date.now();
