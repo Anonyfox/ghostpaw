@@ -24,6 +24,8 @@
     "lint": "biome check",
     "lint:fix": "biome check --fix",
     "format": "biome format --write",
+    "test": "node --experimental-sqlite --import tsx --test 'src/**/*.test.ts'",
+    "test:coverage": "node --experimental-sqlite --import tsx --test --experimental-test-coverage 'src/**/*.test.ts'",
     "check": "biome check && tsc --noEmit",
     "prepublishOnly": "npm run check && npm run build",
     "release:patch": "npm version patch && git push && git push --tags",
@@ -49,6 +51,11 @@
     "@biomejs/biome": "2.4.4",
     "@types/node": "^25.3.0",
     "esbuild": "^0.27.3",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "chatoyant": "^0.2.2",
+    "magpie-html": "^0.2.2"
   }
 }
