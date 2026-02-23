@@ -1,12 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-
-const BASE_IDENTITY = [
-  "You are ghostpaw, an AI agent runtime.",
-  "You have access to tools that let you read, write, and edit files, execute shell commands, and fetch web content.",
-  "Always use the available tools to complete tasks. Be precise and thorough.",
-  "When you encounter errors, report them clearly and suggest fixes.",
-].join("\n");
+import { DEFAULT_SOUL } from "./soul.js";
 
 function loadSoul(workspacePath: string): string | null {
   const soulPath = join(workspacePath, "SOUL.md");
@@ -36,7 +30,7 @@ export function assembleSystemPrompt(
 ): string {
   const sections: string[] = [];
 
-  sections.push(loadSoul(workspacePath) ?? BASE_IDENTITY);
+  sections.push(loadSoul(workspacePath) ?? DEFAULT_SOUL);
 
   const skills = loadSkills(workspacePath);
   if (skills.length > 0) {

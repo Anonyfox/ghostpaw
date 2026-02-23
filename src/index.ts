@@ -64,6 +64,9 @@ export type { Run, RunStatus, RunStore } from "./core/runs.js";
 export { createRunStore } from "./core/runs.js";
 export type { AgentProfile } from "./core/agents.js";
 export { listAgentProfiles, getAgentProfile } from "./core/agents.js";
+export { DEFAULT_SOUL } from "./core/soul.js";
+export type { InitResult } from "./core/init.js";
+export { initWorkspace } from "./core/init.js";
 export { GhostpawError, ConfigError, ValidationError, ToolError, ProviderError, BudgetExceededError, DatabaseError } from "./lib/errors.js";
 export type { GhostpawErrorCode } from "./lib/errors.js";
 export { Schema, createTool } from "chatoyant";
@@ -243,9 +246,15 @@ async function main(): Promise<void> {
       console.log(result);
       break;
     }
-    case "init":
-      console.log("ghostpaw workspace init — not yet implemented");
+    case "init": {
+      const { initWorkspace } = await import("./core/init.js");
+      const workspace = resolve(values.workspace as string);
+      const result = initWorkspace(workspace);
+      for (const path of result.created) console.log(`  created  ${path}`);
+      for (const path of result.skipped) console.log(`  exists   ${path}`);
+      console.log(`\nWorkspace initialized at ${workspace}`);
       break;
+    }
     case "test":
       console.log("ghostpaw extension tests — not yet implemented");
       break;
