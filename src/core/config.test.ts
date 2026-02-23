@@ -38,13 +38,11 @@ describe("loadConfig", () => {
     writeFileSync(
       join(tempDir, "config.json"),
       JSON.stringify({
-        providers: { anthropic: { apiKey: "sk-ant-test" } },
-        models: { default: "anthropic/claude-sonnet-4" },
+        models: { default: "openai/gpt-4o" },
       }),
     );
     const config = await loadConfig(tempDir);
-    strictEqual(config.providers.anthropic?.apiKey, "sk-ant-test");
-    strictEqual(config.models.default, "anthropic/claude-sonnet-4");
+    strictEqual(config.models.default, "openai/gpt-4o");
     strictEqual(config.models.cheap, DEFAULT_CONFIG.models.cheap);
   });
 
@@ -71,53 +69,10 @@ describe("loadConfig", () => {
     );
   });
 
-  it("resolves API keys from environment variables", async () => {
-    const prevAnthropic = process.env.ANTHROPIC_API_KEY;
-    const prevOpenai = process.env.OPENAI_API_KEY;
-    const prevXai = process.env.XAI_API_KEY;
-
-    try {
-      process.env.ANTHROPIC_API_KEY = "env-ant-key";
-      process.env.OPENAI_API_KEY = "env-oai-key";
-      process.env.XAI_API_KEY = "env-xai-key";
-
-      const config = await loadConfig(tempDir);
-      strictEqual(config.providers.anthropic?.apiKey, "env-ant-key");
-      strictEqual(config.providers.openai?.apiKey, "env-oai-key");
-      strictEqual(config.providers.xai?.apiKey, "env-xai-key");
-    } finally {
-      if (prevAnthropic === undefined) delete process.env.ANTHROPIC_API_KEY;
-      else process.env.ANTHROPIC_API_KEY = prevAnthropic;
-      if (prevOpenai === undefined) delete process.env.OPENAI_API_KEY;
-      else process.env.OPENAI_API_KEY = prevOpenai;
-      if (prevXai === undefined) delete process.env.XAI_API_KEY;
-      else process.env.XAI_API_KEY = prevXai;
-    }
-  });
-
-  it("config file keys take precedence over env vars", async () => {
-    const prevAnthropic = process.env.ANTHROPIC_API_KEY;
-    try {
-      process.env.ANTHROPIC_API_KEY = "from-env";
-      writeFileSync(
-        join(tempDir, "config.json"),
-        JSON.stringify({ providers: { anthropic: { apiKey: "from-file" } } }),
-      );
-      const config = await loadConfig(tempDir);
-      strictEqual(config.providers.anthropic?.apiKey, "from-file");
-    } finally {
-      if (prevAnthropic === undefined) delete process.env.ANTHROPIC_API_KEY;
-      else process.env.ANTHROPIC_API_KEY = prevAnthropic;
-    }
-  });
-
   it("throws ValidationError if maxTokensPerSession is not positive", async () => {
     writeFileSync(
       join(tempDir, "config.json"),
-      JSON.stringify({
-        providers: { anthropic: { apiKey: "sk-test" } },
-        costControls: { maxTokensPerSession: -1 },
-      }),
+      JSON.stringify({ costControls: { maxTokensPerSession: -1 } }),
     );
     await rejects(
       () => loadConfig(tempDir),
@@ -132,10 +87,7 @@ describe("loadConfig", () => {
   it("throws ValidationError if warnAtPercentage is out of range", async () => {
     writeFileSync(
       join(tempDir, "config.json"),
-      JSON.stringify({
-        providers: { anthropic: { apiKey: "sk-test" } },
-        costControls: { warnAtPercentage: 150 },
-      }),
+      JSON.stringify({ costControls: { warnAtPercentage: 150 } }),
     );
     await rejects(
       () => loadConfig(tempDir),
@@ -149,12 +101,22 @@ describe("loadConfig", () => {
   it("accepts model without provider prefix", async () => {
     writeFileSync(
       join(tempDir, "config.json"),
-      JSON.stringify({
-        providers: { anthropic: { apiKey: "sk-test" } },
-        models: { default: "claude-sonnet-4" },
-      }),
+      JSON.stringify({ models: { default: "claude-sonnet-4" } }),
     );
     const config = await loadConfig(tempDir);
     strictEqual(config.models.default, "claude-sonnet-4");
+  });
+
+  it("silently ignores unknown keys like legacy providers", async () => {
+    writeFileSync(
+      join(tempDir, "config.json"),
+      JSON.stringify({
+        providers: { anthropic: { apiKey: "sk-old" } },
+        models: { default: "anthropic/claude-sonnet-4" },
+      }),
+    );
+    const config = await loadConfig(tempDir);
+    strictEqual(config.models.default, "anthropic/claude-sonnet-4");
+    ok(!("providers" in config));
   });
 });

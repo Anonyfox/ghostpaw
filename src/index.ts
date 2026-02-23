@@ -35,7 +35,7 @@ function ensureSqliteFlag(): void {
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-export type { GhostpawConfig, ProviderConfig, ModelTiers, CostControls } from "./core/config.js";
+export type { GhostpawConfig, ModelTiers, CostControls } from "./core/config.js";
 export { loadConfig, DEFAULT_CONFIG } from "./core/config.js";
 export type { ChatFactory, ChatInstance, RunResult, AgentLoopHandle } from "./core/loop.js";
 export { createAgentLoop } from "./core/loop.js";
@@ -58,6 +58,7 @@ export { createWebSearchTool } from "./tools/search.js";
 export type { SearchProvider, SearchResult, SearchResponse } from "./tools/search.js";
 export { createDelegateTool } from "./tools/delegate.js";
 export { createCheckRunTool } from "./tools/check_run.js";
+export { createSecretsTool } from "./tools/secrets.js";
 export type { AgentEventMap, EventBus } from "./core/events.js";
 export { createEventBus } from "./core/events.js";
 export type { Run, RunStatus, RunStore } from "./core/runs.js";
@@ -68,6 +69,9 @@ export { DEFAULT_SOUL } from "./core/soul.js";
 export type { InitResult } from "./core/init.js";
 export { initWorkspace } from "./core/init.js";
 export { startDaemon } from "./core/daemon.js";
+export { startRepl } from "./core/repl.js";
+export type { SecretStore } from "./core/secrets.js";
+export { createSecretStore } from "./core/secrets.js";
 export type { InitSystem, ServiceConfig, ServiceResult, ServiceStatus } from "./core/service.js";
 export { detectInitSystem, installService, uninstallService, serviceStatus, serviceLogs } from "./core/service.js";
 export { GhostpawError, ConfigError, ValidationError, ToolError, ProviderError, BudgetExceededError, DatabaseError } from "./lib/errors.js";
@@ -96,6 +100,7 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
 
   const { loadConfig } = await import("./core/config.js");
   const { createDatabase } = await import("./core/database.js");
+  const { createSecretStore } = await import("./core/secrets.js");
   const { createSessionStore } = await import("./core/session.js");
   const { createToolRegistry } = await import("./tools/registry.js");
   const { createBudgetTracker } = await import("./core/cost.js");
@@ -108,14 +113,20 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
   const { createWebSearchTool } = await import("./tools/search.js");
   const { createDelegateTool } = await import("./tools/delegate.js");
   const { createCheckRunTool } = await import("./tools/check_run.js");
+  const { createSecretsTool } = await import("./tools/secrets.js");
   const { createMemoryStore } = await import("./core/memory.js");
   const { createEventBus } = await import("./core/events.js");
   const { createRunStore } = await import("./core/runs.js");
 
-  const config = await loadConfig(workspace);
-
   const dbPath = resolve(workspace, "ghostpaw.db");
   const db = await createDatabase(dbPath);
+
+  // Secrets: load from DB into env, then sync shell overrides back
+  const secrets = createSecretStore(db);
+  secrets.loadIntoEnv();
+  secrets.syncProviderKeys();
+
+  const config = await loadConfig(workspace);
 
   const sessions = createSessionStore(db);
   const memory = createMemoryStore(db);
@@ -129,6 +140,7 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
   tools.register(createBashTool(workspace));
   tools.register(createWebFetchTool(workspace));
   tools.register(createWebSearchTool());
+  tools.register(createSecretsTool(secrets));
 
   const budget = createBudgetTracker(config.costControls);
   const model = options.model ?? config.models.default;
@@ -233,7 +245,8 @@ async function main(): Promise<void> {
     case undefined: {
       const isTTY = process.stdin.isTTY && process.stdout.isTTY;
       if (isTTY) {
-        console.log("ghostpaw interactive chat — not yet implemented");
+        const { startRepl } = await import("./core/repl.js");
+        await startRepl(workspace);
       } else {
         const { startDaemon } = await import("./core/daemon.js");
         await startDaemon(workspace);
@@ -255,11 +268,12 @@ async function main(): Promise<void> {
       break;
     }
     case "init": {
-      const { initWorkspace } = await import("./core/init.js");
+      const { initWorkspace, promptApiKey } = await import("./core/init.js");
       const result = initWorkspace(workspace);
       for (const path of result.created) console.log(`  created  ${path}`);
       for (const path of result.skipped) console.log(`  exists   ${path}`);
       console.log(`\nWorkspace initialized at ${workspace}`);
+      await promptApiKey(workspace);
       break;
     }
     case "service": {

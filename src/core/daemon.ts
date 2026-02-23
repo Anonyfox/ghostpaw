@@ -17,10 +17,16 @@ function vacuumOldLogs(db: GhostpawDatabase): void {
 export async function startDaemon(workspace: string): Promise<void> {
   const { loadConfig } = await import("./config.js");
   const { createDatabase } = await import("./database.js");
+  const { createSecretStore } = await import("./secrets.js");
 
   workspace = resolve(workspace);
-  const config = await loadConfig(workspace);
   const db = await createDatabase(resolve(workspace, "ghostpaw.db"));
+
+  const secrets = createSecretStore(db);
+  secrets.loadIntoEnv();
+  secrets.syncProviderKeys();
+
+  const config = await loadConfig(workspace);
 
   vacuumOldLogs(db);
 

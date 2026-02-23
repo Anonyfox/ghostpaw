@@ -40,13 +40,13 @@ describe("initWorkspace - fresh directory", () => {
     ok(content.includes("skills/"));
   });
 
-  it("writes valid JSON to config.json", () => {
+  it("writes valid JSON to config.json without providers", () => {
     initWorkspace(workDir);
     const raw = readFileSync(join(workDir, "config.json"), "utf-8");
     const config = JSON.parse(raw);
     ok(config.models);
     ok(config.costControls);
-    ok(typeof config.providers === "object");
+    ok(!("providers" in config));
   });
 
   it("config.json includes default model tiers", () => {

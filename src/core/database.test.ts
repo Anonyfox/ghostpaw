@@ -189,6 +189,66 @@ describe("schema - memory table", () => {
   });
 });
 
+describe("schema - secrets table", () => {
+  it("creates the secrets table", () => {
+    const rows = db.sqlite
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='secrets'")
+      .all();
+    strictEqual(rows.length, 1);
+  });
+
+  it("can insert and retrieve secrets", () => {
+    const now = Date.now();
+    db.sqlite
+      .prepare("INSERT INTO secrets (key, value, updated_at) VALUES (?, ?, ?)")
+      .run("API_KEY_ANTHROPIC", "sk-test", now);
+
+    const row = db.sqlite.prepare("SELECT * FROM secrets WHERE key = ?").get("API_KEY_ANTHROPIC") as Record<
+      string,
+      unknown
+    >;
+    strictEqual(row.key, "API_KEY_ANTHROPIC");
+    strictEqual(row.value, "sk-test");
+    strictEqual(row.updated_at, now);
+  });
+
+  it("enforces primary key uniqueness on key", () => {
+    const now = Date.now();
+    db.sqlite
+      .prepare("INSERT INTO secrets (key, value, updated_at) VALUES (?, ?, ?)")
+      .run("MY_KEY", "v1", now);
+
+    let threw = false;
+    try {
+      db.sqlite
+        .prepare("INSERT INTO secrets (key, value, updated_at) VALUES (?, ?, ?)")
+        .run("MY_KEY", "v2", now);
+    } catch {
+      threw = true;
+    }
+    ok(threw, "Should throw on duplicate key");
+  });
+
+  it("supports upsert via ON CONFLICT", () => {
+    const now = Date.now();
+    db.sqlite
+      .prepare("INSERT INTO secrets (key, value, updated_at) VALUES (?, ?, ?)")
+      .run("MY_KEY", "v1", now);
+
+    db.sqlite
+      .prepare(
+        "INSERT INTO secrets (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+      )
+      .run("MY_KEY", "v2", now + 1);
+
+    const row = db.sqlite.prepare("SELECT * FROM secrets WHERE key = ?").get("MY_KEY") as Record<
+      string,
+      unknown
+    >;
+    strictEqual(row.value, "v2");
+  });
+});
+
 describe("schema - logs table", () => {
   it("creates the logs table", () => {
     const rows = db.sqlite
