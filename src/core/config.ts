@@ -21,9 +21,9 @@ export interface GhostpawConfig {
 
 export const DEFAULT_CONFIG: GhostpawConfig = {
   models: {
-    default: "anthropic/claude-sonnet-4",
-    cheap: "anthropic/claude-haiku",
-    powerful: "anthropic/claude-opus-4",
+    default: "claude-sonnet-4-6",
+    cheap: "claude-haiku-4-5",
+    powerful: "claude-opus-4-6",
   },
   costControls: {
     maxTokensPerSession: 200_000,

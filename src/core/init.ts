@@ -93,14 +93,47 @@ const ENV_KEYS_TO_CHECK = [
   "API_KEY_XAI", "XAI_API_KEY",
 ];
 
-function hasAnyProviderKey(secrets: import("./secrets.js").SecretStore): boolean {
+function findConfiguredProvider(
+  secrets: import("./secrets.js").SecretStore,
+): (typeof PROVIDERS)[number] | null {
   for (const p of PROVIDERS) {
-    if (secrets.get(p.envKey) !== null) return true;
+    if (secrets.get(p.envKey) !== null) return p;
   }
   for (const k of ENV_KEYS_TO_CHECK) {
-    if (process.env[k] !== undefined && process.env[k] !== "") return true;
+    if (process.env[k] !== undefined && process.env[k] !== "") {
+      const match = PROVIDERS.find(
+        (p) => p.envKey === k || ENV_KEYS_TO_CHECK.indexOf(k) % 2 === 0,
+      );
+      if (match) return match;
+    }
   }
-  return false;
+  return null;
+}
+
+async function askProviderAndKey(
+  rl: import("node:readline/promises").Interface,
+  secrets: import("./secrets.js").SecretStore,
+): Promise<void> {
+  for (let i = 0; i < PROVIDERS.length; i++) {
+    console.log(`  ${i + 1}. ${PROVIDERS[i].label}`);
+  }
+
+  const choice = await rl.question("\nWhich provider? [1/2/3]: ");
+  const idx = parseInt(choice, 10);
+  if (!(idx >= 1 && idx <= PROVIDERS.length)) {
+    console.log("Invalid choice, skipping. You can set a key later via environment variable.");
+    return;
+  }
+
+  const provider = PROVIDERS[idx - 1];
+  const key = await rl.question(`${provider.label} API key: `);
+  if (!key.trim()) {
+    console.log("Empty key, skipping.");
+    return;
+  }
+
+  secrets.set(provider.envKey, key.trim());
+  console.log(`Stored ${provider.label} key.`);
 }
 
 export async function promptApiKey(workspacePath: string): Promise<void> {
@@ -113,33 +146,22 @@ export async function promptApiKey(workspacePath: string): Promise<void> {
   const secrets = createSecretStore(db);
 
   try {
-    if (hasAnyProviderKey(secrets)) return;
-
     const { createInterface } = await import("node:readline/promises");
     const rl = createInterface({ input: process.stdin, output: process.stdout });
 
     try {
-      console.log("\nNo API key found. Let's set one up.\n");
-      for (let i = 0; i < PROVIDERS.length; i++) {
-        console.log(`  ${i + 1}. ${PROVIDERS[i].label}`);
+      const existing = findConfiguredProvider(secrets);
+
+      if (existing) {
+        console.log(`\nAPI key configured: ${existing.label}`);
+        const answer = await rl.question("Change it? [y/N]: ");
+        if (answer.trim().toLowerCase() !== "y") return;
+        console.log("");
+      } else {
+        console.log("\nNo API key found. Let's set one up.\n");
       }
 
-      const choice = await rl.question("\nWhich provider? [1/2/3]: ");
-      const idx = parseInt(choice, 10);
-      if (!(idx >= 1 && idx <= PROVIDERS.length)) {
-        console.log("Invalid choice, skipping. You can set a key later via environment variable.");
-        return;
-      }
-
-      const provider = PROVIDERS[idx - 1];
-      const key = await rl.question(`${provider.label} API key: `);
-      if (!key.trim()) {
-        console.log("Empty key, skipping.");
-        return;
-      }
-
-      secrets.set(provider.envKey, key.trim());
-      console.log(`Stored ${provider.label} key.`);
+      await askProviderAndKey(rl, secrets);
     } catch {
       // Ctrl+C or closed stdin — exit silently
     } finally {

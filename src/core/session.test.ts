@@ -164,11 +164,11 @@ describe("SessionStore - message tree", () => {
       content: "response",
       tokensIn: 500,
       tokensOut: 200,
-      model: "anthropic/claude-sonnet-4",
+      model: "claude-sonnet-4",
     });
     strictEqual(msg.tokensIn, 500);
     strictEqual(msg.tokensOut, 200);
-    strictEqual(msg.model, "anthropic/claude-sonnet-4");
+    strictEqual(msg.model, "claude-sonnet-4");
   });
 
   it("updateSessionTokens aggregates to session level", () => {

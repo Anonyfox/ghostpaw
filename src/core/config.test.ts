@@ -112,11 +112,11 @@ describe("loadConfig", () => {
       join(tempDir, "config.json"),
       JSON.stringify({
         providers: { anthropic: { apiKey: "sk-old" } },
-        models: { default: "anthropic/claude-sonnet-4" },
+        models: { default: "claude-sonnet-4" },
       }),
     );
     const config = await loadConfig(tempDir);
-    strictEqual(config.models.default, "anthropic/claude-sonnet-4");
+    strictEqual(config.models.default, "claude-sonnet-4");
     ok(!("providers" in config));
   });
 });

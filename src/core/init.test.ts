@@ -52,7 +52,7 @@ describe("initWorkspace - fresh directory", () => {
   it("config.json includes default model tiers", () => {
     initWorkspace(workDir);
     const config = JSON.parse(readFileSync(join(workDir, "config.json"), "utf-8"));
-    strictEqual(config.models.default, "anthropic/claude-sonnet-4");
+    strictEqual(config.models.default, "claude-sonnet-4-6");
     ok(config.models.cheap);
     ok(config.models.powerful);
   });

@@ -68,7 +68,7 @@ describe("schema - sessions table", () => {
         `INSERT INTO sessions (id, key, created_at, last_active, model)
          VALUES (?, ?, ?, ?, ?)`,
       )
-      .run("s1", "test-session", Date.now(), Date.now(), "anthropic/claude-sonnet-4");
+      .run("s1", "test-session", Date.now(), Date.now(), "claude-sonnet-4");
 
     const row = db.sqlite.prepare("SELECT * FROM sessions WHERE id = ?").get("s1") as Record<
       string,
