@@ -47,19 +47,19 @@ export async function parseDDGResults(html: string): Promise<SearchResponse> {
     const snippetEl = div.querySelector("a.result__snippet");
     if (!anchor) continue;
 
-    const rawHref = (anchor as any).getAttribute?.("href") ?? "";
+    const rawHref = anchor.getAttribute("href") ?? "";
     const url = unwrapDDGUrl(rawHref);
     if (!url || url.startsWith("https://duckduckgo.com")) continue;
 
     results.push({
-      title: ((anchor as any).textContent ?? "").trim(),
+      title: (anchor.textContent ?? "").trim(),
       url,
-      snippet: ((snippetEl as any)?.textContent ?? "").trim(),
+      snippet: (snippetEl?.textContent ?? "").trim(),
     });
   }
 
   const vqdInput = doc.querySelector('input[name="vqd"]');
-  const vqd = (vqdInput as any)?.getAttribute?.("value") ?? undefined;
+  const vqd = vqdInput?.getAttribute("value") ?? undefined;
 
   const nextForm = doc.querySelector('input[value="Next"]');
   const hasMore = !!nextForm;

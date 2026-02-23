@@ -43,8 +43,7 @@ export interface DelegateConfig {
 }
 
 export function createDelegateTool(config: DelegateConfig) {
-  const createChat =
-    config.chatFactory ?? ((model: string) => new Chat({ model }) as ChatInstance);
+  const createChat = config.chatFactory ?? ((model: string) => new Chat({ model }) as ChatInstance);
 
   const safeTools = config.tools.filter((t) => !DELEGATE_CIRCUIT_BREAKER.has(t.name));
 
@@ -72,9 +71,12 @@ export function createDelegateTool(config: DelegateConfig) {
 
       // Dynamic profile discovery at execution time
       const available = listAgentProfiles(config.workspacePath);
-      const profile = agentName !== "default" ? getAgentProfile(config.workspacePath, agentName) : null;
+      const profile =
+        agentName !== "default" ? getAgentProfile(config.workspacePath, agentName) : null;
       if (agentName !== "default" && !profile) {
-        return { error: `Unknown agent "${agentName}". Available: ${available.join(", ") || "none"}` };
+        return {
+          error: `Unknown agent "${agentName}". Available: ${available.join(", ") || "none"}`,
+        };
       }
 
       const systemPrompt = profile

@@ -1,5 +1,5 @@
-import type { Message } from "./session.js";
 import { estimateTokens } from "./cost.js";
+import type { Message } from "./session.js";
 
 const DEFAULT_KEEP_RECENT = 6;
 const MIN_MESSAGES_FOR_COMPACTION = 8;
@@ -9,7 +9,10 @@ export function shouldCompact(messages: Message[], tokenLimit: number): boolean 
   return messages.reduce((sum, m) => sum + estimateTokens(m.content ?? ""), 0) > tokenLimit;
 }
 
-export function compactMessages(messages: Message[], keepRecentCount = DEFAULT_KEEP_RECENT): string {
+export function compactMessages(
+  messages: Message[],
+  keepRecentCount = DEFAULT_KEEP_RECENT,
+): string {
   const splitIdx = Math.max(0, messages.length - keepRecentCount);
   const older = messages.slice(0, splitIdx);
   const recent = messages.slice(splitIdx);

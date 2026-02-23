@@ -5,6 +5,7 @@ import {
   parseDDGResults,
   type SearchProvider,
   type SearchResponse,
+  type SearchResult,
 } from "./search.js";
 
 type ToolExecArg = Parameters<ReturnType<typeof createWebSearchTool>["execute"]>[0];
@@ -81,7 +82,10 @@ describe("parseDDGResults", () => {
     ok(results.length >= 2);
     strictEqual(results[0]!.title, "Deno - Next-Gen JS Runtime");
     strictEqual(results[0]!.url, "https://deno.com/");
-    strictEqual(results[0]!.snippet, "Deno is the open-source JavaScript runtime for the modern web.");
+    strictEqual(
+      results[0]!.snippet,
+      "Deno is the open-source JavaScript runtime for the modern web.",
+    );
   });
 
   it("unwraps DDG redirect URLs", async () => {
@@ -133,8 +137,16 @@ function mockProvider(response: SearchResponse): SearchProvider {
   return async () => response;
 }
 
-function capturingProvider(): { provider: SearchProvider; calls: Array<{ query: string; opts: any }> } {
-  const calls: Array<{ query: string; opts: any }> = [];
+interface CapturedCall {
+  query: string;
+  opts: { page?: number; region?: string } | undefined;
+}
+
+function capturingProvider(): {
+  provider: SearchProvider;
+  calls: CapturedCall[];
+} {
+  const calls: CapturedCall[] = [];
   return {
     calls,
     provider: async (query, opts) => {
@@ -167,7 +179,11 @@ describe("web_search tool - execution", () => {
       }),
     );
 
-    const result = (await exec(tool, { query: "test" })) as any;
+    const result = (await exec(tool, { query: "test" })) as {
+      resultCount: number;
+      hasMore: boolean;
+      results: SearchResult[];
+    };
     strictEqual(result.resultCount, 2);
     strictEqual(result.hasMore, true);
     strictEqual(result.results[0].title, "Foo");
@@ -189,7 +205,7 @@ describe("web_search tool - execution", () => {
     const tool = createWebSearchTool(provider);
 
     await exec(tool, { query: "test" });
-    strictEqual(calls[0]!.opts.page, 1);
+    strictEqual(calls[0]!.opts?.page, 1);
   });
 
   it("returns error on provider failure", async () => {
@@ -197,7 +213,7 @@ describe("web_search tool - execution", () => {
       throw new Error("Network timeout");
     };
     const tool = createWebSearchTool(failProvider);
-    const result = (await exec(tool, { query: "test" })) as any;
+    const result = (await exec(tool, { query: "test" })) as { error: string };
     ok(result.error.includes("Network timeout"));
   });
 });
@@ -209,7 +225,9 @@ describe("web_search tool - provider swapping", () => {
       hasMore: false,
     });
     const tool = createWebSearchTool(custom);
-    const result = (await exec(tool, { query: "hello" })) as any;
+    const result = (await exec(tool, { query: "hello" })) as {
+      results: SearchResult[];
+    };
     strictEqual(result.results[0].title, "Custom: hello");
   });
 });

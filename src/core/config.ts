@@ -62,19 +62,28 @@ export async function loadConfig(workspacePath: string): Promise<GhostpawConfig>
 
     const file = parsed as Record<string, unknown>;
     if (file.models && typeof file.models === "object") Object.assign(base.models, file.models);
-    if (file.costControls && typeof file.costControls === "object") Object.assign(base.costControls, file.costControls);
+    if (file.costControls && typeof file.costControls === "object")
+      Object.assign(base.costControls, file.costControls);
   }
 
   const { costControls } = base;
 
   if (costControls.maxTokensPerSession <= 0) {
-    throw new ValidationError("maxTokensPerSession", costControls.maxTokensPerSession, "must be positive");
+    throw new ValidationError(
+      "maxTokensPerSession",
+      costControls.maxTokensPerSession,
+      "must be positive",
+    );
   }
   if (costControls.maxTokensPerDay <= 0) {
     throw new ValidationError("maxTokensPerDay", costControls.maxTokensPerDay, "must be positive");
   }
   if (costControls.warnAtPercentage < 0 || costControls.warnAtPercentage > 100) {
-    throw new ValidationError("warnAtPercentage", costControls.warnAtPercentage, "must be between 0 and 100");
+    throw new ValidationError(
+      "warnAtPercentage",
+      costControls.warnAtPercentage,
+      "must be between 0 and 100",
+    );
   }
 
   return base;

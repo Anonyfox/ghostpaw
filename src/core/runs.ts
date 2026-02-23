@@ -93,9 +93,7 @@ export function createRunStore(db: GhostpawDatabase): RunStore {
 
     complete(runId, result) {
       sqlite
-        .prepare(
-          "UPDATE runs SET status = 'completed', result = ?, completed_at = ? WHERE id = ?",
-        )
+        .prepare("UPDATE runs SET status = 'completed', result = ?, completed_at = ? WHERE id = ?")
         .run(result, Date.now(), runId);
     },
 

@@ -55,7 +55,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "chatoyant": "^0.2.2",
+    "chatoyant": "^0.3.0",
     "magpie-html": "^0.2.2"
   }
 }

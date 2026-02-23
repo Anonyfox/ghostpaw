@@ -21,7 +21,19 @@ function isCLI(): boolean {
 
 // ── SQLite bootstrap ─────────────────────────────────────────────────────────
 
+function suppressExperimentalWarning(): void {
+  const originalEmit = process.emit.bind(process);
+  process.emit = ((event: string, ...args: unknown[]) => {
+    if (event === "warning" && (args[0] as { name?: string })?.name === "ExperimentalWarning") {
+      return false;
+    }
+    return originalEmit(event, ...args);
+  }) as typeof process.emit;
+}
+
 function ensureSqliteFlag(): void {
+  suppressExperimentalWarning();
+
   if (process.execArgv.includes("--experimental-sqlite")) return;
 
   const result = spawnSync(
@@ -35,48 +47,73 @@ function ensureSqliteFlag(): void {
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-export type { GhostpawConfig, ModelTiers, CostControls } from "./core/config.js";
-export { loadConfig, DEFAULT_CONFIG } from "./core/config.js";
-export type { ChatFactory, ChatInstance, RunResult, AgentLoopHandle } from "./core/loop.js";
-export { createAgentLoop } from "./core/loop.js";
+export { createTool, Schema } from "chatoyant";
+export type { AgentProfile } from "./core/agents.js";
+export { getAgentProfile, listAgentProfiles } from "./core/agents.js";
+export type { CostControls, GhostpawConfig, ModelTiers } from "./core/config.js";
+export { DEFAULT_CONFIG, loadConfig } from "./core/config.js";
 export type { BudgetTracker, TokenUsage } from "./core/cost.js";
 export { createBudgetTracker, estimateTokens } from "./core/cost.js";
+export { startDaemon } from "./core/daemon.js";
 export type { GhostpawDatabase } from "./core/database.js";
 export { createDatabase } from "./core/database.js";
-export type { Session, SessionStore, Message, MessageRole } from "./core/session.js";
-export { createSessionStore } from "./core/session.js";
-export type { MemoryStore, Memory, MemoryMatch, SearchOptions, StoreOptions } from "./core/memory.js";
-export { createMemoryStore } from "./core/memory.js";
-export type { ToolRegistry } from "./tools/registry.js";
-export { createToolRegistry } from "./tools/registry.js";
-export { createReadTool } from "./tools/read.js";
-export { createWriteTool } from "./tools/write.js";
-export { createEditTool } from "./tools/edit.js";
-export { createBashTool } from "./tools/bash.js";
-export { createWebFetchTool } from "./tools/web.js";
-export { createWebSearchTool } from "./tools/search.js";
-export type { SearchProvider, SearchResult, SearchResponse } from "./tools/search.js";
-export { createDelegateTool } from "./tools/delegate.js";
-export { createCheckRunTool } from "./tools/check_run.js";
-export { createSecretsTool } from "./tools/secrets.js";
 export type { AgentEventMap, EventBus } from "./core/events.js";
 export { createEventBus } from "./core/events.js";
-export type { Run, RunStatus, RunStore } from "./core/runs.js";
-export { createRunStore } from "./core/runs.js";
-export type { AgentProfile } from "./core/agents.js";
-export { listAgentProfiles, getAgentProfile } from "./core/agents.js";
-export { DEFAULT_SOUL } from "./core/soul.js";
 export type { InitResult } from "./core/init.js";
 export { initWorkspace } from "./core/init.js";
-export { startDaemon } from "./core/daemon.js";
+export type { AgentLoopHandle, ChatFactory, ChatInstance, RunResult } from "./core/loop.js";
+export { createAgentLoop } from "./core/loop.js";
+export type {
+  Memory,
+  MemoryMatch,
+  MemoryStore,
+  SearchOptions,
+  StoreOptions,
+} from "./core/memory.js";
+export { createMemoryStore } from "./core/memory.js";
 export { startRepl } from "./core/repl.js";
+export type { Run, RunStatus, RunStore } from "./core/runs.js";
+export { createRunStore } from "./core/runs.js";
 export type { SecretStore } from "./core/secrets.js";
 export { createSecretStore } from "./core/secrets.js";
 export type { InitSystem, ServiceConfig, ServiceResult, ServiceStatus } from "./core/service.js";
-export { detectInitSystem, installService, uninstallService, serviceStatus, serviceLogs } from "./core/service.js";
-export { GhostpawError, ConfigError, ValidationError, ToolError, ProviderError, BudgetExceededError, DatabaseError } from "./lib/errors.js";
+export {
+  detectInitSystem,
+  installService,
+  serviceLogs,
+  serviceStatus,
+  uninstallService,
+} from "./core/service.js";
+export type { Message, MessageRole, Session, SessionStore } from "./core/session.js";
+export { createSessionStore } from "./core/session.js";
+export { DEFAULT_SOUL } from "./core/soul.js";
+export { StreamFormatter } from "./core/stream_format.js";
+export type { EmbeddingProvider } from "./lib/embedding.js";
+export { createEmbeddingProvider } from "./lib/embedding.js";
 export type { GhostpawErrorCode } from "./lib/errors.js";
-export { Schema, createTool } from "chatoyant";
+export {
+  BudgetExceededError,
+  ConfigError,
+  DatabaseError,
+  GhostpawError,
+  ProviderError,
+  ToolError,
+  ValidationError,
+} from "./lib/errors.js";
+export { createBashTool } from "./tools/bash.js";
+export { createCheckRunTool } from "./tools/check_run.js";
+export { createDelegateTool } from "./tools/delegate.js";
+export { createEditTool } from "./tools/edit.js";
+export type { MemoryToolConfig } from "./tools/memory.js";
+export { createMemoryTool } from "./tools/memory.js";
+export { createReadTool } from "./tools/read.js";
+export type { ToolRegistry } from "./tools/registry.js";
+export { createToolRegistry } from "./tools/registry.js";
+export type { SearchProvider, SearchResponse, SearchResult } from "./tools/search.js";
+export { createWebSearchTool } from "./tools/search.js";
+export { createSecretsTool } from "./tools/secrets.js";
+export { createWebFetchTool } from "./tools/web.js";
+export { createWriteTool } from "./tools/write.js";
 
 // ── Agent factory ───────────────────────────────────────────────────────────
 
@@ -114,7 +151,9 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
   const { createDelegateTool } = await import("./tools/delegate.js");
   const { createCheckRunTool } = await import("./tools/check_run.js");
   const { createSecretsTool } = await import("./tools/secrets.js");
+  const { createMemoryTool } = await import("./tools/memory.js");
   const { createMemoryStore } = await import("./core/memory.js");
+  const { createEmbeddingProvider } = await import("./lib/embedding.js");
   const { createEventBus } = await import("./core/events.js");
   const { createRunStore } = await import("./core/runs.js");
 
@@ -141,6 +180,7 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
   tools.register(createWebFetchTool(workspace));
   tools.register(createWebSearchTool());
   tools.register(createSecretsTool(secrets));
+  tools.register(createMemoryTool({ memory, sessions, embedding: createEmbeddingProvider() }));
 
   const budget = createBudgetTracker(config.costControls);
   const model = options.model ?? config.models.default;

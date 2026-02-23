@@ -1,6 +1,6 @@
 import { deepStrictEqual, ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import { createEventBus, type AgentEventMap } from "./events.js";
+import { type AgentEventMap, createEventBus } from "./events.js";
 
 describe("EventBus - on/emit", () => {
   it("fires handler when event is emitted", () => {

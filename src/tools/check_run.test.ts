@@ -9,10 +9,7 @@ let db: GhostpawDatabase;
 let sessions: SessionStore;
 let runs: RunStore;
 
-async function exec(
-  tool: ReturnType<typeof createCheckRunTool>,
-  args: Record<string, unknown>,
-) {
+async function exec(tool: ReturnType<typeof createCheckRunTool>, args: Record<string, unknown>) {
   return tool.execute({ args } as Parameters<ReturnType<typeof createCheckRunTool>["execute"]>[0]);
 }
 

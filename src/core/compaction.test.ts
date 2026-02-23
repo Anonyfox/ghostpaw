@@ -1,7 +1,7 @@
 import { ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import type { Message } from "./session.js";
 import { compactMessages, shouldCompact } from "./compaction.js";
+import type { Message } from "./session.js";
 
 function msg(i: number, overrides: Partial<Message> = {}): Message {
   return {
@@ -37,9 +37,7 @@ describe("shouldCompact", () => {
   });
 
   it("returns true when messages are very long", () => {
-    const msgs = Array.from({ length: 10 }, (_, i) =>
-      msg(i, { content: "x".repeat(2_000) }),
-    );
+    const msgs = Array.from({ length: 10 }, (_, i) => msg(i, { content: "x".repeat(2_000) }));
     strictEqual(shouldCompact(msgs, 1000), true);
   });
 });
@@ -64,10 +62,7 @@ describe("compactMessages", () => {
   });
 
   it("handles messages with null content gracefully", () => {
-    const msgs = [
-      msg(0, { content: null }),
-      msg(1, { content: "hello" }),
-    ];
+    const msgs = [msg(0, { content: null }), msg(1, { content: "hello" })];
     const prompt = compactMessages(msgs);
     ok(prompt.length > 0);
   });

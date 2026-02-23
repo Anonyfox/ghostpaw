@@ -7,10 +7,7 @@ import { createSecretsTool } from "./secrets.js";
 let db: GhostpawDatabase;
 let secrets: SecretStore;
 
-async function exec(
-  tool: ReturnType<typeof createSecretsTool>,
-  args: Record<string, unknown>,
-) {
+async function exec(tool: ReturnType<typeof createSecretsTool>, args: Record<string, unknown>) {
   return tool.execute({ args } as Parameters<ReturnType<typeof createSecretsTool>["execute"]>[0]);
 }
 

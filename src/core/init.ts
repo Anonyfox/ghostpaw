@@ -1,19 +1,14 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { DEFAULT_SOUL } from "./soul.js";
 import { DEFAULT_CONFIG } from "./config.js";
+import { DEFAULT_SOUL } from "./soul.js";
 
 export interface InitResult {
   created: string[];
   skipped: string[];
 }
 
-const GITIGNORE_ENTRIES = [
-  "ghostpaw.db",
-  "ghostpaw.db-wal",
-  "ghostpaw.db-shm",
-  ".ghostpaw/",
-];
+const GITIGNORE_ENTRIES = ["ghostpaw.db", "ghostpaw.db-wal", "ghostpaw.db-shm", ".ghostpaw/"];
 
 const PROVIDERS = [
   { label: "Anthropic", envKey: "API_KEY_ANTHROPIC" },
@@ -52,9 +47,7 @@ export function buildConfigTemplate(): string {
 
 function updateGitignore(workspacePath: string, result: InitResult): void {
   const gitignorePath = join(workspacePath, ".gitignore");
-  const existing = existsSync(gitignorePath)
-    ? readFileSync(gitignorePath, "utf-8")
-    : "";
+  const existing = existsSync(gitignorePath) ? readFileSync(gitignorePath, "utf-8") : "";
 
   const missing = GITIGNORE_ENTRIES.filter(
     (entry) => !existing.split("\n").some((line) => line.trim() === entry),
@@ -80,17 +73,20 @@ export function initWorkspace(workspacePath: string): InitResult {
   ensureDir(join(workspacePath, "agents"), result);
   ensureDir(join(workspacePath, "skills"), result);
   ensureDir(join(workspacePath, ".ghostpaw"), result);
-  writeIfMissing(join(workspacePath, "SOUL.md"), DEFAULT_SOUL + "\n", result);
-  writeIfMissing(join(workspacePath, "config.json"), buildConfigTemplate() + "\n", result);
+  writeIfMissing(join(workspacePath, "SOUL.md"), `${DEFAULT_SOUL}\n`, result);
+  writeIfMissing(join(workspacePath, "config.json"), `${buildConfigTemplate()}\n`, result);
   updateGitignore(workspacePath, result);
 
   return result;
 }
 
 const ENV_KEYS_TO_CHECK = [
-  "API_KEY_ANTHROPIC", "ANTHROPIC_API_KEY",
-  "API_KEY_OPENAI", "OPENAI_API_KEY",
-  "API_KEY_XAI", "XAI_API_KEY",
+  "API_KEY_ANTHROPIC",
+  "ANTHROPIC_API_KEY",
+  "API_KEY_OPENAI",
+  "OPENAI_API_KEY",
+  "API_KEY_XAI",
+  "XAI_API_KEY",
 ];
 
 function findConfiguredProvider(
@@ -101,9 +97,7 @@ function findConfiguredProvider(
   }
   for (const k of ENV_KEYS_TO_CHECK) {
     if (process.env[k] !== undefined && process.env[k] !== "") {
-      const match = PROVIDERS.find(
-        (p) => p.envKey === k || ENV_KEYS_TO_CHECK.indexOf(k) % 2 === 0,
-      );
+      const match = PROVIDERS.find((p) => p.envKey === k || ENV_KEYS_TO_CHECK.indexOf(k) % 2 === 0);
       if (match) return match;
     }
   }

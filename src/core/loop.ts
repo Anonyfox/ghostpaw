@@ -1,7 +1,7 @@
 import { Chat, type Tool } from "chatoyant";
 import type { ToolRegistry } from "../tools/registry.js";
+import { compactMessages, shouldCompact } from "./compaction.js";
 import { assembleSystemPrompt } from "./context.js";
-import { shouldCompact, compactMessages } from "./compaction.js";
 import { type BudgetTracker, estimateTokens } from "./cost.js";
 import type { EventBus } from "./events.js";
 import type { RunStore } from "./runs.js";
@@ -114,8 +114,7 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
       const completed = runs.getCompletedDelegations(sessionId);
       if (completed.length > 0) {
         const notes = completed.map(
-          (r) =>
-            `- **${r.agentProfile}**: ${r.result?.slice(0, 500) ?? "(no result)"}`,
+          (r) => `- **${r.agentProfile}**: ${r.result?.slice(0, 500) ?? "(no result)"}`,
         );
         systemPrompt += `\n\n## Completed Background Tasks\n\n${notes.join("\n")}`;
         for (const r of completed) runs.markAnnounced(r.id);
@@ -220,10 +219,7 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
     });
   }
 
-  async function* stream(
-    sessionId: string,
-    prompt: string,
-  ): AsyncGenerator<string, RunResult> {
+  async function* stream(sessionId: string, prompt: string): AsyncGenerator<string, RunResult> {
     const prev = sessionLocks.get(sessionId) ?? Promise.resolve();
     let releaseLock!: () => void;
     const next = new Promise<void>((r) => {
@@ -262,7 +258,12 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
       }
 
       return completeRun(
-        sessionId, runId, fullText || null, inputTokenEstimate, lastMessageId, error,
+        sessionId,
+        runId,
+        fullText || null,
+        inputTokenEstimate,
+        lastMessageId,
+        error,
       );
     } finally {
       releaseLock();

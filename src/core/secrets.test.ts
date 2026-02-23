@@ -1,4 +1,4 @@
-import { deepStrictEqual, ok, strictEqual } from "node:assert";
+import { deepStrictEqual, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { createDatabase, type GhostpawDatabase } from "./database.js";
 import { canonicalKeyName, createSecretStore, type SecretStore } from "./secrets.js";

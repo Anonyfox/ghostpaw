@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -256,7 +256,7 @@ function uninstallCron(workspace: string): ServiceResult {
       .filter((l) => !l.includes(path))
       .join("\n");
     spawnSync("crontab", ["-"], {
-      input: filtered + "\n",
+      input: `${filtered}\n`,
       stdio: ["pipe", "pipe", "pipe"],
       encoding: "utf-8",
     });
@@ -362,9 +362,10 @@ export async function serviceLogs(workspace: string): Promise<void> {
 
   const db = await createDatabase(dbPath);
 
-  const initial = db.sqlite
-    .prepare("SELECT * FROM logs ORDER BY id DESC LIMIT 50")
-    .all() as Record<string, unknown>[];
+  const initial = db.sqlite.prepare("SELECT * FROM logs ORDER BY id DESC LIMIT 50").all() as Record<
+    string,
+    unknown
+  >[];
 
   for (const row of initial.reverse()) {
     printLogRow(row);

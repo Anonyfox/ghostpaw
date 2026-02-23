@@ -1,12 +1,12 @@
+import { match, ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import { strictEqual, ok, match } from "node:assert";
+import type { ServiceConfig } from "./service.js";
 import {
   detectInitSystem,
-  generateSystemdUnit,
   generateLaunchdPlist,
+  generateSystemdUnit,
   generateWatchdogScript,
 } from "./service.js";
-import type { ServiceConfig } from "./service.js";
 
 const SAMPLE_CONFIG: ServiceConfig = {
   workspace: "/opt/myagent",
@@ -38,7 +38,10 @@ describe("service", () => {
     });
 
     it("quotes ExecStart paths for space safety", () => {
-      match(unit, /ExecStart="\/usr\/local\/bin\/node" --experimental-sqlite "\/usr\/local\/bin\/ghostpaw"/);
+      match(
+        unit,
+        /ExecStart="\/usr\/local\/bin\/node" --experimental-sqlite "\/usr\/local\/bin\/ghostpaw"/,
+      );
     });
 
     it("includes WorkingDirectory", () => {

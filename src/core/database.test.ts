@@ -203,10 +203,9 @@ describe("schema - secrets table", () => {
       .prepare("INSERT INTO secrets (key, value, updated_at) VALUES (?, ?, ?)")
       .run("API_KEY_ANTHROPIC", "sk-test", now);
 
-    const row = db.sqlite.prepare("SELECT * FROM secrets WHERE key = ?").get("API_KEY_ANTHROPIC") as Record<
-      string,
-      unknown
-    >;
+    const row = db.sqlite
+      .prepare("SELECT * FROM secrets WHERE key = ?")
+      .get("API_KEY_ANTHROPIC") as Record<string, unknown>;
     strictEqual(row.key, "API_KEY_ANTHROPIC");
     strictEqual(row.value, "sk-test");
     strictEqual(row.updated_at, now);

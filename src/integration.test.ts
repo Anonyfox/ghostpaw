@@ -515,11 +515,19 @@ describe("Integration: EventBus fires during agent loop", () => {
     eventBus.on("run:error", (d) => errors.push(d.error));
 
     const errorChat: ChatInstance = {
-      system() { return this; },
-      user() { return this; },
-      assistant() { return this; },
+      system() {
+        return this;
+      },
+      user() {
+        return this;
+      },
+      assistant() {
+        return this;
+      },
       addTool() {},
-      async generate() { throw new Error("boom"); },
+      async generate() {
+        throw new Error("boom");
+      },
     };
 
     const loop = createAgentLoop({
@@ -543,12 +551,23 @@ describe("Integration: EventBus fires during agent loop", () => {
     eventBus.on("stream:chunk", (d) => chunks.push(d.chunk));
 
     const streamChat: ChatInstance = {
-      system() { return this; },
-      user() { return this; },
-      assistant() { return this; },
+      system() {
+        return this;
+      },
+      user() {
+        return this;
+      },
+      assistant() {
+        return this;
+      },
       addTool() {},
-      async generate() { return "Hello"; },
-      async *stream() { yield "He"; yield "llo"; },
+      async generate() {
+        return "Hello";
+      },
+      async *stream() {
+        yield "He";
+        yield "llo";
+      },
     };
 
     const loop = createAgentLoop({
@@ -604,11 +623,19 @@ describe("Integration: RunStore tracks loop executions", () => {
 
   it("marks run as failed when generate throws", async () => {
     const errorChat: ChatInstance = {
-      system() { return this; },
-      user() { return this; },
-      assistant() { return this; },
+      system() {
+        return this;
+      },
+      user() {
+        return this;
+      },
+      assistant() {
+        return this;
+      },
       addTool() {},
-      async generate() { throw new Error("provider down"); },
+      async generate() {
+        throw new Error("provider down");
+      },
     };
 
     const loop = createAgentLoop({
@@ -649,9 +676,15 @@ describe("Integration: per-session serialization", () => {
       chatFactory: () => {
         const myIdx = ++callCount;
         return {
-          system() { return this; },
-          user() { return this; },
-          assistant() { return this; },
+          system() {
+            return this;
+          },
+          user() {
+            return this;
+          },
+          assistant() {
+            return this;
+          },
           addTool() {},
           async generate() {
             // First call takes longer to simulate overlapping
@@ -689,10 +722,7 @@ describe("Integration: per-session serialization", () => {
     const s1 = sessions.createSession("sess-a");
     const s2 = sessions.createSession("sess-b");
 
-    const [r1, r2] = await Promise.all([
-      loop.run(s1.id, "msg 1"),
-      loop.run(s2.id, "msg 2"),
-    ]);
+    const [r1, r2] = await Promise.all([loop.run(s1.id, "msg 1"), loop.run(s2.id, "msg 2")]);
 
     strictEqual(r1.text, "concurrent");
     strictEqual(r2.text, "concurrent");
