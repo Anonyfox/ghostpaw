@@ -9,7 +9,18 @@ function loadSoul(workspacePath: string): string | null {
   return content || null;
 }
 
-function loadSkills(workspacePath: string): string[] {
+interface SkillEntry {
+  filename: string;
+  title: string;
+}
+
+function extractTitle(content: string): string {
+  const line = content.split("\n").find((l) => l.trim().startsWith("#"));
+  if (line) return line.replace(/^#+\s*/, "").trim();
+  return "(untitled)";
+}
+
+function loadSkillIndex(workspacePath: string): SkillEntry[] {
   const skillsDir = join(workspacePath, "skills");
   if (!existsSync(skillsDir)) return [];
 
@@ -17,11 +28,27 @@ function loadSkills(workspacePath: string): string[] {
     return readdirSync(skillsDir)
       .filter((f) => f.endsWith(".md"))
       .sort()
-      .map((f) => readFileSync(join(skillsDir, f), "utf-8").trim())
-      .filter((content) => content.length > 0);
+      .map((f) => {
+        const content = readFileSync(join(skillsDir, f), "utf-8").trim();
+        return { filename: f, title: extractTitle(content) };
+      })
+      .filter((e) => e.title.length > 0);
   } catch {
     return [];
   }
+}
+
+function formatSkillIndex(skills: SkillEntry[]): string {
+  const lines = skills.map((s) => `- ${s.filename}: ${s.title}`);
+  return [
+    "## Skills",
+    "",
+    `You have ${skills.length} skill${skills.length === 1 ? "" : "s"} available in \`skills/\`. ` +
+      "Read a skill file with the `read` tool when it's relevant to the current task. " +
+      "Use `skills list` for ranks and details.",
+    "",
+    ...lines,
+  ].join("\n");
 }
 
 export function assembleSystemPrompt(
@@ -32,9 +59,9 @@ export function assembleSystemPrompt(
 
   sections.push(loadSoul(workspacePath) ?? DEFAULT_SOUL);
 
-  const skills = loadSkills(workspacePath);
+  const skills = loadSkillIndex(workspacePath);
   if (skills.length > 0) {
-    sections.push(`## Skills\n\n${skills.join("\n\n---\n\n")}`);
+    sections.push(formatSkillIndex(skills));
   }
 
   if (budgetSummary) {

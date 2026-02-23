@@ -61,6 +61,8 @@ The gap: **a JS/TS agent runtime that's minimal, self-hosted, model-independent,
 
 One `.mjs` file that IS the agent. CLI tool, runtime, and importable library in one artifact. Self-manages a workspace of markdown files on the host. Self-extends by writing new skill files through usage. Reads OpenClaw skill/soul format natively.
 
+The key differentiator: **skills compound.** Every interaction can produce a new skill (procedural knowledge in a markdown file), which makes the agent permanently better at that task. Memory stores facts. Skills store procedures. Cron automates execution. Together, they form a learning system that no stateless agent — custom GPTs, Claude Projects, or any prompt-only tool — can replicate. The agent on day 100 is fundamentally more capable than on day 1.
+
 Published as `ghostpaw` on npm. Three ways to run:
 
 ```bash
@@ -483,7 +485,31 @@ Token counting uses the bundled approximate tokenizer (~4 chars per token). Comp
 
 ## Skills
 
-Skills are the extension mechanism. A skill is a markdown file in `skills/` that gives the agent domain knowledge about how to accomplish specific tasks. No code, no API, no lifecycle — just context injected into the system prompt.
+Skills are the core differentiator. Not a feature — the thesis.
+
+A skill is a markdown file in `skills/` that gives the agent procedural knowledge about how to accomplish specific tasks. No code, no API, no lifecycle — just context injected into the system prompt. But the mechanism is less interesting than what it enables: **a learning system that compounds over time.**
+
+### Why Skills Win
+
+Three capabilities combine into something no stateless agent can replicate:
+
+| Capability | What it stores | How it persists |
+| --- | --- | --- |
+| **Memory** | Facts — what happened, user preferences, outcomes | Vector embeddings in SQLite, searchable via `recall` |
+| **Skills** | Procedures — how to do things, step by step | Markdown files in `skills/`, loaded every turn |
+| **Scheduling** | Triggers — when to run procedures autonomously | Cron jobs via bash, running `ghostpaw run` on a schedule |
+
+The flywheel:
+
+1. User asks agent to deploy → agent figures it out through trial and error (3-5 tool calls)
+2. Agent writes a deploy skill → next time it's one-shot (1 tool call)
+3. Agent notices the skill missed an edge case → improves the skill from experience
+4. User asks to automate it → agent sets up a cron job
+5. Now deploys run autonomously, reliably, without human prompting
+
+Custom GPTs can't do this — no persistence, no local execution, no scheduling. Claude Projects can't do this — no tool access, no cron, no self-modification. OpenClaw can technically do this, but skills are buried under 430k lines of plugins and marketplace complexity. The signal is lost in the noise.
+
+Ghostpaw makes skills THE mechanism. There's nothing else competing for attention. Every improvement to the agent flows through skills.
 
 ### How It Works
 
@@ -510,13 +536,15 @@ When asked to deploy, follow these steps:
 If deployment fails with "not linked", run `vercel link` first.
 ```
 
-That's it. No factory function, no parameter schema, no test harness. The LLM reads the instructions and executes them using Read, Write, Edit, Bash, and the other built-in tools. The `VERCEL_TOKEN` is in the secret store, synced to `process.env`, never visible in the prompt.
+No factory function, no parameter schema, no test harness. The LLM reads the instructions and executes them using the built-in tools. The `VERCEL_TOKEN` is in the secret store, synced to `process.env`, never visible in the prompt.
 
-### Self-Extension
+### Self-Authoring
 
-The agent can write new skills for itself. When it figures out how to do something through trial and error, it can Write a skill file into `skills/` to remember the procedure for next time. The skill is picked up on the next loop iteration automatically.
+The agent writes new skills for itself. When it figures out how to do something through trial and error, it writes a skill file into `skills/` to remember the procedure for next time. The skill is picked up on the next loop iteration automatically.
 
-This is how the agent grows organically through usage — not through a plugin system, but through accumulating procedural knowledge in plain text files that anyone can read, edit, or share.
+New workspaces ship with a **skill-authoring meta-skill** — a skill that teaches the agent how to create, test, and refine other skills. This bootstraps the flywheel: the agent knows when to create skills (repeated patterns, user corrections, non-obvious workflows), how to structure them (concise, tool-specific, with failure paths), and how to evolve them from practice. The meta-skill is the seed.
+
+The agent on day 100 has a `skills/` directory full of battle-tested procedures it wrote from experience. This accumulated knowledge is plain text — human-readable, git-versionable, shareable between workspaces. You can copy one agent's skills to another and instantly transfer its expertise.
 
 ### Agent Profiles
 
@@ -531,11 +559,11 @@ You are a thorough code reviewer. When given code to review:
 - Be direct and specific, not vague
 ```
 
-The delegate tool spawns a sub-agent loaded with that profile's system prompt. The main agent says "delegate this code review to the code-reviewer agent" and gets back the result. Profiles are discovered dynamically — drop a `.md` file in `agents/`, it's immediately available.
+The delegate tool spawns a sub-agent loaded with that profile's system prompt. Profiles are discovered dynamically — drop a `.md` file in `agents/`, it's immediately available.
 
 ### Why Not a Plugin System
 
-See **Design Principles → Tools Are Syscalls, Skills Are Programs**. The short version: skills (markdown) + secrets (env vars) + bash (code execution) cover everything a plugin system would, with zero API surface. The dominant pattern across OpenClaw, Cursor, Claude Code, and Goose is markdown context injection — not code plugins. People write instructions, not factory functions.
+See **Design Principles → Tools Are Syscalls, Skills Are Programs**. Skills (markdown) + secrets (env vars) + bash (code execution) cover everything a plugin system would, with zero API surface. The dominant pattern across OpenClaw, Cursor, Claude Code, and Goose is markdown context injection — not code plugins. The difference: Ghostpaw is the only one where the agent writes its own skills and they compound.
 
 ---
 
@@ -653,7 +681,9 @@ All state in SQLite. All behavior in markdown files. Clean separation: the compi
 
 ---
 
-## Benefits Over OpenClaw
+## Benefits
+
+### vs OpenClaw
 
 - **Independent** — no corporate owner, no model bias, no vendor lock-in after OpenAI acquisition
 - **Zero setup** — `npx ghostpaw` vs hours of broken configuration flows
@@ -663,10 +693,17 @@ All state in SQLite. All behavior in markdown files. Clean separation: the compi
 - **Actually reliable** — tiny surface area (tools + SQLite + one process) vs 430k+ lines of interdependent complexity
 - **Secure by default** — no marketplace, no community upload, no malware vector. Skills are local files you control and audit.
 - **Cost-controlled** — token budgets, model routing, hard session limits. No $200 runaways.
-- **Fail-fast** — provider errors return immediately, not silent 20-minute timeouts
-- **Works on first try** — no `openclaw doctor --fix` needed because nothing breaks during install
 - **Ecosystem compatible** — reads OpenClaw SKILL.md/SOUL.md format. Community skills for free, corporate baggage stays behind.
-- **Self-extending** — the agent writes its own skills through usage. Ships minimal, grows organically through accumulated procedural knowledge.
+- **Skills as primary mechanism** — OpenClaw has skills but buries them under plugins, marketplace, and MCP. Ghostpaw makes skills the only extension path — focused, auditable, self-authoring.
+
+### vs Custom GPTs / Claude Projects / Stateless Agents
+
+- **Persistent memory** — facts survive across sessions via vector embeddings in SQLite. Custom GPTs forget everything between conversations.
+- **Self-authoring skills** — the agent writes and improves its own procedural knowledge. GPTs have static system prompts that only humans can edit.
+- **Local execution** — bash, filesystem, code execution on your machine. GPTs run in a sandbox with no access to your environment.
+- **Scheduling** — cron jobs make skills autonomous. A skill + a cron schedule = recurring intelligence. No stateless agent can do this.
+- **Compounding** — the agent on day 100 has a `skills/` directory full of battle-tested procedures. The GPT on day 100 is the same as day 1.
+- **Transferable expertise** — copy one agent's `skills/` directory to another workspace. Instant knowledge transfer in plain text files.
 
 ---
 

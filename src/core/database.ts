@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   token_budget INTEGER,
   model TEXT,
   head_message_id TEXT,
-  metadata TEXT
+  metadata TEXT,
+  absorbed_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -123,6 +124,18 @@ export async function createDatabase(pathOrMemory: string): Promise<GhostpawData
     sqlite.exec(SCHEMA_SQL);
   } catch (err) {
     throw new DatabaseError("Failed to initialize database schema", { cause: err });
+  }
+
+  // Migrations for existing databases
+  try {
+    const cols = sqlite
+      .prepare("PRAGMA table_info(sessions)")
+      .all() as { name: string }[];
+    if (!cols.some((c) => c.name === "absorbed_at")) {
+      sqlite.exec("ALTER TABLE sessions ADD COLUMN absorbed_at INTEGER");
+    }
+  } catch {
+    // best-effort migration
   }
 
   return {

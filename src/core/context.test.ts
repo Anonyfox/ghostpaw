@@ -28,15 +28,27 @@ describe("assembleSystemPrompt", () => {
     ok(prompt.includes("Whiskers"));
   });
 
-  it("includes SKILL.md files from skills/ directory", () => {
+  it("includes skill index with filenames and titles", () => {
     const skillsDir = join(workDir, "skills");
     mkdirSync(skillsDir);
     writeFileSync(join(skillsDir, "coding.md"), "# Coding\nYou are excellent at TypeScript.");
     writeFileSync(join(skillsDir, "writing.md"), "# Writing\nYou write clean prose.");
 
     const prompt = assembleSystemPrompt(workDir);
-    ok(prompt.includes("TypeScript"));
-    ok(prompt.includes("clean prose"));
+    ok(prompt.includes("coding.md"));
+    ok(prompt.includes("Coding"));
+    ok(prompt.includes("writing.md"));
+    ok(prompt.includes("Writing"));
+    ok(prompt.includes("2 skills"));
+  });
+
+  it("does not include full skill body content in prompt", () => {
+    const skillsDir = join(workDir, "skills");
+    mkdirSync(skillsDir);
+    writeFileSync(join(skillsDir, "coding.md"), "# Coding\nYou are excellent at TypeScript.");
+
+    const prompt = assembleSystemPrompt(workDir);
+    ok(!prompt.includes("You are excellent at TypeScript"));
   });
 
   it("ignores non-.md files in skills/ directory", () => {
@@ -46,7 +58,8 @@ describe("assembleSystemPrompt", () => {
     writeFileSync(join(skillsDir, "notes.txt"), "This should be ignored");
 
     const prompt = assembleSystemPrompt(workDir);
-    ok(prompt.includes("Coding skill"));
+    ok(prompt.includes("coding.md"));
+    ok(!prompt.includes("notes.txt"));
     ok(!prompt.includes("This should be ignored"));
   });
 
@@ -67,6 +80,7 @@ describe("assembleSystemPrompt", () => {
   it("handles missing skills/ directory gracefully", () => {
     const prompt = assembleSystemPrompt(workDir);
     ok(prompt.length > 0);
+    ok(!prompt.includes("## Skills"));
   });
 
   it("handles empty SOUL.md gracefully", () => {
@@ -84,10 +98,19 @@ describe("assembleSystemPrompt", () => {
     const prompt = assembleSystemPrompt(workDir, "Budget line here");
 
     const soulIdx = prompt.indexOf("I am a cat.");
-    const skillIdx = prompt.indexOf("Test skill");
+    const skillIdx = prompt.indexOf("test.md");
     const budgetIdx = prompt.indexOf("Budget line here");
 
     ok(soulIdx < skillIdx, "SOUL before skills");
     ok(skillIdx < budgetIdx, "skills before budget");
+  });
+
+  it("tells agent to read skills on demand", () => {
+    const skillsDir = join(workDir, "skills");
+    mkdirSync(skillsDir);
+    writeFileSync(join(skillsDir, "deploy.md"), "# Deploy\nSteps...");
+
+    const prompt = assembleSystemPrompt(workDir);
+    ok(prompt.includes("read") || prompt.includes("Read"));
   });
 });

@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initWorkspace } from "./init.js";
+import { ensureWorkspace, initWorkspace } from "./init.js";
 import { DEFAULT_SOUL } from "./soul.js";
 
 let workDir: string;
@@ -27,7 +27,7 @@ describe("initWorkspace - fresh directory", () => {
     ok(existsSync(join(workDir, "config.json")));
     ok(existsSync(join(workDir, ".gitignore")));
 
-    strictEqual(result.created.length, 6);
+    strictEqual(result.created.length, 8);
     strictEqual(result.skipped.length, 0);
   });
 
@@ -72,7 +72,7 @@ describe("initWorkspace - idempotency", () => {
     const result = initWorkspace(workDir);
 
     strictEqual(result.created.length, 0);
-    strictEqual(result.skipped.length, 6);
+    strictEqual(result.skipped.length, 8);
   });
 
   it("does not overwrite existing SOUL.md", () => {
@@ -124,6 +124,46 @@ describe("initWorkspace - partial state", () => {
   });
 });
 
+describe("default skills", () => {
+  it("creates skill-craft.md and skill-training.md in skills/", () => {
+    initWorkspace(workDir);
+    ok(existsSync(join(workDir, "skills", "skill-craft.md")));
+    ok(existsSync(join(workDir, "skills", "skill-training.md")));
+  });
+
+  it("skill-craft.md contains key sections", () => {
+    initWorkspace(workDir);
+    const content = readFileSync(join(workDir, "skills", "skill-craft.md"), "utf-8");
+    ok(content.includes("# Skill Craft"));
+    ok(content.includes("## When to Create a Skill"));
+    ok(content.includes("## Skill Structure"));
+    ok(content.includes("## Code Execution"));
+    ok(content.includes("## Scheduling"));
+    ok(content.includes("## Evolving Skills"));
+    ok(content.includes("## Anti-Patterns"));
+  });
+
+  it("skill-training.md contains key sections", () => {
+    initWorkspace(workDir);
+    const content = readFileSync(join(workDir, "skills", "skill-training.md"), "utf-8");
+    ok(content.includes("# Skill Training"));
+    ok(content.includes("## Step 1: Check Growth Status"));
+    ok(content.includes("## Step 5: Identify Gaps"));
+    ok(content.includes("## Step 7: Summarize"));
+    ok(content.includes("## Skill History"));
+    ok(content.includes("## When to Train"));
+  });
+
+  it("does not overwrite existing skill files", () => {
+    mkdirSync(join(workDir, "skills"), { recursive: true });
+    writeFileSync(join(workDir, "skills", "skill-craft.md"), "Custom craft.");
+    writeFileSync(join(workDir, "skills", "skill-training.md"), "Custom training.");
+    initWorkspace(workDir);
+    strictEqual(readFileSync(join(workDir, "skills", "skill-craft.md"), "utf-8"), "Custom craft.");
+    strictEqual(readFileSync(join(workDir, "skills", "skill-training.md"), "utf-8"), "Custom training.");
+  });
+});
+
 describe("DEFAULT_SOUL", () => {
   it("is a non-empty string", () => {
     ok(DEFAULT_SOUL.length > 100);
@@ -154,5 +194,52 @@ describe("DEFAULT_SOUL", () => {
     ok(DEFAULT_SOUL.includes("agents/"));
     ok(DEFAULT_SOUL.includes("skills/"));
     ok(DEFAULT_SOUL.includes("ghostpaw.db"));
+  });
+});
+
+describe("ensureWorkspace", () => {
+  it("scaffolds a fresh directory and creates config.json", async () => {
+    // Provide a fake API key so it doesn't prompt
+    const orig = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = "sk-test-fake-key";
+    try {
+      await ensureWorkspace(workDir);
+      ok(existsSync(join(workDir, "config.json")));
+      ok(existsSync(join(workDir, "SOUL.md")));
+      ok(existsSync(join(workDir, "agents")));
+      ok(existsSync(join(workDir, "skills")));
+    } finally {
+      if (orig === undefined) delete process.env.ANTHROPIC_API_KEY;
+      else process.env.ANTHROPIC_API_KEY = orig;
+    }
+  });
+
+  it("is idempotent — second call does not fail or re-create", async () => {
+    const orig = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = "sk-test-fake-key";
+    try {
+      await ensureWorkspace(workDir);
+      const configBefore = readFileSync(join(workDir, "config.json"), "utf-8");
+      await ensureWorkspace(workDir);
+      const configAfter = readFileSync(join(workDir, "config.json"), "utf-8");
+      strictEqual(configBefore, configAfter);
+    } finally {
+      if (orig === undefined) delete process.env.ANTHROPIC_API_KEY;
+      else process.env.ANTHROPIC_API_KEY = orig;
+    }
+  });
+
+  it("skips scaffold when config.json already exists", async () => {
+    const orig = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = "sk-test-fake-key";
+    try {
+      writeFileSync(join(workDir, "config.json"), '{"custom": true}');
+      await ensureWorkspace(workDir);
+      const content = readFileSync(join(workDir, "config.json"), "utf-8");
+      strictEqual(content, '{"custom": true}');
+    } finally {
+      if (orig === undefined) delete process.env.ANTHROPIC_API_KEY;
+      else process.env.ANTHROPIC_API_KEY = orig;
+    }
   });
 });

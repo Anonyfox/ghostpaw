@@ -3,6 +3,7 @@ import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+import { style } from "./lib/terminal.js";
 
 declare const __VERSION__: string;
 const VERSION = __VERSION__;
@@ -60,7 +61,7 @@ export { createDatabase } from "./core/database.js";
 export type { AgentEventMap, EventBus } from "./core/events.js";
 export { createEventBus } from "./core/events.js";
 export type { InitResult } from "./core/init.js";
-export { initWorkspace } from "./core/init.js";
+export { ensureWorkspace, initWorkspace } from "./core/init.js";
 export type { AgentLoopHandle, ChatFactory, ChatInstance, RunResult } from "./core/loop.js";
 export { createAgentLoop } from "./core/loop.js";
 export type {
@@ -71,6 +72,10 @@ export type {
   StoreOptions,
 } from "./core/memory.js";
 export { createMemoryStore } from "./core/memory.js";
+export type { AbsorbConfig, AbsorbResult } from "./core/absorb.js";
+export { absorbSessions, countUnabsorbedSessions } from "./core/absorb.js";
+export type { ReflectChange, ReflectResult, TrainChange, TrainResult } from "./core/reflect.js";
+export { printReflectReport, printTrainReport, reflect, runReflect, runTrain, train } from "./core/reflect.js";
 export { startRepl } from "./core/repl.js";
 export type { Run, RunStatus, RunStore } from "./core/runs.js";
 export { createRunStore } from "./core/runs.js";
@@ -92,6 +97,18 @@ export type { EmbeddingProvider } from "./lib/embedding.js";
 export { createEmbeddingProvider } from "./lib/embedding.js";
 export type { GhostpawErrorCode } from "./lib/errors.js";
 export {
+  commitSkills,
+  diffSkills as diffSkillHistory,
+  getAllSkillRanks,
+  getGitFlags as getSkillHistoryFlags,
+  getSkillLog,
+  getSkillRank,
+  hasHistory as hasSkillHistory,
+  initHistory as initSkillHistory,
+  isGitAvailable,
+} from "./lib/skill-history.js";
+export { banner, blank, label, log, style } from "./lib/terminal.js";
+export {
   BudgetExceededError,
   ConfigError,
   DatabaseError,
@@ -112,6 +129,7 @@ export { createToolRegistry } from "./tools/registry.js";
 export type { SearchProvider, SearchResponse, SearchResult } from "./tools/search.js";
 export { createWebSearchTool } from "./tools/search.js";
 export { createSecretsTool } from "./tools/secrets.js";
+export { createSkillsTool } from "./tools/skills.js";
 export { createWebFetchTool } from "./tools/web.js";
 export { createWriteTool } from "./tools/write.js";
 
@@ -152,6 +170,7 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
   const { createCheckRunTool } = await import("./tools/check_run.js");
   const { createSecretsTool } = await import("./tools/secrets.js");
   const { createMemoryTool } = await import("./tools/memory.js");
+  const { createSkillsTool } = await import("./tools/skills.js");
   const { createMemoryStore } = await import("./core/memory.js");
   const { createEmbeddingProvider } = await import("./lib/embedding.js");
   const { createEventBus } = await import("./core/events.js");
@@ -181,6 +200,7 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
   tools.register(createWebSearchTool());
   tools.register(createSecretsTool(secrets));
   tools.register(createMemoryTool({ memory, sessions, embedding: createEmbeddingProvider() }));
+  tools.register(createSkillsTool({ workspacePath: workspace, sessions, memory }));
 
   const budget = createBudgetTracker(config.costControls);
   const model = options.model ?? config.models.default;
@@ -231,29 +251,27 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
 // ── CLI ──────────────────────────────────────────────────────────────────────
 
 function printHelp(): void {
-  console.log(
-    `
-ghostpaw v${VERSION} — single-file AI agent runtime
+  const h = style.bold;
+  const d = style.dim;
+  console.log(`
+${h("ghostpaw")} ${d(`v${VERSION}`)} — single-file AI agent runtime
 
-Usage: ghostpaw [command] [options]
+${h("Usage")}
+  ghostpaw ${d("[command] [options]")}
 
-Commands:
-  (default)                  daemon (headless) or chat (TTY)
-  run <prompt>               One-shot prompt, exits when done
-  init                       Scaffold workspace (SOUL.md, config.json, etc.)
-  service install            Register as OS service (auto-start + restart)
-  service uninstall          Remove OS service
-  service status             Check if running
-  service logs               Tail service logs
-  telegram                   Start Telegram bot
+${h("Commands")}
+  ${d("(default)")}        Interactive chat ${d("(TTY)")} or daemon ${d("(headless)")}
+  run ${d("<prompt>")}      One-shot prompt, exits when done
+  train             Review recent experience, level up skills
+  init              Re-scaffold workspace ${d("(auto-runs on first use)")}
+  service ${d("<sub>")}     install | uninstall | status | logs
+  telegram          Start Telegram bot
 
-Options:
+${h("Options")}
+  -w, --workspace   Workspace directory ${d("(default: .)")}
+  -m, --model       Model override ${d("(default: from config)")}
   -h, --help        Show this help
-  -v, --version     Show version
-  -w, --workspace   Workspace directory (default: .)
-  -m, --model       Model to use (default: from config)
-`.trim(),
-  );
+  -v, --version     Show version`);
 }
 
 async function main(): Promise<void> {
@@ -283,6 +301,8 @@ async function main(): Promise<void> {
 
   switch (command) {
     case undefined: {
+      const { ensureWorkspace } = await import("./core/init.js");
+      await ensureWorkspace(workspace);
       const isTTY = process.stdin.isTTY && process.stdout.isTTY;
       if (isTTY) {
         const { startRepl } = await import("./core/repl.js");
@@ -296,9 +316,11 @@ async function main(): Promise<void> {
     case "run": {
       const prompt = positionals.slice(1).join(" ");
       if (!prompt) {
-        console.error('Usage: ghostpaw run "your prompt here"');
+        console.error(`Usage: ghostpaw run ${style.dim('"your prompt here"')}`);
         process.exit(1);
       }
+      const { ensureWorkspace } = await import("./core/init.js");
+      await ensureWorkspace(workspace);
       const agent = await createAgent({
         workspace: values.workspace as string,
         model: values.model as string | undefined,
@@ -307,12 +329,22 @@ async function main(): Promise<void> {
       console.log(result);
       break;
     }
+    case "train": {
+      const { ensureWorkspace } = await import("./core/init.js");
+      await ensureWorkspace(workspace);
+      const { train } = await import("./core/reflect.js");
+      await train(workspace, { stream: process.stdout.isTTY === true });
+      break;
+    }
     case "init": {
       const { initWorkspace, promptApiKey } = await import("./core/init.js");
+      const { log, blank } = await import("./lib/terminal.js");
+      blank();
       const result = initWorkspace(workspace);
-      for (const path of result.created) console.log(`  created  ${path}`);
-      for (const path of result.skipped) console.log(`  exists   ${path}`);
-      console.log(`\nWorkspace initialized at ${workspace}`);
+      for (const p of result.created) log.created(p);
+      for (const p of result.skipped) log.exists(p);
+      blank();
+      log.done(`Workspace ready at ${style.dim(workspace)}`);
       await promptApiKey(workspace);
       break;
     }
@@ -360,10 +392,12 @@ async function main(): Promise<void> {
     case "telegram":
       console.log("ghostpaw telegram bot — not yet implemented");
       break;
-    default:
-      console.error(`Unknown command: ${command}\n`);
+    default: {
+      const { log } = await import("./lib/terminal.js");
+      log.error(`Unknown command: ${command}`);
       printHelp();
       process.exit(1);
+    }
   }
 }
 

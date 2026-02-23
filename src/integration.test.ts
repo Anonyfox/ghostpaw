@@ -220,17 +220,21 @@ describe("Integration: memory persistence across sessions", () => {
 // ── Integration: Context assembly with workspace files ───────────────────────
 
 describe("Integration: context assembly with workspace files", () => {
-  it("loads SOUL.md and skills into the system prompt", () => {
+  it("loads SOUL.md and skill index into the system prompt", () => {
     writeFileSync(join(workDir, "SOUL.md"), "You are a coding assistant called Ghost.");
     mkdirSync(join(workDir, "skills"), { recursive: true });
-    writeFileSync(join(workDir, "skills", "testing.md"), "Always write tests first (TDD).");
-    writeFileSync(join(workDir, "skills", "style.md"), "Use TypeScript strict mode.");
+    writeFileSync(join(workDir, "skills", "testing.md"), "# Testing\nAlways write tests first (TDD).");
+    writeFileSync(join(workDir, "skills", "style.md"), "# Code Style\nUse TypeScript strict mode.");
 
     const prompt = assembleSystemPrompt(workDir);
 
     ok(prompt.includes("Ghost"));
-    ok(prompt.includes("TDD"));
-    ok(prompt.includes("TypeScript strict"));
+    ok(prompt.includes("testing.md"));
+    ok(prompt.includes("Testing"));
+    ok(prompt.includes("style.md"));
+    ok(prompt.includes("Code Style"));
+    ok(prompt.includes("2 skills"));
+    ok(!prompt.includes("TDD"), "full skill body should NOT be in prompt");
   });
 
   it("includes budget summary when approaching limit", () => {

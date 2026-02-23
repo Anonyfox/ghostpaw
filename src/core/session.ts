@@ -14,6 +14,7 @@ export interface Session {
   model: string | null;
   headMessageId: string | null;
   metadata: string | null;
+  absorbedAt: number | null;
 }
 
 export interface Message {
@@ -56,6 +57,10 @@ export interface SessionStore {
   getConversationHistory(sessionId: string): Message[];
   setHead(sessionId: string, messageId: string): void;
   updateSessionTokens(sessionId: string, tokensIn: number, tokensOut: number): void;
+  markAbsorbed(sessionId: string): void;
+  listUnabsorbed(): Session[];
+  countUnabsorbed(): number;
+  deleteOldAbsorbed(ttlMs: number): number;
 }
 
 function rowToSession(row: Record<string, unknown>): Session {
@@ -70,6 +75,7 @@ function rowToSession(row: Record<string, unknown>): Session {
     model: (row.model as string) ?? null,
     headMessageId: (row.head_message_id as string) ?? null,
     metadata: (row.metadata as string) ?? null,
+    absorbedAt: (row.absorbed_at as number) ?? null,
   };
 }
 
@@ -117,6 +123,7 @@ export function createSessionStore(db: GhostpawDatabase): SessionStore {
         model,
         headMessageId: null,
         metadata,
+        absorbedAt: null,
       };
     },
 
@@ -233,6 +240,50 @@ export function createSessionStore(db: GhostpawDatabase): SessionStore {
           "UPDATE sessions SET tokens_in = tokens_in + ?, tokens_out = tokens_out + ?, last_active = ? WHERE id = ?",
         )
         .run(tokensIn, tokensOut, Date.now(), sessionId);
+    },
+
+    markAbsorbed(sessionId: string): void {
+      sqlite
+        .prepare("UPDATE sessions SET absorbed_at = ? WHERE id = ?")
+        .run(Date.now(), sessionId);
+    },
+
+    listUnabsorbed(): Session[] {
+      const rows = sqlite
+        .prepare(
+          "SELECT * FROM sessions WHERE absorbed_at IS NULL AND head_message_id IS NOT NULL ORDER BY last_active ASC",
+        )
+        .all() as Record<string, unknown>[];
+      return rows.map(rowToSession);
+    },
+
+    countUnabsorbed(): number {
+      const row = sqlite
+        .prepare(
+          "SELECT COUNT(*) as cnt FROM sessions WHERE absorbed_at IS NULL AND head_message_id IS NOT NULL",
+        )
+        .get() as { cnt: number } | undefined;
+      return row?.cnt ?? 0;
+    },
+
+    deleteOldAbsorbed(ttlMs: number): number {
+      const cutoff = Date.now() - ttlMs;
+      const sessions = sqlite
+        .prepare(
+          "SELECT id FROM sessions WHERE absorbed_at IS NOT NULL AND absorbed_at < ?",
+        )
+        .all(cutoff) as { id: string }[];
+
+      // Deletes messages and runs but intentionally leaves memories intact.
+      // Memories created during absorption reference session_id for provenance
+      // but are self-contained — orphaned references are harmless.
+      for (const s of sessions) {
+        sqlite.prepare("DELETE FROM messages WHERE session_id = ?").run(s.id);
+        sqlite.prepare("DELETE FROM runs WHERE session_id = ?").run(s.id);
+        sqlite.prepare("DELETE FROM sessions WHERE id = ?").run(s.id);
+      }
+
+      return sessions.length;
     },
   };
 }
