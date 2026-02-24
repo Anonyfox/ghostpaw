@@ -22,7 +22,7 @@ Watch for these signals during a conversation:
 
 Do NOT create a skill for:
 - One-off tasks you'll never repeat
-- Things you already handle well without instructions
+- Tasks where the default behavior already works correctly without domain-specific instructions
 - Pure facts (use memory instead — skills are for procedures)
 - Speculation about tasks you haven't actually done yet
 
@@ -46,7 +46,7 @@ Do NOT create a skill for:
 - [Environment assumptions]
 \`\`\`
 
-**Conciseness matters.** You see the skill index in your context and read relevant ones on demand — but shorter skills are faster to process and act on. Target 20-50 lines. If a skill exceeds 80 lines, split it into focused sub-skills.
+**Conciseness matters.** You see the skill index in your context and read relevant ones on demand — shorter skills are faster to process and act on. Target 20-50 lines. If a skill exceeds 80 lines, split it into focused sub-skills.
 
 ## Writing Effective Instructions
 
@@ -58,95 +58,7 @@ Do NOT create a skill for:
 
 **Verify every mutation.** File writes get read back. Deployments get fetched. Database changes get queried. If you changed it, confirm it took.
 
-## Executable Skills
-
-Any skill involving data fetching, API calls, parsing, transformation, or multi-step automation **must** include a companion script. This is the most important pattern for making skills reliable and repeatable — LLM-driven tool-call chains are fragile, but a tested script is deterministic.
-
-**The pattern:** skill markdown describes *what* and *when*; a \`.mjs\` script encodes *how*.
-
-### Script location and conventions
-
-- Scripts live at \`.ghostpaw/scripts/<skill-name>.mjs\`
-- Always ES modules (\`.mjs\`), never CommonJS
-- Run via bash: \`node .ghostpaw/scripts/<skill-name>.mjs [args]\`
-- Scripts persist across sessions — reuse and improve them over time
-- Accept arguments via \`process.argv\`, output results to stdout as JSON
-- Handle errors gracefully — print \`{"error": "..."}\` and exit 1
-
-### What scripts get for free (Node.js runtime)
-
-- \`fetch()\` — built-in, no dependencies needed for HTTP/API calls
-- \`fs\`, \`path\`, \`crypto\`, \`child_process\` — full Node.js stdlib
-- \`process.env\` — all secrets are synced to environment variables automatically
-
-### Ghostpaw library imports (advanced)
-
-The runtime is importable. Scripts can access the full Ghostpaw API:
-
-\`\`\`javascript
-import { createDatabase, createMemoryStore, createSessionStore } from "./ghostpaw.mjs";
-
-const db = await createDatabase("ghostpaw.db");
-const memory = createMemoryStore(db);
-const results = memory.search("concert tickets");
-console.log(JSON.stringify(results));
-db.close();
-\`\`\`
-
-Use library imports when the script needs to read/write memories, query sessions, or access the embedding provider. For simpler tasks (API calls, file processing), stick to Node.js stdlib.
-
-### Executable skill template
-
-\`\`\`markdown
-# [Skill Title]
-
-[When this skill applies — one line]
-
-## Script
-
-Companion script: \`.ghostpaw/scripts/<name>.mjs\`
-
-**Run:** \`node .ghostpaw/scripts/<name>.mjs [args]\`
-**Output:** JSON to stdout
-**Secrets needed:** \`API_KEY_XYZ\` (accessed via \`process.env.API_KEY_XYZ\`)
-
-## Steps
-
-1. Run the script via bash with appropriate arguments
-2. Parse the JSON output
-3. [Present/process the results]
-4. [Handle errors — check for "error" key in output]
-
-## Notes
-
-- [Edge cases, rate limits, known quirks]
-\`\`\`
-
-### When to write a script vs use shell one-liners
-
-- **Script**: API calls, JSON parsing, data transformation, anything with loops/conditionals, error handling beyond exit codes, multi-step fetch-and-process pipelines
-- **Shell**: \`git\` operations, \`grep\`/\`find\`, process management, simple file moves, one-liners under ~80 chars
-- **Rule of thumb**: if you'd need more than one tool call to do it, it should be a script
-
-## Scheduling
-
-**Cron for recurring tasks:**
-
-\`\`\`bash
-# Add a job (append to existing crontab)
-(crontab -l 2>/dev/null; echo "0 9 * * * cd /path/to/workspace && node ghostpaw.mjs run 'daily report'") | crontab -
-
-# Useful schedules:
-# */15 * * * *  — every 15 minutes
-# 0 * * * *    — hourly
-# 0 9 * * *    — daily at 9am
-# 0 9 * * 1    — weekly Monday 9am
-# 0 0 1 * *    — monthly
-\`\`\`
-
-A skill that describes a procedure + a cron job that triggers it = autonomous recurring intelligence. Consider scheduling whenever a task is repetitive and time-based.
-
-**Background delegation** for long-running work within a session: \`delegate\` with \`background: true\`, poll with \`check_run\`.
+**Encode concrete details.** Skills are a performance cache — bake in specific names, values, paths, and preferences so they're available without a memory recall round-trip. If memory has newer data than a skill, update the skill to match during training.
 
 ## Evolving Skills
 
@@ -159,22 +71,21 @@ Skills are living documents. After using one several times:
 
 A skill you wrote on day 1 should look different on day 30. If it doesn't, you're not learning from practice.
 
-## Agent Profiles
+## Companion Scripts
 
-For recurring delegation, create profiles in \`agents/\`:
+For skills involving API calls, data transformation, multi-step automation, or anything where an LLM tool-call chain would be fragile, strongly consider encoding the logic in a companion \`.mjs\` script. The skill markdown describes *what* and *when*; the script encodes *how* — deterministically.
 
-\`\`\`markdown
-# [Role Name]
+- Scripts live at \`.ghostpaw/scripts/<skill-name>.mjs\` (ES modules, never CommonJS)
+- Run via bash: \`node .ghostpaw/scripts/<skill-name>.mjs [args]\`
+- Accept arguments via \`process.argv\`, output results to stdout as JSON
+- Handle errors gracefully — print \`{"error": "..."}\` and exit 1
+- Scripts get \`fetch()\`, the full Node.js stdlib, and \`process.env\` (all secrets synced automatically)
+- For advanced use, scripts can import from \`./ghostpaw.mjs\` to access memory, sessions, or embeddings
 
-You are a [role]. [Core expertise in one sentence].
-
-## Approach
-- [How to tackle tasks in this domain]
-- [What to prioritize]
-- [What to avoid]
-\`\`\`
-
-Keep profiles under 30 lines. Delegated agents get the full tool set — they need domain focus, not tool instructions.
+**When to write a script vs use shell one-liners:**
+- **Script**: API calls, JSON parsing, data transformation, loops/conditionals, multi-step fetch-and-process pipelines
+- **Shell**: \`git\` operations, \`grep\`/\`find\`, process management, simple file moves, one-liners under ~80 chars
+- **Rule of thumb**: if you'd need more than one tool call to do it, it should be a script
 
 ## Anti-Patterns
 
@@ -182,6 +93,7 @@ Keep profiles under 30 lines. Delegated agents get the full tool set — they ne
 - **Don't write encyclopedias.** Use \`memory\` for facts, skills for procedures.
 - **Don't hardcode values.** Check for file existence, use environment variables, handle missing state.
 - **Don't create skills you haven't tested.** A skill born from experience works. A skill born from imagination doesn't. Do the task first, then codify what worked.
+- **Don't over-script.** Simple bash one-liners don't need a companion \`.mjs\` file. Match the complexity of the solution to the complexity of the problem.
 `.trimEnd();
 
 export const SKILL_TRAINING = `# Skill Training
@@ -219,6 +131,7 @@ Use the skills tool with action "list" to see all skills with their ranks. For e
 - Does it still match how you actually execute the task?
 - Are there edge cases you've hit that it doesn't cover?
 - Is there cruft — verbose sections, outdated steps, redundant notes?
+- Is it over 80 lines? If so, consider splitting it.
 
 ## Step 4: Review Uncommitted Changes
 
@@ -230,27 +143,28 @@ Use the skills tool with action "diff" to check for skill files created or modif
 
 ## Step 5: Identify Gaps
 
-Compare your recalled experience to your current skills:
+Compare your recalled experience to your current skills. Look for concrete signals:
 
-- **New procedure**: you learned something that isn't captured in any skill yet.
-- **Improved procedure**: an existing skill is missing edge cases, better approaches, or user preferences you've learned.
-- **Stale skill**: a skill describes a workflow you no longer follow. Update or remove it.
+- **New procedure**: a memory describes a workflow, preference, or correction that no existing skill captures. Example: a user correction about deployment ordering → create a deployment skill.
+- **Improved procedure**: a memory contains an edge case, better approach, or preference that an existing skill is missing. Example: a memory about a retry workaround → update the relevant skill with that path.
+- **Stale skill**: a skill describes a workflow you no longer follow, or memory shows the user has changed their approach. Update or remove it.
+- **Details to encode**: memory contains specific names, values, paths, or preferences that a skill references only generically. Skills are a performance cache — bake in concrete details so they're available without a memory recall round-trip.
 - **No gaps**: if current skills already capture your experience well, say so. Don't create skills for the sake of it.
 
 ## Step 6: Act
 
 For each gap:
 
-- **New skill**: write a new markdown file to skills/ with a clear title, steps, and failure paths. Follow the structure in skill-craft. Only create skills from real experience — never speculate.
-- **Improved skill**: edit the existing skill file. Keep it concise. Compress where possible.
+- **New skill**: write a new markdown file to skills/ with a clear title, steps, and failure paths. Follow the structure in skill-craft.
+- **Improved skill**: edit the existing skill file. Compress where possible — keep skills under 80 lines.
 - **Stale skill**: rewrite or delete the file.
 - **Housekeeping**: fix typos, tighten language, remove cruft in any skill you touch.
+
+Only act on real evidence from memories. Never speculate or create skills for imagined scenarios.
 
 ## Step 7: Summarize
 
 After making changes, list exactly what you created or updated and why. Be specific about what triggered each change — which memory or experience led to which skill modification.
-
-Be conservative. A skill born from real experience is valuable. A skill born from imagination is noise.
 
 ## Skill History
 
@@ -284,11 +198,13 @@ The playbook for a scouting session. When you're running a directed scout (\`/sc
 
 Scouting is forward-looking creative ideation. Training looks backward at accumulated experience and sharpens existing skills. Scouting looks forward at unexplored possibilities and discovers new ones. They complement each other but never overlap.
 
+**The cardinal rule:** never suggest a skill whose primary function is already served by an existing skill, even if the approach, tooling, or implementation would differ. Improvements, refinements, and alternative approaches to existing skills belong in training, not scouting. Scouting is strictly for genuinely new capabilities the agent doesn't have yet.
+
 A good scout report is specific, grounded, and actionable. It's not "you should try automation" — it's "your Monday repo-check routine across 4 repositories could become a single skill that generates a digest and posts it to Slack."
 
 ## Step 1: Understand Current Coverage
 
-Use the skills tool with action "list" to see all existing skills. Read any that might overlap with the direction being scouted. The goal is to avoid suggesting something that already exists.
+Use the skills tool with action "list" to see all existing skills. **Read the full content of every skill that might be even loosely related** to the direction being scouted — titles alone are not enough. You must deeply understand what's already covered before suggesting anything new. If the scouted direction is essentially a better version of something that already exists, stop here and say so — recommend improving the existing skill through training instead.
 
 ## Step 2: Gather Related Experience
 
@@ -299,20 +215,15 @@ Use the memory tool with action "recall" to search for memories related to the s
 - Frustrations or manual processes in this area
 - Tools or services the user already uses
 
-## Step 3: Research
+## Step 3: Research (When Needed)
 
-Use web_search and web_fetch to explore:
+If the direction involves external tools, APIs, or technologies the user hasn't worked with before, use web_search and web_fetch to explore best practices, available services, and community approaches. Focus on what's achievable with the agent's actual capabilities (file ops, web, bash, scheduling, delegation).
 
-- Best practices for the direction
-- Tools, APIs, and services that could help
-- Community approaches to similar problems
-- Automation patterns others have found effective
-
-Focus on what's achievable with the agent's actual capabilities (file ops, web, bash, scheduling, delegation).
+Skip external research when the direction is about reorganizing, combining, or extending workflows the user already has — the context from steps 1-2 is sufficient.
 
 ## Step 4: Analyze Feasibility
 
-Cross-reference research with the user's context:
+Cross-reference findings with the user's context:
 
 - What tools and access does the user have?
 - What's the simplest first version that delivers value?
@@ -325,8 +236,8 @@ Produce a concrete trail report with:
 
 - **What**: One-paragraph description of what the skill would do
 - **Why**: Why this matters for THIS user, grounded in their specific context
-- **How**: What the skill file would contain — key steps, tools involved, verification. If the skill involves any data fetching, API calls, parsing, or multi-step automation, specify that it should include a companion \`.mjs\` script in \`.ghostpaw/scripts/\`. Describe what the script would do, what APIs/endpoints it would call, what its input/output shape would be. Scripts are Node.js ES modules with access to \`fetch()\`, the full stdlib, and environment variables for secrets.
-- **First steps**: 2-3 specific actions to get started (e.g. "set up the Slack webhook", "create the cron schedule", "write the initial script with the fetch call")
+- **How**: What the skill file would contain — key steps, tools involved, verification. For skills involving API calls, data transformation, or multi-step automation, note that a companion \`.mjs\` script would make execution reliable and repeatable.
+- **First steps**: 2-3 specific actions to get started
 - **Limitations**: What this skill won't cover and why
 
 ## Step 6: Invite Action
@@ -335,9 +246,9 @@ End with a clear call-to-action. The user should know exactly what to do next �
 
 ## Anti-Patterns
 
-- **Generic advice**: "You should automate more" is useless. Cite specific evidence.
+- **Suggesting refinements of existing skills**: if an existing skill already handles the core function, the answer is training, not scouting. This is the most common and most important mistake to avoid.
+- **Generic advice**: "You should automate more" is useless. Cite specific evidence from memories or sessions.
 - **Hallucinated capabilities**: Don't suggest features the agent doesn't have.
 - **Developer-only suggestions**: Non-coders use Ghostpaw too. "Set up a Node.js cron" is less helpful than "schedule a weekly report every Friday at 5pm."
-- **Overlapping existing skills**: Always check current skills first.
 - **Unbounded scope**: A good scout report targets ONE specific skill, not a feature suite.
 `.trimEnd();

@@ -1524,14 +1524,11 @@ async function craftFromScout() {
   const craftPrompt = "I just scouted a new direction: \\"" + lastScoutDirection + "\\". "
     + "Here is the full scout report:\\n\\n"
     + lastScoutReport + "\\n\\n"
-    + "Please craft this into a concrete, actionable skill now. Follow the skill-craft playbook strictly:\\n\\n"
+    + "Please craft this into a concrete, actionable skill now. Follow the skill-craft playbook:\\n\\n"
     + "1. Write the skill markdown to skills/ with clear steps, failure paths, and verification.\\n"
-    + "2. IMPORTANT: If this skill involves ANY data fetching, API calls, parsing, or multi-step automation, "
-    + "you MUST also write a companion .mjs script to .ghostpaw/scripts/<skill-name>.mjs that encodes the "
-    + "executable logic. The script should be a self-contained Node.js ES module that uses fetch(), "
-    + "process.env for secrets, accepts arguments via process.argv, and outputs JSON to stdout. "
-    + "The skill markdown should reference the script and describe how to run it.\\n"
-    + "3. Test the script by running it via bash after writing it. Fix any issues.\\n"
+    + "2. If this skill involves API calls, data transformation, or multi-step automation, "
+    + "write a companion .mjs script — see the Companion Scripts section of skill-craft for conventions.\\n"
+    + "3. Test everything by running it. Fix any issues.\\n"
     + "4. Remember what you created via the memory tool.";
 
   chatInput.value = craftPrompt;

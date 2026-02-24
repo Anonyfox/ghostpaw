@@ -135,8 +135,7 @@ describe("default skills", () => {
     ok(content.includes("# Skill Craft"));
     ok(content.includes("## When to Create a Skill"));
     ok(content.includes("## Skill Structure"));
-    ok(content.includes("## Executable Skills"));
-    ok(content.includes("## Scheduling"));
+    ok(content.includes("## Companion Scripts"));
     ok(content.includes("## Evolving Skills"));
     ok(content.includes("## Anti-Patterns"));
   });

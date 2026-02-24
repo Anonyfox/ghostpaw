@@ -36,12 +36,12 @@ const FALLBACK_PROMPT = `Time to train. Review what you've learned recently and 
 1. Use the memory tool to recall recent experience (tasks, mistakes, corrections, preferences).
 2. Use the skills tool with action "list" to see your current skills and ranks.
 3. Use the skills tool with action "diff" to check uncommitted changes since last training.
-4. Compare experience to skills — identify gaps, stale procedures, missing edge cases.
-5. Create new skills or improve existing ones. Only from real experience, never speculation.
+4. Compare experience to skills — identify gaps, stale procedures, missing edge cases. Look for memories that describe corrections, preferences, or procedures that no skill captures yet.
+5. Create new skills or improve existing ones. Only from real experience, never speculation. Keep each skill under 80 lines — split if needed.
 6. Clean up any rough drafts or cruft in skill files.
 7. Summarize what you changed and why. For each changed skill, write a one-line description of what changed and why.
 
-Encoding details: skills are a performance cache. Encode concrete details (names, values, preferences) directly in skills so they're available without a memory recall round-trip. Memory is the update source — during training, if memory has newer data than a skill, update the skill to match.
+Skills are a performance cache. Encode concrete details (names, values, paths, preferences) directly in skills so they're available without a memory recall round-trip. If memory has newer data than a skill, update the skill to match.
 
 Be conservative. A skill born from real experience is valuable. A skill born from imagination is noise.`;
 

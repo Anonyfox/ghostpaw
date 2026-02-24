@@ -51,8 +51,8 @@ Context provided:
 
 Find FRICTION — things the user does repeatedly, struggles with, mentions wanting,
 or obviously could benefit from but hasn't asked for. Each suggestion must be:
-- Grounded in specific evidence from the context (cite the memory/session/pattern)
-- Novel (not already covered by an existing skill)
+- Grounded in specific evidence from the context (cite the exact memory or session)
+- Genuinely new — not something any existing skill already handles, and not a refinement, improvement, or alternative approach to an existing skill's function. If a skill already serves the core purpose, it belongs in training, not scouting.
 - Actionable (something a skill could realistically automate or assist with)
 - Specific to THIS user (not generic productivity advice)
 
@@ -63,15 +63,44 @@ If there isn't enough context to suggest anything meaningful, return {"trails": 
 
 const FALLBACK_SCOUT_PROMPT = `You are scouting a new direction for skill development. Research this topic thoroughly:
 
-1. Read relevant existing skills to understand current coverage
+1. Read relevant existing skills to understand current coverage — if this direction is essentially a better version of an existing skill, say so and recommend improving it through training instead
 2. Recall related memories for context
-3. Web search for approaches, tools, and best practices
+3. If external tools or unfamiliar technologies are involved, web search for approaches and best practices — skip if the direction only involves reorganizing existing workflows
 4. Analyze what's specifically useful for THIS user given their context
 5. Produce a trail report: concrete description, why it's valuable, what a skill would look like, specific first steps
 6. End with a clear invitation: the user can craft this into a skill
 
 Be specific and grounded. Suggestions must be accessible to non-coders.
-Never suggest capabilities the agent doesn't have.`;
+Never suggest capabilities the agent doesn't have.
+Never suggest skills that duplicate or refine what an existing skill already handles.`;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function extractSkillDescription(content: string): string {
+  const lines = content.split("\n");
+  let pastTitle = false;
+  const para: string[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!pastTitle) {
+      if (trimmed.startsWith("#")) pastTitle = true;
+      continue;
+    }
+    if (!trimmed && para.length > 0) break;
+    if (
+      trimmed &&
+      !trimmed.startsWith("#") &&
+      !trimmed.startsWith("```") &&
+      !trimmed.startsWith("---")
+    ) {
+      para.push(trimmed);
+    } else if (para.length > 0) {
+      break;
+    }
+  }
+  const desc = para.join(" ");
+  return desc.length > 120 ? `${desc.slice(0, 117)}...` : desc;
+}
 
 // ── Parsing ──────────────────────────────────────────────────────────────────
 
@@ -118,7 +147,7 @@ export function assembleScoutContext(config: ScoutContextConfig): string {
     sections.push("## Recent Memories\n\nNo memories yet.");
   }
 
-  // Skill index
+  // Skill index with descriptions so the LLM can judge overlap
   const skillsDir = join(config.workspacePath, "skills");
   const skillEntries: string[] = [];
   if (existsSync(skillsDir)) {
@@ -129,7 +158,8 @@ export function assembleScoutContext(config: ScoutContextConfig): string {
         const content = readFileSync(join(skillsDir, f), "utf-8").trim();
         const titleLine = content.split("\n").find((l) => l.trim().startsWith("#"));
         const title = titleLine ? titleLine.replace(/^#+\s*/, "").trim() : "(untitled)";
-        skillEntries.push(`- ${f}: ${title}`);
+        const desc = extractSkillDescription(content);
+        skillEntries.push(desc ? `- ${f}: ${title} — ${desc}` : `- ${f}: ${title}`);
       }
     } catch {
       // unreadable

@@ -53,12 +53,12 @@ function formatSkillIndex(skills: SkillEntry[]): string {
 
 const MEMORY_GUIDANCE = `## Memory
 
-Before answering questions, fulfilling requests, or making decisions where past context could matter, use \`memory recall\` with a relevant query to check for prior knowledge. This is automatic — don't ask the user first, just recall. Examples of when to recall:
+Before answering questions, fulfilling requests, or making decisions where past context could matter, use \`memory recall\` with a relevant query to check for prior knowledge. This is automatic — don't ask the user first, just recall. When to recall:
 - Questions about preferences, past work, or prior conversations
 - Tasks where knowing the user's style, tools, or environment helps
 - Any situation where you suspect you've encountered something similar before
 
-Skip recall only for purely mechanical tasks (write this code, run this command) where past context clearly doesn't apply.`;
+Skip recall for straightforward tasks where past context clearly doesn't apply — writing code to a clear spec, running a specific command, answering general knowledge questions, or any request that is fully self-contained.`;
 
 export function assembleSystemPrompt(
   workspacePath: string,
