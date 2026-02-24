@@ -54,7 +54,7 @@ export function createMemoryTool(config: MemoryToolConfig) {
         case "recall": {
           if (!content) return { error: "content/query is required for recall" };
           const queryVec = await embedding.embed(content);
-          const matches = memory.search(queryVec, { k: 10, minScore: 0.05, includeGlobal: true });
+          const matches = memory.search(queryVec, { k: 10, minScore: 0.3, includeGlobal: true });
           if (matches.length === 0) return { matches: [], message: "No memories found." };
           return {
             matches: matches.map((m) => ({

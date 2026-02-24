@@ -71,6 +71,24 @@ export function formatTokens(n: number): string {
 }
 
 /**
+ * Animated dots progress indicator. Returns a stop function that clears
+ * the animation and moves to the next line.
+ */
+export function startProgress(message: string): () => void {
+  const frames = ["\u00B7", "\u00B7\u00B7", "\u00B7\u00B7\u00B7"];
+  let i = 0;
+  process.stdout.write(`  ${style.dim(message)} `);
+  const timer = setInterval(() => {
+    process.stdout.write(`\r  ${style.dim(message)} ${style.dim(frames[i % frames.length]!)}   `);
+    i++;
+  }, 400);
+  return () => {
+    clearInterval(timer);
+    process.stdout.write(`\r  ${style.dim(message)}       \n`);
+  };
+}
+
+/**
  * Read a secret value from stdin with masked input (characters show as *).
  * Falls back to regular readline if raw mode is unavailable.
  * Returns the trimmed value, or empty string if user enters nothing.

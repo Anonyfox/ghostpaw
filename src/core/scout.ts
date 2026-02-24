@@ -282,7 +282,7 @@ export async function runScout(workspace: string, direction?: string): Promise<S
 
   const { createAgent } = await import("../index.js");
   const prompt = buildScoutPrompt(workspace, direction);
-  const agent = await createAgent({ workspace });
+  const agent = await createAgent({ workspace, excludeTools: ["train", "scout"] });
   const report = await agent.run(prompt);
 
   return { mode: "report", direction, report };
@@ -327,7 +327,7 @@ export async function scout(
   if (opts.stream) {
     const { createAgent } = await import("../index.js");
     const prompt = buildScoutPrompt(workspace, opts.direction);
-    const agent = await createAgent({ workspace });
+    const agent = await createAgent({ workspace, excludeTools: ["train", "scout"] });
 
     process.stdout.write(style.dim("ghostpaw "));
     for await (const chunk of agent.stream(prompt)) {

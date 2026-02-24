@@ -1,7 +1,8 @@
 import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
+import type { ChannelAdapter } from "../channels/runtime.js";
+import type { TelegramStartResult } from "../channels/telegram.js";
 import { banner, blank, formatTokens, label, log, style } from "../lib/terminal.js";
-import type { ScoutTrail } from "./scout.js";
 
 declare const __VERSION__: string;
 let VERSION: string;
@@ -27,11 +28,33 @@ export async function startRepl(workspace: string): Promise<void> {
 
   const agent = await createAgent({ workspace });
 
+  // ── Start channels — await connection before showing banner ──────────
+  const channels: ChannelAdapter[] = [];
+  const channelStatus: string[] = [];
+
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (telegramToken) {
+    try {
+      const { createChannelRuntime } = await import("../channels/runtime.js");
+      const { createTelegramChannel } = await import("../channels/telegram.js");
+      const runtime = await createChannelRuntime({ workspace });
+      const telegram = createTelegramChannel({ token: telegramToken, runtime });
+      const result = (await telegram.start()) as TelegramStartResult;
+      channels.push(telegram);
+      channelStatus.push(`telegram ${style.dim(`@${result.username}`)}`);
+    } catch {
+      channelStatus.push(`telegram ${style.dim("failed")}`);
+    }
+  }
+
   const rl = createInterface({ input: process.stdin, output: process.stdout });
 
   blank();
   banner("ghostpaw", VERSION);
   blank();
+  if (channelStatus.length > 0) {
+    label("channels", channelStatus.join(", "), style.boldCyan);
+  }
   const trainMeta =
     unabsorbed > 0
       ? `level up ${style.dim(`· ${unabsorbed} session${unabsorbed === 1 ? "" : "s"} ready`)}`
@@ -48,28 +71,6 @@ export async function startRepl(workspace: string): Promise<void> {
   const prompt = style.bold("> ");
   const responsePrefix = style.cyan("ghostpaw ");
 
-  let lastTrails: ScoutTrail[] | null = null;
-
-  async function runDirectedScout(direction: string): Promise<void> {
-    const { buildScoutPrompt } = await import("./scout.js");
-    const scoutPrompt = buildScoutPrompt(workspace, direction);
-    blank();
-    label("scouting", direction, style.boldCyan);
-    blank();
-    process.stdout.write(responsePrefix);
-    let scoutChars = 0;
-    for await (const chunk of agent.stream(scoutPrompt)) {
-      process.stdout.write(chunk);
-      scoutChars += chunk.length;
-    }
-    process.stdout.write("\n");
-    blank();
-    label("scouted", style.bold(direction), style.boldGreen);
-    label("", formatTokens(Math.ceil(scoutChars / 4)), style.dim);
-    log.info("Say 'craft it' to turn this into a skill, or ask to adjust.");
-    blank();
-  }
-
   try {
     for (;;) {
       let line: string;
@@ -83,27 +84,11 @@ export async function startRepl(workspace: string): Promise<void> {
       if (!trimmed) continue;
       if (trimmed === "/exit" || trimmed === "/quit") break;
 
-      // Trail selection: single digit after scout suggestions
-      if (lastTrails && /^[1-9]$/.test(trimmed)) {
-        const idx = parseInt(trimmed, 10) - 1;
-        if (idx < lastTrails.length) {
-          const direction = lastTrails[idx]!.title;
-          lastTrails = null;
-          try {
-            await runDirectedScout(direction);
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            log.error(msg);
-          }
-          continue;
-        }
-      }
-      lastTrails = null;
-
+      // Direct fast-paths — skip the LLM round-trip for explicit commands
       if (trimmed === "/train") {
         try {
           const { train } = await import("./reflect.js");
-          await train(workspace, { stream: true });
+          await train(workspace);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           log.error(msg);
@@ -111,36 +96,10 @@ export async function startRepl(workspace: string): Promise<void> {
         continue;
       }
 
-      if (trimmed === "/scout" || trimmed.startsWith("/scout ")) {
-        const direction = trimmed.slice(6).trim() || undefined;
-
-        if (!direction) {
-          try {
-            log.info("Scouting — sniffing out new trails...");
-            blank();
-            const { runScout } = await import("./scout.js");
-            const result = await runScout(workspace);
-            if (result.trails && result.trails.length > 0) {
-              lastTrails = result.trails;
-              for (let i = 0; i < result.trails.length; i++) {
-                label(`${i + 1}`, style.bold(result.trails[i]!.title), style.boldCyan);
-                label("", result.trails[i]!.why, style.dim);
-                blank();
-              }
-              log.info("Type a number to explore, or /scout <your own idea>");
-            } else {
-              log.info("Not enough experience yet — try /scout <direction> or use me more first.");
-            }
-            blank();
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            log.error(msg);
-          }
-          continue;
-        }
-
+      if (trimmed === "/scout") {
         try {
-          await runDirectedScout(direction);
+          const { scout } = await import("./scout.js");
+          await scout(workspace);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           log.error(msg);
@@ -148,6 +107,8 @@ export async function startRepl(workspace: string): Promise<void> {
         continue;
       }
 
+      // Everything else — including natural train/scout intent — goes to the agent.
+      // The agent has train and scout tools and will call them when appropriate.
       try {
         blank();
         process.stdout.write(responsePrefix);
@@ -169,5 +130,8 @@ export async function startRepl(workspace: string): Promise<void> {
     }
   } finally {
     rl.close();
+    for (const ch of channels) {
+      await ch.stop().catch(() => {});
+    }
   }
 }

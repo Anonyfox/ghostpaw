@@ -69,7 +69,7 @@ const MAX_LEARNINGS_PER_RUN = 100;
 const MAX_CONVERSATION_CHARS = 30_000;
 
 export async function absorbSessions(config: AbsorbConfig): Promise<AbsorbResult> {
-  const { sessions, memory, embedding, model } = config;
+  const { db, sessions, memory, embedding, model } = config;
 
   const unabsorbed = sessions.listUnabsorbed();
   let absorbed = 0;
@@ -114,17 +114,32 @@ export async function absorbSessions(config: AbsorbConfig): Promise<AbsorbResult
       const remaining = MAX_LEARNINGS_PER_RUN - memoriesCreated;
       const toStore = learnings.slice(0, remaining);
 
+      // Compute embeddings first (async / network), then commit atomically
+      const prepared: { text: string; vec: number[] }[] = [];
       for (const learning of toStore) {
         const vec = await embedding.embed(learning);
-        memory.store(learning, vec, { source: "absorbed", sessionId: session.id });
+        prepared.push({ text: learning, vec });
       }
 
-      memoriesCreated += toStore.length;
+      // All inserts + markAbsorbed in one transaction — crash-safe
+      db.sqlite.exec("BEGIN");
+      try {
+        for (const { text, vec } of prepared) {
+          memory.store(text, vec, { source: "absorbed", sessionId: session.id });
+        }
+        sessions.markAbsorbed(session.id);
+        db.sqlite.exec("COMMIT");
+      } catch (txErr) {
+        db.sqlite.exec("ROLLBACK");
+        throw txErr;
+      }
+
+      memoriesCreated += prepared.length;
     } catch {
-      // LLM call failed — mark absorbed anyway to avoid retrying forever
+      // LLM or embedding call failed — mark absorbed to avoid retrying forever
+      sessions.markAbsorbed(session.id);
     }
 
-    sessions.markAbsorbed(session.id);
     absorbed++;
   }
 

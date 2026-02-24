@@ -22,18 +22,20 @@ function isCLI(): boolean {
 
 // ── SQLite bootstrap ─────────────────────────────────────────────────────────
 
-function suppressExperimentalWarning(): void {
+function suppressNoiseWarnings(): void {
   const originalEmit = process.emit.bind(process);
   process.emit = ((event: string, ...args: unknown[]) => {
-    if (event === "warning" && (args[0] as { name?: string })?.name === "ExperimentalWarning") {
-      return false;
+    if (event === "warning") {
+      const w = args[0] as { name?: string; message?: string };
+      if (w?.name === "ExperimentalWarning") return false;
+      if (w?.name === "DeprecationWarning" && w?.message?.includes("punycode")) return false;
     }
     return originalEmit(event, ...args);
   }) as typeof process.emit;
 }
 
 function ensureSqliteFlag(): void {
-  suppressExperimentalWarning();
+  suppressNoiseWarnings();
 
   if (process.execArgv.includes("--experimental-sqlite")) return;
 
@@ -49,6 +51,20 @@ function ensureSqliteFlag(): void {
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export { createTool, Schema } from "chatoyant";
+export type { ChannelAdapter, ChannelRuntime, ChannelRuntimeConfig } from "./channels/runtime.js";
+export { createChannelRuntime } from "./channels/runtime.js";
+export type {
+  TelegramChannelConfig,
+  TelegramNotificationOptions,
+  TelegramStartResult,
+} from "./channels/telegram.js";
+export {
+  chatIdFromSessionKey,
+  createTelegramChannel,
+  sendTelegramNotification,
+  sessionKeyForChat,
+  splitMessage,
+} from "./channels/telegram.js";
 export type { AbsorbConfig, AbsorbResult } from "./core/absorb.js";
 export { absorbSessions, countUnabsorbedSessions } from "./core/absorb.js";
 export type { AgentProfile } from "./core/agents.js";
@@ -147,6 +163,8 @@ export { createWriteTool } from "./tools/write.js";
 export interface AgentOptions {
   workspace?: string;
   model?: string;
+  /** Tool names to exclude from this agent's registry (prevents recursion). */
+  excludeTools?: string[];
 }
 
 export interface Agent {
@@ -180,6 +198,8 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
   const { createSecretsTool } = await import("./tools/secrets.js");
   const { createMemoryTool } = await import("./tools/memory.js");
   const { createSkillsTool } = await import("./tools/skills.js");
+  const { createTrainTool } = await import("./tools/train.js");
+  const { createScoutTool } = await import("./tools/scout.js");
   const { createMemoryStore } = await import("./core/memory.js");
   const { createEmbeddingProvider } = await import("./lib/embedding.js");
   const { createEventBus } = await import("./core/events.js");
@@ -210,6 +230,9 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
   tools.register(createSecretsTool(secrets));
   tools.register(createMemoryTool({ memory, sessions, embedding: createEmbeddingProvider() }));
   tools.register(createSkillsTool({ workspacePath: workspace, sessions, memory }));
+  const exclude = new Set(options.excludeTools ?? []);
+  if (!exclude.has("train")) tools.register(createTrainTool(workspace));
+  if (!exclude.has("scout")) tools.register(createScoutTool(workspace));
 
   const budget = createBudgetTracker(config.costControls);
   const model = options.model ?? config.models.default;
@@ -348,7 +371,7 @@ async function main(): Promise<void> {
       const { ensureWorkspace } = await import("./core/init.js");
       await ensureWorkspace(workspace);
       const { train } = await import("./core/reflect.js");
-      await train(workspace, { stream: process.stdout.isTTY === true });
+      await train(workspace);
       break;
     }
     case "scout": {

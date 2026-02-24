@@ -1,5 +1,5 @@
 import { generateId } from "../lib/ids.js";
-import { bufferToVector, topK, vectorToBuffer } from "../lib/vectors.js";
+import { bufferToVector, cosineSimilarity, vectorToBuffer } from "../lib/vectors.js";
 import { type GhostpawDatabase, isNullRow } from "./database.js";
 
 export interface Memory {
@@ -24,6 +24,8 @@ export interface SearchOptions {
   minScore?: number;
   sessionId?: string;
   includeGlobal?: boolean;
+  /** Blend factor for recency (0 = pure similarity, 1 = pure recency). Default 0.15 */
+  recencyWeight?: number;
 }
 
 export interface MemoryStore {
@@ -105,42 +107,53 @@ export function createMemoryStore(db: GhostpawDatabase): MemoryStore {
       const minScore = options?.minScore ?? -Infinity;
       const sessionId = options?.sessionId;
       const includeGlobal = options?.includeGlobal ?? false;
+      const recencyWeight = options?.recencyWeight ?? 0.15;
 
-      // Phase 1: fetch only id + embedding BLOB (no content, no metadata)
+      // Phase 1: fetch id + embedding + created_at for scoring
+      const select = "SELECT id, embedding, created_at FROM memory WHERE embedding IS NOT NULL";
       let rows: Record<string, unknown>[];
 
       if (sessionId && includeGlobal) {
         rows = sqlite
-          .prepare(
-            "SELECT id, embedding FROM memory WHERE embedding IS NOT NULL AND (session_id = ? OR session_id IS NULL)",
-          )
+          .prepare(`${select} AND (session_id = ? OR session_id IS NULL)`)
           .all(sessionId) as Record<string, unknown>[];
       } else if (sessionId) {
-        rows = sqlite
-          .prepare(
-            "SELECT id, embedding FROM memory WHERE embedding IS NOT NULL AND session_id = ?",
-          )
-          .all(sessionId) as Record<string, unknown>[];
+        rows = sqlite.prepare(`${select} AND session_id = ?`).all(sessionId) as Record<
+          string,
+          unknown
+        >[];
       } else {
-        rows = sqlite
-          .prepare("SELECT id, embedding FROM memory WHERE embedding IS NOT NULL")
-          .all() as Record<string, unknown>[];
+        rows = sqlite.prepare(select).all() as Record<string, unknown>[];
       }
 
       if (rows.length === 0) return [];
 
       const queryVec = new Float32Array(queryEmbedding);
-      const candidates = rows.map((row) => ({
-        id: row.id as string,
-        embedding: bufferToVector(row.embedding as Buffer),
-      }));
+      const now = Date.now();
+      const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
-      const scored = topK(queryVec, candidates, k, minScore);
+      // Score = (1 - w) * similarity + w * recency
+      // Recency: 1.0 for just-created, decays toward 0 over 30 days
+      const scored: { id: string; score: number }[] = [];
+      for (const row of rows) {
+        const embedding = bufferToVector(row.embedding as Buffer);
+        const similarity = cosineSimilarity(queryVec, embedding);
+        if (similarity < minScore) continue;
 
-      if (scored.length === 0) return [];
+        const age = Math.max(0, now - (row.created_at as number));
+        const recency = Math.max(0, 1 - age / THIRTY_DAYS_MS);
+        const blended = (1 - recencyWeight) * similarity + recencyWeight * recency;
+
+        scored.push({ id: row.id as string, score: blended });
+      }
+
+      scored.sort((a, b) => b.score - a.score);
+      const topResults = scored.slice(0, k);
+
+      if (topResults.length === 0) return [];
 
       // Phase 2: hydrate only the winning rows with full content
-      const ids = scored.map((s) => s.id);
+      const ids = topResults.map((s) => s.id);
       const placeholders = ids.map(() => "?").join(",");
       const fullRows = sqlite
         .prepare(
@@ -153,7 +166,7 @@ export function createMemoryStore(db: GhostpawDatabase): MemoryStore {
         rowMap.set(row.id as string, rowToMemory(row));
       }
 
-      return scored
+      return topResults
         .map((s) => {
           const mem = rowMap.get(s.id);
           if (!mem) return null;

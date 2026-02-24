@@ -318,6 +318,66 @@ describe("schema migration - absorbed_at column", () => {
   });
 });
 
+// ── transaction atomicity ────────────────────────────────────────────────────
+
+describe("absorbSessions - transaction atomicity", () => {
+  it("commit keeps both memory and absorbed flag", () => {
+    const s1 = sessions.createSession("s1");
+    sessions.addMessage(s1.id, { role: "user", content: "I prefer tabs over spaces always" });
+    sessions.addMessage(s1.id, {
+      role: "assistant",
+      content: "Got it, tabs over spaces noted for future coding",
+    });
+
+    const vec = [0.1, 0.2, 0.3];
+
+    db.sqlite.exec("BEGIN");
+    memory.store("User prefers tabs over spaces", vec, { source: "absorbed", sessionId: s1.id });
+    sessions.markAbsorbed(s1.id);
+    db.sqlite.exec("COMMIT");
+
+    strictEqual(memory.count(), 1);
+    strictEqual(sessions.countUnabsorbed(), 0);
+    ok(sessions.getSession(s1.id)?.absorbedAt !== null);
+  });
+
+  it("rollback leaves session unabsorbed and no memories", async () => {
+    const s1 = sessions.createSession("s1");
+    sessions.addMessage(s1.id, { role: "user", content: "Important learning content here" });
+    sessions.addMessage(s1.id, { role: "assistant", content: "Understood and noted" });
+
+    const vec = [0.1, 0.2, 0.3];
+
+    // Simulate a transaction that rolls back (e.g. crash)
+    db.sqlite.exec("BEGIN");
+    memory.store("A learning", vec, { source: "absorbed", sessionId: s1.id });
+    sessions.markAbsorbed(s1.id);
+    db.sqlite.exec("ROLLBACK");
+
+    // Neither should exist — atomic rollback
+    strictEqual(memory.count(), 0);
+    strictEqual(sessions.countUnabsorbed(), 1);
+    strictEqual(sessions.getSession(s1.id)?.absorbedAt, null);
+  });
+
+  it("partial inserts before rollback leave no trace", async () => {
+    const s1 = sessions.createSession("s1");
+    sessions.addMessage(s1.id, { role: "user", content: "Multiple learnings test" });
+    sessions.addMessage(s1.id, { role: "assistant", content: "Several things learned" });
+
+    const vec = [0.1, 0.2, 0.3];
+
+    db.sqlite.exec("BEGIN");
+    memory.store("Learning one from this session", vec, { source: "absorbed", sessionId: s1.id });
+    memory.store("Learning two from this session", vec, { source: "absorbed", sessionId: s1.id });
+    // Crash before markAbsorbed — rollback
+    db.sqlite.exec("ROLLBACK");
+
+    strictEqual(memory.count(), 0);
+    strictEqual(sessions.countUnabsorbed(), 1);
+  });
+});
+
 // ── module exports ──────────────────────────────────────────────────────────
 
 describe("absorb module exports", () => {

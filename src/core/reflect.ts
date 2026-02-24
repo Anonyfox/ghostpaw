@@ -19,7 +19,7 @@ import {
   hasHistory,
   initHistory,
 } from "../lib/skill-history.js";
-import { banner, blank, label, log, style } from "../lib/terminal.js";
+import { banner, blank, label, log, startProgress, style } from "../lib/terminal.js";
 
 declare const __VERSION__: string;
 let VERSION: string;
@@ -39,7 +39,9 @@ const FALLBACK_PROMPT = `Time to train. Review what you've learned recently and 
 4. Compare experience to skills — identify gaps, stale procedures, missing edge cases.
 5. Create new skills or improve existing ones. Only from real experience, never speculation.
 6. Clean up any rough drafts or cruft in skill files.
-7. Summarize what you changed and why.
+7. Summarize what you changed and why. For each changed skill, write a one-line description of what changed and why.
+
+Encoding details: skills are a performance cache. Encode concrete details (names, values, preferences) directly in skills so they're available without a memory recall round-trip. Memory is the update source — during training, if memory has newer data than a skill, update the skill to match.
 
 Be conservative. A skill born from real experience is valuable. A skill born from imagination is noise.`;
 
@@ -115,6 +117,8 @@ export interface TrainResult {
   absorbed: number;
   memoriesCreated: number;
   tidied: number;
+  totalSkills: number;
+  skippedAbsorb: number;
 }
 
 function ensureBaselineCommit(workspace: string): boolean {
@@ -169,7 +173,7 @@ function detectChanges(
 
 async function runAbsorb(
   workspace: string,
-): Promise<{ absorbed: number; memoriesCreated: number }> {
+): Promise<{ absorbed: number; memoriesCreated: number; skipped: number }> {
   const { createDatabase } = await import("./database.js");
   const { createSessionStore } = await import("./session.js");
   const { createMemoryStore } = await import("./memory.js");
@@ -199,7 +203,11 @@ async function runAbsorb(
       model: config.models.default,
     });
 
-    return { absorbed: result.absorbed, memoriesCreated: result.memoriesCreated };
+    return {
+      absorbed: result.absorbed,
+      memoriesCreated: result.memoriesCreated,
+      skipped: result.skipped,
+    };
   } finally {
     db.close();
   }
@@ -249,22 +257,26 @@ async function markTrainingSession(workspace: string): Promise<void> {
 
 // ── Full pipeline ───────────────────────────────────────────────────────────
 
-export async function runTrain(workspace: string): Promise<TrainResult> {
+export async function runTrain(
+  workspace: string,
+  onPhase?: (phase: string) => void,
+): Promise<TrainResult> {
   // Phase 1: Absorb
+  onPhase?.("absorb");
   const absorbResult = await runAbsorb(workspace);
 
   // Phase 2: Train
+  onPhase?.("train");
   const { createAgent } = await import("../index.js");
   const prompt = loadTrainingPrompt(workspace);
 
   const useGit = ensureBaselineCommit(workspace);
   const memBefore = snapshotSkills(workspace);
+  const totalSkills = Object.keys(snapshotSkills(workspace)).length;
 
-  const agent = await createAgent({ workspace });
+  const agent = await createAgent({ workspace, excludeTools: ["train", "scout"] });
   const response = await agent.run(prompt);
 
-  // Mark the training agent's own session as absorbed so it won't be
-  // re-processed in the next training run (prevents feedback loops).
   markTrainingSession(workspace);
 
   const changes = detectChanges(workspace, useGit, memBefore);
@@ -275,65 +287,105 @@ export async function runTrain(workspace: string): Promise<TrainResult> {
   }
 
   // Phase 3: Tidy
+  onPhase?.("tidy");
   const tidied = await runTidy(workspace);
 
   return {
     changes,
     agentResponse: response,
-    absorbed: absorbResult.absorbed,
+    absorbed: absorbResult.absorbed + absorbResult.skipped,
     memoriesCreated: absorbResult.memoriesCreated,
+    skippedAbsorb: absorbResult.skipped,
     tidied,
+    totalSkills,
   };
 }
 
 // ── Report ──────────────────────────────────────────────────────────────────
 
-export function printTrainReport(result: TrainResult): void {
+function sectionHeader(title: string): void {
+  const line = "\u2500".repeat(48 - title.length);
+  console.log(`  ${style.dim("\u2500\u2500")} ${style.bold(title)} ${style.dim(line)}`);
+}
+
+function allSkillTitles(workspace: string): Map<string, string> {
+  const skillsDir = join(workspace, "skills");
+  const map = new Map<string, string>();
+  if (!existsSync(skillsDir)) return map;
+  try {
+    for (const file of readdirSync(skillsDir)) {
+      if (!file.endsWith(".md")) continue;
+      const content = safeRead(join(skillsDir, file));
+      map.set(file, extractTitle(content));
+    }
+  } catch {
+    // empty
+  }
+  return map;
+}
+
+export function printTrainReport(result: TrainResult, workspace?: string): void {
   blank();
 
-  if (result.absorbed > 0 || result.memoriesCreated > 0) {
+  if (result.changes.length > 0) {
+    sectionHeader("Level Up");
+    blank();
+
+    for (const change of result.changes) {
+      if (change.type === "created") {
+        label(
+          "learned",
+          `${style.bold(change.title)} ${style.dim(`(${change.filename})`)}`,
+          style.boldGreen,
+        );
+      } else {
+        const rankStr = change.rank > 0 ? `rank ${change.rank}` : "ranked up";
+        label(
+          rankStr,
+          `${style.bold(change.title)} ${style.dim(`(${change.filename})`)}`,
+          style.boldCyan,
+        );
+      }
+    }
+    blank();
+  }
+
+  // Show unchanged skills
+  const changedFiles = new Set(result.changes.map((c) => c.filename));
+  const allSkills = workspace ? allSkillTitles(workspace) : new Map<string, string>();
+  const unchanged = [...allSkills.entries()].filter(([f]) => !changedFiles.has(f));
+
+  if (unchanged.length > 0) {
+    sectionHeader("Unchanged");
+    blank();
+    for (const [, title] of unchanged) {
+      label("", style.dim(`${title} \u2014 no new patterns`), style.dim);
+    }
+    blank();
+  }
+
+  // Summary
+  sectionHeader("Summary");
+  blank();
+
+  if (result.absorbed > 0) {
     label(
       "absorbed",
-      `${result.absorbed} session${result.absorbed === 1 ? "" : "s"} → ${result.memoriesCreated} memor${result.memoriesCreated === 1 ? "y" : "ies"} extracted`,
+      `${result.absorbed} session${result.absorbed === 1 ? "" : "s"} \u2192 ${result.memoriesCreated} memor${result.memoriesCreated === 1 ? "y" : "ies"} extracted`,
       style.dim,
     );
   }
 
-  if (result.changes.length === 0) {
-    blank();
-    log.info("No skill changes — keep using me and I'll have more to learn from");
-    log.info("Try /scout to discover new skill possibilities");
-    blank();
-    return;
+  if (result.changes.length > 0) {
+    const created = result.changes.filter((c) => c.type === "created").length;
+    const updated = result.changes.filter((c) => c.type === "updated").length;
+    const parts: string[] = [];
+    if (created > 0) parts.push(`${created} learned`);
+    if (updated > 0) parts.push(`${updated} ranked up`);
+    log.done(parts.join(", "));
+  } else {
+    log.info("no skill changes \u2014 keep using me, try /scout for ideas");
   }
-
-  blank();
-  for (const change of result.changes) {
-    if (change.type === "created") {
-      label(
-        "learned",
-        `${style.bold(change.title)} ${style.dim(`(${change.filename})`)}`,
-        style.boldGreen,
-      );
-    } else {
-      const rankStr = change.rank > 0 ? `rank ${change.rank}` : "leveled up";
-      label(
-        rankStr,
-        `${style.bold(change.title)} ${style.dim(`(${change.filename})`)}`,
-        style.boldCyan,
-      );
-    }
-  }
-
-  blank();
-  const created = result.changes.filter((c) => c.type === "created").length;
-  const updated = result.changes.filter((c) => c.type === "updated").length;
-  const parts: string[] = [];
-  if (created > 0) parts.push(`${created} learned`);
-  if (updated > 0) parts.push(`${updated} ranked up`);
-  log.done(
-    `${parts.join(", ")} — ${result.changes.length} skill${result.changes.length === 1 ? "" : "s"} total`,
-  );
 
   if (result.tidied > 0) {
     label(
@@ -348,62 +400,22 @@ export function printTrainReport(result: TrainResult): void {
 
 // ── Entry point ─────────────────────────────────────────────────────────────
 
-export async function train(workspace: string, opts: { stream?: boolean } = {}): Promise<void> {
+export async function train(workspace: string): Promise<void> {
   blank();
   banner("ghostpaw", VERSION);
-  log.info("Training — reviewing experience, sharpening skills...");
+  label("training", "reviewing experience, sharpening skills", style.boldCyan);
   blank();
 
-  if (opts.stream) {
-    // Phase 1: Absorb
-    const absorbResult = await runAbsorb(workspace);
-    if (absorbResult.absorbed > 0) {
-      label(
-        "absorbed",
-        `${absorbResult.absorbed} session${absorbResult.absorbed === 1 ? "" : "s"} → ${absorbResult.memoriesCreated} memor${absorbResult.memoriesCreated === 1 ? "y" : "ies"} extracted`,
-        style.dim,
-      );
-      blank();
+  let stopProgress = startProgress("absorbing sessions");
+  const result = await runTrain(workspace, (phase) => {
+    stopProgress();
+    if (phase === "train") {
+      stopProgress = startProgress("analyzing skills against experience");
+    } else if (phase === "tidy") {
+      stopProgress = startProgress("tidying up");
     }
+  });
+  stopProgress();
 
-    // Phase 2: Train (streaming)
-    const { createAgent } = await import("../index.js");
-    const prompt = loadTrainingPrompt(workspace);
-
-    const useGit = ensureBaselineCommit(workspace);
-    const memBefore = snapshotSkills(workspace);
-
-    const agent = await createAgent({ workspace });
-    process.stdout.write(style.dim("ghostpaw "));
-    let response = "";
-    for await (const chunk of agent.stream(prompt)) {
-      process.stdout.write(chunk);
-      response += chunk;
-    }
-    process.stdout.write("\n");
-
-    markTrainingSession(workspace);
-
-    const changes = detectChanges(workspace, useGit, memBefore);
-
-    if (useGit && changes.length > 0) {
-      const msg = changes.map((c) => `${c.type}: ${c.filename}`).join(", ");
-      commitSkills(workspace, `train: ${msg}`);
-    }
-
-    // Phase 3: Tidy
-    const tidied = await runTidy(workspace);
-
-    // Absorption already printed above — pass 0 to avoid double-printing
-    printTrainReport({
-      changes,
-      agentResponse: response,
-      absorbed: 0,
-      memoriesCreated: 0,
-      tidied,
-    });
-  } else {
-    const result = await runTrain(workspace);
-    printTrainReport(result);
-  }
+  printTrainReport(result, workspace);
 }

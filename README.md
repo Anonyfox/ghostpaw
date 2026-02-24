@@ -58,6 +58,16 @@ Skills are plain markdown in `skills/`, version-controlled by git for integrity 
 
 [How the skill system works →](docs/SKILLS.md)
 
+## Memory
+
+Persistent, local, automatic. The agent remembers corrections, preferences, and discoveries across sessions — and recalls them on its own when context matters.
+
+Memories are stored in SQLite (Node.js built-in), embedded using a lightweight trigram hash (no API calls, no model downloads), and searched by meaning with a recency bias so recent corrections outrank stale context. No vector database. No cloud sync. Your memories stay on your machine, in one file.
+
+The agent uses memory transparently: ask "what concerts are near me?" and it already knows your city, your bands, your preferences — because it recalled them before drafting its answer.
+
+[How memory works →](docs/MEMORY.md)
+
 ## Web Tools
 
 Built-in `web_search` and `web_fetch` — no browser, no Playwright, no headless Chrome. The agent searches, reads pages, and synthesizes on its own.
@@ -67,6 +77,14 @@ Search works out of the box with DuckDuckGo. Add an API key for **Brave Search**
 That's the zero-dependency core. Since the agent has shell access and learns through skills, nothing stops it from driving Playwright, puppeteer, or `curl` pipelines if they're installed — you teach it once, it writes a skill, and the capability sticks. The built-in tools cover 95% of web tasks without any of that.
 
 [Web tools, modes, and providers →](docs/WEB.md) · [API key setup →](docs/SECRETS.md)
+
+## Communication
+
+Talk to Ghostpaw from your phone. Channels are persistent messaging integrations — Telegram today, Discord and a web UI planned — that run alongside the REPL or as a headless daemon. Each channel gets its own session with full conversation history, sticky across restarts.
+
+Set up Telegram in under a minute: create a bot via `@BotFather`, store the token with `ghostpaw secrets set TELEGRAM_BOT_TOKEN`, start Ghostpaw. The bot connects automatically, shows typing indicators, splits long replies, and uses reactions for read receipts.
+
+[Telegram setup, Discord, and more →](docs/COMMUNICATION.md)
 
 ## Deployment Philosophy
 

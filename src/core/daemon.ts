@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import type { ChannelAdapter } from "../channels/runtime.js";
 import type { GhostpawDatabase } from "./database.js";
 
 const LOG_RETENTION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -37,15 +38,54 @@ export async function startDaemon(workspace: string): Promise<void> {
   info(`workspace: ${workspace}`);
   info(`model: ${config.models.default}`);
 
-  // Minimal stdout for service manager crash capture
   console.log(`ghostpaw daemon started (pid ${process.pid})`);
 
-  const heartbeat = setInterval(() => {
-    // Keeps event loop alive — no logging
-  }, 30_000);
+  // ── Channel startup ──────────────────────────────────────────────────────
 
-  function shutdown(signal: string): void {
+  const channels: ChannelAdapter[] = [];
+
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+  if (telegramToken) {
+    try {
+      const { createChannelRuntime } = await import("../channels/runtime.js");
+      const { createTelegramChannel } = await import("../channels/telegram.js");
+
+      const runtime = await createChannelRuntime({ workspace });
+      const telegram = createTelegramChannel({ token: telegramToken, runtime });
+      const result = (await telegram.start()) as { username: string };
+      channels.push(telegram);
+
+      info(`channel started: telegram @${result.username}`);
+      console.log(`  telegram active (@${result.username})`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      error(`telegram channel failed to start: ${msg}`);
+      console.error(`  telegram channel failed: ${msg}`);
+    }
+  }
+
+  if (channels.length === 0) {
+    info("no channels configured — daemon idle");
+    console.log("  no channels configured (set TELEGRAM_BOT_TOKEN via secrets)");
+  }
+
+  // ── Lifecycle ────────────────────────────────────────────────────────────
+
+  const heartbeat = setInterval(() => {}, 30_000);
+
+  async function shutdown(signal: string): Promise<void> {
     info(`${signal} received, shutting down`);
+
+    for (const ch of channels) {
+      try {
+        await ch.stop();
+        info(`channel stopped: ${ch.name}`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        error(`error stopping ${ch.name}: ${msg}`);
+      }
+    }
+
     clearInterval(heartbeat);
     db.close();
     console.log(`ghostpaw shutdown (${signal})`);
