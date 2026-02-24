@@ -46,17 +46,14 @@ function extractTitle(content: string): string {
   return "(untitled)";
 }
 
-interface ReflectChange {
+interface TrainChange {
   type: "created" | "updated";
   filename: string;
   title: string;
 }
 
-function diffSkills(
-  before: Record<string, string>,
-  after: Record<string, string>,
-): ReflectChange[] {
-  const changes: ReflectChange[] = [];
+function diffSkills(before: Record<string, string>, after: Record<string, string>): TrainChange[] {
+  const changes: TrainChange[] = [];
   for (const [filename, content] of Object.entries(after)) {
     if (!(filename in before)) {
       changes.push({ type: "created", filename, title: extractTitle(content) });

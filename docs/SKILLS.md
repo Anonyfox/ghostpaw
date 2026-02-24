@@ -40,7 +40,7 @@ Rank is commit count tracked by git (stored in `.ghostpaw/skill-history/`). Rank
 
 `ghostpaw train` — three phases, one command.
 
-**Absorb.** A cheap LLM scans unprocessed sessions, extracts key learnings (corrections, preferences, discoveries), and stores them as memories. Capped at 100 learnings per run, 30K chars per conversation. Nothing slips through even if the agent didn't catch it live.
+**Absorb.** The model scans unprocessed sessions, extracts key learnings (corrections, preferences, discoveries), and stores them as memories. Capped at 100 learnings per run, 30K chars per conversation. Nothing slips through even if the agent didn't catch it live.
 
 **Train.** The agent recalls memories, reviews skills with ranks and diffs, identifies gaps. Creates what's missing. Sharpens what's dull. Removes what's dead. Only from real experience — speculative skills are explicitly forbidden.
 
@@ -52,7 +52,7 @@ Training sessions self-mark as absorbed to prevent feedback loops. Schedulable: 
 
 `ghostpaw scout` runs in two phases.
 
-**Phase 1 — Friction mining.** A cheap LLM receives the last 50 memories, skill index, recent session previews, and workspace structure. It returns 3–5 numbered trail suggestions, each citing specific evidence. The REPL displays them — type a number to pick one.
+**Phase 1 — Friction mining.** The model receives the last 50 memories, skill index, recent session previews, and workspace structure. It returns 3–5 numbered trail suggestions, each citing specific evidence. The REPL displays them — type a number to pick one.
 
 **Phase 2 — Deep scout.** The agent (full model, full tools) researches the chosen direction: reads existing skills, recalls related memories, web searches for approaches, analyzes feasibility. Produces a trail report with what, why, how, first steps, and limitations. The conversation stays open — say "craft it" and the agent writes the skill, with full scout context intact.
 

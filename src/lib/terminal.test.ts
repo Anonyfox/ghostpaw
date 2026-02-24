@@ -1,6 +1,6 @@
 import { ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import { style, label, banner } from "./terminal.js";
+import { banner, label, style } from "./terminal.js";
 
 describe("style helpers", () => {
   it("bold wraps text and returns a string", () => {

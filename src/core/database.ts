@@ -128,9 +128,7 @@ export async function createDatabase(pathOrMemory: string): Promise<GhostpawData
 
   // Migrations for existing databases
   try {
-    const cols = sqlite
-      .prepare("PRAGMA table_info(sessions)")
-      .all() as { name: string }[];
+    const cols = sqlite.prepare("PRAGMA table_info(sessions)").all() as { name: string }[];
     if (!cols.some((c) => c.name === "absorbed_at")) {
       sqlite.exec("ALTER TABLE sessions ADD COLUMN absorbed_at INTEGER");
     }

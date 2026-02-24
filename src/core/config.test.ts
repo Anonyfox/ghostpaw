@@ -19,8 +19,6 @@ afterEach(() => {
 describe("DEFAULT_CONFIG", () => {
   it("has sensible defaults", () => {
     ok(DEFAULT_CONFIG.models.default.length > 0);
-    ok(DEFAULT_CONFIG.models.cheap.length > 0);
-    ok(DEFAULT_CONFIG.models.powerful.length > 0);
     ok(DEFAULT_CONFIG.costControls.maxTokensPerSession > 0);
     ok(DEFAULT_CONFIG.costControls.maxTokensPerDay > 0);
     strictEqual(DEFAULT_CONFIG.costControls.warnAtPercentage, 80);
@@ -43,7 +41,6 @@ describe("loadConfig", () => {
     );
     const config = await loadConfig(tempDir);
     strictEqual(config.models.default, "openai/gpt-4o");
-    strictEqual(config.models.cheap, DEFAULT_CONFIG.models.cheap);
   });
 
   it("throws ConfigError on invalid JSON", async () => {

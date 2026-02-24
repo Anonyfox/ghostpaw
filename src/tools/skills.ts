@@ -1,6 +1,6 @@
-import { createTool, Schema } from "chatoyant";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { createTool, Schema } from "chatoyant";
 import type { MemoryStore } from "../core/memory.js";
 import type { SessionStore } from "../core/session.js";
 import {
@@ -122,9 +122,10 @@ export function createSkillsTool(configOrPath: string | SkillsToolConfig) {
 
           const ranks = hasHistory(workspacePath) ? getAllSkillRanks(workspacePath) : {};
           const rankValues = Object.values(ranks);
-          const averageRank = rankValues.length > 0
-            ? Math.round((rankValues.reduce((a, b) => a + b, 0) / rankValues.length) * 10) / 10
-            : 0;
+          const averageRank =
+            rankValues.length > 0
+              ? Math.round((rankValues.reduce((a, b) => a + b, 0) / rankValues.length) * 10) / 10
+              : 0;
 
           const d = diffSkills(workspacePath);
           const uncommittedChanges = d ? d.created.length + d.updated.length + d.deleted.length : 0;

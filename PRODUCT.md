@@ -99,7 +99,7 @@ Unix pipes bytes between processes. Ghostpaw pipes text between tools, skills, m
 | --- | --- |
 | Human ↔ Agent | Natural language |
 | Agent ↔ Tools | Text params in, text result out |
-| Agent ↔ Skills | Markdown injected into system prompt |
+| Agent ↔ Skills | Skill index in system prompt, full content read on demand |
 | Agent ↔ Memory | Text with vector embeddings |
 | Agent ↔ Config | JSON (human-editable text) |
 | Agent ↔ Secrets | Named keys, values in env vars |
@@ -127,14 +127,15 @@ If none apply, write a skill. "How to deploy to Vercel" is a skill. "How to writ
 | --- | --- |
 | Read, Write, Edit | Filesystem primitives. Can't be composed from anything simpler. |
 | Bash | Process execution. The `exec()` syscall — everything else can be built on top of it. |
-| web_search | Structured search results. Agent shouldn't burn tokens curl-scraping and parsing search engine HTML. |
+| web_search | Structured search results from premium APIs (Brave/Tavily/Serper) or DDG fallback. Agent shouldn't burn tokens curl-scraping search engines. |
 | web_fetch | HTML → clean text needs magpie-html. Not reliable via bash + regex. |
 | memory | Vector embeddings in SQLite. Needs in-process math (cosine similarity) and persistent binary state. |
 | secrets | Security boundary. Keys must never enter the conversation context. |
 | delegate | Sub-agent lifecycle. Needs session management, budget tracking, tool registration, recursion prevention. |
 | check_run | Reads in-process delegation state from the runs table. |
+| skills | Manages skill lifecycle: listing with usage-based rankings, reading, creating, updating. In-process state (usage tracking in SQLite). |
 
-When someone proposes tool #11, run it through the checklist. "A tool for Docker operations" — that's a skill (the agent runs `docker` via Bash). "A tool for managing persistent browser sessions via CDP" — maybe a tool (needs a WebSocket connection that Bash can't maintain across invocations).
+When someone proposes a new tool, run it through the checklist. "A tool for Docker operations" — that's a skill (the agent runs `docker` via Bash). "A tool for managing persistent browser sessions via CDP" — maybe a tool (needs a WebSocket connection that Bash can't maintain across invocations).
 
 ### State in SQLite, Behavior in Markdown, Code in the Kernel
 
@@ -205,7 +206,7 @@ src/
   index.ts                # entry point: CLI parser + library exports
   core/
     loop.ts               # agent loop (prepare → generate → tool calls → persist)
-    context.ts            # system prompt assembly (SOUL + skills + budget)
+    context.ts            # system prompt assembly (SOUL + skill index + budget)
     compaction.ts         # history compaction (summarize old messages)
     session.ts            # SQLite session management, message tree
     cost.ts               # token tracking, budget enforcement
@@ -217,34 +218,36 @@ src/
     daemon.ts             # headless daemon mode
     repl.ts               # interactive terminal REPL
     runs.ts               # delegated task tracking
-    secrets.ts            # secure key-value storage, env sync
+    secrets.ts            # secure key-value storage, env sync, validation
     agents.ts             # agent profiles (markdown in agents/)
     service.ts            # OS service install (systemd, launchd, cron)
     soul.ts               # default SOUL.md content
+    default_skills.ts     # bundled starter skills
     stream_format.ts      # streaming output formatting
+    scout.ts              # training pipeline: scout phase (friction mining)
+    absorb.ts             # training pipeline: absorb phase (knowledge extraction)
+    reflect.ts            # training pipeline: reflect phase (skill generation)
   tools/
     registry.ts           # tool registration/management
     read.ts               # Read tool
     write.ts              # Write tool
     edit.ts               # Edit tool (find-and-replace with fuzzy fallback)
-    bash.ts               # Bash tool (shell execution)
+    bash.ts               # Bash tool (shell execution, secret scrubbing)
     delegate.ts           # sub-agent delegation (foreground/background)
     check_run.ts          # poll background task status
     memory.ts             # memory operations (remember/recall/forget)
-    search.ts             # web search (DuckDuckGo)
+    skills.ts             # skill management (list/read/create/update)
+    search.ts             # web search (Brave/Tavily/Serper/DDG cascade)
     web.ts                # URL → readable content
     secrets.ts            # secret management tool
-  channels/
-    telegram.ts           # Telegram Bot API long-polling adapter
-  ui/
-    server.ts             # node:http server, SSE for streaming
-    app.html              # SPA inlined as string at build time
   lib/
     embedding.ts          # character n-gram hashing (deterministic, no API needed)
     vectors.ts            # cosine similarity, top-K search
     diff.ts               # string diff/patch (for Edit tool)
     errors.ts             # structured error hierarchy
     ids.ts                # URL-safe random ID generation
+    terminal.ts           # terminal utilities (masked input, styling)
+    skill-history.ts      # skill usage tracking and ranking
 
 dist/
   ghostpaw.mjs            # single compiled artifact (ESM)
@@ -264,7 +267,7 @@ Dev dependencies (esbuild, typescript, etc.) are build-time only. The two runtim
 | Need            | Solution                    | Notes                                                                                             |
 | --------------- | --------------------------- | ------------------------------------------------------------------------------------------------- |
 | Database        | `node:sqlite`               | Sessions, messages, memory, runs, secrets, logs. One file: `ghostpaw.db`.                         |
-| HTTP server     | `node:http`                 | Control UI, REST API, Server-Sent Events for response streaming.                                  |
+| HTTP server     | `node:http`                 | Planned: web control UI, REST API, SSE for response streaming. Not yet implemented.               |
 | LLM calls       | chatoyant (bundled)         | Provider abstraction. Handles auth, streaming, tool calls for Anthropic/OpenAI/xAI/Google.        |
 | HTML extraction | magpie-html (bundled)       | Web page → clean readable text for the web_fetch tool.                                            |
 | Shell execution | `node:child_process`        | spawn/exec for Bash tool and process management.                                                  |
@@ -280,10 +283,12 @@ The single file detects how it's invoked:
 
 ```bash
 ghostpaw                          # interactive chat (default)
-ghostpaw serve                    # web UI + API on localhost
 ghostpaw run "do the thing"       # one-shot prompt, exits when done
 ghostpaw init                     # explicitly re-scaffold workspace
-ghostpaw telegram                 # start Telegram bot long-polling
+ghostpaw secrets                  # list/set/delete API keys
+ghostpaw train                    # absorb experience → improve skills → tidy
+ghostpaw scout                    # discover new skill opportunities
+ghostpaw scout "docker deploys"   # directed scout with full agent run
 ```
 
 Initialization is seamless: the first time any command runs, Ghostpaw detects the workspace isn't set up, scaffolds the required files (config.json, SOUL.md, directories), and — if running in a TTY — prompts for an API key. `ghostpaw init` exists for explicit re-scaffolding but is never a required first step.
@@ -307,7 +312,7 @@ Detection: check `import.meta.url` against `process.argv[1]`. If match → CLI m
 
 1. **Context assembly** — build system prompt in this order:
    - SOUL.md (personality/behavior — the agent's identity)
-   - SKILL.md files from `skills/` (capability context — what the agent knows how to do)
+   - Skill index from `skills/` (lightweight filename + title listing — agent reads full skills on demand)
    - Tool descriptions (structured definitions of all available tools)
    - Cost/budget notice (current token usage, remaining budget — only when approaching limit)
    - Session history from SQLite (walk the message tree from head to root, apply compaction if needed)
@@ -341,12 +346,13 @@ Things that are too common or too important to leave to bash scripting. Each sol
 
 | Tool            | What it does                       | Why it's built in                                                                                   |
 | --------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **web_search**  | Search the web (DuckDuckGo)        | Structured results. Agent shouldn't be curl-scraping search engines.                                |
+| **web_search**  | Search the web (Brave/Tavily/Serper/DDG) | Structured results. Premium providers via API key, DDG as free fallback. Resolved per-invocation. |
 | **web_fetch**   | URL → clean readable text          | Needs HTML parsing (magpie-html). Saves large results to disk automatically.                        |
 | **memory**      | Remember/recall/forget facts       | Vector embeddings in SQLite. Semantic search via cosine similarity. Persists across sessions.        |
 | **secrets**     | List/set/delete API keys           | Keys live in SQLite, sync to `process.env`. Never visible in prompts or skill files.                |
 | **delegate**    | Spawn a focused sub-agent          | Runs with its own context (optionally from an agent profile). Foreground or background.             |
 | **check_run**   | Poll a background delegation       | Returns status/result of a previously spawned background task.                                      |
+| **skills**      | List/read/create/update skills     | Manages the `skills/` directory. Rankings, usage tracking, skill authoring from conversation.        |
 
 The delegate tool is the key to scaling: instead of one monolithic agent, the main agent spawns focused sub-agents for specific tasks. Each sub-agent gets a clean context with the relevant agent profile loaded, runs autonomously with the same tool set (minus delegate/check_run to prevent recursion), and returns its result.
 
@@ -375,9 +381,7 @@ API keys are resolved from environment variables or from Ghostpaw's secret store
 ```json
 {
   "models": {
-    "default": "claude-sonnet-4-6",
-    "cheap": "claude-haiku-4-5",
-    "powerful": "claude-opus-4-6"
+    "default": "claude-sonnet-4-6"
   },
   "costControls": {
     "maxTokensPerSession": 200000,
@@ -387,7 +391,7 @@ API keys are resolved from environment variables or from Ghostpaw's secret store
 }
 ```
 
-Sessions use `default` model. Can be overridden per-session or per-delegation. The `cheap` tier is for compaction summaries and other background work. Model names follow the provider's native naming — chatoyant resolves the right provider and API format automatically.
+One model for everything — no tiers, no complexity. Can be overridden per-session or per-delegation via the `--model` flag or delegate tool parameter. Model names follow the provider's native naming — chatoyant resolves the right provider and API format automatically.
 
 ---
 
@@ -474,7 +478,7 @@ Messages form a tree via `parent_id`. The session's `head_message_id` points to 
 When conversation context approaches model's token limit:
 
 1. Take oldest messages in the current chain (excluding the most recent N messages)
-2. Call LLM (using `cheap` model) to summarize them into a concise recap
+2. Call LLM to summarize them into a concise recap
 3. Insert a compaction message (`is_compaction = 1`) as a new tree node
 4. Re-parent the kept recent messages under the compaction node
 5. The conversation chain is now: compaction summary → recent messages → head
@@ -496,7 +500,7 @@ Three capabilities combine into something no stateless agent can replicate:
 | Capability | What it stores | How it persists |
 | --- | --- | --- |
 | **Memory** | Facts — what happened, user preferences, outcomes | Vector embeddings in SQLite, searchable via `recall` |
-| **Skills** | Procedures — how to do things, step by step | Markdown files in `skills/`, loaded every turn |
+| **Skills** | Procedures — how to do things, step by step | Markdown files in `skills/`, index loaded every turn, full content on demand |
 | **Scheduling** | Triggers — when to run procedures autonomously | Cron jobs via bash, running `ghostpaw run` on a schedule |
 
 The flywheel:
@@ -514,9 +518,11 @@ Ghostpaw makes skills THE mechanism. There's nothing else competing for attentio
 ### How It Works
 
 1. Drop a `.md` file into `skills/`
-2. On every agent loop iteration, all skill files are read and concatenated into the system prompt
-3. The agent now knows how to do whatever the skill describes
-4. Multiple skills compose naturally — they're just sections of the system prompt
+2. On every agent loop iteration, a lightweight **skill index** (filename + title) is injected into the system prompt
+3. The agent reads full skill files on demand using the `read` tool when they're relevant to the task
+4. Multiple skills compose naturally — the agent reads whichever ones apply
+
+This index-based approach scales: the system prompt stays lean regardless of how many skills exist, and the agent only loads the knowledge it actually needs per turn.
 
 A skill tells the agent _how_ to use its existing tools for a specific domain. The tools provide the _capability_ (read files, run commands, call APIs, remember things); skills provide the _knowledge_ (which commands to run, what format to use, what to watch out for).
 
@@ -542,7 +548,7 @@ No factory function, no parameter schema, no test harness. The LLM reads the ins
 
 The agent writes new skills for itself. When it figures out how to do something through trial and error, it writes a skill file into `skills/` to remember the procedure for next time. The skill is picked up on the next loop iteration automatically.
 
-New workspaces ship with a **skill-authoring meta-skill** — a skill that teaches the agent how to create, test, and refine other skills. This bootstraps the flywheel: the agent knows when to create skills (repeated patterns, user corrections, non-obvious workflows), how to structure them (concise, tool-specific, with failure paths), and how to evolve them from practice. The meta-skill is the seed.
+New workspaces ship with three **meta-skills** that bootstrap the flywheel: `skill-craft.md` (how to create and evolve skills during conversation), `skill-training.md` (the systematic retrospective playbook), and `skill-scout.md` (creative ideation for discovering new opportunities). Together they teach the agent when to create skills, how to structure them, and how to improve them from practice. See **Craft, Train, Scout** below for the full lifecycle.
 
 The agent on day 100 has a `skills/` directory full of battle-tested procedures it wrote from experience. This accumulated knowledge is plain text — human-readable, git-versionable, shareable between workspaces. You can copy one agent's skills to another and instantly transfer its expertise.
 
@@ -567,13 +573,53 @@ See **Design Principles → Tools Are Syscalls, Skills Are Programs**. Skills (m
 
 ---
 
+## Craft, Train, Scout
+
+Three mechanisms for skill improvement, each at a different timescale. Every new workspace ships with a bundled meta-skill for each one (`skill-craft.md`, `skill-training.md`, `skill-scout.md`) — the agent reads them on demand when the context is right.
+
+### Craft (in-session)
+
+The most organic path. During normal conversation, the agent reads `skill-craft.md` and creates or improves skills as a natural side effect of solving problems. No special command — it just happens when the agent recognizes the signals:
+
+- Trial and error (3+ tool calls to figure something out → codify the working approach)
+- User corrections (capture preferences before the session ends)
+- Repeated patterns (solved this twice → deserves a skill)
+- Non-obvious workflows (specific flags, required ordering, environment quirks)
+
+The craft skill also teaches structure (action-oriented titles, concrete steps naming specific tools, failure paths, verification), evolution (compare to reality, compress, add edge cases), and anti-patterns (don't speculate, don't duplicate SOUL.md, don't hardcode values). This is the transparent, always-on path — the agent improves itself simply by working.
+
+### Train (`ghostpaw train`)
+
+Systematic retrospective — batch-processes accumulated experience into sharper skills. Three internal phases:
+
+1. **Absorb** — extracts learnings from unprocessed conversation sessions. Reads session transcripts, distills key facts and procedural knowledge into concise memories stored via vector embeddings. Skips routine exchanges, only captures genuinely useful corrections, preferences, discoveries, and successful approaches.
+
+2. **Train** — full agent run with tools, guided by `skill-training.md`. Recalls absorbed memories, reviews current skills and their rankings, checks uncommitted changes (rough drafts from craft), identifies gaps, creates new skills or improves existing ones. Tracks skill changes via git (commit before/after) for diffing. Marks its own session as absorbed to prevent self-referential feedback loops.
+
+3. **Tidy** — cleans up old absorbed sessions (>30 days) and runs `PRAGMA optimize` on the database.
+
+### Scout (`ghostpaw scout`)
+
+Forward-looking creative ideation — discovers unexplored skill opportunities by mining accumulated context (memories, sessions, existing skills, workspace structure) for friction signals and capability gaps.
+
+Two modes:
+
+- **Directionless** (`ghostpaw scout`) — friction mining. Analyzes what the user does repeatedly, struggles with, or could benefit from. Returns 3–5 trail suggestions grounded in specific evidence from the context.
+- **Directed** (`ghostpaw scout <direction>`) — full agent run with tools, guided by `skill-scout.md`. Researches the direction, cross-references with the user's context, and produces a trail report with concrete first steps. Ends with an invitation to craft the scouted direction into a skill.
+
+### The full cycle
+
+Craft handles the moment-to-moment ("I just figured this out, let me write it down"). Train handles the retrospective ("what did I learn this week that I haven't captured?"). Scout handles the forward-looking ("what am I missing that I don't even know about yet?"). Together they form a complete learning loop: scout discovers → craft captures → train refines → repeat.
+
+---
+
 ## OpenClaw Compatibility
 
 ### What's Compatible (Drop-In)
 
 **SOUL.md** — loaded at conversation start, injected as the personality/behavior section of the system prompt. Same file, same format, same effect.
 
-**SKILL.md files** — loaded from `skills/` directory, injected as capability context in the system prompt. Each SKILL.md adds knowledge about how to do something. Same markdown format as OpenClaw, same injection mechanism.
+**SKILL.md files** — loaded from `skills/` directory. A lightweight index (filename + title) is injected into the system prompt; the agent reads full skill content on demand. Same markdown format as OpenClaw — drop-in compatible.
 
 ### What's Different (By Design)
 
@@ -581,7 +627,7 @@ See **Design Principles → Tools Are Syscalls, Skills Are Programs**. Skills (m
 
 **Skill management** — OpenClaw uses `openclaw.json` for skill registration and `/skills install @author/skill-name` from ClawHub. Ghostpaw uses a flat `skills/` directory. Drop markdown files in, they're loaded automatically. No registry, no marketplace, no attack surface.
 
-**MCP** — OpenClaw supports MCP via mcporter CLI. Ghostpaw doesn't embed MCP support. The agent can call mcporter via Bash if needed — or write its own integration script. MCP is explicitly not in the kernel.
+**MCP** — OpenClaw supports MCP via mcporter CLI. Ghostpaw doesn't embed MCP support yet — native MCP integration is planned as a near-term addition to the kernel. In the interim, the agent can call MCP-compatible tools via Bash or integrate them through skills.
 
 **Tool set** — OpenClaw ships ~20+ tools across groups (fs, runtime, web, ui, messaging, memory, sessions, automation). Ghostpaw ships a focused set of built-in tools that cover what coding agents actually use. The skipped tools (canvas, nodes, gateway management) are OpenClaw-specific infrastructure features.
 
@@ -593,9 +639,9 @@ See **Design Principles → Tools Are Syscalls, Skills Are Programs**. Skills (m
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Canvas / A2UI              | Mobile node rendering. Niche. Not core agent functionality.                                                                                                  |
 | Node pairing (iOS/Android) | Mobile companion app ecosystem. Not what coding agents need.                                                                                                 |
-| Docker sandboxing          | Optional in OpenClaw (most users run `sandbox: "off"`). Security via tool policies instead.                                                                  |
+| Docker sandboxing          | Optional in OpenClaw (most users run `sandbox: "off"`). Security via secret isolation, output scrubbing, and delegation circuit breakers instead.             |
 | ClawHub marketplace        | Actively harmful (1,184 malicious skills). Local-only skills is a feature, not a limitation.                                                                 |
-| macOS menu bar app         | UI wrapper. The web control UI serves the same purpose.                                                                                                      |
+| macOS menu bar app         | UI wrapper. The CLI is the primary interface; a web control UI is planned.                                                                                    |
 | Multi-agent routing        | Complex orchestration layer. The delegate tool covers the core use case. Full routing not day-1.                                                             |
 | Browser tool (Playwright)  | Heavyweight dependency. Agent can drive Chrome via CDP through Bash + a skill, as Armin Ronacher demonstrated.                                               |
 | JS/Python plugin system    | Over-engineering. Skills (markdown) + secrets (env vars) + bash (code execution) cover the same ground with zero API surface.                                |
@@ -604,45 +650,30 @@ See **Design Principles → Tools Are Syscalls, Skills Are Programs**. Skills (m
 
 ## Channels
 
-### Telegram (Day 1)
-
-Telegram Bot API via HTTP long-polling. No WebSocket, no webhook server, no external dependency.
-
-- Create bot via @BotFather → get token → store via secrets tool
-- Ghostpaw starts long-polling loop: `GET /getUpdates` with offset
-- Incoming messages → agent loop → response sent via `POST /sendMessage`
-- Supports text, images (via multimodal LLM), and file attachments
-- One bot can serve multiple chats (each chat = separate session)
-
-Why Telegram first: cleanest bot API, 80% of OpenClaw users' primary channel, setup takes ~10 minutes, zero infrastructure.
-
-### CLI Interactive Mode (Day 1)
+### CLI Interactive Mode (Implemented)
 
 REPL in the terminal. `process.stdin` / `process.stdout`. No channel adapter needed. The simplest possible interface. Works offline (except LLM API calls obviously).
 
-### Web Control UI (Day 1)
+### Future Channels
 
-SPA served via `node:http` on `localhost:PORT`.
+Each channel is an isolated adapter in `channels/`. Same pattern: receive message → agent loop → send response. No architectural changes required.
 
-- HTML/CSS/JS inlined in the compiled artifact (built from `src/ui/` at compile time)
-- REST API for session management, config
-- Server-Sent Events (SSE) for streaming agent responses to the browser (server→client, native HTTP, no WebSocket dependency)
-- User messages sent via POST (client→server)
-- Shows: active sessions, chat interface, token usage, logs, loaded skills
-- No framework — vanilla HTML/CSS/JS. Clean, functional, not fancy.
+Planned channels:
 
-### Future Channels (Not Day 1)
+- **Telegram** — Bot API via HTTP long-polling. Cleanest bot API, 80% of OpenClaw users' primary channel. Create bot via @BotFather → get token → store via secrets tool.
+- **Web Control UI** — SPA served via `node:http` on `localhost:PORT`. HTML/CSS/JS inlined in the compiled artifact, SSE for streaming, REST API for session management.
+- **Discord, WhatsApp, Slack, Signal** — same adapter pattern, same interface.
 
-Discord, WhatsApp, Slack, Signal, etc. — each is an isolated adapter in `channels/`. Same pattern as Telegram: receive message → agent loop → send response. No architectural changes required.
+Why CLI first: zero infrastructure, zero configuration, zero external dependencies. The terminal is the universal interface.
 
 ---
 
 ## Security Model
 
 - **No marketplace** — skills are local markdown files you control and audit. No download-and-execute from strangers.
-- **Tool policies** — config-driven allow/deny lists per tool. Deny always wins.
-- **File system boundaries** — Write tool defaults to workspace-only. Configurable.
-- **Secret isolation** — API keys stored in SQLite, synced to `process.env` at startup. Never injected into the system prompt, never visible to the LLM.
+- **File system boundaries** — Write tool enforces workspace-only access. Paths resolving outside the workspace are rejected.
+- **Secret isolation** — API keys stored in SQLite, synced to `process.env` at startup. Never injected into the system prompt, never visible to the LLM. Input validation catches common mistakes (wrong-provider keys, shell assignment syntax, quoted values).
+- **Secret scrubbing** — bash tool output (stdout/stderr) is scrubbed for known API key values before returning to the LLM conversation.
 - **Cost guardrails** — token budgets per session and per day. Hard stops, not just warnings.
 - **Delegation circuit breaker** — sub-agents cannot delegate further. No runaway recursion.
 - **Session serialization** — only one agent loop per session at a time. No race conditions on shared state.
@@ -655,11 +686,11 @@ Created automatically on first run — no separate `init` command needed. Ghostp
 
 ```
 ~/.ghostpaw/  (or wherever you run ghostpaw from — cwd IS the workspace)
-  config.json             # models, cost controls, tool policies
+  config.json             # models, cost controls
   ghostpaw.db             # SQLite: sessions, messages, memory, runs, secrets, logs
   SOUL.md                 # personality/behavior (default provided, user customizes)
   agents/                 # agent profile .md files (for delegation)
-  skills/                 # SKILL.md files (OpenClaw-compatible, loaded as prompt context)
+  skills/                 # SKILL.md files (OpenClaw-compatible, index in prompt, read on demand)
   .ghostpaw/              # runtime files (cached web content, etc.)
 ```
 
@@ -692,7 +723,7 @@ All state in SQLite. All behavior in markdown files. Clean separation: the compi
 - **Model-agnostic** — Anthropic, OpenAI, xAI, Google treated equally. No platform favoritism.
 - **Actually reliable** — tiny surface area (tools + SQLite + one process) vs 430k+ lines of interdependent complexity
 - **Secure by default** — no marketplace, no community upload, no malware vector. Skills are local files you control and audit.
-- **Cost-controlled** — token budgets, model routing, hard session limits. No $200 runaways.
+- **Cost-controlled** — token budgets per session and per day, hard limits. No $200 runaways.
 - **Ecosystem compatible** — reads OpenClaw SKILL.md/SOUL.md format. Community skills for free, corporate baggage stays behind.
 - **Skills as primary mechanism** — OpenClaw has skills but buries them under plugins, marketplace, and MCP. Ghostpaw makes skills the only extension path — focused, auditable, self-authoring.
 

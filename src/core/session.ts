@@ -243,9 +243,7 @@ export function createSessionStore(db: GhostpawDatabase): SessionStore {
     },
 
     markAbsorbed(sessionId: string): void {
-      sqlite
-        .prepare("UPDATE sessions SET absorbed_at = ? WHERE id = ?")
-        .run(Date.now(), sessionId);
+      sqlite.prepare("UPDATE sessions SET absorbed_at = ? WHERE id = ?").run(Date.now(), sessionId);
     },
 
     listUnabsorbed(): Session[] {
@@ -269,9 +267,7 @@ export function createSessionStore(db: GhostpawDatabase): SessionStore {
     deleteOldAbsorbed(ttlMs: number): number {
       const cutoff = Date.now() - ttlMs;
       const sessions = sqlite
-        .prepare(
-          "SELECT id FROM sessions WHERE absorbed_at IS NOT NULL AND absorbed_at < ?",
-        )
+        .prepare("SELECT id FROM sessions WHERE absorbed_at IS NOT NULL AND absorbed_at < ?")
         .all(cutoff) as { id: string }[];
 
       // Deletes messages and runs but intentionally leaves memories intact.

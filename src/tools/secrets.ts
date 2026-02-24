@@ -15,7 +15,9 @@ export function createSecretsTool(secrets: SecretStore) {
     description:
       "Manage persistent secrets (API keys, tokens). " +
       "Use 'list' to see configured key names, 'set' to store a secret, 'delete' to remove one. " +
-      "Values are never returned — only key names are listed.",
+      "Values are never returned — only key names are listed. " +
+      "IMPORTANT: 'set' transmits the value through this conversation. " +
+      "For sensitive keys, recommend the user run `ghostpaw secrets set <KEY>` in their terminal instead.",
     // biome-ignore lint: TS index-signature limitation on class instances vs SchemaInstance
     parameters: new SecretsParams() as any,
     execute: async ({ args }) => {
@@ -32,7 +34,9 @@ export function createSecretsTool(secrets: SecretStore) {
         case "set": {
           if (!key) return { error: "key is required for set" };
           if (!value) return { error: "value is required for set" };
-          secrets.set(key, value);
+          const result = secrets.set(key, value);
+          if (!result.value) return { error: result.warning ?? "Empty value" };
+          if (result.warning) return { stored: key, warning: result.warning };
           return { stored: key };
         }
 

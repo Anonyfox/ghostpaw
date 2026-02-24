@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import { formatConversation, parseLearnings } from "./absorb.js";
 import { createDatabase, type GhostpawDatabase } from "./database.js";
 import { createMemoryStore, type MemoryStore } from "./memory.js";
-import { createSessionStore, type SessionStore } from "./session.js";
 import type { Message } from "./session.js";
+import { createSessionStore, type SessionStore } from "./session.js";
 
 let db: GhostpawDatabase;
 let sessions: SessionStore;
@@ -24,17 +24,23 @@ afterEach(() => {
 
 describe("parseLearnings", () => {
   it("parses valid JSON response", () => {
-    const result = parseLearnings('{"learnings": ["User prefers tabs over spaces", "Deploy requires --force flag"]}');
+    const result = parseLearnings(
+      '{"learnings": ["User prefers tabs over spaces", "Deploy requires --force flag"]}',
+    );
     deepStrictEqual(result, ["User prefers tabs over spaces", "Deploy requires --force flag"]);
   });
 
   it("parses JSON with surrounding text", () => {
-    const result = parseLearnings('Here are the learnings:\n{"learnings": ["Always run tests first"]}\nDone.');
+    const result = parseLearnings(
+      'Here are the learnings:\n{"learnings": ["Always run tests first"]}\nDone.',
+    );
     deepStrictEqual(result, ["Always run tests first"]);
   });
 
   it("filters out short strings (<=10 chars)", () => {
-    const result = parseLearnings('{"learnings": ["Good one", "This is a real learning worth keeping"]}');
+    const result = parseLearnings(
+      '{"learnings": ["Good one", "This is a real learning worth keeping"]}',
+    );
     strictEqual(result.length, 1);
     strictEqual(result[0], "This is a real learning worth keeping");
   });
@@ -55,13 +61,17 @@ describe("parseLearnings", () => {
   });
 
   it("falls back to line-based extraction on malformed JSON with braces", () => {
-    const result = parseLearnings('{"learnings: broken}\n- User prefers dark mode for all interfaces\n- Always check return values');
+    const result = parseLearnings(
+      '{"learnings: broken}\n- User prefers dark mode for all interfaces\n- Always check return values',
+    );
     ok(result.length >= 1);
     ok(result.some((l) => l.includes("dark mode")));
   });
 
   it("line-based fallback strips list markers", () => {
-    const result = parseLearnings("{invalid json}\n1. First real learning to keep\n2. Second real learning to keep");
+    const result = parseLearnings(
+      "{invalid json}\n1. First real learning to keep\n2. Second real learning to keep",
+    );
     ok(result.length >= 2);
     ok(result[0].startsWith("First"));
     ok(result[1].startsWith("Second"));
@@ -97,7 +107,11 @@ describe("parseLearnings", () => {
 
 // ── formatConversation ──────────────────────────────────────────────────────
 
-function makeMessage(role: "user" | "assistant" | "system", content: string | null, opts?: { isCompaction?: boolean }): Message {
+function makeMessage(
+  role: "user" | "assistant" | "system",
+  content: string | null,
+  opts?: { isCompaction?: boolean },
+): Message {
   return {
     id: `msg-${Math.random()}`,
     sessionId: "s1",
@@ -228,10 +242,9 @@ describe("session store - absorption methods", () => {
     sessions.addMessage(s1.id, { role: "user", content: "hello" });
     sessions.markAbsorbed(s1.id);
 
-    db.sqlite.prepare("UPDATE sessions SET absorbed_at = ? WHERE id = ?").run(
-      Date.now() - 100_000,
-      s1.id,
-    );
+    db.sqlite
+      .prepare("UPDATE sessions SET absorbed_at = ? WHERE id = ?")
+      .run(Date.now() - 100_000, s1.id);
 
     const deleted = sessions.deleteOldAbsorbed(50_000);
     strictEqual(deleted, 1);
@@ -263,10 +276,9 @@ describe("session store - absorption methods", () => {
     sessions.addMessage(s1.id, { role: "assistant", content: "world" });
     sessions.markAbsorbed(s1.id);
 
-    db.sqlite.prepare("UPDATE sessions SET absorbed_at = ? WHERE id = ?").run(
-      Date.now() - 100_000,
-      s1.id,
-    );
+    db.sqlite
+      .prepare("UPDATE sessions SET absorbed_at = ? WHERE id = ?")
+      .run(Date.now() - 100_000, s1.id);
 
     sessions.deleteOldAbsorbed(50_000);
 
@@ -281,10 +293,9 @@ describe("session store - absorption methods", () => {
 
     memory.store("learned from session", [], { source: "absorbed", sessionId: s1.id });
 
-    db.sqlite.prepare("UPDATE sessions SET absorbed_at = ? WHERE id = ?").run(
-      Date.now() - 100_000,
-      s1.id,
-    );
+    db.sqlite
+      .prepare("UPDATE sessions SET absorbed_at = ? WHERE id = ?")
+      .run(Date.now() - 100_000, s1.id);
 
     sessions.deleteOldAbsorbed(50_000);
 
@@ -297,9 +308,7 @@ describe("session store - absorption methods", () => {
 
 describe("schema migration - absorbed_at column", () => {
   it("absorbed_at column exists in sessions table", () => {
-    const cols = db.sqlite
-      .prepare("PRAGMA table_info(sessions)")
-      .all() as { name: string }[];
+    const cols = db.sqlite.prepare("PRAGMA table_info(sessions)").all() as { name: string }[];
     ok(cols.some((c) => c.name === "absorbed_at"));
   });
 

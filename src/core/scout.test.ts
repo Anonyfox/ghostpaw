@@ -4,15 +4,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import {
-  MAX_CONTEXT_CHARS,
-  MAX_TRAILS,
-  WORKSPACE_IGNORE,
   assembleScoutContext,
   buildScoutPrompt,
+  MAX_CONTEXT_CHARS,
+  MAX_TRAILS,
   parseFrictionTrails,
   type ScoutContextConfig,
   type ScoutResult,
   type ScoutTrail,
+  WORKSPACE_IGNORE,
 } from "./scout.js";
 
 let workDir: string;

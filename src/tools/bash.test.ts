@@ -106,4 +106,46 @@ describe("Bash tool", () => {
     const elapsed = Date.now() - start;
     ok(elapsed < 5000, `Should timeout quickly, took ${elapsed}ms`);
   });
+
+  it("scrubs known API key values from stdout", async () => {
+    const original = process.env.API_KEY_ANTHROPIC;
+    process.env.API_KEY_ANTHROPIC = "sk-ant-test-secret-value-12345678";
+    try {
+      const result = (await exec({
+        command: "echo sk-ant-test-secret-value-12345678",
+      })) as { stdout: string };
+      strictEqual(result.stdout.includes("sk-ant-test-secret-value-12345678"), false);
+      ok(result.stdout.includes("***"));
+    } finally {
+      if (original === undefined) delete process.env.API_KEY_ANTHROPIC;
+      else process.env.API_KEY_ANTHROPIC = original;
+    }
+  });
+
+  it("scrubs known API key values from stderr", async () => {
+    const original = process.env.TAVILY_API_KEY;
+    process.env.TAVILY_API_KEY = "tvly-test-secret-value-87654321";
+    try {
+      const result = (await exec({
+        command: "echo tvly-test-secret-value-87654321 >&2",
+      })) as { stderr: string };
+      strictEqual(result.stderr.includes("tvly-test-secret-value-87654321"), false);
+      ok(result.stderr.includes("***"));
+    } finally {
+      if (original === undefined) delete process.env.TAVILY_API_KEY;
+      else process.env.TAVILY_API_KEY = original;
+    }
+  });
+
+  it("does not scrub short values (under 8 chars)", async () => {
+    const original = process.env.SERPER_API_KEY;
+    process.env.SERPER_API_KEY = "short";
+    try {
+      const result = (await exec({ command: "echo short" })) as { stdout: string };
+      ok(result.stdout.includes("short"));
+    } finally {
+      if (original === undefined) delete process.env.SERPER_API_KEY;
+      else process.env.SERPER_API_KEY = original;
+    }
+  });
 });

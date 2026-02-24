@@ -2,7 +2,7 @@
  * Training engine — the systematic retrospective that turns accumulated
  * experience into sharper skills. Three phases:
  *
- * 1. Absorb  — extract learnings from unprocessed sessions (cheap LLM)
+ * 1. Absorb  — extract learnings from unprocessed sessions
  * 2. Train   — recall memories, review skills, identify gaps, act
  * 3. Tidy    — vacuum old absorbed sessions, optimize DB
  *
@@ -14,8 +14,8 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   commitSkills,
-  diffSkills as gitDiffSkills,
   getSkillRank,
+  diffSkills as gitDiffSkills,
   hasHistory,
   initHistory,
 } from "../lib/skill-history.js";
@@ -71,9 +71,6 @@ export interface TrainChange {
   rank: number;
 }
 
-/** @deprecated Use TrainChange instead */
-export type ReflectChange = TrainChange;
-
 function snapshotSkills(workspacePath: string): SkillSnapshot {
   const skillsDir = join(workspacePath, "skills");
   if (!existsSync(skillsDir)) return {};
@@ -119,9 +116,6 @@ export interface TrainResult {
   memoriesCreated: number;
   tidied: number;
 }
-
-/** @deprecated Use TrainResult instead */
-export type ReflectResult = TrainResult;
 
 function ensureBaselineCommit(workspace: string): boolean {
   if (!hasHistory(workspace)) initHistory(workspace);
@@ -173,7 +167,9 @@ function detectChanges(
 
 // ── Phase 1: Absorb ─────────────────────────────────────────────────────────
 
-async function runAbsorb(workspace: string): Promise<{ absorbed: number; memoriesCreated: number }> {
+async function runAbsorb(
+  workspace: string,
+): Promise<{ absorbed: number; memoriesCreated: number }> {
   const { createDatabase } = await import("./database.js");
   const { createSessionStore } = await import("./session.js");
   const { createMemoryStore } = await import("./memory.js");
@@ -200,7 +196,7 @@ async function runAbsorb(workspace: string): Promise<{ absorbed: number; memorie
       sessions,
       memory,
       embedding,
-      cheapModel: config.models.cheap,
+      model: config.models.default,
     });
 
     return { absorbed: result.absorbed, memoriesCreated: result.memoriesCreated };
@@ -290,9 +286,6 @@ export async function runTrain(workspace: string): Promise<TrainResult> {
   };
 }
 
-/** @deprecated Use runTrain instead */
-export const runReflect = runTrain;
-
 // ── Report ──────────────────────────────────────────────────────────────────
 
 export function printTrainReport(result: TrainResult): void {
@@ -317,10 +310,18 @@ export function printTrainReport(result: TrainResult): void {
   blank();
   for (const change of result.changes) {
     if (change.type === "created") {
-      label("learned", `${style.bold(change.title)} ${style.dim(`(${change.filename})`)}`, style.boldGreen);
+      label(
+        "learned",
+        `${style.bold(change.title)} ${style.dim(`(${change.filename})`)}`,
+        style.boldGreen,
+      );
     } else {
       const rankStr = change.rank > 0 ? `rank ${change.rank}` : "leveled up";
-      label(rankStr, `${style.bold(change.title)} ${style.dim(`(${change.filename})`)}`, style.boldCyan);
+      label(
+        rankStr,
+        `${style.bold(change.title)} ${style.dim(`(${change.filename})`)}`,
+        style.boldCyan,
+      );
     }
   }
 
@@ -330,17 +331,20 @@ export function printTrainReport(result: TrainResult): void {
   const parts: string[] = [];
   if (created > 0) parts.push(`${created} learned`);
   if (updated > 0) parts.push(`${updated} ranked up`);
-  log.done(`${parts.join(", ")} — ${result.changes.length} skill${result.changes.length === 1 ? "" : "s"} total`);
+  log.done(
+    `${parts.join(", ")} — ${result.changes.length} skill${result.changes.length === 1 ? "" : "s"} total`,
+  );
 
   if (result.tidied > 0) {
-    label("tidied", `${result.tidied} old session${result.tidied === 1 ? "" : "s"} cleaned up`, style.dim);
+    label(
+      "tidied",
+      `${result.tidied} old session${result.tidied === 1 ? "" : "s"} cleaned up`,
+      style.dim,
+    );
   }
 
   blank();
 }
-
-/** @deprecated Use printTrainReport instead */
-export const printReflectReport = printTrainReport;
 
 // ── Entry point ─────────────────────────────────────────────────────────────
 
@@ -403,6 +407,3 @@ export async function train(workspace: string, opts: { stream?: boolean } = {}):
     printTrainReport(result);
   }
 }
-
-/** @deprecated Use train instead */
-export const reflect = train;

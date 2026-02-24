@@ -49,9 +49,11 @@ function ensureSqliteFlag(): void {
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export { createTool, Schema } from "chatoyant";
+export type { AbsorbConfig, AbsorbResult } from "./core/absorb.js";
+export { absorbSessions, countUnabsorbedSessions } from "./core/absorb.js";
 export type { AgentProfile } from "./core/agents.js";
 export { getAgentProfile, listAgentProfiles } from "./core/agents.js";
-export type { CostControls, GhostpawConfig, ModelTiers } from "./core/config.js";
+export type { CostControls, GhostpawConfig } from "./core/config.js";
 export { DEFAULT_CONFIG, loadConfig } from "./core/config.js";
 export type { BudgetTracker, TokenUsage } from "./core/cost.js";
 export { createBudgetTracker, estimateTokens } from "./core/cost.js";
@@ -72,15 +74,13 @@ export type {
   StoreOptions,
 } from "./core/memory.js";
 export { createMemoryStore } from "./core/memory.js";
-export type { AbsorbConfig, AbsorbResult } from "./core/absorb.js";
-export { absorbSessions, countUnabsorbedSessions } from "./core/absorb.js";
-export type { ScoutResult, ScoutTrail } from "./core/scout.js";
-export { runScout, scout } from "./core/scout.js";
-export type { ReflectChange, ReflectResult, TrainChange, TrainResult } from "./core/reflect.js";
-export { printReflectReport, printTrainReport, reflect, runReflect, runTrain, train } from "./core/reflect.js";
+export type { TrainChange, TrainResult } from "./core/reflect.js";
+export { printTrainReport, runTrain, train } from "./core/reflect.js";
 export { startRepl } from "./core/repl.js";
 export type { Run, RunStatus, RunStore } from "./core/runs.js";
 export { createRunStore } from "./core/runs.js";
+export type { ScoutResult, ScoutTrail } from "./core/scout.js";
+export { runScout, scout } from "./core/scout.js";
 export type { SecretStore } from "./core/secrets.js";
 export { createSecretStore } from "./core/secrets.js";
 export type { InitSystem, ServiceConfig, ServiceResult, ServiceStatus } from "./core/service.js";
@@ -99,6 +99,15 @@ export type { EmbeddingProvider } from "./lib/embedding.js";
 export { createEmbeddingProvider } from "./lib/embedding.js";
 export type { GhostpawErrorCode } from "./lib/errors.js";
 export {
+  BudgetExceededError,
+  ConfigError,
+  DatabaseError,
+  GhostpawError,
+  ProviderError,
+  ToolError,
+  ValidationError,
+} from "./lib/errors.js";
+export {
   commitSkills,
   diffSkills as diffSkillHistory,
   getAllSkillRanks,
@@ -110,15 +119,6 @@ export {
   isGitAvailable,
 } from "./lib/skill-history.js";
 export { banner, blank, label, log, style } from "./lib/terminal.js";
-export {
-  BudgetExceededError,
-  ConfigError,
-  DatabaseError,
-  GhostpawError,
-  ProviderError,
-  ToolError,
-  ValidationError,
-} from "./lib/errors.js";
 export { createBashTool } from "./tools/bash.js";
 export { createCheckRunTool } from "./tools/check_run.js";
 export { createDelegateTool } from "./tools/delegate.js";
@@ -129,7 +129,14 @@ export { createReadTool } from "./tools/read.js";
 export type { ToolRegistry } from "./tools/registry.js";
 export { createToolRegistry } from "./tools/registry.js";
 export type { SearchProvider, SearchResponse, SearchResult } from "./tools/search.js";
-export { createWebSearchTool } from "./tools/search.js";
+export {
+  createBraveSearch,
+  createDDGSearch,
+  createSerperSearch,
+  createTavilySearch,
+  createWebSearchTool,
+  resolveSearchProvider,
+} from "./tools/search.js";
 export { createSecretsTool } from "./tools/secrets.js";
 export { createSkillsTool } from "./tools/skills.js";
 export { createWebFetchTool } from "./tools/web.js";
@@ -267,6 +274,7 @@ ${h("Commands")}
   train             Review recent experience, level up skills
   scout ${d("[direction]")}  Explore new skill possibilities
   init              Re-scaffold workspace ${d("(auto-runs on first use)")}
+  secrets ${d("[sub]")}     list | set <KEY> | delete <KEY>
   service ${d("<sub>")}     install | uninstall | status | logs
 
 ${h("Options")}
@@ -329,6 +337,11 @@ async function main(): Promise<void> {
       });
       const result = await agent.run(prompt);
       console.log(result);
+      if (process.stdout.isTTY) {
+        const { label, blank, formatTokens } = await import("./lib/terminal.js");
+        blank();
+        label("", formatTokens(Math.ceil(result.length / 4)), style.dim);
+      }
       break;
     }
     case "train": {
@@ -356,6 +369,119 @@ async function main(): Promise<void> {
       blank();
       log.done(`Workspace ready at ${style.dim(workspace)}`);
       await promptApiKey(workspace);
+      break;
+    }
+    case "secrets": {
+      const sub = positionals[1];
+      const { createDatabase } = await import("./core/database.js");
+      const { createSecretStore, KNOWN_KEYS, activeSearchProvider } = await import(
+        "./core/secrets.js"
+      );
+      const { log, blank } = await import("./lib/terminal.js");
+
+      const db = await createDatabase(resolve(workspace, "ghostpaw.db"));
+      const secrets = createSecretStore(db);
+      secrets.loadIntoEnv();
+
+      try {
+        if (sub === "set") {
+          const keyName = positionals[2];
+          if (!keyName) {
+            console.error(`Usage: ghostpaw secrets set ${style.dim("<KEY>")}`);
+            blank();
+            console.error(`  Known keys:`);
+            for (const k of KNOWN_KEYS) {
+              console.error(`    ${k.canonical.padEnd(20)} ${style.dim(k.label)}`);
+            }
+            process.exit(1);
+          }
+          if (!process.stdin.isTTY) {
+            const chunks: Buffer[] = [];
+            for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+            const raw = Buffer.concat(chunks).toString("utf-8").trim();
+            if (!raw) {
+              log.error("No value provided on stdin");
+              process.exit(1);
+            }
+            const result = secrets.set(keyName, raw);
+            if (!result.value) {
+              log.error(result.warning ?? "Empty value");
+              process.exit(1);
+            }
+            if (result.warning) log.warn(result.warning);
+            log.done(`${keyName} stored`);
+          } else {
+            const { readSecret } = await import("./lib/terminal.js");
+            const raw = await readSecret(`  Value for ${style.bold(keyName)}: `);
+            if (!raw) {
+              log.warn("Empty value, skipping");
+              process.exit(0);
+            }
+            const result = secrets.set(keyName, raw);
+            if (!result.value) {
+              log.error(result.warning ?? "Empty value");
+              process.exit(1);
+            }
+            if (result.warning) log.warn(result.warning);
+            log.done(`${keyName} stored`);
+          }
+        } else if (sub === "delete") {
+          const keyName = positionals[2];
+          if (!keyName) {
+            console.error(`Usage: ghostpaw secrets delete ${style.dim("<KEY>")}`);
+            process.exit(1);
+          }
+          secrets.delete(keyName);
+          log.done(`${keyName} deleted`);
+        } else {
+          const stored = new Set(secrets.keys());
+          const activeSearch = activeSearchProvider();
+
+          const categories = [
+            { title: "LLM", keys: KNOWN_KEYS.filter((k) => k.category === "llm") },
+            { title: "Search", keys: KNOWN_KEYS.filter((k) => k.category === "search") },
+          ];
+
+          blank();
+          for (const cat of categories) {
+            console.log(`  ${style.bold(cat.title)}`);
+            for (const k of cat.keys) {
+              const configured = stored.has(k.canonical);
+              const isActive = cat.title === "Search" && activeSearch?.canonical === k.canonical;
+
+              const marker = configured ? style.green("✓") : style.dim("·");
+              const nameStr = configured ? k.label : style.dim(k.label);
+              const keyStr = style.dim(k.canonical);
+              const tag = isActive ? ` ${style.cyan("active")}` : "";
+
+              console.log(`    ${marker} ${nameStr.padEnd(22)} ${keyStr}${tag}`);
+            }
+            blank();
+          }
+
+          // Show any custom (non-known) keys
+          const customKeys = [...stored].filter((s) => !KNOWN_KEYS.some((k) => k.canonical === s));
+          if (customKeys.length > 0) {
+            console.log(`  ${style.bold("Custom")}`);
+            for (const name of customKeys) {
+              console.log(`    ${style.green("✓")} ${name}`);
+            }
+            blank();
+          }
+
+          if (!activeSearch) {
+            console.log(
+              `  ${style.dim("Search: DDG free fallback (set a key above for better results)")}`,
+            );
+          }
+          console.log(
+            `  ${style.dim(`Use ${style.bold("ghostpaw secrets set <KEY>")} to configure`)}`,
+          );
+          blank();
+        }
+      } finally {
+        db.close();
+      }
       break;
     }
     case "service": {

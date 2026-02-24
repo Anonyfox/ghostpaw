@@ -223,7 +223,10 @@ describe("Integration: context assembly with workspace files", () => {
   it("loads SOUL.md and skill index into the system prompt", () => {
     writeFileSync(join(workDir, "SOUL.md"), "You are a coding assistant called Ghost.");
     mkdirSync(join(workDir, "skills"), { recursive: true });
-    writeFileSync(join(workDir, "skills", "testing.md"), "# Testing\nAlways write tests first (TDD).");
+    writeFileSync(
+      join(workDir, "skills", "testing.md"),
+      "# Testing\nAlways write tests first (TDD).",
+    );
     writeFileSync(join(workDir, "skills", "style.md"), "# Code Style\nUse TypeScript strict mode.");
 
     const prompt = assembleSystemPrompt(workDir);

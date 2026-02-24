@@ -32,17 +32,17 @@ OpenClaw was acquired by OpenAI (Feb 15, 2026). What was the independent open-so
 
 Ghostpaw is the other direction. One `.mjs` file. Four core tools. Plain markdown. An API key and Node.js — nothing else.
 
-## The Double Learning Loop
+## Three Learning Loops
 
-Most agents are stateless. They're as smart as the model, every time, forever.
+Most agents are stateless. They're as smart as the model, every time, forever. Ghostpaw stacks three compounding loops on top of each other.
 
-Ghostpaw compounds in two ways simultaneously:
+**Loop 1 — Models get better.** This is the ChatGPT mode everyone knows. Ghostpaw is model-agnostic across OpenAI, Anthropic, and xAI. When the next Sonnet or GPT drops, your agent is instantly smarter at baseline. You ride the curve instead of managing local weights.
 
-**Models get better.** Ghostpaw is model-agnostic across OpenAI, Anthropic, and xAI. When the next Sonnet or GPT drops, your agent is instantly smarter at baseline. You ride the curve instead of managing local weights.
+**Loop 2 — You teach it.** This is the OpenClaw and Claude Code mode. There's a wealth of skills, prompts, and workflows across the internet. Copy a deployment checklist into `skills/`, paste a coding convention, drop in a teammate's debugging playbook. Plain markdown — no marketplace needed, no approval process, no supply chain risk.
 
-**Your agent gets better.** The skill system turns real experience into procedural knowledge. Corrections become preferences. Failed deploys become runbooks. Patterns you repeat become automations. After a month of use, the agent knows your stack, your conventions, your edge cases — things no model update will ever capture.
+**Loop 3 — It teaches itself.** This is what Ghostpaw adds. The agent extracts learnings from every session, refines its own skills through training, and proactively scouts for capability gaps it hasn't been told about. No other tool in this space does autonomous self-improvement from use.
 
-These loops multiply. Better base models × refined personal skills = an agent that accelerates the longer you use it.
+These loops multiply. Better base models × curated knowledge × self-refined skills = an agent that accelerates the longer you use it.
 
 ## Skills
 
@@ -57,6 +57,16 @@ Three modes, one system.
 Skills are plain markdown in `skills/`, version-controlled by git for integrity and rollback. No plugins. No marketplace. No supply chain attack surface.
 
 [How the skill system works →](docs/SKILLS.md)
+
+## Web Tools
+
+Built-in `web_search` and `web_fetch` — no browser, no Playwright, no headless Chrome. The agent searches, reads pages, and synthesizes on its own.
+
+Search works out of the box with DuckDuckGo. Add an API key for **Brave Search**, **Tavily**, or **Serper** and the agent automatically upgrades to the premium provider. Fetch extracts clean content in four modes: article (readable body), text (full plaintext), metadata (links + feeds), and html (raw source). Large pages spill to disk with a preview — the agent reads sections on demand instead of burning context.
+
+That's the zero-dependency core. Since the agent has shell access and learns through skills, nothing stops it from driving Playwright, puppeteer, or `curl` pipelines if they're installed — you teach it once, it writes a skill, and the capability sticks. The built-in tools cover 95% of web tasks without any of that.
+
+[Web tools, modes, and providers →](docs/WEB.md) · [API key setup →](docs/SECRETS.md)
 
 ## Deployment Philosophy
 
@@ -101,6 +111,7 @@ ghostpaw run "do the thing"  # one-shot, exits when done
 ghostpaw train               # level up from experience
 ghostpaw scout               # discover new capabilities
 ghostpaw init                # create workspace, set API keys
+ghostpaw secrets             # manage API keys (masked input, persistent)
 ghostpaw service install     # systemd/launchd background service
 ```
 

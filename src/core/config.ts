@@ -2,12 +2,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ConfigError, ValidationError } from "../lib/errors.js";
 
-export interface ModelTiers {
-  default: string;
-  cheap: string;
-  powerful: string;
-}
-
 export interface CostControls {
   maxTokensPerSession: number;
   maxTokensPerDay: number;
@@ -15,15 +9,13 @@ export interface CostControls {
 }
 
 export interface GhostpawConfig {
-  models: ModelTiers;
+  models: { default: string };
   costControls: CostControls;
 }
 
 export const DEFAULT_CONFIG: GhostpawConfig = {
   models: {
     default: "claude-sonnet-4-6",
-    cheap: "claude-haiku-4-5",
-    powerful: "claude-opus-4-6",
   },
   costControls: {
     maxTokensPerSession: 200_000,

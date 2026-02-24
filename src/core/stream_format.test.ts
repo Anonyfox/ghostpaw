@@ -26,7 +26,7 @@ describe("StreamFormatter - tool_call filtering", () => {
     const input =
       'Let me check.<tool_call>{"name":"bash","arguments":{"command":"ls"}}</tool_call>Done.';
     const output = fmt.push(input);
-    strictEqual(output, "Let me check.  [bash] Done.");
+    strictEqual(output, "Let me check.\n  [bash] Done.");
   });
 
   it("handles tool_call split across chunks", () => {
@@ -34,7 +34,7 @@ describe("StreamFormatter - tool_call filtering", () => {
     let out = fmt.push("text<tool_");
     out += fmt.push('call>{"name":"read","argu');
     out += fmt.push('ments":{}}</tool_call>after');
-    strictEqual(out, "text  [read] after");
+    strictEqual(out, "text\n  [read] after");
   });
 
   it("handles unknown JSON in tool_call gracefully", () => {
@@ -60,7 +60,7 @@ describe("StreamFormatter - tool_use tags", () => {
   it("handles tool_use open/close tags", () => {
     const fmt = new StreamFormatter();
     const input = 'text<tool_use>{"name":"read"}</tool_use>after';
-    strictEqual(fmt.push(input), "text  [read] after");
+    strictEqual(fmt.push(input), "text\n  [read] after");
   });
 });
 
@@ -105,7 +105,7 @@ describe("StreamFormatter - combined tool_call + tool_response", () => {
       "<tool_response>file1.txt\nfile2.txt</tool_response>" +
       "Found 2 files.";
     const output = fmt.push(input);
-    strictEqual(output, "Let me check.  [bash] done\nFound 2 files.");
+    strictEqual(output, "Let me check.\n  [bash] done\nFound 2 files.");
   });
 
   it("handles multiple tool cycles", () => {
@@ -114,7 +114,7 @@ describe("StreamFormatter - combined tool_call + tool_response", () => {
     out += fmt.push("<tool_response>content</tool_response>");
     out += fmt.push('B<tool_call>{"name":"write"}</tool_call>');
     out += fmt.push("<tool_response>ok</tool_response>C");
-    strictEqual(out, "  [read] done\nB  [write] done\nC");
+    strictEqual(out, "  [read] done\nB\n  [write] done\nC");
   });
 
   it("handles mixed tag types (tool_call + tool_result)", () => {
@@ -132,7 +132,7 @@ describe("StreamFormatter - partial tag buffering", () => {
     strictEqual(out1, "hello");
 
     const out2 = fmt.push('_call>{"name":"test"}</tool_call>bye');
-    strictEqual(out2, "  [test] bye");
+    strictEqual(out2, "\n  [test] bye");
   });
 
   it("releases non-tag angle bracket", () => {

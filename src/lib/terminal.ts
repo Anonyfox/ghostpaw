@@ -63,3 +63,46 @@ export function banner(name: string, version: string): void {
 export function blank(): void {
   console.log("");
 }
+
+export function formatTokens(n: number): string {
+  if (n < 1000) return `~${n} tokens`;
+  if (n < 10_000) return `~${(n / 1000).toFixed(1)}k tokens`;
+  return `~${Math.round(n / 1000)}k tokens`;
+}
+
+/**
+ * Read a secret value from stdin with masked input (characters show as *).
+ * Falls back to regular readline if raw mode is unavailable.
+ * Returns the trimmed value, or empty string if user enters nothing.
+ */
+export async function readSecret(prompt: string): Promise<string> {
+  if (!process.stdin.isTTY) {
+    const { createInterface } = await import("node:readline/promises");
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    try {
+      const val = await rl.question(prompt);
+      return val.trim();
+    } finally {
+      rl.close();
+    }
+  }
+
+  process.stdout.write(prompt);
+  const { Writable } = await import("node:stream");
+  const muted = new Writable({
+    write(_chunk, _enc, cb) {
+      cb();
+    },
+  });
+
+  const { createInterface } = await import("node:readline/promises");
+  const rl = createInterface({ input: process.stdin, output: muted, terminal: true });
+
+  try {
+    const val = await rl.question("");
+    process.stdout.write("\n");
+    return val.trim();
+  } finally {
+    rl.close();
+  }
+}

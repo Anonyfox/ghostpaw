@@ -1,14 +1,13 @@
 /**
  * Session absorption — extracts learnings from unprocessed conversations
- * using a cheap/fast LLM call and stores them as memories. This is
- * Phase 1 of the training pipeline.
+ * and stores them as memories. Phase 1 of the training pipeline.
  */
 
 import { Chat } from "chatoyant";
-import type { GhostpawDatabase } from "./database.js";
 import type { EmbeddingProvider } from "../lib/embedding.js";
+import type { GhostpawDatabase } from "./database.js";
 import type { MemoryStore } from "./memory.js";
-import type { SessionStore, Message } from "./session.js";
+import type { Message, SessionStore } from "./session.js";
 
 const EXTRACTION_PROMPT = `Extract key learnings from the conversation below. For each learning, write ONE concise sentence capturing what was learned, discovered, corrected, or preferred.
 
@@ -39,12 +38,9 @@ export function parseLearnings(response: string): string[] {
     if (!jsonMatch) return [];
     const parsed = JSON.parse(jsonMatch[0]);
     if (Array.isArray(parsed.learnings)) {
-      return parsed.learnings.filter(
-        (l: unknown) => typeof l === "string" && l.trim().length > 10,
-      );
+      return parsed.learnings.filter((l: unknown) => typeof l === "string" && l.trim().length > 10);
     }
   } catch {
-    // non-JSON response — try line-based extraction
     return response
       .split("\n")
       .map((l) => l.replace(/^[-*\d.]+\s*/, "").trim())
@@ -58,7 +54,7 @@ export interface AbsorbConfig {
   sessions: SessionStore;
   memory: MemoryStore;
   embedding: EmbeddingProvider;
-  cheapModel: string;
+  model: string;
 }
 
 export interface AbsorbResult {
@@ -73,7 +69,7 @@ const MAX_LEARNINGS_PER_RUN = 100;
 const MAX_CONVERSATION_CHARS = 30_000;
 
 export async function absorbSessions(config: AbsorbConfig): Promise<AbsorbResult> {
-  const { sessions, memory, embedding, cheapModel } = config;
+  const { sessions, memory, embedding, model } = config;
 
   const unabsorbed = sessions.listUnabsorbed();
   let absorbed = 0;
@@ -105,7 +101,11 @@ export async function absorbSessions(config: AbsorbConfig): Promise<AbsorbResult
     }
 
     try {
-      const chat = new Chat({ model: cheapModel }) as { system(s: string): unknown; user(s: string): unknown; generate(): Promise<string> };
+      const chat = new Chat({ model }) as {
+        system(s: string): unknown;
+        user(s: string): unknown;
+        generate(): Promise<string>;
+      };
       chat.system(EXTRACTION_PROMPT);
       chat.user(conversation);
       const response = await chat.generate();

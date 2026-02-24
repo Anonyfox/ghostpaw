@@ -18,10 +18,15 @@ type State = "text" | "tool_call" | "tool_result";
 export class StreamFormatter {
   private buffer = "";
   private state: State = "text";
+  private lastCharNewline = true;
 
   push(chunk: string): string {
     this.buffer += chunk;
-    return this.drain();
+    const out = this.drain();
+    if (out.length > 0) {
+      this.lastCharNewline = out[out.length - 1] === "\n";
+    }
+    return out;
   }
 
   flush(): string {
@@ -40,6 +45,9 @@ export class StreamFormatter {
         if (!end) return output;
         const body = this.buffer.slice(0, end.index).trim();
         this.buffer = this.buffer.slice(end.index + end.tag.length);
+        const prevChar =
+          output.length > 0 ? output[output.length - 1] : this.lastCharNewline ? "\n" : "";
+        if (prevChar !== "\n") output += "\n";
         output += this.formatToolCall(body);
         this.state = "text";
         continue;

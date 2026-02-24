@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
-import { label, banner, blank, log, style } from "../lib/terminal.js";
+import { banner, blank, formatTokens, label, log, style } from "../lib/terminal.js";
 import type { ScoutTrail } from "./scout.js";
 
 declare const __VERSION__: string;
@@ -13,18 +13,12 @@ try {
 
 export async function startRepl(workspace: string): Promise<void> {
   const { createDatabase } = await import("./database.js");
-  const { createSecretStore } = await import("./secrets.js");
   const { createAgent } = await import("../index.js");
   const { createSessionStore } = await import("./session.js");
   const { createMemoryStore } = await import("./memory.js");
 
   workspace = resolve(workspace);
   const db = await createDatabase(resolve(workspace, "ghostpaw.db"));
-  const secrets = createSecretStore(db);
-
-  secrets.loadIntoEnv();
-  secrets.syncProviderKeys();
-
   const sessions = createSessionStore(db);
   const memory = createMemoryStore(db);
   const unabsorbed = sessions.countUnabsorbed();
@@ -37,17 +31,22 @@ export async function startRepl(workspace: string): Promise<void> {
 
   blank();
   banner("ghostpaw", VERSION);
-  const scoutHint = memCount > 0
-    ? `/scout discover ${style.dim(`(${memCount} memor${memCount === 1 ? "y" : "ies"})`)}`
-    : "/scout discover";
-  const trainHint = unabsorbed > 0
-    ? `/train level up ${style.dim(`(${unabsorbed} session${unabsorbed === 1 ? "" : "s"} ready)`)}`
-    : "/train level up";
-  console.log(style.dim(`  ${scoutHint}  ${trainHint}  /exit quit`));
+  blank();
+  const trainMeta =
+    unabsorbed > 0
+      ? `level up ${style.dim(`· ${unabsorbed} session${unabsorbed === 1 ? "" : "s"} ready`)}`
+      : style.dim("level up");
+  const scoutMeta =
+    memCount > 0
+      ? `explore ${style.dim(`· ${memCount} memor${memCount === 1 ? "y" : "ies"}`)}`
+      : style.dim("explore");
+  label("/train", trainMeta, style.boldCyan);
+  label("/scout", scoutMeta, style.boldCyan);
+  label("/exit", style.dim("quit"), style.dim);
   blank();
 
   const prompt = style.bold("> ");
-  const responsePrefix = style.dim("ghostpaw ");
+  const responsePrefix = style.cyan("ghostpaw ");
 
   let lastTrails: ScoutTrail[] | null = null;
 
@@ -58,12 +57,15 @@ export async function startRepl(workspace: string): Promise<void> {
     label("scouting", direction, style.boldCyan);
     blank();
     process.stdout.write(responsePrefix);
+    let scoutChars = 0;
     for await (const chunk of agent.stream(scoutPrompt)) {
       process.stdout.write(chunk);
+      scoutChars += chunk.length;
     }
     process.stdout.write("\n");
     blank();
     label("scouted", style.bold(direction), style.boldGreen);
+    label("", formatTokens(Math.ceil(scoutChars / 4)), style.dim);
     log.info("Say 'craft it' to turn this into a skill, or ask to adjust.");
     blank();
   }
@@ -147,11 +149,16 @@ export async function startRepl(workspace: string): Promise<void> {
       }
 
       try {
+        blank();
         process.stdout.write(responsePrefix);
+        let chars = 0;
         for await (const chunk of agent.stream(trimmed)) {
           process.stdout.write(chunk);
+          chars += chunk.length;
         }
-        process.stdout.write("\n\n");
+        process.stdout.write("\n");
+        label("", formatTokens(Math.ceil(chars / 4)), style.dim);
+        blank();
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         process.stdout.write("\n");

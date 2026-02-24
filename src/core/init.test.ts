@@ -49,12 +49,10 @@ describe("initWorkspace - fresh directory", () => {
     ok(!("providers" in config));
   });
 
-  it("config.json includes default model tiers", () => {
+  it("config.json includes default model", () => {
     initWorkspace(workDir);
     const config = JSON.parse(readFileSync(join(workDir, "config.json"), "utf-8"));
     strictEqual(config.models.default, "claude-sonnet-4-6");
-    ok(config.models.cheap);
-    ok(config.models.powerful);
   });
 
   it("creates .gitignore with ghostpaw entries", () => {
@@ -175,7 +173,10 @@ describe("default skills", () => {
     writeFileSync(join(workDir, "skills", "skill-scout.md"), "Custom scout.");
     initWorkspace(workDir);
     strictEqual(readFileSync(join(workDir, "skills", "skill-craft.md"), "utf-8"), "Custom craft.");
-    strictEqual(readFileSync(join(workDir, "skills", "skill-training.md"), "utf-8"), "Custom training.");
+    strictEqual(
+      readFileSync(join(workDir, "skills", "skill-training.md"), "utf-8"),
+      "Custom training.",
+    );
     strictEqual(readFileSync(join(workDir, "skills", "skill-scout.md"), "utf-8"), "Custom scout.");
   });
 });

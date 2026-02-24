@@ -36,11 +36,15 @@ function git(workspacePath: string, args: string[]): { stdout: string; ok: boole
   if (!isGitAvailable()) return { stdout: "", ok: false };
 
   try {
-    const stdout = execFileSync("git", [`--git-dir=${gitDir(workspacePath)}`, `--work-tree=${workTree(workspacePath)}`, ...args], {
-      encoding: "utf-8",
-      stdio: ["ignore", "pipe", "ignore"],
-      timeout: 10_000,
-    });
+    const stdout = execFileSync(
+      "git",
+      [`--git-dir=${gitDir(workspacePath)}`, `--work-tree=${workTree(workspacePath)}`, ...args],
+      {
+        encoding: "utf-8",
+        stdio: ["ignore", "pipe", "ignore"],
+        timeout: 10_000,
+      },
+    );
     return { stdout: stdout.trim(), ok: true };
   } catch {
     return { stdout: "", ok: false };

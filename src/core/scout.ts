@@ -4,7 +4,7 @@
  * workspace) for friction signals and capability gaps.
  *
  * Two modes:
- *   Directionless  → friction mining via cheap LLM, returns trail suggestions
+ *   Directionless  → friction mining, returns trail suggestions
  *   Directed       → full agent run with tools, returns a trail report
  */
 
@@ -123,7 +123,9 @@ export function assembleScoutContext(config: ScoutContextConfig): string {
   const skillEntries: string[] = [];
   if (existsSync(skillsDir)) {
     try {
-      for (const f of readdirSync(skillsDir).filter((f) => f.endsWith(".md")).sort()) {
+      for (const f of readdirSync(skillsDir)
+        .filter((f) => f.endsWith(".md"))
+        .sort()) {
         const content = readFileSync(join(skillsDir, f), "utf-8").trim();
         const titleLine = content.split("\n").find((l) => l.trim().startsWith("#"));
         const title = titleLine ? titleLine.replace(/^#+\s*/, "").trim() : "(untitled)";
@@ -194,8 +196,12 @@ export function buildScoutPrompt(workspace: string, direction: string): string {
 }
 
 export const WORKSPACE_IGNORE = new Set([
-  ".ghostpaw", "node_modules", ".git",
-  "ghostpaw.db", "ghostpaw.db-wal", "ghostpaw.db-shm",
+  ".ghostpaw",
+  "node_modules",
+  ".git",
+  "ghostpaw.db",
+  "ghostpaw.db-wal",
+  "ghostpaw.db-shm",
 ]);
 
 async function gatherContext(workspace: string): Promise<ScoutContextConfig> {
@@ -241,13 +247,13 @@ async function runFrictionMining(workspace: string): Promise<ScoutTrail[]> {
   const dbPath = resolve(workspace, "ghostpaw.db");
   const db = await createDatabase(dbPath);
 
-  let cheapModel: string;
+  let model: string;
   try {
     const secrets = createSecretStore(db);
     secrets.loadIntoEnv();
     secrets.syncProviderKeys();
     const config = await loadConfig(workspace);
-    cheapModel = config.models.cheap;
+    model = config.models.default;
   } finally {
     db.close();
   }
@@ -255,7 +261,7 @@ async function runFrictionMining(workspace: string): Promise<ScoutTrail[]> {
   const context = await gatherContext(workspace);
   const contextStr = assembleScoutContext(context);
 
-  const chat = new Chat({ model: cheapModel }) as {
+  const chat = new Chat({ model }) as {
     system(s: string): unknown;
     user(s: string): unknown;
     generate(): Promise<string>;
@@ -268,10 +274,7 @@ async function runFrictionMining(workspace: string): Promise<ScoutTrail[]> {
 }
 
 /** Non-streaming entry point for programmatic use. */
-export async function runScout(
-  workspace: string,
-  direction?: string,
-): Promise<ScoutResult> {
+export async function runScout(workspace: string, direction?: string): Promise<ScoutResult> {
   if (!direction) {
     const trails = await runFrictionMining(workspace);
     return { mode: "suggest", trails };
@@ -308,12 +311,12 @@ export async function scout(
     }
 
     for (let i = 0; i < trails.length; i++) {
-      label("trail", style.bold(trails[i]!.title), style.boldCyan);
+      label(`${i + 1}`, style.bold(trails[i]!.title), style.boldCyan);
       label("", trails[i]!.why, style.dim);
       blank();
     }
 
-    log.info("Pick a trail and run: /scout <direction>");
+    log.info("Pick a trail and run: ghostpaw scout <direction>");
     blank();
     return;
   }
@@ -334,7 +337,11 @@ export async function scout(
     blank();
 
     label("scouted", style.bold(opts.direction), style.boldGreen);
-    label("", "Describe what to adjust, or start a new session to craft this into a skill.", style.dim);
+    label(
+      "",
+      "Describe what to adjust, or start a new session to craft this into a skill.",
+      style.dim,
+    );
     blank();
   } else {
     const result = await runScout(workspace, opts.direction);

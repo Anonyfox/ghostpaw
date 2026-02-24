@@ -1,8 +1,23 @@
 import { spawnSync } from "node:child_process";
 import { createTool, Schema } from "chatoyant";
+import { KNOWN_KEYS } from "../core/secrets.js";
 
 const DEFAULT_TIMEOUT_S = 120;
 const MAX_OUTPUT_BYTES = 100_000;
+
+function scrubSecrets(text: string): string {
+  if (!text) return text;
+  let result = text;
+  for (const k of KNOWN_KEYS) {
+    for (const envName of [k.canonical, ...k.aliases]) {
+      const val = process.env[envName];
+      if (val && val.length >= 8) {
+        result = result.replaceAll(val, "***");
+      }
+    }
+  }
+  return result;
+}
 
 class BashParams extends Schema {
   command = Schema.String({ description: "Shell command to execute" });
@@ -40,8 +55,8 @@ export function createBashTool(workspacePath: string) {
       });
 
       const timedOut = result.signal === "SIGTERM";
-      const stdout = truncate(result.stdout ?? "");
-      const stderr = truncate(result.stderr ?? "");
+      const stdout = scrubSecrets(truncate(result.stdout ?? ""));
+      const stderr = scrubSecrets(truncate(result.stderr ?? ""));
       const wasTruncated = (result.stdout?.length ?? 0) > MAX_OUTPUT_BYTES;
 
       if (timedOut) {

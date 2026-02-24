@@ -1,15 +1,19 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import { commitSkills, initHistory } from "../lib/skill-history.js";
+import { blank, log, readSecret, style } from "../lib/terminal.js";
 import { DEFAULT_CONFIG } from "./config.js";
 import { SKILL_CRAFT, SKILL_SCOUT, SKILL_TRAINING } from "./default_skills.js";
+import { KNOWN_KEYS, type KnownKey, type SecretStore } from "./secrets.js";
 import { DEFAULT_SOUL } from "./soul.js";
-import { commitSkills, initHistory } from "../lib/skill-history.js";
-import { blank, log, style } from "../lib/terminal.js";
 
 export interface InitResult {
   created: string[];
   skipped: string[];
 }
+
+const LLM_PROVIDERS = KNOWN_KEYS.filter((k) => k.category === "llm");
+const SEARCH_PROVIDERS = KNOWN_KEYS.filter((k) => k.category === "search");
 
 /**
  * Checks whether workspace has the minimum viable setup (config + API key).
@@ -43,12 +47,6 @@ function relPath(base: string, full: string): string {
 }
 
 const GITIGNORE_ENTRIES = ["ghostpaw.db", "ghostpaw.db-wal", "ghostpaw.db-shm", ".ghostpaw/"];
-
-const PROVIDERS = [
-  { label: "Anthropic", envKey: "API_KEY_ANTHROPIC" },
-  { label: "OpenAI", envKey: "API_KEY_OPENAI" },
-  { label: "xAI", envKey: "API_KEY_XAI" },
-] as const;
 
 function ensureDir(path: string, result: InitResult): void {
   if (existsSync(path)) {
@@ -114,7 +112,6 @@ export function initWorkspace(workspacePath: string): InitResult {
   writeIfMissing(join(workspacePath, "skills", "skill-scout.md"), `${SKILL_SCOUT}\n`, result);
   updateGitignore(workspacePath, result);
 
-  // Initialize skill history tracking (git-based, in .ghostpaw/skill-history/)
   if (initHistory(workspacePath)) {
     commitSkills(workspacePath, "initial skills");
   }
@@ -122,21 +119,83 @@ export function initWorkspace(workspacePath: string): InitResult {
   return result;
 }
 
-const ENV_KEYS_TO_CHECK = [
-  "API_KEY_ANTHROPIC",
-  "ANTHROPIC_API_KEY",
-  "API_KEY_OPENAI",
-  "OPENAI_API_KEY",
-  "API_KEY_XAI",
-  "XAI_API_KEY",
-];
+// ── API key detection ───────────────────────────────────────────────────────
 
-function hasAnyApiKey(): boolean {
-  return ENV_KEYS_TO_CHECK.some((k) => process.env[k] !== undefined && process.env[k] !== "");
+function hasAnyLlmKey(): boolean {
+  return LLM_PROVIDERS.some((k) => {
+    if (process.env[k.canonical]) return true;
+    return k.aliases.some((a) => process.env[a]);
+  });
 }
 
+function findConfiguredLlm(secrets: SecretStore): KnownKey | null {
+  for (const k of LLM_PROVIDERS) {
+    if (secrets.get(k.canonical) !== null) return k;
+    for (const alias of k.aliases) {
+      if (process.env[alias]) return k;
+    }
+  }
+  return null;
+}
+
+function findConfiguredSearch(secrets: SecretStore): KnownKey | null {
+  for (const k of SEARCH_PROVIDERS) {
+    if (secrets.get(k.canonical) !== null) return k;
+  }
+  return null;
+}
+
+// ── Interactive helpers ─────────────────────────────────────────────────────
+
+async function askQuestion(prompt: string): Promise<string> {
+  const { createInterface } = await import("node:readline/promises");
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    return await rl.question(prompt);
+  } finally {
+    rl.close();
+  }
+}
+
+async function askKeyFromList(
+  secrets: SecretStore,
+  providers: KnownKey[],
+  hint?: string,
+): Promise<boolean> {
+  for (let i = 0; i < providers.length; i++) {
+    console.log(`  ${style.bold(`${i + 1}`)}  ${providers[i]!.label}`);
+  }
+  if (hint) console.log(`  ${style.dim(hint)}`);
+
+  const range = providers.length === 1 ? "[1]" : `[1-${providers.length}]`;
+  const choice = await askQuestion(`\n  Provider ${style.dim(range)}: `);
+  const idx = parseInt(choice, 10);
+  if (!(idx >= 1 && idx <= providers.length)) return false;
+
+  const provider = providers[idx - 1]!;
+  const key = await readSecret(`  ${provider.label} API key: `);
+  if (!key) {
+    blank();
+    log.warn("Empty key, skipping");
+    return false;
+  }
+
+  const result = secrets.set(provider.canonical, key);
+  if (!result.value) {
+    blank();
+    log.warn(result.warning ?? "Empty value");
+    return false;
+  }
+  if (result.warning) log.warn(result.warning);
+  blank();
+  log.done(`${provider.label} key stored`);
+  return true;
+}
+
+// ── ensureApiKey (auto-called before REPL/daemon/run) ───────────────────────
+
 async function ensureApiKey(workspacePath: string): Promise<void> {
-  if (hasAnyApiKey()) return;
+  if (hasAnyLlmKey()) return;
 
   const { createDatabase } = await import("./database.js");
   const { createSecretStore } = await import("./secrets.js");
@@ -146,7 +205,7 @@ async function ensureApiKey(workspacePath: string): Promise<void> {
     const secrets = createSecretStore(db);
     secrets.loadIntoEnv();
 
-    if (findConfiguredProvider(secrets)) return;
+    if (findConfiguredLlm(secrets)) return;
 
     if (!process.stdin.isTTY) {
       log.error("No API key configured.");
@@ -158,15 +217,11 @@ async function ensureApiKey(workspacePath: string): Promise<void> {
     log.info("No API key found — let's set one up");
     blank();
 
-    const { createInterface } = await import("node:readline/promises");
-    const rl = createInterface({ input: process.stdin, output: process.stdout });
     try {
-      await askProviderAndKey(rl, secrets);
+      await askKeyFromList(secrets, LLM_PROVIDERS);
       secrets.loadIntoEnv();
     } catch {
       process.exit(0);
-    } finally {
-      rl.close();
     }
     blank();
   } finally {
@@ -174,49 +229,7 @@ async function ensureApiKey(workspacePath: string): Promise<void> {
   }
 }
 
-function findConfiguredProvider(
-  secrets: import("./secrets.js").SecretStore,
-): (typeof PROVIDERS)[number] | null {
-  for (const p of PROVIDERS) {
-    if (secrets.get(p.envKey) !== null) return p;
-  }
-  for (const k of ENV_KEYS_TO_CHECK) {
-    if (process.env[k] !== undefined && process.env[k] !== "") {
-      const match = PROVIDERS.find((p) => p.envKey === k || ENV_KEYS_TO_CHECK.indexOf(k) % 2 === 0);
-      if (match) return match;
-    }
-  }
-  return null;
-}
-
-async function askProviderAndKey(
-  rl: import("node:readline/promises").Interface,
-  secrets: import("./secrets.js").SecretStore,
-): Promise<void> {
-  for (let i = 0; i < PROVIDERS.length; i++) {
-    console.log(`  ${style.bold(`${i + 1}`)}  ${PROVIDERS[i].label}`);
-  }
-
-  const choice = await rl.question(`\n  Provider ${style.dim("[1/2/3]")}: `);
-  const idx = parseInt(choice, 10);
-  if (!(idx >= 1 && idx <= PROVIDERS.length)) {
-    blank();
-    log.warn("Skipped — set a key later via environment variable or re-run ghostpaw");
-    return;
-  }
-
-  const provider = PROVIDERS[idx - 1];
-  const key = await rl.question(`  ${provider.label} API key: `);
-  if (!key.trim()) {
-    blank();
-    log.warn("Empty key, skipping");
-    return;
-  }
-
-  secrets.set(provider.envKey, key.trim());
-  blank();
-  log.done(`${provider.label} key stored`);
-}
+// ── promptApiKey (called by `ghostpaw init`) ────────────────────────────────
 
 export async function promptApiKey(workspacePath: string): Promise<void> {
   if (!process.stdin.isTTY) return;
@@ -228,30 +241,41 @@ export async function promptApiKey(workspacePath: string): Promise<void> {
   const secrets = createSecretStore(db);
 
   try {
-    const { createInterface } = await import("node:readline/promises");
-    const rl = createInterface({ input: process.stdin, output: process.stdout });
-
-    try {
-      const existing = findConfiguredProvider(secrets);
-
-      if (existing) {
+    // LLM provider
+    const existingLlm = findConfiguredLlm(secrets);
+    if (existingLlm) {
+      blank();
+      log.info(`LLM key configured: ${existingLlm.label}`);
+      const answer = await askQuestion(`  Change it? ${style.dim("[y/N]")}: `);
+      if (answer.trim().toLowerCase() === "y") {
         blank();
-        log.info(`API key configured: ${existing.label}`);
-        const answer = await rl.question(`  Change it? ${style.dim("[y/N]")}: `);
-        if (answer.trim().toLowerCase() !== "y") return;
-        blank();
-      } else {
-        blank();
-        log.info("No API key found — let's set one up");
-        blank();
+        await askKeyFromList(secrets, LLM_PROVIDERS);
       }
-
-      await askProviderAndKey(rl, secrets);
-    } catch {
-      // Ctrl+C or closed stdin
-    } finally {
-      rl.close();
+    } else {
+      blank();
+      log.info("No LLM key found — let's set one up");
+      blank();
+      await askKeyFromList(secrets, LLM_PROVIDERS);
     }
+
+    // Search provider (optional)
+    const existingSearch = findConfiguredSearch(secrets);
+    if (existingSearch) {
+      blank();
+      log.info(`Search key configured: ${existingSearch.label}`);
+      const answer = await askQuestion(`  Change it? ${style.dim("[y/N]")}: `);
+      if (answer.trim().toLowerCase() === "y") {
+        blank();
+        await askKeyFromList(secrets, SEARCH_PROVIDERS);
+      }
+    } else {
+      blank();
+      log.info(`Search provider ${style.dim("(optional, improves web search reliability)")}`);
+      blank();
+      await askKeyFromList(secrets, SEARCH_PROVIDERS, "↵  skip");
+    }
+  } catch {
+    // Ctrl+C or closed stdin
   } finally {
     db.close();
   }

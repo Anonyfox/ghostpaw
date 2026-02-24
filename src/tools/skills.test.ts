@@ -49,7 +49,10 @@ describe("skills tool - list", () => {
   });
 
   it("lists skills with titles and line counts", async () => {
-    writeFileSync(join(workDir, "skills", "deploy.md"), "# Deploy to Vercel\n\nSteps here\nMore steps");
+    writeFileSync(
+      join(workDir, "skills", "deploy.md"),
+      "# Deploy to Vercel\n\nSteps here\nMore steps",
+    );
     writeFileSync(join(workDir, "skills", "testing.md"), "# Testing Strategy\n\nRun tests");
 
     const tool = createSkillsTool(workDir);

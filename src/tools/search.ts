@@ -19,11 +19,190 @@ export type SearchProvider = (
   opts?: { page?: number; region?: string },
 ) => Promise<SearchResponse>;
 
-// ── DDG Lite HTML parser ────────────────────────────────────────────────────
+// ── Brave Search API ────────────────────────────────────────────────────────
+
+const BRAVE_URL = "https://api.search.brave.com/res/v1/web/search";
+
+interface BraveWebResult {
+  title: string;
+  url: string;
+  description?: string;
+}
+
+interface BraveResponse {
+  web?: { results?: BraveWebResult[] };
+}
+
+export function createBraveSearch(apiKey: string): SearchProvider {
+  return async (query, opts) => {
+    const params = new URLSearchParams({
+      q: query,
+      count: "10",
+    });
+    if (opts?.page && opts.page > 1) {
+      params.set("offset", String((opts.page - 1) * 10));
+    }
+
+    const res = await fetch(`${BRAVE_URL}?${params}`, {
+      headers: {
+        Accept: "application/json",
+        "Accept-Encoding": "gzip",
+        "X-Subscription-Token": apiKey,
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      throw new Error("Brave: invalid API key");
+    }
+    if (res.status === 429) {
+      throw new Error("Brave: rate limit exceeded");
+    }
+    if (!res.ok) {
+      throw new Error(`Brave: HTTP ${res.status}`);
+    }
+
+    const data = (await res.json()) as BraveResponse;
+    const webResults = data.web?.results ?? [];
+
+    return {
+      results: webResults.map((r) => ({
+        title: r.title,
+        url: r.url,
+        snippet: (r.description ?? "").trim(),
+      })),
+      hasMore: webResults.length >= 10,
+    };
+  };
+}
+
+// ── Tavily Search API ───────────────────────────────────────────────────────
+
+const TAVILY_URL = "https://api.tavily.com/search";
+
+interface TavilyResult {
+  title: string;
+  url: string;
+  content?: string;
+  score?: number;
+}
+
+interface TavilyResponse {
+  results?: TavilyResult[];
+}
+
+export function createTavilySearch(apiKey: string): SearchProvider {
+  return async (query, _opts) => {
+    const body: Record<string, unknown> = {
+      query,
+      max_results: 10,
+      search_depth: "basic",
+    };
+
+    const res = await fetch(TAVILY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (res.status === 401) {
+      throw new Error("Tavily: invalid API key");
+    }
+    if (res.status === 429 || res.status === 432) {
+      throw new Error("Tavily: rate/credit limit exceeded");
+    }
+    if (!res.ok) {
+      throw new Error(`Tavily: HTTP ${res.status}`);
+    }
+
+    const data = (await res.json()) as TavilyResponse;
+    const tavilyResults = data.results ?? [];
+
+    return {
+      results: tavilyResults.map((r) => ({
+        title: r.title,
+        url: r.url,
+        snippet: (r.content ?? "").trim(),
+      })),
+      hasMore: tavilyResults.length >= 10,
+    };
+  };
+}
+
+// ── Serper.dev Google Search API ────────────────────────────────────────────
+
+const SERPER_URL = "https://google.serper.dev/search";
+
+interface SerperResult {
+  title: string;
+  link: string;
+  snippet?: string;
+  position?: number;
+}
+
+interface SerperResponse {
+  organic?: SerperResult[];
+}
+
+export function createSerperSearch(apiKey: string): SearchProvider {
+  return async (query, opts) => {
+    const body: Record<string, unknown> = { q: query, num: 10 };
+    if (opts?.page && opts.page > 1) {
+      body.page = opts.page;
+    }
+
+    const res = await fetch(SERPER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": apiKey,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      throw new Error("Serper: invalid API key");
+    }
+    if (res.status === 429) {
+      throw new Error("Serper: rate limit exceeded");
+    }
+    if (!res.ok) {
+      throw new Error(`Serper: HTTP ${res.status}`);
+    }
+
+    const data = (await res.json()) as SerperResponse;
+    const organic = data.organic ?? [];
+
+    return {
+      results: organic.map((r) => ({
+        title: r.title,
+        url: r.link,
+        snippet: (r.snippet ?? "").trim(),
+      })),
+      hasMore: organic.length >= 10,
+    };
+  };
+}
+
+// ── DDG Lite HTML parser (free fallback) ────────────────────────────────────
 
 const DDG_URL = "https://html.duckduckgo.com/html/";
-const DDG_USER_AGENT =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+const DDG_USER_AGENTS = [
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.2 Safari/605.1.15",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:134.0) Gecko/20100101 Firefox/134.0",
+];
+
+function randomUA(): string {
+  return DDG_USER_AGENTS[Math.floor(Math.random() * DDG_USER_AGENTS.length)]!;
+}
 
 function unwrapDDGUrl(href: string): string {
   try {
@@ -67,7 +246,18 @@ export async function parseDDGResults(html: string): Promise<SearchResponse> {
   return { results, vqd, hasMore };
 }
 
-// ── DDG Lite fetch ──────────────────────────────────────────────────────────
+const DDG_MAX_RETRIES = 3;
+const DDG_BASE_DELAY_MS = 2000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isBlockedResponse(status: number, html: string): boolean {
+  if (status === 403) return true;
+  if (status === 202 && html.includes("botnet")) return true;
+  return false;
+}
 
 export function createDDGSearch(): SearchProvider {
   return async (query, opts) => {
@@ -90,22 +280,65 @@ export function createDDGSearch(): SearchProvider {
       body.set("api", "d.js");
     }
 
-    const res = await fetch(DDG_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "User-Agent": DDG_USER_AGENT,
-        Referer: "https://html.duckduckgo.com/",
-      },
-      body: body.toString(),
-    });
+    for (let attempt = 0; attempt < DDG_MAX_RETRIES; attempt++) {
+      if (attempt > 0) await sleep(DDG_BASE_DELAY_MS * attempt);
 
-    if (!res.ok) {
-      throw new Error(`DDG search failed: HTTP ${res.status}`);
+      const res = await fetch(DDG_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": randomUA(),
+          Accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Accept-Encoding": "gzip, deflate, br",
+          Referer: "https://html.duckduckgo.com/",
+          Origin: "https://html.duckduckgo.com",
+          "Cache-Control": "max-age=0",
+          "Sec-Fetch-Dest": "document",
+          "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-Site": "same-origin",
+          "Sec-Fetch-User": "?1",
+          "Upgrade-Insecure-Requests": "1",
+          DNT: "1",
+          Connection: "keep-alive",
+        },
+        body: body.toString(),
+      });
+
+      if (!res.ok && res.status !== 202) {
+        throw new Error(`DDG search failed: HTTP ${res.status}`);
+      }
+
+      const html = await res.text();
+
+      if (isBlockedResponse(res.status, html)) {
+        if (attempt < DDG_MAX_RETRIES - 1) continue;
+        throw new Error(
+          "DuckDuckGo is rate-limiting this IP. Try again in a few minutes, or use web_fetch to search specific sites directly.",
+        );
+      }
+
+      return await parseDDGResults(html);
     }
 
-    return await parseDDGResults(await res.text());
+    throw new Error("DDG search: max retries exceeded");
   };
+}
+
+// ── Provider selection: Brave > Tavily > Serper > DDG ───────────────────────
+
+export function resolveSearchProvider(): SearchProvider {
+  const braveKey = process.env.BRAVE_API_KEY;
+  if (braveKey) return createBraveSearch(braveKey);
+
+  const tavilyKey = process.env.TAVILY_API_KEY;
+  if (tavilyKey) return createTavilySearch(tavilyKey);
+
+  const serperKey = process.env.SERPER_API_KEY;
+  if (serperKey) return createSerperSearch(serperKey);
+
+  return createDDGSearch();
 }
 
 // ── Tool definition ─────────────────────────────────────────────────────────
@@ -123,8 +356,6 @@ class SearchParams extends Schema {
 }
 
 export function createWebSearchTool(provider?: SearchProvider) {
-  const search = provider ?? createDDGSearch();
-
   return createTool({
     name: "web_search",
     description:
@@ -138,6 +369,9 @@ export function createWebSearchTool(provider?: SearchProvider) {
         page?: number;
         region?: string;
       };
+
+      // Resolve provider per-invocation so mid-session key changes take effect
+      const search = provider ?? resolveSearchProvider();
 
       try {
         const response = await search(query, { page: page ?? 1, region });
