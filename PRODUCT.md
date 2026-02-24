@@ -4,7 +4,7 @@
 
 Single-file AI agent runtime. TypeScript project that compiles into one `.mjs` file. Independent, model-agnostic, OpenClaw-compatible. Zero setup, zero runtime dependencies, Node 22.5+ only.
 
-The independent alternative — right after OpenAI swallowed the incumbent.
+The independent alternative — born the week OpenAI absorbed the incumbent.
 
 `npx ghostpaw` — that's the entire setup.
 
@@ -12,44 +12,44 @@ The independent alternative — right after OpenAI swallowed the incumbent.
 
 ## Context: Why Now
 
-OpenClaw (217k GitHub stars, fastest-growing OSS AI project) was acquired by OpenAI on February 15, 2026 — just 82 days after launch. Creator Peter Steinberger joined OpenAI. They promise "Chrome/Chromium model" open source governance.
+OpenClaw (224k+ GitHub stars, fastest-growing OSS AI project) joined OpenAI on February 15, 2026 — under three months after launch. Creator Peter Steinberger took a position at OpenAI. OpenClaw transitioned to an independent foundation with OpenAI sponsorship. The promise: MIT-licensed, model-agnostic, community-governed.
 
-We've seen this movie. What happens next:
+We've seen this pattern before. What typically follows:
 
-- Platform biases toward GPT models. Model independence erodes.
-- Best features go to the proprietary version. OSS fork becomes second-class.
+- Platform biases toward the sponsor's models. Model independence erodes quietly.
+- Best features go to the proprietary version. The OSS fork becomes second-class.
 - Corporate priorities replace community speed. Bureaucracy grows.
-- Developers who chose OpenClaw for independence just lost it.
+- Developers who chose OpenClaw for independence now depend on OpenAI's goodwill.
 
-Meanwhile, OpenClaw already had severe problems _before_ the acquisition:
+Meanwhile, OpenClaw already had severe problems _before_ the OpenAI deal:
 
 ### Setup Nightmare
 
 - Docker breaks constantly (missing `.env`, compose version mismatches, port conflicts)
 - Old service names conflict on upgrade (restart loops on port 18789)
-- `openclaw doctor --fix` exists because ~70% of installs are broken out of the box
-- WhatsApp pairing flow is fragile, Google auth straight up broken (20-minute silent timeouts)
+- `openclaw doctor --fix` resolves ~70% of reported problems — a diagnostic tool that's popular because it's constantly needed
+- WhatsApp pairing flow is fragile, Google auth broken entirely in headless environments (12-24 minute silent timeouts before failing — [GitHub #9300](https://github.com/openclaw/openclaw/issues/9300))
 - State files in `~/.openclaw/` corrupt silently, three name changes broke all existing tutorials
 - Users report needing **weeks of customization** to get usable results
 
 ### Cost and Reliability
 
-- Token burn $30-50/session common, $200+ from runaway processes — no built-in cost controls
+- Power users report $40-100+/month in API costs; runaway agent loops with no built-in budget limits can spike further
 - Agents loop and repeat without heavy guardrail tuning
 - Sessions reset when chats close, rapid-fire messages silently dropped
-- 430,000+ lines of code across Gateway + Pi + channels + plugins + sandboxing
+- 6.8 million tokens across 4,885 files (TypeScript, Swift, Kotlin) in the monorepo — core gateway alone is ~40k lines of TypeScript, but the full ecosystem including native apps, 34 plugin extensions, and sandboxing dwarfs that
 
 ### Security Crisis (Feb 2026)
 
-- ClawHavoc incident: 1,184 malicious skills on ClawHub from 12 attacker accounts
-- The #1 ranked community skill was literal malware (Atomic Stealer)
-- 26% of top 31,000 skills contain vulnerabilities (Cisco research)
-- Critical RCE vulnerability (CVE-2026-25253), 17,903+ exposed instances
-- ClawHub gate: GitHub account >7 days old. That's it. No review.
+- ClawHavoc incident: [1,184 malicious skills on ClawHub from 12 publisher accounts](https://cybersecuritynews.com/clawhavoc-poisoned-openclaws-clawhub/) (Antiy CERT), distributing Atomic Stealer (AMOS) — keyloggers, credential theft, crypto wallet exfiltration. One account uploaded 677 skills alone.
+- [26% of 31,000 agent skills contain at least one security vulnerability](https://clawctl.com/blog/26-percent-agent-skills-vulnerable) (Cisco research); independent audit of top 2,890 skills found [41% vulnerable](https://www.esecurityplanet.com/threats/over-41-of-popular-openclaw-skills-found-to-contain-security-vulnerabilities/) (ClawSecure)
+- Critical RCE vulnerability [CVE-2026-25253](https://github.com/openclaw/openclaw/security/advisories/GHSA-g8p2-7wf7-98mq) (CVSS 8.8): cross-origin WebSocket hijacking enabling one-click remote code execution
+- [40,000+ OpenClaw instances exposed](https://openclaw.report/alerts/securityscorecard-40000-exposed-openclaw-instances) to the public internet, ~12,800 actively vulnerable to RCE (SecurityScorecard)
+- ClawHub gate: GitHub account >7 days old. That's it. No code review.
 
 ### What People Switch To
 
-- **Nanobot** — 4k lines Python, runs on Raspberry Pi. Minimal but no ecosystem, Python-only.
+- **Nanobot** — ~3,400 lines Python, runs on Raspberry Pi. Minimal but no ecosystem, Python-only.
 - **Claude Code** — Anthropic's agent. Good but locked to one provider, not self-hosted.
 - **Goose** — Block's Rust agent, enterprise-grade. Heavy for personal use.
 
@@ -151,7 +151,7 @@ Violations to watch for:
 - Putting state in files ("track sessions in a JSON file") — state belongs in SQLite.
 - Making the kernel mutable at runtime ("hot-reload tool implementations") — the kernel is immutable. Skills handle runtime adaptation.
 
-The one deliberate crossover: `config.json` is a file (not SQLite) because humans need to edit it with a text editor. It's read once at startup and doesn't change during operation.
+The one deliberate crossover: `config.json` is a file (not SQLite) because humans need to edit it with a text editor. It's loaded at startup and can be updated at runtime via the web control plane's Settings page (model switching, provider selection). Changes persist to disk immediately and take effect on the next agent loop iteration.
 
 ### One File, One Process, One Database
 
@@ -179,7 +179,7 @@ The pressure points where complexity tries to sneak in:
 | --- | --- |
 | "Add a REST API so other services can call the agent" | The library import already does this. The web control plane covers HTTP interaction for humans — programmatic access uses the library. |
 | "Add role-based access control" | Single-user tool. If you need RBAC, you need a different tool. |
-| "Add a configuration UI" | config.json is 10 lines. The web control plane handles operational tasks; config stays as a simple file. |
+| "Add a configuration UI" | The web control plane's Settings page handles model switching, provider selection, and secret management. The underlying `config.json` stays a simple file humans can also edit directly. No separate config service. |
 | "Support webhooks for events" | Event bus exists for library mode (in-process). Webhooks are a channel concern. |
 | "Add a proper logging framework" | `INSERT INTO logs`. `SELECT * FROM logs`. Done. |
 | "Add a plugin/extension API" | Skills + secrets + bash. The answer is always skills + secrets + bash. |
@@ -539,7 +539,7 @@ The flywheel:
 4. User asks to automate it → agent sets up a cron job
 5. Now deploys run autonomously, reliably, without human prompting
 
-Custom GPTs can't do this — no persistence, no local execution, no scheduling. Claude Projects can't do this — no tool access, no cron, no self-modification. OpenClaw can technically do this, but skills are buried under 430k lines of plugins and marketplace complexity. The signal is lost in the noise.
+Custom GPTs can't do this — no persistence, no local execution, no scheduling. Claude Projects can't do this — no tool access, no cron, no self-modification. OpenClaw can technically do this, but skills are buried under thousands of files spanning plugins, native apps, and marketplace complexity. The signal is lost in the noise.
 
 Ghostpaw makes skills THE mechanism. There's nothing else competing for attention. Every improvement to the agent flows through skills.
 
@@ -663,7 +663,7 @@ Craft handles the moment-to-moment ("I just figured this out, let me write it do
 
 **MCP** — OpenClaw supports MCP via mcporter CLI. Ghostpaw doesn't embed MCP support yet — native MCP integration is planned as a near-term addition to the kernel. In the interim, the agent can call MCP-compatible tools via Bash or integrate them through skills.
 
-**Tool set** — OpenClaw ships ~20+ tools across groups (fs, runtime, web, ui, messaging, memory, sessions, automation). Ghostpaw ships a focused set of built-in tools that cover what coding agents actually use. The skipped tools (canvas, nodes, gateway management) are OpenClaw-specific infrastructure features.
+**Tool set** — OpenClaw ships 60+ tools across groups (fs, runtime, web, ui, messaging, memory, sessions, automation). Ghostpaw ships a focused set of 13 built-in tools that cover what coding agents actually use. The skipped tools (canvas, nodes, gateway management) are OpenClaw-specific infrastructure features.
 
 **No plugin system** — OpenClaw supports JS/Python plugins, custom tool registration, and a marketplace. Ghostpaw has no plugin API. Skills (markdown) are the extension mechanism. The agent can write and execute code via Bash when needed.
 
@@ -716,6 +716,7 @@ Features:
 - **Memory** — semantic search with relevance bars, source filtering, timeline grouping.
 - **Sessions** — all conversations across all channels, grouped by channel type, with inline transcript expansion.
 - **Skills** — rank visualization, descriptions, inline editing.
+- **Settings** — live model/provider switching (with live model lists from provider APIs), secret management (create, update, delete API keys), grouped by provider with active status.
 - **Dashboard** — at-a-glance agent stats.
 
 Security: `scrypt`-hashed password, HMAC-signed `HttpOnly`/`SameSite=Strict` cookies, CSP with per-request nonces, CSRF origin validation, rate limiting (login + general), body size/timeout limits, HSTS for non-localhost. Full security header suite.
@@ -779,14 +780,14 @@ All state in SQLite. All behavior in markdown files. Clean separation: the compi
 
 ### vs OpenClaw
 
-- **Independent** — no corporate owner, no model bias, no vendor lock-in after OpenAI acquisition
+- **Independent** — no corporate sponsor, no model bias, no vendor lock-in. Ghostpaw answers to its users, not OpenAI's foundation board.
 - **Zero setup** — `npx ghostpaw` vs hours of broken configuration flows
 - **Zero dependencies** — no npm install, no Docker, no daemon, no pairing wizards
 - **Single artifact** — one `.mjs` file. Version it, pin it, `scp` it to any machine with Node.
 - **Model-agnostic** — Anthropic, OpenAI, xAI, Google treated equally. No platform favoritism.
-- **Actually reliable** — tiny surface area (tools + SQLite + one process) vs 430k+ lines of interdependent complexity
+- **Actually reliable** — tiny surface area (tools + SQLite + one process) vs a 4,885-file monorepo of interdependent complexity
 - **Secure by default** — no marketplace, no community upload, no malware vector. Skills are local files you control and audit.
-- **Cost-controlled** — token budgets per session and per day, hard limits. No $200 runaways.
+- **Cost-controlled** — token budgets per session and per day, hard limits. No runaway loops burning uncapped API credits.
 - **Ecosystem compatible** — reads OpenClaw SKILL.md/SOUL.md format. Community skills for free, corporate baggage stays behind.
 - **Skills as primary mechanism** — OpenClaw has skills but buries them under plugins, marketplace, and MCP. Ghostpaw makes skills the only extension path — focused, auditable, self-authoring.
 
