@@ -285,6 +285,143 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
     );
   });
 
+  // ── Settings ─────────────────────────────────────────────────────────────
+
+  router.add("GET", "/api/settings", async (_req, res) => {
+    const {
+      PROVIDERS,
+      PROVIDER_IDS,
+      getModelsForProvider,
+      getApiKey,
+      isProviderActive,
+      detectProviderByModel,
+    } = await import("chatoyant");
+    const { KNOWN_KEYS } = await import("../core/secrets.js");
+    const { loadConfig } = await import("../core/config.js");
+
+    const config = await loadConfig(runtime.workspace);
+    const currentModel = runtime.model;
+    const currentProvider = detectProviderByModel(currentModel);
+    const allSecretKeys = runtime.secrets.keys();
+
+    async function fetchLiveModels(id: string): Promise<string[] | null> {
+      try {
+        const apiKey = getApiKey(id as "openai" | "anthropic" | "xai");
+        if (id === "openai") {
+          const { listModelIds } = await import("chatoyant/providers/openai");
+          return await listModelIds({ apiKey, timeout: 8000 });
+        }
+        if (id === "xai") {
+          const { getLanguageModelList } = await import("chatoyant/providers/xai");
+          const lms = await getLanguageModelList({ apiKey, timeout: 8000 });
+          return lms.map((m) => m.id);
+        }
+      } catch { /* fall back to hardcoded */ }
+      return null;
+    }
+
+    const providers = await Promise.all(
+      PROVIDER_IDS.map(async (id) => {
+        const meta = PROVIDERS[id];
+        const active = isProviderActive(id);
+        const fallback = Array.from(getModelsForProvider(id));
+        const live = active ? await fetchLiveModels(id) : null;
+        const models = live ?? fallback;
+        return {
+          id,
+          name: meta.name,
+          envKey: meta.envKey,
+          active,
+          isCurrent: currentProvider === id,
+          currentModel: currentProvider === id ? currentModel : (models[0] ?? ""),
+          models,
+          live: !!live,
+        };
+      }),
+    );
+
+    const secrets = allSecretKeys.map((k) => {
+      const known = KNOWN_KEYS.find((kk) => kk.canonical === k);
+      const val = runtime.secrets.get(k);
+      return {
+        key: k,
+        category: known?.category ?? "custom",
+        label: known?.label ?? k,
+        length: val?.length ?? 0,
+        configured: !!val,
+      };
+    });
+
+    const knownUnconfigured = KNOWN_KEYS.filter((kk) => !allSecretKeys.includes(kk.canonical)).map(
+      (kk) => ({
+        key: kk.canonical,
+        category: kk.category,
+        label: kk.label,
+        length: 0,
+        configured: false,
+      }),
+    );
+
+    json(res, 200, {
+      model: currentModel,
+      config: { costControls: config.costControls },
+      providers,
+      secrets: [...secrets, ...knownUnconfigured],
+    });
+  });
+
+  router.add("PUT", "/api/settings/model", async (req, res) => {
+    const body = (await parseJSON(req)) as { model?: string };
+    const newModel = body?.model;
+    if (typeof newModel !== "string" || !newModel.trim()) {
+      json(res, 400, { error: "Model name is required" });
+      return;
+    }
+
+    const { saveConfig, loadConfig } = await import("../core/config.js");
+    const config = await loadConfig(runtime.workspace);
+    runtime.setModel(newModel.trim());
+    config.models.default = newModel.trim();
+    saveConfig(runtime.workspace, config);
+
+    json(res, 200, { model: runtime.model });
+  });
+
+  router.add("PUT", "/api/settings/secrets/:key", async (req, res) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const rawKey = extractParam(url.pathname, "/api/settings/secrets/:key");
+    if (!rawKey) {
+      json(res, 400, { error: "Invalid key" });
+      return;
+    }
+    const key = decodeURIComponent(rawKey);
+
+    const body = (await parseJSON(req)) as { value?: string };
+    if (typeof body?.value !== "string") {
+      json(res, 400, { error: "Value is required" });
+      return;
+    }
+
+    const result = runtime.secrets.set(key, body.value);
+    if (!result.value) {
+      json(res, 400, { error: result.warning ?? "Empty value" });
+      return;
+    }
+    json(res, 200, { key, warning: result.warning });
+  });
+
+  router.add("DELETE", "/api/settings/secrets/:key", (req, res) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const rawKey = extractParam(url.pathname, "/api/settings/secrets/:key");
+    if (!rawKey) {
+      json(res, 400, { error: "Invalid key" });
+      return;
+    }
+    const key = decodeURIComponent(rawKey);
+    runtime.secrets.delete(key);
+    json(res, 200, { deleted: key });
+  });
+
   // ── Training ──────────────────────────────────────────────────────────────
 
   let trainingInProgress = false;

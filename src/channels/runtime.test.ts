@@ -104,6 +104,7 @@ function createTestRuntime(chatFactory: (model: string) => ChatInstance): Channe
     memory,
     eventBus,
     secrets: null as never,
+    setModel() {},
 
     async run(sessionKey: string, text: string): Promise<string> {
       const { sessionId, loop } = resolveSession(sessionKey);

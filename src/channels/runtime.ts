@@ -17,11 +17,12 @@ export interface ChannelAdapter {
 
 export interface ChannelRuntime {
   readonly workspace: string;
-  readonly model: string;
+  model: string;
   readonly sessions: SessionStore;
   readonly memory: MemoryStore;
   readonly eventBus: EventBus;
   readonly secrets: SecretStore;
+  setModel(newModel: string): void;
   run(sessionKey: string, text: string): Promise<string>;
   stream(sessionKey: string, text: string): AsyncGenerator<string>;
   stop(): void;
@@ -76,7 +77,7 @@ export async function createChannelRuntime(config: ChannelRuntimeConfig): Promis
   secrets.syncProviderKeys();
 
   const ghostpawConfig = await loadConfig(workspace);
-  const model = config.model ?? ghostpawConfig.models.default;
+  let model = config.model ?? ghostpawConfig.models.default;
 
   const sessions = createSessionStore(db);
   const memory = createMemoryStore(db);
@@ -145,11 +146,22 @@ export async function createChannelRuntime(config: ChannelRuntimeConfig): Promis
 
   return {
     workspace,
-    model,
+    get model() {
+      return model;
+    },
+    set model(v: string) {
+      model = v;
+    },
     sessions,
     memory,
     eventBus,
     secrets,
+
+    setModel(newModel: string): void {
+      model = newModel;
+      entries.clear();
+      ghostpawConfig.models.default = newModel;
+    },
 
     async run(sessionKey: string, text: string): Promise<string> {
       const { sessionId, loop } = resolveSession(sessionKey);

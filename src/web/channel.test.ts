@@ -78,6 +78,7 @@ function createMockRuntime(): ChannelRuntime {
       keys: () => ["WEB_UI_PASSWORD", "API_KEY_ANTHROPIC"],
     } as never,
 
+    setModel(_m: string): void {},
     async run(_sessionKey: string, _text: string): Promise<string> {
       return "mock response";
     },

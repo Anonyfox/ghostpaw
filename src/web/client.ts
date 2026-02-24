@@ -63,7 +63,7 @@ function handleMobileNav() {
 
 // ── Navigation ──────────────────────────────────────────────────────────────
 
-const views = ["chat", "dashboard", "sessions", "skills", "memory", "train", "scout"];
+const views = ["chat", "dashboard", "sessions", "skills", "memory", "train", "scout", "settings"];
 const viewEls = {};
 views.forEach(v => { viewEls[v] = document.getElementById("view" + v.charAt(0).toUpperCase() + v.slice(1)); });
 
@@ -91,6 +91,7 @@ function switchView(view) {
   if (view === "memory") loadMemory();
   if (view === "train") loadTrain();
   if (view === "scout") loadScout();
+  if (view === "settings") loadSettings();
 }
 
 // ── Sessions ────────────────────────────────────────────────────────────────
@@ -1553,6 +1554,296 @@ document.getElementById("btnNewChat").addEventListener("click", () => {
   handleMobileNav();
 });
 document.getElementById("btnNewChatMobile")?.addEventListener("click", createSession);
+
+// ── Settings view ───────────────────────────────────────────────────────────
+
+let settingsData = null;
+let settingsEditingKey = "";
+
+function settingsIntroHTML() {
+  return '<div class="gp-set-intro">'
+    + '<p>Configure LLM providers, API keys, and model selection. '
+    + 'Changes take effect immediately \u2014 no restart needed.</p>'
+    + '</div>';
+}
+
+function showToast(message, type) {
+  const existing = document.querySelector(".gp-set-toast");
+  if (existing) existing.remove();
+  const el = document.createElement("div");
+  el.className = "gp-set-toast " + type;
+  el.textContent = message;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+function renderProviders(data) {
+  let html = '<div class="gp-set-section">'
+    + '<div class="gp-set-section-title">LLM Providers</div>'
+    + '<div class="gp-set-provider-grid">';
+
+  for (const p of data.providers) {
+    const cardCls = "gp-set-provider-card"
+      + (p.isCurrent ? " is-current" : "")
+      + (!p.active ? " is-inactive" : "");
+
+    let statusHTML;
+    if (p.isCurrent) {
+      statusHTML = '<span class="gp-set-provider-status current">\u2713 Active</span>';
+    } else if (p.active) {
+      statusHTML = '<span class="gp-set-provider-status active">\u2022 Ready</span>';
+    } else {
+      statusHTML = '<span class="gp-set-provider-status inactive">\u2013 No Key</span>';
+    }
+
+    html += '<div class="' + cardCls + '">'
+      + '<div class="gp-set-provider-header">'
+      + '<span class="gp-set-provider-name">' + escapeHtml(p.name) + '</span>'
+      + statusHTML
+      + '</div>';
+
+    if (p.active) {
+      const sourceTag = p.live
+        ? '<span class="gp-set-model-source live">live from API</span>'
+        : '<span class="gp-set-model-source static">known models</span>';
+      html += '<div class="gp-set-model-row">'
+        + '<select class="gp-set-model-select" data-provider-id="' + escapeAttr(p.id) + '">';
+      for (const m of p.models) {
+        const sel = m === data.model ? ' selected' : '';
+        html += '<option value="' + escapeAttr(m) + '"' + sel + '>' + escapeHtml(m) + '</option>';
+      }
+      html += '</select>';
+
+      if (p.isCurrent) {
+        html += '<button class="gp-set-activate-btn is-active" disabled>Current</button>';
+      } else {
+        html += '<button class="gp-set-activate-btn" data-activate-provider="' + escapeAttr(p.id) + '">Use This</button>';
+      }
+      html += '</div>'
+        + '<div class="gp-set-model-meta">'
+        + sourceTag
+        + '<span class="gp-set-model-count">' + p.models.length + ' models</span>'
+        + '</div>';
+    } else {
+      html += '<div class="gp-set-provider-hint">Set the ' + escapeHtml(p.envKey) + ' secret below to enable.</div>';
+    }
+
+    html += '</div>';
+  }
+
+  html += '</div></div>';
+  return html;
+}
+
+function renderSecrets(data) {
+  const llm = data.secrets.filter(s => s.category === "llm");
+  const search = data.secrets.filter(s => s.category === "search");
+  const custom = data.secrets.filter(s => s.category === "custom");
+
+  let html = '';
+
+  function secretGroup(title, items) {
+    if (!items.length) return '';
+    let g = '<div class="gp-set-section">'
+      + '<div class="gp-set-section-title">' + escapeHtml(title) + '</div>'
+      + '<div class="gp-set-secret-list">';
+
+    for (const s of items) {
+      const indCls = s.configured ? "gp-set-secret-indicator configured" : "gp-set-secret-indicator missing";
+      const indText = s.configured ? s.length + " chars" : "Not set";
+      const isEditing = settingsEditingKey === s.key;
+
+      g += '<div class="gp-set-secret-row">'
+        + '<div class="gp-set-secret-info">'
+        + '<div class="gp-set-secret-key">' + escapeHtml(s.key) + '</div>';
+      if (s.label !== s.key) {
+        g += '<div class="gp-set-secret-label">' + escapeHtml(s.label) + '</div>';
+      }
+      g += '</div>'
+        + '<span class="' + indCls + '">' + indText + '</span>'
+        + '<div class="gp-set-secret-actions">'
+        + '<button class="gp-set-secret-btn" data-edit-secret="' + escapeAttr(s.key) + '">' + (isEditing ? 'Cancel' : 'Update') + '</button>';
+      if (s.configured) {
+        g += '<button class="gp-set-secret-btn danger" data-delete-secret="' + escapeAttr(s.key) + '">Delete</button>';
+      }
+      g += '</div>';
+
+      if (isEditing) {
+        g += '<div class="gp-set-secret-input-row">'
+          + '<input type="password" class="gp-set-secret-input" id="secretInput-' + escapeAttr(s.key) + '" placeholder="Paste new value\u2026" autocomplete="off">'
+          + '<button class="gp-set-secret-btn" data-save-secret="' + escapeAttr(s.key) + '">Save</button>'
+          + '</div>';
+      }
+
+      g += '</div>';
+    }
+
+    g += '</div></div>';
+    return g;
+  }
+
+  html += secretGroup("LLM Provider Keys", llm);
+  html += secretGroup("Search Provider Keys", search);
+  html += secretGroup("Custom Secrets", custom);
+
+  html += '<div class="gp-set-section">'
+    + '<div class="gp-set-section-title">Add New Secret</div>'
+    + '<div class="gp-set-add-form">'
+    + '<input type="text" id="newSecretKey" placeholder="KEY_NAME" style="flex:1;min-width:120px">'
+    + '<input type="password" id="newSecretValue" placeholder="value" style="flex:2;min-width:150px" autocomplete="off">'
+    + '<button id="btnAddSecret">Add</button>'
+    + '</div></div>';
+
+  return html;
+}
+
+function renderSettingsPage() {
+  const root = document.getElementById("settingsContent");
+  if (!root || !settingsData) return;
+
+  let html = settingsIntroHTML();
+  html += renderProviders(settingsData);
+  html += renderSecrets(settingsData);
+  root.innerHTML = html;
+  wireSettingsActions();
+}
+
+function wireSettingsActions() {
+  document.querySelectorAll("[data-activate-provider]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const providerId = btn.dataset.activateProvider;
+      const select = document.querySelector('select[data-provider-id="' + providerId + '"]');
+      const model = select ? select.value : "";
+      if (!model) return;
+      btn.disabled = true;
+      btn.textContent = "Saving\u2026";
+      try {
+        await apiJSON("/api/settings/model", {
+          method: "PUT",
+          body: JSON.stringify({ model }),
+        });
+        document.getElementById("footerModel").textContent = model;
+        showToast("Switched to " + model, "success");
+        await loadSettings();
+      } catch (err) {
+        showToast(err.message || "Failed to switch model", "error");
+        btn.disabled = false;
+        btn.textContent = "Use This";
+      }
+    });
+  });
+
+  document.querySelectorAll(".gp-set-model-select").forEach(select => {
+    select.addEventListener("change", async () => {
+      const providerId = select.dataset.providerId;
+      const provider = settingsData?.providers?.find(p => p.id === providerId);
+      if (!provider?.isCurrent) return;
+      const model = select.value;
+      try {
+        await apiJSON("/api/settings/model", {
+          method: "PUT",
+          body: JSON.stringify({ model }),
+        });
+        document.getElementById("footerModel").textContent = model;
+        showToast("Model changed to " + model, "success");
+        await loadSettings();
+      } catch (err) {
+        showToast(err.message || "Failed to change model", "error");
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-edit-secret]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const key = btn.dataset.editSecret;
+      settingsEditingKey = settingsEditingKey === key ? "" : key;
+      renderSettingsPage();
+      if (settingsEditingKey) {
+        const input = document.getElementById("secretInput-" + key);
+        if (input) input.focus();
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-save-secret]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const key = btn.dataset.saveSecret;
+      const input = document.getElementById("secretInput-" + key);
+      if (!input || !input.value.trim()) return;
+      btn.disabled = true;
+      btn.textContent = "Saving\u2026";
+      try {
+        const result = await apiJSON("/api/settings/secrets/" + encodeURIComponent(key), {
+          method: "PUT",
+          body: JSON.stringify({ value: input.value }),
+        });
+        settingsEditingKey = "";
+        if (result.warning) {
+          showToast("Saved with warning: " + result.warning, "error");
+        } else {
+          showToast(key + " updated", "success");
+        }
+        await loadSettings();
+      } catch (err) {
+        showToast(err.message || "Failed to save", "error");
+        btn.disabled = false;
+        btn.textContent = "Save";
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-delete-secret]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const key = btn.dataset.deleteSecret;
+      if (!confirm("Delete secret " + key + "?")) return;
+      btn.disabled = true;
+      try {
+        await apiJSON("/api/settings/secrets/" + encodeURIComponent(key), { method: "DELETE" });
+        showToast(key + " deleted", "success");
+        await loadSettings();
+      } catch (err) {
+        showToast(err.message || "Failed to delete", "error");
+        btn.disabled = false;
+      }
+    });
+  });
+
+  const btnAdd = document.getElementById("btnAddSecret");
+  if (btnAdd) {
+    btnAdd.addEventListener("click", async () => {
+      const keyInput = document.getElementById("newSecretKey");
+      const valInput = document.getElementById("newSecretValue");
+      const key = keyInput?.value?.trim();
+      const value = valInput?.value;
+      if (!key || !value) { showToast("Key and value are required", "error"); return; }
+      btnAdd.disabled = true;
+      try {
+        const result = await apiJSON("/api/settings/secrets/" + encodeURIComponent(key), {
+          method: "PUT",
+          body: JSON.stringify({ value }),
+        });
+        if (result.warning) {
+          showToast("Added with warning: " + result.warning, "error");
+        } else {
+          showToast(key + " added", "success");
+        }
+        keyInput.value = "";
+        valInput.value = "";
+        await loadSettings();
+      } catch (err) {
+        showToast(err.message || "Failed to add", "error");
+        btnAdd.disabled = false;
+      }
+    });
+  }
+}
+
+async function loadSettings() {
+  const data = await apiJSON("/api/settings");
+  if (!data) return;
+  settingsData = data;
+  renderSettingsPage();
+}
 
 // ── Utilities ───────────────────────────────────────────────────────────────
 

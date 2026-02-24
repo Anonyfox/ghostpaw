@@ -42,6 +42,7 @@ function createMockRuntime(opts?: {
     memory: null as never,
     eventBus: null as never,
     secrets: null as never,
+    setModel() {},
 
     async run(_sessionKey: string, _text: string): Promise<string> {
       if (delay) await new Promise((r) => setTimeout(r, delay));

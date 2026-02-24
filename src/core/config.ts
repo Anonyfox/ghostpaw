@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ConfigError, ValidationError } from "../lib/errors.js";
 
@@ -79,4 +79,9 @@ export async function loadConfig(workspacePath: string): Promise<GhostpawConfig>
   }
 
   return base;
+}
+
+export function saveConfig(workspacePath: string, config: GhostpawConfig): void {
+  const configPath = join(workspacePath, "config.json");
+  writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf-8");
 }
