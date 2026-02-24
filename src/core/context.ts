@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { DEFAULT_SOUL } from "./soul.js";
 
 function loadSoul(workspacePath: string): string | null {
@@ -58,7 +58,19 @@ Before answering questions, fulfilling requests, or making decisions where past 
 - Tasks where knowing the user's style, tools, or environment helps
 - Any situation where you suspect you've encountered something similar before
 
-Skip recall for straightforward tasks where past context clearly doesn't apply — writing code to a clear spec, running a specific command, answering general knowledge questions, or any request that is fully self-contained.`;
+Skip recall for straightforward tasks where past context clearly doesn't apply — writing code to a clear spec, running a specific command, answering general knowledge questions, or any request that is fully self-contained.
+
+**Epistemic rule**: Memories describe what WAS true in past sessions — not what IS true now. After recalling memories, always verify claims about files, code, or state against live tool output (\`read\`, \`bash\`, \`skills\`). If a memory says "file X is a working 150-line script" but \`read\` returns \`lines: 1, bytes: 4000\`, the file is corrupted — report the actual state, not the memory.`;
+
+function formatEnvironment(workspacePath: string): string {
+  const abs = resolve(workspacePath);
+  return `## Environment
+
+- **Workspace root**: \`${abs}\`
+- All file paths in \`read\`, \`write\`, and \`edit\` are **relative to this root**. Use paths like \`skills/foo.md\`, never absolute paths like \`/workspace/...\`.
+- Tool results are the **only** source of truth. Never fabricate, guess, or paraphrase tool output. If a tool call fails or returns unexpected results, report that honestly.
+- Do not invent file contents, command outputs, or error messages. If you haven't called the tool, you don't know the result.`;
+}
 
 export function assembleSystemPrompt(
   workspacePath: string,
@@ -67,6 +79,8 @@ export function assembleSystemPrompt(
   const sections: string[] = [];
 
   sections.push(loadSoul(workspacePath) ?? DEFAULT_SOUL);
+
+  sections.push(formatEnvironment(workspacePath));
 
   sections.push(MEMORY_GUIDANCE);
 

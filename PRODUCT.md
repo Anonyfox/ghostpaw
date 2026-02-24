@@ -381,6 +381,7 @@ Things that are too common or too important to leave to bash scripting. Each sol
 | **skills**      | List/read/create/update skills     | Manages the `skills/` directory. Rankings, usage tracking, skill authoring from conversation.        |
 | **train**       | Run the full training pipeline     | Absorb → refine skills → tidy. Returns structured JSON; the agent formats the report. 10-min timeout. |
 | **scout**       | Discover new skill opportunities   | Friction mining or directed research. Returns trail suggestions or a full report. 5-min timeout.    |
+| **mcp**         | Discover and call external MCP tools | Native MCP client. Auto-detects HTTP vs stdio transport. Connection caching, auth via SecretStore. Server knowledge lives in skills. |
 
 The delegate tool is the key to scaling: instead of one monolithic agent, the main agent spawns focused sub-agents for specific tasks. Each sub-agent gets a clean context with the relevant agent profile loaded, runs autonomously with the same tool set (minus delegate/check_run to prevent recursion), and returns its result. The `excludeTools` option on `createAgent()` controls which tools are omitted — used internally by train and scout to prevent their inner agents from recursively invoking themselves.
 
@@ -661,9 +662,9 @@ Craft handles the moment-to-moment ("I just figured this out, let me write it do
 
 **Skill management** — OpenClaw uses `openclaw.json` for skill registration and `/skills install @author/skill-name` from ClawHub. Ghostpaw uses a flat `skills/` directory. Drop markdown files in, they're loaded automatically. No registry, no marketplace, no attack surface.
 
-**MCP** — OpenClaw supports MCP via mcporter CLI. Ghostpaw doesn't embed MCP support yet — native MCP integration is planned as a near-term addition to the kernel. In the interim, the agent can call MCP-compatible tools via Bash or integrate them through skills.
+**MCP** — OpenClaw supports MCP via `mcporter`, an external CLI tool with a static config file. The agent shells out to `mcporter call server.tool` — adding a dependency and never truly learning MCP patterns. Ghostpaw implements MCP natively in the kernel: a single `mcp` tool with `discover` and `call` actions, supporting both Streamable HTTP and stdio transports, with authentication resolved through the existing SecretStore. No external dependencies, no config file. Server knowledge lives in skills — the agent discovers endpoints dynamically, documents what works, and improves its MCP usage over time through training. Tested against real public servers (OpenMCP, Stripe's 562-tool surface) end-to-end.
 
-**Tool set** — OpenClaw ships 60+ tools across groups (fs, runtime, web, ui, messaging, memory, sessions, automation). Ghostpaw ships a focused set of 13 built-in tools that cover what coding agents actually use. The skipped tools (canvas, nodes, gateway management) are OpenClaw-specific infrastructure features.
+**Tool set** — OpenClaw ships 60+ tools across groups (fs, runtime, web, ui, messaging, memory, sessions, automation). Ghostpaw ships a focused set of 14 built-in tools that cover what coding agents actually use, plus native MCP for unlimited external tool access. The skipped tools (canvas, nodes, gateway management) are OpenClaw-specific infrastructure features.
 
 **No plugin system** — OpenClaw supports JS/Python plugins, custom tool registration, and a marketplace. Ghostpaw has no plugin API. Skills (markdown) are the extension mechanism. The agent can write and execute code via Bash when needed.
 

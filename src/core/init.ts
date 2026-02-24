@@ -3,7 +3,7 @@ import { basename, join, resolve } from "node:path";
 import { commitSkills, initHistory } from "../lib/skill-history.js";
 import { blank, log, readSecret, style } from "../lib/terminal.js";
 import { DEFAULT_CONFIG } from "./config.js";
-import { SKILL_CRAFT, SKILL_SCOUT, SKILL_TRAINING } from "./default_skills.js";
+import { SKILL_CRAFT, SKILL_MCP, SKILL_SCOUT, SKILL_TRAINING } from "./default_skills.js";
 import { KNOWN_KEYS, type KnownKey, type SecretStore } from "./secrets.js";
 import { DEFAULT_SOUL } from "./soul.js";
 
@@ -110,6 +110,7 @@ export function initWorkspace(workspacePath: string): InitResult {
   writeIfMissing(join(workspacePath, "skills", "skill-craft.md"), `${SKILL_CRAFT}\n`, result);
   writeIfMissing(join(workspacePath, "skills", "skill-training.md"), `${SKILL_TRAINING}\n`, result);
   writeIfMissing(join(workspacePath, "skills", "skill-scout.md"), `${SKILL_SCOUT}\n`, result);
+  writeIfMissing(join(workspacePath, "skills", "skill-mcp.md"), `${SKILL_MCP}\n`, result);
   updateGitignore(workspacePath, result);
 
   if (initHistory(workspacePath)) {

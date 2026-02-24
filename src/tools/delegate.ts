@@ -66,8 +66,8 @@ export function createDelegateTool(config: DelegateConfig) {
         model?: string;
       };
 
-      const agentName = agent ?? "default";
-      const resolvedModel = model ?? config.defaultModel;
+      const agentName = agent || "default";
+      const resolvedModel = model || config.defaultModel;
 
       // Dynamic profile discovery at execution time
       const available = listAgentProfiles(config.workspacePath);

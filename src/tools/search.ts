@@ -374,10 +374,12 @@ export function createWebSearchTool(provider?: SearchProvider) {
       const search = provider ?? resolveSearchProvider();
 
       try {
-        const response = await search(query, { page: page ?? 1, region });
+        const effectivePage = page && page > 0 ? page : 1;
+        const effectiveRegion = region || undefined;
+        const response = await search(query, { page: effectivePage, region: effectiveRegion });
         return {
           query,
-          page: page ?? 1,
+          page: effectivePage,
           resultCount: response.results.length,
           hasMore: response.hasMore,
           results: response.results,

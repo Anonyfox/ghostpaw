@@ -19,6 +19,18 @@ class MemoryParams extends Schema {
   });
 }
 
+function formatAge(timestampMs: number): string {
+  const diffMs = Date.now() - timestampMs;
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return `${Math.floor(days / 30)}mo ago`;
+}
+
 export interface MemoryToolConfig {
   memory: MemoryStore;
   sessions: SessionStore;
@@ -55,13 +67,19 @@ export function createMemoryTool(config: MemoryToolConfig) {
           if (!content) return { error: "content/query is required for recall" };
           const queryVec = await embedding.embed(content);
           const matches = memory.search(queryVec, { k: 10, minScore: 0.3, includeGlobal: true });
-          if (matches.length === 0) return { matches: [], message: "No memories found." };
+          if (matches.length === 0) {
+            return { _source: "memory", matches: [], message: "No memories found." };
+          }
           return {
+            _source: "memory",
+            _notice:
+              "These are past observations. They may be outdated — always verify against current tool output before stating as fact.",
             matches: matches.map((m) => ({
               id: m.id,
               content: m.content,
               score: Math.round(m.score * 1000) / 1000,
               source: m.source,
+              age: formatAge(m.createdAt),
               created: new Date(m.createdAt).toISOString(),
             })),
           };

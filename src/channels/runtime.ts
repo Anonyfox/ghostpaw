@@ -98,6 +98,12 @@ export async function createChannelRuntime(config: ChannelRuntimeConfig): Promis
     createSkillsTool({ workspacePath: workspace, sessions, memory }),
   ];
 
+  const { createMcpTool } = await import("../tools/mcp.js");
+  const { tool: mcpTool, shutdown: mcpShutdown } = createMcpTool({
+    resolveSecret: (name) => secrets.get(name) ?? process.env[name] ?? null,
+  });
+  baseTools.push(mcpTool);
+
   // ── Per-session cache ────────────────────────────────────────────────────
 
   const entries = new Map<string, SessionEntry>();
@@ -176,6 +182,7 @@ export async function createChannelRuntime(config: ChannelRuntimeConfig): Promis
 
     stop(): void {
       entries.clear();
+      mcpShutdown().catch(() => {});
       db.close();
     },
   };

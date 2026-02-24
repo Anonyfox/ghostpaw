@@ -157,6 +157,7 @@ export { createSecretsTool } from "./tools/secrets.js";
 export { createSkillsTool } from "./tools/skills.js";
 export { createWebFetchTool } from "./tools/web.js";
 export { createWriteTool } from "./tools/write.js";
+export { createMcpTool } from "./tools/mcp.js";
 export type { WebChannelConfig, WebStartResult } from "./web/index.js";
 export { createWebChannel } from "./web/index.js";
 
@@ -235,6 +236,12 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
   const exclude = new Set(options.excludeTools ?? []);
   if (!exclude.has("train")) tools.register(createTrainTool(workspace));
   if (!exclude.has("scout")) tools.register(createScoutTool(workspace));
+
+  const { createMcpTool } = await import("./tools/mcp.js");
+  const mcpResult = createMcpTool({
+    resolveSecret: (name) => secrets.get(name) ?? process.env[name] ?? null,
+  });
+  tools.register(mcpResult.tool);
 
   const budget = createBudgetTracker(config.costControls);
   const model = options.model ?? config.models.default;

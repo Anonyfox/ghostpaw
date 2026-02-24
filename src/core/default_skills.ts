@@ -5,6 +5,7 @@
  * skill-craft.md    — the craft of writing and evolving skills (in-session)
  * skill-training.md — the systematic training playbook (retrospective)
  * skill-scout.md    — the scouting playbook for creative ideation
+ * skill-mcp.md      — how to discover, use, and learn from external MCP servers
  */
 
 export const SKILL_CRAFT = `# Skill Craft
@@ -25,6 +26,8 @@ Do NOT create a skill for:
 - Tasks where the default behavior already works correctly without domain-specific instructions
 - Pure facts (use memory instead — skills are for procedures)
 - Speculation about tasks you haven't actually done yet
+
+**MCP servers are a special case.** When you successfully connect to an external MCP server and use its tools, always create a dedicated per-server skill documenting the endpoint, auth, available tools, and usage patterns. See \`skill-mcp.md\` for the template and workflow.
 
 ## Skill Structure
 
@@ -219,6 +222,8 @@ Use the memory tool with action "recall" to search for memories related to the s
 
 If the direction involves external tools, APIs, or technologies the user hasn't worked with before, use web_search and web_fetch to explore best practices, available services, and community approaches. Focus on what's achievable with the agent's actual capabilities (file ops, web, bash, scheduling, delegation).
 
+**Consider MCP servers.** Many APIs and services have MCP server implementations — search for "\`{service} MCP server\`" or check the OpenMCP registry (\`https://mcp.open-mcp.org\`). An MCP server can give you structured tool access to a service that would otherwise require fragile API scripting. If a relevant MCP server exists, note it as a potential integration and reference \`skill-mcp.md\` for the connection workflow.
+
 Skip external research when the direction is about reorganizing, combining, or extending workflows the user already has — the context from steps 1-2 is sufficient.
 
 ## Step 4: Analyze Feasibility
@@ -251,4 +256,92 @@ End with a clear call-to-action. The user should know exactly what to do next �
 - **Hallucinated capabilities**: Don't suggest features the agent doesn't have.
 - **Developer-only suggestions**: Non-coders use Ghostpaw too. "Set up a Node.js cron" is less helpful than "schedule a weekly report every Friday at 5pm."
 - **Unbounded scope**: A good scout report targets ONE specific skill, not a feature suite.
+`.trimEnd();
+
+export const SKILL_MCP = `# MCP Server Integration
+
+How to discover, use, and build skills around external MCP (Model Context Protocol) servers. Read this when you encounter an MCP server endpoint or need to connect to an external tool ecosystem.
+
+## The \`mcp\` Tool
+
+You have one built-in tool for all MCP interactions:
+
+- **\`discover\`**: connect to a server and list its available tools with parameters
+- **\`call\`**: invoke a specific tool on a connected server
+
+The tool auto-detects transport: URLs (\`https://...\`) use HTTP, command strings (\`npx -y @mcp/server\`) use stdio.
+
+## Workflow: First Contact with a Server
+
+1. **Discover** — call \`mcp\` with \`action: "discover"\` and the server endpoint. No auth for public servers, or pass \`auth\` with the secret name for authenticated ones.
+2. **Read the tool list** — note tool names, descriptions, and parameter schemas. Some servers expose an \`expandSchema\` meta-tool for detailed parameter docs.
+3. **Call a simple tool** — pick a read-only tool (list, get, search) and call it with \`action: "call"\`. Verify the result makes sense.
+4. **Document what you learned** — create a dedicated skill for this server (see template below).
+
+## Auth Patterns
+
+**HTTP servers (Bearer token)**:
+- Store the API key via \`secrets set <KEY_NAME>\`
+- Pass \`auth: "KEY_NAME"\` in the mcp tool call — it resolves to a Bearer token header automatically
+
+**Stdio servers (env vars)**:
+- Store each required env var via \`secrets set <VAR_NAME>\`
+- Pass \`auth: "VAR1,VAR2"\` (comma-separated) — they're injected into the child process environment
+
+**No auth**: many public servers (OpenMCP registry, public APIs) need no auth at all. Just omit the \`auth\` parameter.
+
+## Per-Server Skill Template
+
+After successfully using an MCP server, create a skill so future sessions start with full knowledge:
+
+\`\`\`markdown
+# [Server Name] via MCP
+
+Connect to [what it does] via MCP.
+
+## Connection
+
+- Endpoint: \`https://example.com/mcp\` (or \`npx -y @scope/server\` for stdio)
+- Auth: \`SECRET_NAME\` (Bearer token) / none
+- Transport: HTTP / stdio
+
+## Available Tools
+
+- \`tool_name\` — what it does (key params: x, y)
+- \`other_tool\` — what it does
+
+## Usage Patterns
+
+- [How to accomplish common task A]
+- [How to accomplish common task B]
+
+## Notes
+
+- [Rate limits, quirks, failure modes]
+- [Parameters that need special formatting]
+- [Tools that don't work well or return unexpected formats]
+\`\`\`
+
+## Input Formatting
+
+The \`input\` parameter takes a JSON string. Match the types from the discovered schema:
+- Numbers: \`{"lat": 48.2, "lon": 16.4}\` (not strings)
+- Required params must be present — the server rejects calls with missing required fields
+- When unsure about parameter names or types, run \`discover\` first
+
+## Connection Caching
+
+Connections are cached for the duration of a session. The first \`discover\` or \`call\` to a server establishes the connection; subsequent calls reuse it. If a connection fails, it's evicted from cache and the next call reconnects automatically.
+
+## Public Server Registries
+
+- **OpenMCP**: \`https://mcp.open-mcp.org/api/server/{id}@latest/mcp\` — 1000+ servers, no auth for discovery
+- Many APIs have community-maintained MCP servers — search for "\`{service} MCP server\`"
+
+## Anti-Patterns
+
+- **Don't guess tool names or parameters.** Always \`discover\` first. Server APIs change.
+- **Don't skip the per-server skill.** Without it, every session re-discovers from scratch.
+- **Don't hardcode auth tokens.** Use secret names so they resolve from the SecretStore.
+- **Don't assume all tools work.** Some servers expose tools that require paid plans or specific permissions. Test before documenting.
 `.trimEnd();

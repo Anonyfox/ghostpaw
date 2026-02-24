@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { createTool, Schema } from "chatoyant";
 import { findAndReplace } from "../lib/diff.js";
+import { sanitizeLlmContent } from "./write.js";
 
 class EditParams extends Schema {
   path = Schema.String({ description: "File path relative to workspace" });
@@ -48,7 +49,9 @@ export function createEditTool(workspacePath: string) {
       }
 
       try {
-        const result = findAndReplace(content, search, replacement);
+        const cleanSearch = sanitizeLlmContent(search, filePath);
+        const cleanReplacement = sanitizeLlmContent(replacement, filePath);
+        const result = findAndReplace(content, cleanSearch, cleanReplacement);
         writeFileSync(fullPath, result.newContent, "utf-8");
         return { success: true, matchKind: result.matchKind, path: filePath };
       } catch (err) {

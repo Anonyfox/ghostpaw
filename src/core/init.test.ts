@@ -27,7 +27,7 @@ describe("initWorkspace - fresh directory", () => {
     ok(existsSync(join(workDir, "config.json")));
     ok(existsSync(join(workDir, ".gitignore")));
 
-    strictEqual(result.created.length, 9);
+    strictEqual(result.created.length, 10);
     strictEqual(result.skipped.length, 0);
   });
 
@@ -70,7 +70,7 @@ describe("initWorkspace - idempotency", () => {
     const result = initWorkspace(workDir);
 
     strictEqual(result.created.length, 0);
-    strictEqual(result.skipped.length, 9);
+    strictEqual(result.skipped.length, 10);
   });
 
   it("does not overwrite existing SOUL.md", () => {

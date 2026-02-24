@@ -21,11 +21,30 @@ function addLineNumbers(content: string, startOffset: number): string {
     .join("\n");
 }
 
+const HTML_ENTITY_RE = /&(?:amp|lt|gt|quot|apos|#\d+|#x[\da-fA-F]+);/;
+
+export function detectAnomalies(raw: string, filePath: string): string[] {
+  const warnings: string[] = [];
+  const lines = raw.split("\n");
+  if (lines.length === 1 && raw.length > 200) {
+    warnings.push(
+      `File is a single line with ${raw.length} chars — content is likely corrupted (missing newlines).`,
+    );
+  }
+  if (!/\.html?$/i.test(filePath) && HTML_ENTITY_RE.test(raw)) {
+    warnings.push("Contains HTML entities in a non-HTML file — content may be garbled.");
+  }
+  if (raw.includes("\\n") && !raw.includes("\n", 1) && raw.length > 50) {
+    warnings.push("Contains literal \\n sequences instead of real newlines.");
+  }
+  return warnings;
+}
+
 export function createReadTool(workspacePath: string) {
   return createTool({
     name: "read",
     description:
-      "Read file contents. Supports optional line ranges with startLine/endLine (1-indexed).",
+      "Read file contents. Returns lines, bytes, and content. Supports optional line ranges with startLine/endLine (1-indexed).",
     // biome-ignore lint: TS index-signature limitation on class instances vs SchemaInstance
     parameters: new ReadParams() as any,
     execute: async ({ args }) => {
@@ -53,15 +72,34 @@ export function createReadTool(workspacePath: string) {
         return { error: `Failed to read "${filePath}": ${msg}` };
       }
 
-      if (startLine !== undefined || endLine !== undefined) {
-        const lines = raw.split("\n");
-        const start = Math.max(1, startLine ?? 1);
-        const end = Math.min(lines.length, endLine ?? lines.length);
-        const sliced = lines.slice(start - 1, end);
-        return { content: addLineNumbers(sliced.join("\n"), start) };
+      const allLines = raw.split("\n");
+      const totalLines = allLines.length;
+      const totalBytes = Buffer.byteLength(raw, "utf-8");
+      const anomalies = detectAnomalies(raw, filePath);
+
+      const hasStart = typeof startLine === "number" && startLine > 0;
+      const hasEnd = typeof endLine === "number" && endLine > 0;
+      if (hasStart || hasEnd) {
+        const start = Math.max(1, hasStart ? startLine : 1);
+        const end = Math.min(totalLines, hasEnd ? endLine : totalLines);
+        const sliced = allLines.slice(start - 1, end);
+        const result: Record<string, unknown> = {
+          lines: totalLines,
+          bytes: totalBytes,
+          range: `${start}-${end}`,
+          content: addLineNumbers(sliced.join("\n"), start),
+        };
+        if (anomalies.length > 0) result.warning = anomalies.join(" ");
+        return result;
       }
 
-      return { content: addLineNumbers(raw, 1) };
+      const result: Record<string, unknown> = {
+        lines: totalLines,
+        bytes: totalBytes,
+        content: addLineNumbers(raw, 1),
+      };
+      if (anomalies.length > 0) result.warning = anomalies.join(" ");
+      return result;
     },
   });
 }

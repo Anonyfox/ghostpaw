@@ -44,7 +44,7 @@ export function createBashTool(workspacePath: string) {
         return { error: "Command cannot be empty", exitCode: 1, stdout: "", stderr: "" };
       }
 
-      const timeoutMs = (timeout ?? DEFAULT_TIMEOUT_S) * 1000;
+      const timeoutMs = (timeout && timeout > 0 ? timeout : DEFAULT_TIMEOUT_S) * 1000;
 
       const result = spawnSync("/bin/sh", ["-c", command], {
         cwd: workspacePath,
