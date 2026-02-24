@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/ghostpaw-logo.png" alt="Ghostpaw" width="720" />
+  <img src="https://github.com/Anonyfox/ghostpaw/blob/master/assets/ghostpaw-logo.png" alt="Ghostpaw" width="720" />
 </p>
 
 <h1 align="center">Ghostpaw</h1>
