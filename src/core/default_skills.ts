@@ -4,6 +4,7 @@
  *
  * skill-craft.md    — the craft of writing and evolving skills (in-session)
  * skill-training.md — the systematic training playbook (retrospective)
+ * skill-scout.md    — the scouting playbook for creative ideation
  */
 
 export const SKILL_CRAFT = `# Skill Craft
@@ -45,7 +46,7 @@ Do NOT create a skill for:
 - [Environment assumptions]
 \`\`\`
 
-**Conciseness matters.** You read every skill on every turn — verbose skills waste context tokens. Target 20-50 lines. If a skill exceeds 80 lines, split it into focused sub-skills.
+**Conciseness matters.** You see the skill index in your context and read relevant ones on demand — but shorter skills are faster to process and act on. Target 20-50 lines. If a skill exceeds 80 lines, split it into focused sub-skills.
 
 ## Writing Effective Instructions
 
@@ -221,4 +222,70 @@ Use \`skills status\` to check if training would be useful. Training is most val
 - User corrections or feedback (capture preferences before they're forgotten)
 
 Training can be scheduled: \`0 18 * * 5 cd /workspace && node ghostpaw.mjs train\` runs weekly Friday evening, turning a week of experience into improved skills automatically.
+`.trimEnd();
+
+export const SKILL_SCOUT = `# Skill Scout
+
+The playbook for a scouting session. When you're running a directed scout (\`/scout <direction>\` or \`ghostpaw scout <direction>\`), follow these steps. Scouting explores new territory — it's about discovering what you *could* learn, not refining what you already know.
+
+## What Scouting Is
+
+Scouting is forward-looking creative ideation. Training looks backward at accumulated experience and sharpens existing skills. Scouting looks forward at unexplored possibilities and discovers new ones. They complement each other but never overlap.
+
+A good scout report is specific, grounded, and actionable. It's not "you should try automation" — it's "your Monday repo-check routine across 4 repositories could become a single skill that generates a digest and posts it to Slack."
+
+## Step 1: Understand Current Coverage
+
+Use the skills tool with action "list" to see all existing skills. Read any that might overlap with the direction being scouted. The goal is to avoid suggesting something that already exists.
+
+## Step 2: Gather Related Experience
+
+Use the memory tool with action "recall" to search for memories related to the scouting direction. Look for:
+
+- Past mentions of the topic
+- Related workflows the user has performed
+- Frustrations or manual processes in this area
+- Tools or services the user already uses
+
+## Step 3: Research
+
+Use web_search and web_fetch to explore:
+
+- Best practices for the direction
+- Tools, APIs, and services that could help
+- Community approaches to similar problems
+- Automation patterns others have found effective
+
+Focus on what's achievable with the agent's actual capabilities (file ops, web, bash, scheduling, delegation).
+
+## Step 4: Analyze Feasibility
+
+Cross-reference research with the user's context:
+
+- What tools and access does the user have?
+- What's the simplest first version that delivers value?
+- What prerequisites are needed (API keys, configurations)?
+- What failure modes should the skill handle?
+
+## Step 5: Trail Report
+
+Produce a concrete trail report with:
+
+- **What**: One-paragraph description of what the skill would do
+- **Why**: Why this matters for THIS user, grounded in their specific context
+- **How**: What the skill file would contain — key steps, tools involved, verification
+- **First steps**: 2-3 specific actions to get started (e.g. "set up the Slack webhook", "create the cron schedule")
+- **Limitations**: What this skill won't cover and why
+
+## Step 6: Invite Action
+
+End with a clear call-to-action. The user should know exactly what to do next — typically crafting the scouted direction into a skill. Suggest the skill filename and a draft outline.
+
+## Anti-Patterns
+
+- **Generic advice**: "You should automate more" is useless. Cite specific evidence.
+- **Hallucinated capabilities**: Don't suggest features the agent doesn't have.
+- **Developer-only suggestions**: Non-coders use Ghostpaw too. "Set up a Node.js cron" is less helpful than "schedule a weekly report every Friday at 5pm."
+- **Overlapping existing skills**: Always check current skills first.
+- **Unbounded scope**: A good scout report targets ONE specific skill, not a feature suite.
 `.trimEnd();

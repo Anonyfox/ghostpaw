@@ -27,7 +27,7 @@ describe("initWorkspace - fresh directory", () => {
     ok(existsSync(join(workDir, "config.json")));
     ok(existsSync(join(workDir, ".gitignore")));
 
-    strictEqual(result.created.length, 8);
+    strictEqual(result.created.length, 9);
     strictEqual(result.skipped.length, 0);
   });
 
@@ -72,7 +72,7 @@ describe("initWorkspace - idempotency", () => {
     const result = initWorkspace(workDir);
 
     strictEqual(result.created.length, 0);
-    strictEqual(result.skipped.length, 8);
+    strictEqual(result.skipped.length, 9);
   });
 
   it("does not overwrite existing SOUL.md", () => {
@@ -154,13 +154,29 @@ describe("default skills", () => {
     ok(content.includes("## When to Train"));
   });
 
+  it("creates skill-scout.md in skills/", () => {
+    initWorkspace(workDir);
+    ok(existsSync(join(workDir, "skills", "skill-scout.md")));
+  });
+
+  it("skill-scout.md contains key sections", () => {
+    initWorkspace(workDir);
+    const content = readFileSync(join(workDir, "skills", "skill-scout.md"), "utf-8");
+    ok(content.includes("# Skill Scout"));
+    ok(content.includes("## What Scouting Is"));
+    ok(content.includes("## Step 5: Trail Report"));
+    ok(content.includes("## Anti-Patterns"));
+  });
+
   it("does not overwrite existing skill files", () => {
     mkdirSync(join(workDir, "skills"), { recursive: true });
     writeFileSync(join(workDir, "skills", "skill-craft.md"), "Custom craft.");
     writeFileSync(join(workDir, "skills", "skill-training.md"), "Custom training.");
+    writeFileSync(join(workDir, "skills", "skill-scout.md"), "Custom scout.");
     initWorkspace(workDir);
     strictEqual(readFileSync(join(workDir, "skills", "skill-craft.md"), "utf-8"), "Custom craft.");
     strictEqual(readFileSync(join(workDir, "skills", "skill-training.md"), "utf-8"), "Custom training.");
+    strictEqual(readFileSync(join(workDir, "skills", "skill-scout.md"), "utf-8"), "Custom scout.");
   });
 });
 

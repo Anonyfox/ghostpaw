@@ -1,55 +1,110 @@
-# Ghostpaw
+<p align="center">
+  <img src="assets/ghostpaw-logo.png" alt="Ghostpaw" width="720" />
+</p>
 
-Single-file AI agent runtime. TypeScript → one `.mjs` file. Self-contained. Node 22.5+ only.
+<h1 align="center">Ghostpaw</h1>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/ghostpaw"><img src="https://img.shields.io/npm/v/ghostpaw.svg?style=flat-square" alt="npm version" /></a>
+  <a href="https://github.com/Anonyfox/ghostpaw/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/Anonyfox/ghostpaw/ci.yml?branch=main&label=CI&style=flat-square" alt="CI" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.9-blue?style=flat-square&logo=typescript" alt="TypeScript" /></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="License: MIT" /></a>
+</p>
+
+<p align="center">
+  An AI agent that learns from use. One file, any frontier model, no infrastructure.<br/>
+  The agent on day 100 is fundamentally more capable than on day 1.
+</p>
+
+<p align="center">
 
 ```bash
 npx ghostpaw
 ```
 
-## What
+</p>
 
-- **One artifact** — `ghostpaw.mjs` is the CLI, runtime, and importable library
-- **4 core tools** — Read, Write, Edit, Bash. Everything else is an extension.
-- **3 LLM providers** — OpenAI, Anthropic, xAI. Normalized streaming interface.
-- **SQLite for state** — sessions, memory, logs. One file: `ghostpaw.db`
-- **Self-extending** — the agent writes its own extensions at runtime
-- **OpenClaw-compatible** — reads SOUL.md / SKILL.md natively
+---
 
 ## Why
 
-OpenClaw was acquired by OpenAI (Feb 15, 2026). The independent alternative doesn't exist yet. This is it.
+OpenClaw was acquired by OpenAI (Feb 15, 2026). What was the independent open-source agent is now a subsidiary. Meanwhile: Docker setups that break on install, $30–50/session token burn with no cost controls, a skill marketplace that turned into a malware marketplace (ClawHavoc — 1,184 malicious packages, the #1 ranked skill was a stealer), and 430,000 lines of code to do what should be simple.
+
+Ghostpaw is the other direction. One `.mjs` file. Four core tools. Plain markdown. An API key and Node.js — nothing else.
+
+## The Double Learning Loop
+
+Most agents are stateless. They're as smart as the model, every time, forever.
+
+Ghostpaw compounds in two ways simultaneously:
+
+**Models get better.** Ghostpaw is model-agnostic across OpenAI, Anthropic, and xAI. When the next Sonnet or GPT drops, your agent is instantly smarter at baseline. You ride the curve instead of managing local weights.
+
+**Your agent gets better.** The skill system turns real experience into procedural knowledge. Corrections become preferences. Failed deploys become runbooks. Patterns you repeat become automations. After a month of use, the agent knows your stack, your conventions, your edge cases — things no model update will ever capture.
+
+These loops multiply. Better base models × refined personal skills = an agent that accelerates the longer you use it.
+
+## Skills
+
+Three modes, one system.
+
+**Craft** — the agent writes skills during normal conversation. You correct it, it captures the lesson. Skills emerge from doing.
+
+**Train** — `ghostpaw train`. Retrospective that processes accumulated sessions into sharper skills. Three phases: absorb learnings, refine skills, clean up. You decide when to run it.
+
+**Scout** — `ghostpaw scout`. Forward-looking ideation that mines your context for friction and capability gaps you haven't noticed. Returns evidence-grounded suggestions, then deep-researches the one you pick.
+
+Skills are plain markdown in `skills/`, version-controlled by git for integrity and rollback. No plugins. No marketplace. No supply chain attack surface.
+
+[How the skill system works →](docs/SKILLS.md)
+
+## Deployment Philosophy
+
+Use frontier models. They're better than local inference and getting cheaper every quarter. A $5/mo VPS + an API key is a full agent deployment. No GPU. No VRAM. No quantization trade-offs. No Docker compose debugging.
+
+Built-in cost controls (per-session and monthly caps) so you never wake up to a surprise bill.
+
+## OpenClaw Migration
+
+Ghostpaw reads `SOUL.md` and `skills/` natively — the same workspace format OpenClaw uses. Bring your existing setup, it works. Marketplace skills you downloaded won't transfer (by design), but everything you wrote yourself will.
 
 ## Install
 
 Requires **Node.js 22.5+** (or Docker).
 
 ```bash
-npx ghostpaw                  # zero install, runs latest from npm
-npm install -g ghostpaw       # permanent global install
-curl -fsSL https://raw.githubusercontent.com/Anonyfox/ghostpaw/main/install.sh | sh  # standalone
+curl -fsSL https://raw.githubusercontent.com/Anonyfox/ghostpaw/main/install.sh | sh
 ```
 
-**Docker** (no Node.js needed):
+The installer detects your OS, installs Node.js 22.5+ if missing, and sets up `ghostpaw` in `~/.local/bin`. True one-shot — works on macOS, Linux, and WSL.
+
+Already have Node.js?
+
+```bash
+npx ghostpaw                  # zero install, runs latest
+npm install -g ghostpaw       # global install
+```
+
+Docker (no Node.js needed):
 
 ```bash
 docker run --rm -it -v "$(pwd)":/workspace -v ~/.ghostpaw:/root/.ghostpaw ghcr.io/anonyfox/ghostpaw
 ```
 
-See [docs/SETUP.md](docs/SETUP.md) for detailed instructions and troubleshooting.
+[Setup guide & troubleshooting →](docs/SETUP.md)
 
 ## Usage
 
-**CLI:**
-
 ```bash
 ghostpaw                     # interactive chat
-ghostpaw serve               # web UI + API
 ghostpaw run "do the thing"  # one-shot, exits when done
+ghostpaw train               # level up from experience
+ghostpaw scout               # discover new capabilities
 ghostpaw init                # create workspace, set API keys
-ghostpaw telegram            # Telegram bot
+ghostpaw service install     # systemd/launchd background service
 ```
 
-**Library:**
+As a library:
 
 ```javascript
 import { createAgent } from "ghostpaw";
@@ -58,42 +113,41 @@ const agent = createAgent({ workspace: "./my-workspace" });
 const result = await agent.run("analyze this codebase");
 ```
 
-Requires `--experimental-sqlite` when used as a library. The CLI handles this automatically.
-
 ## Architecture
 
 ```
-src/index.ts  →  esbuild  →  dist/ghostpaw.mjs  (single ESM artifact)
+src/index.ts  →  esbuild  →  dist/ghostpaw.mjs
 ```
 
-All npm dependencies are bundled by esbuild at build time. The output is a single self-contained `.mjs` file — no `node_modules` needed at runtime. Uses Node built-in APIs (`node:sqlite`, `node:http`, `node:fs`, `node:child_process`, `node:test`, `fetch()`) plus carefully chosen npm packages for channels, parsing, etc.
-
-Workspace at `~/.ghostpaw/`:
+One artifact. CLI, runtime, and importable library in a single self-contained `.mjs` file. All npm dependencies bundled at build time — no `node_modules` at runtime. Built on Node built-in APIs (`node:sqlite`, `node:http`, `node:fs`, `node:child_process`).
 
 ```
-config.json       # providers, models, cost controls
-ghostpaw.db       # SQLite: sessions, messages, memory
-SOUL.md           # agent personality
-skills/           # SKILL.md files (prompt context)
-extensions/       # JS modules (hot-reloaded)
+~/.ghostpaw/
+  config.json       # providers, models, cost controls
+  ghostpaw.db       # SQLite: sessions, memory
+  SOUL.md           # agent personality
+  skills/           # procedural knowledge (markdown)
 ```
 
 ## Development
 
 ```bash
-git clone https://github.com/Anonyfox/ghostpaw.git
-cd ghostpaw
+git clone https://github.com/Anonyfox/ghostpaw.git && cd ghostpaw
 npm install
 npm run build        # build dist/ghostpaw.mjs
 npm run dev          # rebuild on change
 npm run check        # biome lint + typecheck
-npm run start        # run the built artifact
+npm test             # full test suite
 ```
 
-## Status
+---
 
-Early development. Core architecture is in place. Features are being built.
+### Support
 
-## License
+If Ghostpaw helps your workflow, consider sponsoring its development:
 
-MIT
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-EA4AAA?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sponsors/Anonyfox)
+
+---
+
+**[Anonyfox](https://anonyfox.com) • [MIT License](LICENSE)**

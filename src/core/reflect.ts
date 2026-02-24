@@ -309,6 +309,7 @@ export function printTrainReport(result: TrainResult): void {
   if (result.changes.length === 0) {
     blank();
     log.info("No skill changes — keep using me and I'll have more to learn from");
+    log.info("Try /scout to discover new skill possibilities");
     blank();
     return;
   }

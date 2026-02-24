@@ -45,7 +45,19 @@
     "type": "git",
     "url": "https://github.com/Anonyfox/ghostpaw.git"
   },
+  "author": {
+    "name": "Anonyfox",
+    "email": "max@anonyfox.com",
+    "url": "https://anonyfox.com"
+  },
   "homepage": "https://github.com/Anonyfox/ghostpaw",
+  "bugs": {
+    "url": "https://github.com/Anonyfox/ghostpaw/issues"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/Anonyfox"
+  },
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "2.4.4",

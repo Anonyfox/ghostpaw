@@ -74,6 +74,8 @@ export type {
 export { createMemoryStore } from "./core/memory.js";
 export type { AbsorbConfig, AbsorbResult } from "./core/absorb.js";
 export { absorbSessions, countUnabsorbedSessions } from "./core/absorb.js";
+export type { ScoutResult, ScoutTrail } from "./core/scout.js";
+export { runScout, scout } from "./core/scout.js";
 export type { ReflectChange, ReflectResult, TrainChange, TrainResult } from "./core/reflect.js";
 export { printReflectReport, printTrainReport, reflect, runReflect, runTrain, train } from "./core/reflect.js";
 export { startRepl } from "./core/repl.js";
@@ -263,9 +265,9 @@ ${h("Commands")}
   ${d("(default)")}        Interactive chat ${d("(TTY)")} or daemon ${d("(headless)")}
   run ${d("<prompt>")}      One-shot prompt, exits when done
   train             Review recent experience, level up skills
+  scout ${d("[direction]")}  Explore new skill possibilities
   init              Re-scaffold workspace ${d("(auto-runs on first use)")}
   service ${d("<sub>")}     install | uninstall | status | logs
-  telegram          Start Telegram bot
 
 ${h("Options")}
   -w, --workspace   Workspace directory ${d("(default: .)")}
@@ -336,6 +338,14 @@ async function main(): Promise<void> {
       await train(workspace, { stream: process.stdout.isTTY === true });
       break;
     }
+    case "scout": {
+      const { ensureWorkspace } = await import("./core/init.js");
+      await ensureWorkspace(workspace);
+      const { scout } = await import("./core/scout.js");
+      const direction = positionals.slice(1).join(" ").trim() || undefined;
+      await scout(workspace, { stream: process.stdout.isTTY === true, direction });
+      break;
+    }
     case "init": {
       const { initWorkspace, promptApiKey } = await import("./core/init.js");
       const { log, blank } = await import("./lib/terminal.js");
@@ -389,9 +399,6 @@ async function main(): Promise<void> {
       }
       break;
     }
-    case "telegram":
-      console.log("ghostpaw telegram bot — not yet implemented");
-      break;
     default: {
       const { log } = await import("./lib/terminal.js");
       log.error(`Unknown command: ${command}`);

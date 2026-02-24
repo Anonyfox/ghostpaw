@@ -1,7 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { DEFAULT_CONFIG } from "./config.js";
-import { SKILL_CRAFT, SKILL_TRAINING } from "./default_skills.js";
+import { SKILL_CRAFT, SKILL_SCOUT, SKILL_TRAINING } from "./default_skills.js";
 import { DEFAULT_SOUL } from "./soul.js";
 import { commitSkills, initHistory } from "../lib/skill-history.js";
 import { blank, log, style } from "../lib/terminal.js";
@@ -111,6 +111,7 @@ export function initWorkspace(workspacePath: string): InitResult {
   writeIfMissing(join(workspacePath, "config.json"), `${buildConfigTemplate()}\n`, result);
   writeIfMissing(join(workspacePath, "skills", "skill-craft.md"), `${SKILL_CRAFT}\n`, result);
   writeIfMissing(join(workspacePath, "skills", "skill-training.md"), `${SKILL_TRAINING}\n`, result);
+  writeIfMissing(join(workspacePath, "skills", "skill-scout.md"), `${SKILL_SCOUT}\n`, result);
   updateGitignore(workspacePath, result);
 
   // Initialize skill history tracking (git-based, in .ghostpaw/skill-history/)
