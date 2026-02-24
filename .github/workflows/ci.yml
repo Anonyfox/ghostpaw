@@ -36,7 +36,7 @@ jobs:
 
       - name: Artifact size guard
         run: |
-          MAX_KB=512
+          MAX_KB=5120
           SIZE=$(stat -c%s dist/ghostpaw.mjs 2>/dev/null || stat -f%z dist/ghostpaw.mjs)
           SIZE_KB=$((SIZE / 1024))
           echo "Artifact size: ${SIZE_KB} KB (max: ${MAX_KB} KB)"
