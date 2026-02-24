@@ -32,18 +32,44 @@ export async function startRepl(workspace: string): Promise<void> {
   const channels: ChannelAdapter[] = [];
   const channelStatus: string[] = [];
 
+  // Shared channel runtime — created once, used by all channels
+  let sharedRuntime: Awaited<
+    ReturnType<typeof import("../channels/runtime.js").createChannelRuntime>
+  > | null = null;
+  async function getRuntime() {
+    if (!sharedRuntime) {
+      const { createChannelRuntime } = await import("../channels/runtime.js");
+      sharedRuntime = await createChannelRuntime({ workspace });
+    }
+    return sharedRuntime;
+  }
+
   const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
   if (telegramToken) {
     try {
-      const { createChannelRuntime } = await import("../channels/runtime.js");
+      const runtime = await getRuntime();
       const { createTelegramChannel } = await import("../channels/telegram.js");
-      const runtime = await createChannelRuntime({ workspace });
       const telegram = createTelegramChannel({ token: telegramToken, runtime });
       const result = (await telegram.start()) as TelegramStartResult;
       channels.push(telegram);
       channelStatus.push(`telegram ${style.dim(`@${result.username}`)}`);
     } catch {
       channelStatus.push(`telegram ${style.dim("failed")}`);
+    }
+  }
+
+  const webPassword = process.env.WEB_UI_PASSWORD;
+  if (webPassword) {
+    try {
+      const runtime = await getRuntime();
+      const { createWebChannel } = await import("../web/index.js");
+      const web = createWebChannel(runtime);
+      const result = (await web.start()) as { url: string };
+      channels.push(web);
+      channelStatus.push(`web ${style.dim(result.url)}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      channelStatus.push(`web ${style.dim(`failed: ${msg}`)}`);
     }
   }
 

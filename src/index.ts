@@ -157,6 +157,8 @@ export { createSecretsTool } from "./tools/secrets.js";
 export { createSkillsTool } from "./tools/skills.js";
 export { createWebFetchTool } from "./tools/web.js";
 export { createWriteTool } from "./tools/write.js";
+export type { WebChannelConfig, WebStartResult } from "./web/index.js";
+export { createWebChannel } from "./web/index.js";
 
 // ── Agent factory ───────────────────────────────────────────────────────────
 

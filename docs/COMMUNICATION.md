@@ -80,7 +80,9 @@ _Planned._ Guild-based channel with role-aware access control. Same sticky-sessi
 
 ## Web UI
 
-_Planned._ Lightweight HTTP interface for browser-based interaction. No framework — server-sent events for streaming, static HTML served from the single `.mjs` artifact.
+Built-in browser-based control plane. Set `WEB_UI_PASSWORD`, start Ghostpaw, open `localhost:3000`. Full chat, training, scouting, memory browsing, session inspection, skill editing — all from your phone or desktop. Password-authenticated, rate-limited, CSP-hardened.
+
+[Full details →](WEB_UI.md)
 
 ## CLI (Non-Interactive)
 

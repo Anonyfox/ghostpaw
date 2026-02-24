@@ -44,13 +44,23 @@ export async function startDaemon(workspace: string): Promise<void> {
 
   const channels: ChannelAdapter[] = [];
 
+  // Shared channel runtime — created once for all channels
+  let sharedRuntime: Awaited<
+    ReturnType<typeof import("../channels/runtime.js").createChannelRuntime>
+  > | null = null;
+  async function getRuntime() {
+    if (!sharedRuntime) {
+      const { createChannelRuntime } = await import("../channels/runtime.js");
+      sharedRuntime = await createChannelRuntime({ workspace });
+    }
+    return sharedRuntime;
+  }
+
   const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
   if (telegramToken) {
     try {
-      const { createChannelRuntime } = await import("../channels/runtime.js");
+      const runtime = await getRuntime();
       const { createTelegramChannel } = await import("../channels/telegram.js");
-
-      const runtime = await createChannelRuntime({ workspace });
       const telegram = createTelegramChannel({ token: telegramToken, runtime });
       const result = (await telegram.start()) as { username: string };
       channels.push(telegram);
@@ -64,9 +74,27 @@ export async function startDaemon(workspace: string): Promise<void> {
     }
   }
 
+  const webPassword = process.env.WEB_UI_PASSWORD;
+  if (webPassword) {
+    try {
+      const runtime = await getRuntime();
+      const { createWebChannel } = await import("../web/index.js");
+      const web = createWebChannel(runtime);
+      const result = (await web.start()) as { url: string };
+      channels.push(web);
+
+      info(`channel started: web ${result.url}`);
+      console.log(`  web ui at ${result.url}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      error(`web channel failed to start: ${msg}`);
+      console.error(`  web channel failed: ${msg}`);
+    }
+  }
+
   if (channels.length === 0) {
     info("no channels configured — daemon idle");
-    console.log("  no channels configured (set TELEGRAM_BOT_TOKEN via secrets)");
+    console.log("  no channels configured (set TELEGRAM_BOT_TOKEN or WEB_UI_PASSWORD via secrets)");
   }
 
   // ── Lifecycle ────────────────────────────────────────────────────────────

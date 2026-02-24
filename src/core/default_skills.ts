@@ -58,23 +58,75 @@ Do NOT create a skill for:
 
 **Verify every mutation.** File writes get read back. Deployments get fetched. Database changes get queried. If you changed it, confirm it took.
 
-## Code Execution
+## Executable Skills
 
-For anything beyond a simple shell one-liner, write a script and run it.
+Any skill involving data fetching, API calls, parsing, transformation, or multi-step automation **must** include a companion script. This is the most important pattern for making skills reliable and repeatable — LLM-driven tool-call chains are fragile, but a tested script is deterministic.
 
-**Node.js for complex logic** (preferred — same runtime, no dependency issues):
+**The pattern:** skill markdown describes *what* and *when*; a \`.mjs\` script encodes *how*.
 
-1. Write script to \`.ghostpaw/scripts/[name].mjs\`
-2. Run via bash: \`node .ghostpaw/scripts/[name].mjs\`
-3. Parse stdout for results
+### Script location and conventions
 
-Scripts in \`.ghostpaw/scripts/\` persist across sessions. Reuse and improve them.
+- Scripts live at \`.ghostpaw/scripts/<skill-name>.mjs\`
+- Always ES modules (\`.mjs\`), never CommonJS
+- Run via bash: \`node .ghostpaw/scripts/<skill-name>.mjs [args]\`
+- Scripts persist across sessions — reuse and improve them over time
+- Accept arguments via \`process.argv\`, output results to stdout as JSON
+- Handle errors gracefully — print \`{"error": "..."}\` and exit 1
 
-**When to write code vs use shell:**
-- JSON parsing, API calls, data transformation → Node.js script
-- File ops, text search, git, process management → shell
-- Error handling beyond exit codes → Node.js script
-- Anything with loops or conditionals → Node.js script
+### What scripts get for free (Node.js runtime)
+
+- \`fetch()\` — built-in, no dependencies needed for HTTP/API calls
+- \`fs\`, \`path\`, \`crypto\`, \`child_process\` — full Node.js stdlib
+- \`process.env\` — all secrets are synced to environment variables automatically
+
+### Ghostpaw library imports (advanced)
+
+The runtime is importable. Scripts can access the full Ghostpaw API:
+
+\`\`\`javascript
+import { createDatabase, createMemoryStore, createSessionStore } from "./ghostpaw.mjs";
+
+const db = await createDatabase("ghostpaw.db");
+const memory = createMemoryStore(db);
+const results = memory.search("concert tickets");
+console.log(JSON.stringify(results));
+db.close();
+\`\`\`
+
+Use library imports when the script needs to read/write memories, query sessions, or access the embedding provider. For simpler tasks (API calls, file processing), stick to Node.js stdlib.
+
+### Executable skill template
+
+\`\`\`markdown
+# [Skill Title]
+
+[When this skill applies — one line]
+
+## Script
+
+Companion script: \`.ghostpaw/scripts/<name>.mjs\`
+
+**Run:** \`node .ghostpaw/scripts/<name>.mjs [args]\`
+**Output:** JSON to stdout
+**Secrets needed:** \`API_KEY_XYZ\` (accessed via \`process.env.API_KEY_XYZ\`)
+
+## Steps
+
+1. Run the script via bash with appropriate arguments
+2. Parse the JSON output
+3. [Present/process the results]
+4. [Handle errors — check for "error" key in output]
+
+## Notes
+
+- [Edge cases, rate limits, known quirks]
+\`\`\`
+
+### When to write a script vs use shell one-liners
+
+- **Script**: API calls, JSON parsing, data transformation, anything with loops/conditionals, error handling beyond exit codes, multi-step fetch-and-process pipelines
+- **Shell**: \`git\` operations, \`grep\`/\`find\`, process management, simple file moves, one-liners under ~80 chars
+- **Rule of thumb**: if you'd need more than one tool call to do it, it should be a script
 
 ## Scheduling
 
@@ -273,8 +325,8 @@ Produce a concrete trail report with:
 
 - **What**: One-paragraph description of what the skill would do
 - **Why**: Why this matters for THIS user, grounded in their specific context
-- **How**: What the skill file would contain — key steps, tools involved, verification
-- **First steps**: 2-3 specific actions to get started (e.g. "set up the Slack webhook", "create the cron schedule")
+- **How**: What the skill file would contain — key steps, tools involved, verification. If the skill involves any data fetching, API calls, parsing, or multi-step automation, specify that it should include a companion \`.mjs\` script in \`.ghostpaw/scripts/\`. Describe what the script would do, what APIs/endpoints it would call, what its input/output shape would be. Scripts are Node.js ES modules with access to \`fetch()\`, the full stdlib, and environment variables for secrets.
+- **First steps**: 2-3 specific actions to get started (e.g. "set up the Slack webhook", "create the cron schedule", "write the initial script with the fetch call")
 - **Limitations**: What this skill won't cover and why
 
 ## Step 6: Invite Action

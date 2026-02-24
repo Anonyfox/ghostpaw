@@ -177,9 +177,9 @@ The pressure points where complexity tries to sneak in:
 
 | Temptation | Answer |
 | --- | --- |
-| "Add a REST API so other services can call the agent" | The library import already does this. If HTTP is needed, it's a channel (like Telegram), not core architecture. |
+| "Add a REST API so other services can call the agent" | The library import already does this. The web control plane covers HTTP interaction for humans — programmatic access uses the library. |
 | "Add role-based access control" | Single-user tool. If you need RBAC, you need a different tool. |
-| "Add a configuration UI" | config.json is 10 lines. A skill can guide the user through editing it. |
+| "Add a configuration UI" | config.json is 10 lines. The web control plane handles operational tasks; config stays as a simple file. |
 | "Support webhooks for events" | Event bus exists for library mode (in-process). Webhooks are a channel concern. |
 | "Add a proper logging framework" | `INSERT INTO logs`. `SELECT * FROM logs`. Done. |
 | "Add a plugin/extension API" | Skills + secrets + bash. The answer is always skills + secrets + bash. |
@@ -245,6 +245,22 @@ src/
   channels/
     runtime.ts            # ChannelRuntime: per-session agent loops, sticky sessions
     telegram.ts           # Telegram adapter (grammY, long-polling, read receipts)
+  web/
+    channel.ts            # createWebChannel() factory: HTTP server lifecycle
+    auth.ts               # scrypt password hashing, HMAC-signed session tokens
+    router.ts             # lightweight URL router with param extraction
+    handler.ts            # request pipeline: security headers, rate limit, CSRF, auth, routing
+    routes-auth.ts        # /login, /logout, /health
+    routes-api.ts         # /api/* endpoints (sessions, chat SSE, skills, memory, train, scout)
+    routes-static.ts      # embedded CSS/JS assets with cache-busting ETags
+    templates.ts          # HTML generation (login page, app shell, custom CSS)
+    client.ts             # client-side SPA JavaScript (embedded as string)
+    rate-limit.ts         # per-IP rate limiting (login + general)
+    body.ts               # request body parsing with size limits and timeouts
+    response.ts           # json(), html(), redirect() helpers
+    types.ts              # shared type definitions
+    constants.ts          # configuration constants, boot ID for cache busting
+    index.ts              # public API re-exports
   lib/
     embedding.ts          # character n-gram hashing (deterministic, no API needed)
     vectors.ts            # cosine similarity, top-K search
@@ -260,20 +276,22 @@ dist/
 package.json              # name: "ghostpaw", bin: { ghostpaw: "./dist/ghostpaw.mjs" }
 ```
 
-Three bundled npm dependencies that get compiled into the single artifact:
+Five bundled npm dependencies that get compiled into the single artifact:
 
 - **chatoyant** — LLM provider abstraction. Handles all provider-specific details (auth headers, message schema translation, tool call format normalization, SSE stream parsing) behind a single `chat()` interface. Supports Anthropic, OpenAI, xAI, Google, and any OpenAI-compatible endpoint.
 - **magpie-html** — HTML content extraction. Parses web pages into clean readable text for the web_fetch tool.
 - **grammY** — Telegram Bot API framework. Long-polling, middleware, keyboard builders. Bundled with CJS interop via `createRequire` and native fetch aliasing to avoid `node-fetch` conflicts.
+- **marked** — Markdown renderer for the web UI. Configured with XSS-safe overrides (raw HTML escaped, `javascript:` URLs blocked).
+- **bootstrap** — CSS framework for the web UI. Embedded as a text string at build time via a custom esbuild plugin.
 
-Dev dependencies (esbuild, typescript, etc.) are build-time only. The three runtime deps are bundled into the output — the `.mjs` artifact needs no `node_modules`.
+Dev dependencies (esbuild, typescript, etc.) are build-time only. All runtime deps are bundled into the output — the `.mjs` artifact needs no `node_modules`.
 
 ### Runtime: Node 22.5+ Native APIs Only
 
 | Need            | Solution                    | Notes                                                                                             |
 | --------------- | --------------------------- | ------------------------------------------------------------------------------------------------- |
 | Database        | `node:sqlite`               | Sessions, messages, memory, runs, secrets, logs. One file: `ghostpaw.db`.                         |
-| HTTP server     | `node:http`                 | Planned: web control UI, REST API, SSE for response streaming. Not yet implemented.               |
+| HTTP server     | `node:http`                 | Built-in web control plane: password-authenticated UI with real-time chat, training, scouting, memory, sessions. SSE streaming. |
 | LLM calls       | chatoyant (bundled)         | Provider abstraction. Handles auth, streaming, tool calls for Anthropic/OpenAI/xAI/Google.        |
 | HTML extraction | magpie-html (bundled)       | Web page → clean readable text for the web_fetch tool.                                            |
 | Telegram        | grammY (bundled)            | Bot API long-polling, middleware, message splitting. Runs alongside REPL or headless.             |
@@ -560,6 +578,8 @@ The agent writes new skills for itself. When it figures out how to do something 
 
 New workspaces ship with three **meta-skills** that bootstrap the flywheel: `skill-craft.md` (how to create and evolve skills during conversation), `skill-training.md` (the systematic retrospective playbook), and `skill-scout.md` (creative ideation for discovering new opportunities). Together they teach the agent when to create skills, how to structure them, and how to improve them from practice. See **Craft, Train, Scout** below for the full lifecycle.
 
+For complex logic — API integrations, data pipelines, multi-step automation — the agent creates **executable skills**: a markdown skill paired with a companion `.mjs` script in `.ghostpaw/scripts/`. The script runs in the Node.js runtime with access to `fetch()`, the standard library, `process.env` for secrets, and optionally Ghostpaw's own library (database, memory store). The skill describes when and why; the script encodes the reliable execution path.
+
 The agent on day 100 has a `skills/` directory full of battle-tested procedures it wrote from experience. This accumulated knowledge is plain text — human-readable, git-versionable, shareable between workspaces. You can copy one agent's skills to another and instantly transfer its expertise.
 
 ### Agent Profiles
@@ -655,7 +675,7 @@ Craft handles the moment-to-moment ("I just figured this out, let me write it do
 | Node pairing (iOS/Android) | Mobile companion app ecosystem. Not what coding agents need.                                                                                                 |
 | Docker sandboxing          | Optional in OpenClaw (most users run `sandbox: "off"`). Security via secret isolation, output scrubbing, and delegation circuit breakers instead.             |
 | ClawHub marketplace        | Actively harmful (1,184 malicious skills). Local-only skills is a feature, not a limitation.                                                                 |
-| macOS menu bar app         | UI wrapper. The CLI is the primary interface; a web control UI is planned.                                                                                    |
+| macOS menu bar app         | UI wrapper. The built-in web control plane covers browser-based interaction from any device.                                                                   |
 | Multi-agent routing        | Complex orchestration layer. The delegate tool covers the core use case. Full routing not day-1.                                                             |
 | Browser tool (Playwright)  | Heavyweight dependency. Agent can drive Chrome via CDP through Bash + a skill, as Armin Ronacher demonstrated.                                               |
 | JS/Python plugin system    | Over-engineering. Skills (markdown) + secrets (env vars) + bash (code execution) cover the same ground with zero API surface.                                |
@@ -684,10 +704,27 @@ Features:
 - **Access control** — optional `allowedChatIds` whitelist.
 - **One-shot notifications** — `sendTelegramNotification()` sends messages without starting the full polling channel. Optionally records the message in the session's chat history for continuity.
 
+### Web Control Plane (Implemented)
+
+Built-in browser UI via `node:http`. Set `WEB_UI_PASSWORD` → start Ghostpaw → open `localhost:3000`. The entire interface — Bootstrap CSS, marked.js, client JS, custom styles — is embedded in the `.mjs` artifact as string constants. No static files on disk, no CDN, no asset pipeline.
+
+Features:
+
+- **Real-time chat** — SSE-streamed conversations with markdown rendering, code copy buttons, persistent web sessions.
+- **Training** — one-click training with live phase progress indicators, skill change cards, summary stats.
+- **Scouting** — friction mining for trail suggestions, deep research reports, one-click "Craft This Skill" handoff to the agent.
+- **Memory** — semantic search with relevance bars, source filtering, timeline grouping.
+- **Sessions** — all conversations across all channels, grouped by channel type, with inline transcript expansion.
+- **Skills** — rank visualization, descriptions, inline editing.
+- **Dashboard** — at-a-glance agent stats.
+
+Security: `scrypt`-hashed password, HMAC-signed `HttpOnly`/`SameSite=Strict` cookies, CSP with per-request nonces, CSRF origin validation, rate limiting (login + general), body size/timeout limits, HSTS for non-localhost. Full security header suite.
+
+Mobile-first responsive design with off-canvas drawer navigation and safe-area handling. ~25 modules in `src/web/` with colocated test suites.
+
 ### Planned Channels
 
 - **Discord** — guild-based channel with role-aware access control. Same sticky-session model.
-- **Web Control UI** — lightweight HTTP interface via `node:http`. SSE for streaming, static HTML served from the single `.mjs` artifact.
 
 Each channel follows the same adapter pattern: receive message → channel runtime → agent loop → send response. No architectural changes required to add new channels.
 
@@ -717,7 +754,7 @@ Created automatically on first run — no separate `init` command needed. Ghostp
   SOUL.md                 # personality/behavior (default provided, user customizes)
   agents/                 # agent profile .md files (for delegation)
   skills/                 # SKILL.md files (OpenClaw-compatible, index in prompt, read on demand)
-  .ghostpaw/              # runtime files (cached web content, skill-history git repo)
+  .ghostpaw/              # runtime files (cached web content, skill-history git repo, executable scripts)
 ```
 
 The agent operates in whatever directory you run it from — cwd IS the workspace. Sessions are scoped by cwd path.
@@ -758,7 +795,7 @@ All state in SQLite. All behavior in markdown files. Clean separation: the compi
 - **Persistent memory with auto-recall** — facts survive across sessions via vector embeddings in SQLite. The agent recalls relevant memories automatically before answering — no explicit prompting needed. Custom GPTs forget everything between conversations.
 - **Self-authoring skills** — the agent writes and improves its own procedural knowledge. GPTs have static system prompts that only humans can edit.
 - **Local execution** — bash, filesystem, code execution on your machine. GPTs run in a sandbox with no access to your environment.
-- **Multi-channel** — terminal REPL plus messaging integrations (Telegram today, Discord and web UI planned). Talk to the same agent from your phone with full conversation history. No stateless agent offers this.
+- **Multi-channel** — terminal REPL, Telegram, and a built-in web control plane with real-time chat, training, scouting, and full agent management. Talk to the same agent from your phone or browser with full conversation history. No stateless agent offers this.
 - **Scheduling** — cron jobs make skills autonomous. A skill + a cron schedule = recurring intelligence. No stateless agent can do this.
 - **Compounding** — the agent on day 100 has a `skills/` directory full of battle-tested procedures. The GPT on day 100 is the same as day 1.
 - **Transferable expertise** — copy one agent's `skills/` directory to another workspace. Instant knowledge transfer in plain text files.

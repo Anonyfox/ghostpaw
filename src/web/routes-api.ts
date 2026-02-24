@@ -1,0 +1,453 @@
+import type { ChannelRuntime } from "../channels/runtime.js";
+import { parseJSON, readBody } from "./body.js";
+import { json } from "./response.js";
+import { extractParam, type Router } from "./router.js";
+
+declare const __VERSION__: string;
+
+export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void {
+  router.add("GET", "/api/status", async (_req, res) => {
+    const sessions = runtime.sessions;
+    const allSessions = sessions.listSessions();
+    const totalTokensIn = allSessions.reduce((sum, s) => sum + (s.tokensIn ?? 0), 0);
+    const totalTokensOut = allSessions.reduce((sum, s) => sum + (s.tokensOut ?? 0), 0);
+
+    const { readdirSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    let skillCount = 0;
+    try {
+      const skillDir = resolve(runtime.workspace, "skills");
+      skillCount = readdirSync(skillDir).filter((f) => f.endsWith(".md")).length;
+    } catch {
+      /* no skills dir */
+    }
+
+    json(res, 200, {
+      version: typeof __VERSION__ !== "undefined" ? __VERSION__ : "dev",
+      model: runtime.model,
+      sessions: allSessions.length,
+      skills: skillCount,
+      memories: runtime.memory.count(),
+      tokens: { in: totalTokensIn, out: totalTokensOut },
+    });
+  });
+
+  router.add("GET", "/api/sessions", (_req, res) => {
+    const allSessions = runtime.sessions.listSessions();
+    const mapped = allSessions.map((s) => {
+      let messageCount = 0;
+      let preview = "";
+      if (s.headMessageId) {
+        const history = runtime.sessions.getConversationHistory(s.id);
+        messageCount = history.filter((m) => !m.isCompaction).length;
+        const firstUser = history.find((m) => m.role === "user" && !m.isCompaction);
+        if (firstUser?.content) {
+          preview = firstUser.content.slice(0, 120);
+        }
+      }
+      return {
+        id: s.id,
+        key: s.key,
+        createdAt: s.createdAt,
+        lastActive: s.lastActive,
+        tokensIn: s.tokensIn,
+        tokensOut: s.tokensOut,
+        model: s.model,
+        absorbedAt: s.absorbedAt,
+        messageCount,
+        preview,
+      };
+    });
+    json(res, 200, mapped);
+  });
+
+  router.add("POST", "/api/sessions", async (req, res) => {
+    const body = (await parseJSON(req)) as { name?: string };
+    const name = typeof body?.name === "string" ? body.name.trim().slice(0, 64) : "";
+    const key = `web:${name || `session-${Date.now()}`}`;
+    const session =
+      runtime.sessions.getSessionByKey(key) ??
+      runtime.sessions.createSession(key, { model: runtime.model });
+    json(res, 201, { id: session.id, key });
+  });
+
+  router.add("GET", "/api/sessions/:key/messages", (req, res) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const rawKey = extractParam(url.pathname, "/api/sessions/:key/messages");
+    if (!rawKey) {
+      json(res, 400, { error: "Invalid session key" });
+      return;
+    }
+    const key = decodeURIComponent(rawKey);
+    if (!/^[\w:.-]+$/.test(key)) {
+      json(res, 400, { error: "Invalid session key" });
+      return;
+    }
+    const session = runtime.sessions.getSessionByKey(key);
+    if (!session) {
+      json(res, 404, { error: "Session not found" });
+      return;
+    }
+    const messages = runtime.sessions.getConversationHistory(session.id);
+    json(
+      res,
+      200,
+      messages.map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        createdAt: m.createdAt,
+        isCompaction: m.isCompaction,
+      })),
+    );
+  });
+
+  router.add("POST", "/api/sessions/:key/chat", async (req, res) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const rawKey = extractParam(url.pathname, "/api/sessions/:key/chat");
+    if (!rawKey) {
+      json(res, 400, { error: "Invalid session key" });
+      return;
+    }
+    const sessionKey = decodeURIComponent(rawKey);
+    if (!/^[\w:.-]+$/.test(sessionKey)) {
+      json(res, 400, { error: "Invalid session key" });
+      return;
+    }
+
+    const body = (await parseJSON(req)) as { message?: string };
+    const message = body?.message;
+    if (typeof message !== "string" || !message.trim()) {
+      json(res, 400, { error: "Message is required" });
+      return;
+    }
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    let clientDisconnected = false;
+    req.on("close", () => {
+      clientDisconnected = true;
+    });
+
+    try {
+      for await (const chunk of runtime.stream(sessionKey, message.trim())) {
+        if (clientDisconnected) break;
+        res.write(`data: ${JSON.stringify({ type: "chunk", text: chunk })}\n\n`);
+      }
+      if (!clientDisconnected) {
+        res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
+      }
+    } catch (err) {
+      if (!clientDisconnected) {
+        res.write(
+          `data: ${JSON.stringify({ type: "error", message: (err as Error).message })}\n\n`,
+        );
+      }
+    } finally {
+      res.end();
+    }
+  });
+
+  router.add("GET", "/api/skills", async (_req, res) => {
+    const { readdirSync, readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const { hasHistory, getAllSkillRanks } = await import("../lib/skill-history.js");
+
+    const skillDir = resolve(runtime.workspace, "skills");
+    let files: string[] = [];
+    try {
+      files = readdirSync(skillDir)
+        .filter((f) => f.endsWith(".md"))
+        .sort();
+    } catch {
+      /* no skills dir */
+    }
+
+    const ranks = hasHistory(runtime.workspace) ? getAllSkillRanks(runtime.workspace) : {};
+
+    const skills = files.map((filename) => {
+      let title = filename.replace(/\.md$/, "");
+      let lines = 0;
+      let description = "";
+      try {
+        const content = readFileSync(resolve(skillDir, filename), "utf-8");
+        const titleMatch = content.match(/^#\s+(.+)/m);
+        if (titleMatch) title = titleMatch[1]!;
+        lines = content.split("\n").length;
+        const descLine = content
+          .split("\n")
+          .find((l) => l.trim().length > 0 && !l.trim().startsWith("#"));
+        if (descLine) description = descLine.trim().slice(0, 160);
+      } catch {
+        /* keep filename as title */
+      }
+      return { filename, title, rank: ranks[filename] ?? 0, lines, description };
+    });
+    json(res, 200, skills);
+  });
+
+  router.add("GET", "/api/skills/:filename", async (req, res) => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve, relative } = await import("node:path");
+
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const filename = extractParam(url.pathname, "/api/skills/:filename");
+    if (!filename || !filename.endsWith(".md")) {
+      json(res, 400, { error: "Invalid skill filename" });
+      return;
+    }
+
+    const skillDir = resolve(runtime.workspace, "skills");
+    const fullPath = resolve(skillDir, decodeURIComponent(filename));
+    if (relative(skillDir, fullPath).startsWith("..")) {
+      json(res, 403, { error: "Access denied" });
+      return;
+    }
+
+    try {
+      const content = readFileSync(fullPath, "utf-8");
+      json(res, 200, { filename, content });
+    } catch {
+      json(res, 404, { error: "Skill not found" });
+    }
+  });
+
+  router.add("PUT", "/api/skills/:filename", async (req, res) => {
+    const { writeFileSync, mkdirSync } = await import("node:fs");
+    const { resolve, relative } = await import("node:path");
+
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const filename = extractParam(url.pathname, "/api/skills/:filename");
+    if (!filename || !filename.endsWith(".md")) {
+      json(res, 400, { error: "Invalid skill filename" });
+      return;
+    }
+
+    const body = (await parseJSON(req)) as { content?: string };
+    if (typeof body?.content !== "string") {
+      json(res, 400, { error: "Content is required" });
+      return;
+    }
+
+    const skillDir = resolve(runtime.workspace, "skills");
+    const fullPath = resolve(skillDir, decodeURIComponent(filename));
+    if (relative(skillDir, fullPath).startsWith("..")) {
+      json(res, 403, { error: "Access denied" });
+      return;
+    }
+
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(fullPath, body.content, "utf-8");
+    json(res, 200, { ok: true });
+  });
+
+  router.add("GET", "/api/memory", async (req, res) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const query = url.searchParams.get("q");
+
+    if (query) {
+      const { createEmbeddingProvider } = await import("../lib/embedding.js");
+      const embedding = createEmbeddingProvider();
+      const vec = await embedding.embed(query);
+      const matches = runtime.memory.search(vec, { k: 20, minScore: 0.05, includeGlobal: true });
+      json(res, 200, { memories: matches, total: matches.length, query: true });
+    } else {
+      const all = runtime.memory.list();
+      const sorted = all.sort((a, b) => b.createdAt - a.createdAt);
+      const total = sorted.length;
+      const page = sorted.slice(0, 200);
+      json(res, 200, { memories: page, total, query: false });
+    }
+  });
+
+  router.add("DELETE", "/api/memory/:id", (req, res) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const id = extractParam(url.pathname, "/api/memory/:id");
+    if (!id) {
+      json(res, 400, { error: "Invalid memory ID" });
+      return;
+    }
+    runtime.memory.delete(id);
+    json(res, 200, { ok: true });
+  });
+
+  router.add("GET", "/api/secrets", (_req, res) => {
+    const keys = runtime.secrets.keys();
+    json(
+      res,
+      200,
+      keys.map((k) => ({ key: k, configured: true })),
+    );
+  });
+
+  // ── Training ──────────────────────────────────────────────────────────────
+
+  let trainingInProgress = false;
+
+  router.add("GET", "/api/train/status", async (_req, res) => {
+    const { countUnabsorbedSessions } = await import("../core/absorb.js");
+    const { readdirSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+
+    let totalSkills = 0;
+    try {
+      const skillDir = resolve(runtime.workspace, "skills");
+      totalSkills = readdirSync(skillDir).filter((f) => f.endsWith(".md")).length;
+    } catch {
+      /* no skills dir */
+    }
+
+    json(res, 200, {
+      unabsorbed: countUnabsorbedSessions(runtime.sessions),
+      totalSkills,
+      running: trainingInProgress,
+    });
+  });
+
+  router.add("POST", "/api/train", async (req, res) => {
+    if (trainingInProgress) {
+      json(res, 409, { error: "Training is already in progress" });
+      return;
+    }
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    let clientDisconnected = false;
+    req.on("close", () => {
+      clientDisconnected = true;
+    });
+
+    function send(data: unknown) {
+      if (!clientDisconnected) {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      }
+    }
+
+    trainingInProgress = true;
+    try {
+      const { runTrain } = await import("../core/reflect.js");
+      const result = await runTrain(runtime.workspace, (phase) => {
+        send({ type: "phase", phase });
+      });
+
+      send({
+        type: "result",
+        absorbed: result.absorbed,
+        memoriesCreated: result.memoriesCreated,
+        skippedAbsorb: result.skippedAbsorb,
+        tidied: result.tidied,
+        totalSkills: result.totalSkills,
+        changes: result.changes.map((c) => ({
+          type: c.type,
+          filename: c.filename,
+          title: c.title,
+          rank: c.rank,
+          description: c.description,
+        })),
+      });
+    } catch (err) {
+      send({ type: "error", message: (err as Error).message });
+    } finally {
+      trainingInProgress = false;
+      res.end();
+    }
+  });
+
+  // ── Scouting ────────────────────────────────────────────────────────────────
+
+  let scoutInProgress = false;
+
+  router.add("GET", "/api/scout/status", async (_req, res) => {
+    const { readdirSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+
+    let totalSkills = 0;
+    try {
+      const skillDir = resolve(runtime.workspace, "skills");
+      totalSkills = readdirSync(skillDir).filter((f) => f.endsWith(".md")).length;
+    } catch {
+      /* no skills dir */
+    }
+
+    json(res, 200, {
+      memoryCount: runtime.memory.count(),
+      skillCount: totalSkills,
+      running: scoutInProgress,
+    });
+  });
+
+  router.add("POST", "/api/scout", async (req, res) => {
+    if (scoutInProgress) {
+      json(res, 409, { error: "Scouting is already in progress" });
+      return;
+    }
+
+    let direction: string | undefined;
+    try {
+      const raw = await readBody(req);
+      if (raw.trim()) {
+        const body = JSON.parse(raw) as { direction?: string };
+        if (body.direction && typeof body.direction === "string" && body.direction.trim()) {
+          direction = body.direction.trim().slice(0, 200);
+        }
+      }
+    } catch {
+      /* empty body is fine — means friction mining */
+    }
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    let clientDisconnected = false;
+    req.on("close", () => {
+      clientDisconnected = true;
+    });
+
+    function send(data: unknown) {
+      if (!clientDisconnected) {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      }
+    }
+
+    scoutInProgress = true;
+    try {
+      const { runScout } = await import("../core/scout.js");
+
+      if (!direction) {
+        send({ type: "phase", phase: "mining" });
+        const result = await runScout(runtime.workspace);
+        send({
+          type: "trails",
+          trails: (result.trails ?? []).map((t) => ({ title: t.title, why: t.why })),
+        });
+      } else {
+        send({ type: "phase", phase: "researching" });
+        const result = await runScout(runtime.workspace, direction);
+        send({
+          type: "report",
+          direction: result.direction,
+          report: result.report ?? "",
+        });
+      }
+    } catch (err) {
+      send({ type: "error", message: (err as Error).message });
+    } finally {
+      scoutInProgress = false;
+      res.end();
+    }
+  });
+}

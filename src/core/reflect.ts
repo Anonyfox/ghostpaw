@@ -71,6 +71,7 @@ export interface TrainChange {
   filename: string;
   title: string;
   rank: number;
+  description: string;
 }
 
 function snapshotSkills(workspacePath: string): SkillSnapshot {
@@ -95,14 +96,53 @@ function extractTitle(content: string): string {
   return "(untitled)";
 }
 
+function extractDescription(content: string): string {
+  const lines = content.split("\n");
+  let pastTitle = false;
+  const para: string[] = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!pastTitle) {
+      if (trimmed.startsWith("#")) {
+        pastTitle = true;
+      }
+      continue;
+    }
+    if (!trimmed && para.length > 0) break;
+    if (
+      trimmed &&
+      !trimmed.startsWith("#") &&
+      !trimmed.startsWith("```") &&
+      !trimmed.startsWith("---")
+    ) {
+      para.push(trimmed);
+    } else if (para.length > 0) {
+      break;
+    }
+  }
+  const desc = para.join(" ");
+  if (desc.length > 160) return `${desc.slice(0, 157)}...`;
+  return desc || "";
+}
+
 function diffSkills(before: SkillSnapshot, after: SkillSnapshot): Omit<TrainChange, "rank">[] {
   const changes: Omit<TrainChange, "rank">[] = [];
 
   for (const [filename, content] of Object.entries(after)) {
     if (!(filename in before)) {
-      changes.push({ type: "created", filename, title: extractTitle(content) });
+      changes.push({
+        type: "created",
+        filename,
+        title: extractTitle(content),
+        description: extractDescription(content),
+      });
     } else if (before[filename] !== content) {
-      changes.push({ type: "updated", filename, title: extractTitle(content) });
+      changes.push({
+        type: "updated",
+        filename,
+        title: extractTitle(content),
+        description: extractDescription(content),
+      });
     }
   }
 
@@ -150,11 +190,21 @@ function detectChanges(
       const skillsDir = join(workspace, "skills");
       for (const f of gd.created) {
         const content = safeRead(join(skillsDir, f));
-        raw.push({ type: "created", filename: f, title: extractTitle(content) });
+        raw.push({
+          type: "created",
+          filename: f,
+          title: extractTitle(content),
+          description: extractDescription(content),
+        });
       }
       for (const f of gd.updated) {
         const content = safeRead(join(skillsDir, f));
-        raw.push({ type: "updated", filename: f, title: extractTitle(content) });
+        raw.push({
+          type: "updated",
+          filename: f,
+          title: extractTitle(content),
+          description: extractDescription(content),
+        });
       }
     } else {
       raw = diffSkills(memBefore, snapshotSkills(workspace));

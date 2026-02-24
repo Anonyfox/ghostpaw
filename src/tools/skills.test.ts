@@ -48,7 +48,7 @@ describe("skills tool - list", () => {
     deepStrictEqual(result.skills, []);
   });
 
-  it("lists skills with titles and line counts", async () => {
+  it("lists skills with titles, paths, and line counts", async () => {
     writeFileSync(
       join(workDir, "skills", "deploy.md"),
       "# Deploy to Vercel\n\nSteps here\nMore steps",
@@ -57,15 +57,17 @@ describe("skills tool - list", () => {
 
     const tool = createSkillsTool(workDir);
     const result = (await exec(tool, { action: "list" })) as {
-      skills: { filename: string; title: string; rank: number; lines: number }[];
+      skills: { filename: string; path: string; title: string; rank: number; lines: number }[];
       total: number;
     };
 
     strictEqual(result.total, 2);
     strictEqual(result.skills[0].filename, "deploy.md");
+    strictEqual(result.skills[0].path, "skills/deploy.md");
     strictEqual(result.skills[0].title, "Deploy to Vercel");
     strictEqual(result.skills[0].lines, 4);
     strictEqual(result.skills[1].filename, "testing.md");
+    strictEqual(result.skills[1].path, "skills/testing.md");
   });
 
   it("includes rank when git history exists", async () => {
@@ -132,6 +134,19 @@ describe("skills tool - rank", () => {
 
     strictEqual(result.title, "(not found)");
     strictEqual(result.rank, 0);
+  });
+
+  it("strips skills/ prefix from filename", async () => {
+    writeFileSync(join(workDir, "skills", "deploy.md"), "# Deploy\nSteps");
+
+    const tool = createSkillsTool(workDir);
+    const result = (await exec(tool, { action: "rank", filename: "skills/deploy.md" })) as {
+      filename: string;
+      title: string;
+    };
+
+    strictEqual(result.filename, "deploy.md");
+    strictEqual(result.title, "Deploy");
   });
 });
 

@@ -1,4 +1,5 @@
 import { chmodSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { build, context } from "esbuild";
 
 const isWatch = process.argv.includes("--watch");
@@ -37,6 +38,31 @@ const nativeFetchPlugin = {
   },
 };
 
+// Resolve npm package files to their content as text strings.
+// Uses direct node_modules paths to bypass package.json "exports" restrictions.
+// Usage: import css from "text-asset:bootstrap/dist/css/bootstrap.min.css";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const textAssetPlugin = {
+  name: "text-asset",
+  setup(build) {
+    build.onResolve({ filter: /^text-asset:/ }, (args) => ({
+      path: args.path.slice("text-asset:".length),
+      namespace: "text-asset",
+    }));
+    build.onLoad({ filter: /.*/, namespace: "text-asset" }, (args) => {
+      const resolved = join(__dirname, "node_modules", args.path);
+      const content = readFileSync(resolved, "utf-8");
+      return {
+        contents: `export default ${JSON.stringify(content)};`,
+        loader: "js",
+      };
+    });
+  },
+};
+
 /** @type {import('esbuild').BuildOptions} */
 const buildOptions = {
   entryPoints: ["src/index.ts"],
@@ -46,7 +72,7 @@ const buildOptions = {
   target: "node22.5",
   outfile: "dist/ghostpaw.mjs",
   banner: { js: BANNER },
-  plugins: [nativeFetchPlugin],
+  plugins: [nativeFetchPlugin, textAssetPlugin],
   define: { __VERSION__: JSON.stringify(pkg.version) },
   minify: false,
   sourcemap: false,

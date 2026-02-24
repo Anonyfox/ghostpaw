@@ -38,6 +38,10 @@ export interface SkillsToolConfig {
   memory?: MemoryStore;
 }
 
+function normalizeSkillFilename(raw: string): string {
+  return raw.replace(/^skills\//, "");
+}
+
 export function createSkillsTool(configOrPath: string | SkillsToolConfig) {
   const config: SkillsToolConfig =
     typeof configOrPath === "string" ? { workspacePath: configOrPath } : configOrPath;
@@ -53,10 +57,11 @@ export function createSkillsTool(configOrPath: string | SkillsToolConfig) {
     // biome-ignore lint: TS index-signature limitation on class instances vs SchemaInstance
     parameters: new SkillsParams() as any,
     execute: async ({ args }) => {
-      const { action, filename } = args as {
+      const { action, filename: rawFilename } = args as {
         action: "list" | "rank" | "history" | "diff" | "status";
         filename?: string;
       };
+      const filename = rawFilename ? normalizeSkillFilename(rawFilename) : undefined;
 
       switch (action) {
         case "list": {
@@ -72,6 +77,7 @@ export function createSkillsTool(configOrPath: string | SkillsToolConfig) {
             const content = readFileSync(join(skillsDir, f), "utf-8");
             return {
               filename: f,
+              path: `skills/${f}`,
               title: extractTitle(content),
               rank: ranks[f] ?? 0,
               lines: content.split("\n").length,

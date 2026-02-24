@@ -80,11 +80,13 @@ That's the zero-dependency core. Since the agent has shell access and learns thr
 
 ## Communication
 
-Talk to Ghostpaw from your phone. Channels are persistent messaging integrations — Telegram today, Discord and a web UI planned — that run alongside the REPL or as a headless daemon. Each channel gets its own session with full conversation history, sticky across restarts.
+Talk to Ghostpaw from anywhere. Channels are persistent messaging integrations that run alongside the REPL or as a headless daemon. Each channel gets its own session with full conversation history, sticky across restarts.
 
-Set up Telegram in under a minute: create a bot via `@BotFather`, store the token with `ghostpaw secrets set TELEGRAM_BOT_TOKEN`, start Ghostpaw. The bot connects automatically, shows typing indicators, splits long replies, and uses reactions for read receipts.
+**Telegram** — create a bot via `@BotFather`, store the token with `ghostpaw secrets set TELEGRAM_BOT_TOKEN`, start Ghostpaw. Typing indicators, split replies, emoji read receipts. Under a minute to set up.
 
-[Telegram setup, Discord, and more →](docs/COMMUNICATION.md)
+**Web UI** — built-in control plane at `localhost:3000`. Set a password, open a browser. Full chat with real-time streaming, live training, skill scouting, memory search, session inspection — from your phone or desktop. Password-authenticated, rate-limited, CSP-hardened. Everything embedded in the single `.mjs` artifact.
+
+[Telegram setup, Discord, and more →](docs/COMMUNICATION.md) · [Web UI details →](docs/WEB_UI.md)
 
 ## Deployment Philosophy
 

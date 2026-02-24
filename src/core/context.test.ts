@@ -28,16 +28,16 @@ describe("assembleSystemPrompt", () => {
     ok(prompt.includes("Whiskers"));
   });
 
-  it("includes skill index with filenames and titles", () => {
+  it("includes skill index with full paths and titles", () => {
     const skillsDir = join(workDir, "skills");
     mkdirSync(skillsDir);
     writeFileSync(join(skillsDir, "coding.md"), "# Coding\nYou are excellent at TypeScript.");
     writeFileSync(join(skillsDir, "writing.md"), "# Writing\nYou write clean prose.");
 
     const prompt = assembleSystemPrompt(workDir);
-    ok(prompt.includes("coding.md"));
+    ok(prompt.includes("skills/coding.md"));
     ok(prompt.includes("Coding"));
-    ok(prompt.includes("writing.md"));
+    ok(prompt.includes("skills/writing.md"));
     ok(prompt.includes("Writing"));
     ok(prompt.includes("2 skills"));
   });
@@ -58,7 +58,7 @@ describe("assembleSystemPrompt", () => {
     writeFileSync(join(skillsDir, "notes.txt"), "This should be ignored");
 
     const prompt = assembleSystemPrompt(workDir);
-    ok(prompt.includes("coding.md"));
+    ok(prompt.includes("skills/coding.md"));
     ok(!prompt.includes("notes.txt"));
     ok(!prompt.includes("This should be ignored"));
   });
@@ -98,7 +98,7 @@ describe("assembleSystemPrompt", () => {
     const prompt = assembleSystemPrompt(workDir, "Budget line here");
 
     const soulIdx = prompt.indexOf("I am a cat.");
-    const skillIdx = prompt.indexOf("test.md");
+    const skillIdx = prompt.indexOf("skills/test.md");
     const budgetIdx = prompt.indexOf("Budget line here");
 
     ok(soulIdx < skillIdx, "SOUL before skills");

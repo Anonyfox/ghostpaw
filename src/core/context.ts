@@ -39,11 +39,11 @@ function loadSkillIndex(workspacePath: string): SkillEntry[] {
 }
 
 function formatSkillIndex(skills: SkillEntry[]): string {
-  const lines = skills.map((s) => `- ${s.filename}: ${s.title}`);
+  const lines = skills.map((s) => `- skills/${s.filename}: ${s.title}`);
   return [
     "## Skills",
     "",
-    `You have ${skills.length} skill${skills.length === 1 ? "" : "s"} available in \`skills/\`. ` +
+    `You have ${skills.length} skill${skills.length === 1 ? "" : "s"}. ` +
       "Read a skill file with the `read` tool when it's relevant to the current task. " +
       "Use `skills list` for ranks and details.",
     "",
