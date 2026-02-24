@@ -1,6 +1,6 @@
 # Ghostpaw
 
-**Captured:** 2026-02-22
+**Captured:** 2026-02-24
 
 Single-file AI agent runtime. TypeScript project that compiles into one `.mjs` file. Independent, model-agnostic, OpenClaw-compatible. Zero setup, zero runtime dependencies, Node 22.5+ only.
 
@@ -129,7 +129,7 @@ If none apply, write a skill. "How to deploy to Vercel" is a skill. "How to writ
 | Bash | Process execution. The `exec()` syscall — everything else can be built on top of it. |
 | web_search | Structured search results from premium APIs (Brave/Tavily/Serper) or DDG fallback. Agent shouldn't burn tokens curl-scraping search engines. |
 | web_fetch | HTML → clean text needs magpie-html. Not reliable via bash + regex. |
-| memory | Vector embeddings in SQLite. Needs in-process math (cosine similarity) and persistent binary state. |
+| memory | Vector embeddings in SQLite. Needs in-process math (cosine similarity with recency weighting) and persistent binary state. Auto-recalled by the agent before answering context-sensitive questions. |
 | secrets | Security boundary. Keys must never enter the conversation context. |
 | delegate | Sub-agent lifecycle. Needs session management, budget tracking, tool registration, recursion prevention. |
 | check_run | Reads in-process delegation state from the runs table. |
@@ -240,6 +240,11 @@ src/
     search.ts             # web search (Brave/Tavily/Serper/DDG cascade)
     web.ts                # URL → readable content
     secrets.ts            # secret management tool
+    train.ts              # training pipeline tool (absorb → refine → tidy)
+    scout.ts              # scouting tool (friction mining / directed research)
+  channels/
+    runtime.ts            # ChannelRuntime: per-session agent loops, sticky sessions
+    telegram.ts           # Telegram adapter (grammY, long-polling, read receipts)
   lib/
     embedding.ts          # character n-gram hashing (deterministic, no API needed)
     vectors.ts            # cosine similarity, top-K search
@@ -255,12 +260,13 @@ dist/
 package.json              # name: "ghostpaw", bin: { ghostpaw: "./dist/ghostpaw.mjs" }
 ```
 
-Two bundled npm dependencies that get compiled into the single artifact:
+Three bundled npm dependencies that get compiled into the single artifact:
 
 - **chatoyant** — LLM provider abstraction. Handles all provider-specific details (auth headers, message schema translation, tool call format normalization, SSE stream parsing) behind a single `chat()` interface. Supports Anthropic, OpenAI, xAI, Google, and any OpenAI-compatible endpoint.
 - **magpie-html** — HTML content extraction. Parses web pages into clean readable text for the web_fetch tool.
+- **grammY** — Telegram Bot API framework. Long-polling, middleware, keyboard builders. Bundled with CJS interop via `createRequire` and native fetch aliasing to avoid `node-fetch` conflicts.
 
-Dev dependencies (esbuild, typescript, etc.) are build-time only. The two runtime deps are bundled into the output — the `.mjs` artifact needs no `node_modules`.
+Dev dependencies (esbuild, typescript, etc.) are build-time only. The three runtime deps are bundled into the output — the `.mjs` artifact needs no `node_modules`.
 
 ### Runtime: Node 22.5+ Native APIs Only
 
@@ -270,6 +276,7 @@ Dev dependencies (esbuild, typescript, etc.) are build-time only. The two runtim
 | HTTP server     | `node:http`                 | Planned: web control UI, REST API, SSE for response streaming. Not yet implemented.               |
 | LLM calls       | chatoyant (bundled)         | Provider abstraction. Handles auth, streaming, tool calls for Anthropic/OpenAI/xAI/Google.        |
 | HTML extraction | magpie-html (bundled)       | Web page → clean readable text for the web_fetch tool.                                            |
+| Telegram        | grammY (bundled)            | Bot API long-polling, middleware, message splitting. Runs alongside REPL or headless.             |
 | Shell execution | `node:child_process`        | spawn/exec for Bash tool and process management.                                                  |
 | File system     | `node:fs`                   | Read/Write/Edit tools, skill/soul loading.                                                        |
 | CLI parsing     | `node:util.parseArgs`       | Built-in arg parser, no commander needed.                                                         |
@@ -312,6 +319,7 @@ Detection: check `import.meta.url` against `process.argv[1]`. If match → CLI m
 
 1. **Context assembly** — build system prompt in this order:
    - SOUL.md (personality/behavior — the agent's identity)
+   - Memory guidance (tells the agent to auto-recall relevant past context before answering)
    - Skill index from `skills/` (lightweight filename + title listing — agent reads full skills on demand)
    - Tool descriptions (structured definitions of all available tools)
    - Cost/budget notice (current token usage, remaining budget — only when approaching limit)
@@ -348,13 +356,15 @@ Things that are too common or too important to leave to bash scripting. Each sol
 | --------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------- |
 | **web_search**  | Search the web (Brave/Tavily/Serper/DDG) | Structured results. Premium providers via API key, DDG as free fallback. Resolved per-invocation. |
 | **web_fetch**   | URL → clean readable text          | Needs HTML parsing (magpie-html). Saves large results to disk automatically.                        |
-| **memory**      | Remember/recall/forget facts       | Vector embeddings in SQLite. Semantic search via cosine similarity. Persists across sessions.        |
+| **memory**      | Remember/recall/forget facts       | Vector embeddings in SQLite. Similarity search with recency weighting. Auto-recalled before answering questions. |
 | **secrets**     | List/set/delete API keys           | Keys live in SQLite, sync to `process.env`. Never visible in prompts or skill files.                |
 | **delegate**    | Spawn a focused sub-agent          | Runs with its own context (optionally from an agent profile). Foreground or background.             |
 | **check_run**   | Poll a background delegation       | Returns status/result of a previously spawned background task.                                      |
 | **skills**      | List/read/create/update skills     | Manages the `skills/` directory. Rankings, usage tracking, skill authoring from conversation.        |
+| **train**       | Run the full training pipeline     | Absorb → refine skills → tidy. Returns structured JSON; the agent formats the report. 10-min timeout. |
+| **scout**       | Discover new skill opportunities   | Friction mining or directed research. Returns trail suggestions or a full report. 5-min timeout.    |
 
-The delegate tool is the key to scaling: instead of one monolithic agent, the main agent spawns focused sub-agents for specific tasks. Each sub-agent gets a clean context with the relevant agent profile loaded, runs autonomously with the same tool set (minus delegate/check_run to prevent recursion), and returns its result.
+The delegate tool is the key to scaling: instead of one monolithic agent, the main agent spawns focused sub-agents for specific tasks. Each sub-agent gets a clean context with the relevant agent profile loaded, runs autonomously with the same tool set (minus delegate/check_run to prevent recursion), and returns its result. The `excludeTools` option on `createAgent()` controls which tools are omitted — used internally by train and scout to prevent their inner agents from recursively invoking themselves.
 
 ---
 
@@ -432,7 +442,7 @@ CREATE TABLE memory (
   content TEXT NOT NULL,
   embedding BLOB,       -- float32 array stored as blob
   created_at INTEGER NOT NULL,
-  source TEXT            -- 'conversation' | 'manual' | 'compaction'
+  source TEXT            -- 'conversation' | 'manual' | 'compaction' | 'absorbed'
 );
 
 CREATE TABLE runs (
@@ -577,6 +587,8 @@ See **Design Principles → Tools Are Syscalls, Skills Are Programs**. Skills (m
 
 Three mechanisms for skill improvement, each at a different timescale. Every new workspace ships with a bundled meta-skill for each one (`skill-craft.md`, `skill-training.md`, `skill-scout.md`) — the agent reads them on demand when the context is right.
 
+Train and scout are registered as **agent tools** — the user can trigger them via natural language ("time to train!", "scout for Docker ideas") and the LLM routes to the right tool, or via explicit `/train` and `/scout` fast-path commands in the REPL. Both tools prevent recursion: inner agents are created with `excludeTools: ["train", "scout"]`, and the train tool has a reentrancy guard.
+
 ### Craft (in-session)
 
 The most organic path. During normal conversation, the agent reads `skill-craft.md` and creates or improves skills as a natural side effect of solving problems. No special command — it just happens when the agent recognizes the signals:
@@ -586,26 +598,28 @@ The most organic path. During normal conversation, the agent reads `skill-craft.
 - Repeated patterns (solved this twice → deserves a skill)
 - Non-obvious workflows (specific flags, required ordering, environment quirks)
 
-The craft skill also teaches structure (action-oriented titles, concrete steps naming specific tools, failure paths, verification), evolution (compare to reality, compress, add edge cases), and anti-patterns (don't speculate, don't duplicate SOUL.md, don't hardcode values). This is the transparent, always-on path — the agent improves itself simply by working.
+The craft skill also teaches structure (action-oriented titles, concrete steps naming specific tools, failure paths, verification), evolution (compare to reality, compress, add edge cases), and anti-patterns (don't speculate, don't duplicate SOUL.md, don't hardcode values). Skills are a performance cache — concrete details (names, values, preferences) are encoded directly so they're available without a memory recall round-trip. This is the transparent, always-on path — the agent improves itself simply by working.
 
-### Train (`ghostpaw train`)
+### Train (`ghostpaw train` or natural language)
 
 Systematic retrospective — batch-processes accumulated experience into sharper skills. Three internal phases:
 
-1. **Absorb** — extracts learnings from unprocessed conversation sessions. Reads session transcripts, distills key facts and procedural knowledge into concise memories stored via vector embeddings. Skips routine exchanges, only captures genuinely useful corrections, preferences, discoveries, and successful approaches.
+1. **Absorb** — extracts learnings from unprocessed conversation sessions. Reads session transcripts, distills key facts and procedural knowledge into concise memories stored via vector embeddings. Memory inserts and session marking are wrapped in a single SQLite transaction — crash-safe, no partial state. Skips routine exchanges, only captures genuinely useful corrections, preferences, discoveries, and successful approaches.
 
-2. **Train** — full agent run with tools, guided by `skill-training.md`. Recalls absorbed memories, reviews current skills and their rankings, checks uncommitted changes (rough drafts from craft), identifies gaps, creates new skills or improves existing ones. Tracks skill changes via git (commit before/after) for diffing. Marks its own session as absorbed to prevent self-referential feedback loops.
+2. **Train** — full agent run with tools (excluding train/scout to prevent recursion), guided by `skill-training.md`. Recalls absorbed memories, reviews current skills and their rankings, checks uncommitted changes (rough drafts from craft), identifies gaps, creates new skills or improves existing ones. Tracks skill changes via git (commit before/after) for diffing. Marks its own session as absorbed to prevent self-referential feedback loops.
 
 3. **Tidy** — cleans up old absorbed sessions (>30 days) and runs `PRAGMA optimize` on the database.
 
-### Scout (`ghostpaw scout`)
+Training output is structured, not streamed. The tool returns JSON with absorb/memory/tidy stats and a typed list of skill changes (created, updated, unchanged). The agent formats this into a rewarding report — leveled-up skills get prominence, unchanged skills are noted briefly, and summary stats close it out.
+
+### Scout (`ghostpaw scout` or natural language)
 
 Forward-looking creative ideation — discovers unexplored skill opportunities by mining accumulated context (memories, sessions, existing skills, workspace structure) for friction signals and capability gaps.
 
 Two modes:
 
-- **Directionless** (`ghostpaw scout`) — friction mining. Analyzes what the user does repeatedly, struggles with, or could benefit from. Returns 3–5 trail suggestions grounded in specific evidence from the context.
-- **Directed** (`ghostpaw scout <direction>`) — full agent run with tools, guided by `skill-scout.md`. Researches the direction, cross-references with the user's context, and produces a trail report with concrete first steps. Ends with an invitation to craft the scouted direction into a skill.
+- **Directionless** (`ghostpaw scout` or "sniff around") — friction mining. Analyzes what the user does repeatedly, struggles with, or could benefit from. Returns 3–5 trail suggestions grounded in specific evidence from the context.
+- **Directed** (`ghostpaw scout <direction>` or "scout Docker deploys") — full agent run with tools (excluding train/scout), guided by `skill-scout.md`. Researches the direction, cross-references with the user's context, and produces a trail report with concrete first steps. Ends with an invitation to craft the scouted direction into a skill.
 
 ### The full cycle
 
@@ -650,21 +664,32 @@ Craft handles the moment-to-moment ("I just figured this out, let me write it do
 
 ## Channels
 
-### CLI Interactive Mode (Implemented)
+Channels are persistent messaging integrations that run alongside the interactive REPL or as a headless daemon. Each channel maintains its own sticky sessions with full conversation history, isolated from the terminal and from each other. A `ChannelRuntime` abstraction manages per-session agent loops and tool registries — channels just translate between their protocol and the runtime.
 
-REPL in the terminal. `process.stdin` / `process.stdout`. No channel adapter needed. The simplest possible interface. Works offline (except LLM API calls obviously).
+### CLI Interactive Mode
 
-### Future Channels
+REPL in the terminal. `process.stdin` / `process.stdout`. No channel adapter needed. The simplest possible interface.
 
-Each channel is an isolated adapter in `channels/`. Same pattern: receive message → agent loop → send response. No architectural changes required.
+### Telegram (Implemented)
 
-Planned channels:
+Bot API via long-polling using grammY. Create bot via @BotFather → store token with `ghostpaw secrets set TELEGRAM_BOT_TOKEN` → start Ghostpaw. The bot connects automatically at startup and shows in the REPL banner.
 
-- **Telegram** — Bot API via HTTP long-polling. Cleanest bot API, 80% of OpenClaw users' primary channel. Create bot via @BotFather → get token → store via secrets tool.
-- **Web Control UI** — SPA served via `node:http` on `localhost:PORT`. HTML/CSS/JS inlined in the compiled artifact, SSE for streaming, REST API for session management.
-- **Discord, WhatsApp, Slack, Signal** — same adapter pattern, same interface.
+Features:
 
-Why CLI first: zero infrastructure, zero configuration, zero external dependencies. The terminal is the universal interface.
+- **Sticky sessions** — each Telegram chat gets a persistent session keyed by chat ID. Survives restarts.
+- **Typing indicators** — the bot shows "typing..." while the LLM works.
+- **Message splitting** — long responses are split at paragraph boundaries (Telegram's 4096-char limit).
+- **Read receipts** — reactions: 👀 (received), 👍 (responded), 👎 (error).
+- **Offline catch-up** — messages sent while the bot was down are delivered by Telegram on reconnect and processed in order.
+- **Access control** — optional `allowedChatIds` whitelist.
+- **One-shot notifications** — `sendTelegramNotification()` sends messages without starting the full polling channel. Optionally records the message in the session's chat history for continuity.
+
+### Planned Channels
+
+- **Discord** — guild-based channel with role-aware access control. Same sticky-session model.
+- **Web Control UI** — lightweight HTTP interface via `node:http`. SSE for streaming, static HTML served from the single `.mjs` artifact.
+
+Each channel follows the same adapter pattern: receive message → channel runtime → agent loop → send response. No architectural changes required to add new channels.
 
 ---
 
@@ -676,6 +701,7 @@ Why CLI first: zero infrastructure, zero configuration, zero external dependenci
 - **Secret scrubbing** — bash tool output (stdout/stderr) is scrubbed for known API key values before returning to the LLM conversation.
 - **Cost guardrails** — token budgets per session and per day. Hard stops, not just warnings.
 - **Delegation circuit breaker** — sub-agents cannot delegate further. No runaway recursion.
+- **Channel isolation** — channels only connect in interactive/daemon mode. Autonomous runs (cron, library) never open protocol connections unless explicitly sending a one-shot notification.
 - **Session serialization** — only one agent loop per session at a time. No race conditions on shared state.
 
 ---
@@ -691,7 +717,7 @@ Created automatically on first run — no separate `init` command needed. Ghostp
   SOUL.md                 # personality/behavior (default provided, user customizes)
   agents/                 # agent profile .md files (for delegation)
   skills/                 # SKILL.md files (OpenClaw-compatible, index in prompt, read on demand)
-  .ghostpaw/              # runtime files (cached web content, etc.)
+  .ghostpaw/              # runtime files (cached web content, skill-history git repo)
 ```
 
 The agent operates in whatever directory you run it from — cwd IS the workspace. Sessions are scoped by cwd path.
@@ -729,9 +755,10 @@ All state in SQLite. All behavior in markdown files. Clean separation: the compi
 
 ### vs Custom GPTs / Claude Projects / Stateless Agents
 
-- **Persistent memory** — facts survive across sessions via vector embeddings in SQLite. Custom GPTs forget everything between conversations.
+- **Persistent memory with auto-recall** — facts survive across sessions via vector embeddings in SQLite. The agent recalls relevant memories automatically before answering — no explicit prompting needed. Custom GPTs forget everything between conversations.
 - **Self-authoring skills** — the agent writes and improves its own procedural knowledge. GPTs have static system prompts that only humans can edit.
 - **Local execution** — bash, filesystem, code execution on your machine. GPTs run in a sandbox with no access to your environment.
+- **Multi-channel** — terminal REPL plus messaging integrations (Telegram today, Discord and web UI planned). Talk to the same agent from your phone with full conversation history. No stateless agent offers this.
 - **Scheduling** — cron jobs make skills autonomous. A skill + a cron schedule = recurring intelligence. No stateless agent can do this.
 - **Compounding** — the agent on day 100 has a `skills/` directory full of battle-tested procedures. The GPT on day 100 is the same as day 1.
 - **Transferable expertise** — copy one agent's `skills/` directory to another workspace. Instant knowledge transfer in plain text files.
