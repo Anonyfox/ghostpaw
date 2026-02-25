@@ -1,4 +1,7 @@
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
 import type { ChannelRuntime } from "../channels/runtime.js";
+import { getAllSkillRanks, hasHistory } from "../lib/skill-history.js";
 import { parseJSON, readBody } from "./body.js";
 import { json } from "./response.js";
 import { extractParam, type Router } from "./router.js";
@@ -12,8 +15,6 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
     const totalTokensIn = allSessions.reduce((sum, s) => sum + (s.tokensIn ?? 0), 0);
     const totalTokensOut = allSessions.reduce((sum, s) => sum + (s.tokensOut ?? 0), 0);
 
-    const { readdirSync } = await import("node:fs");
-    const { resolve } = await import("node:path");
     let skillCount = 0;
     try {
       const skillDir = resolve(runtime.workspace, "skills");
@@ -154,10 +155,6 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
   });
 
   router.add("GET", "/api/skills", async (_req, res) => {
-    const { readdirSync, readFileSync } = await import("node:fs");
-    const { resolve } = await import("node:path");
-    const { hasHistory, getAllSkillRanks } = await import("../lib/skill-history.js");
-
     const skillDir = resolve(runtime.workspace, "skills");
     let files: string[] = [];
     try {
@@ -192,9 +189,6 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
   });
 
   router.add("GET", "/api/skills/:filename", async (req, res) => {
-    const { readFileSync } = await import("node:fs");
-    const { resolve, relative } = await import("node:path");
-
     const url = new URL(req.url ?? "/", "http://localhost");
     const filename = extractParam(url.pathname, "/api/skills/:filename");
     if (!filename || !filename.endsWith(".md")) {
@@ -218,9 +212,6 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
   });
 
   router.add("PUT", "/api/skills/:filename", async (req, res) => {
-    const { writeFileSync, mkdirSync } = await import("node:fs");
-    const { resolve, relative } = await import("node:path");
-
     const url = new URL(req.url ?? "/", "http://localhost");
     const filename = extractParam(url.pathname, "/api/skills/:filename");
     if (!filename || !filename.endsWith(".md")) {
@@ -430,8 +421,6 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
 
   router.add("GET", "/api/train/status", async (_req, res) => {
     const { countUnabsorbedSessions } = await import("../core/absorb.js");
-    const { readdirSync } = await import("node:fs");
-    const { resolve } = await import("node:path");
 
     let totalSkills = 0;
     try {
@@ -507,9 +496,6 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
   let scoutInProgress = false;
 
   router.add("GET", "/api/scout/status", async (_req, res) => {
-    const { readdirSync } = await import("node:fs");
-    const { resolve } = await import("node:path");
-
     let totalSkills = 0;
     try {
       const skillDir = resolve(runtime.workspace, "skills");

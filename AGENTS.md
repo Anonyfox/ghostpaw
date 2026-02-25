@@ -14,7 +14,7 @@ Three layers, never crossed:
 - **Markdown** — all behavior (SOUL.md, skills/, agents/). Human-readable, agent-writable, git-versionable.
 - **Kernel** — the compiled `.mjs`. Tools, agent loop, provider abstraction. Immutable at runtime.
 
-Two bundled deps: `chatoyant` (LLM abstraction), `magpie-html` (HTML extraction). Everything else is `node:*` built-ins. Node 22.5+ only.
+Five bundled deps: `chatoyant` (LLM abstraction), `magpie-html` (HTML extraction), `grammY` (Telegram), `marked` (markdown rendering), `bootstrap` (web UI CSS). Everything else is `node:*` built-ins. Node 22.5+ only.
 
 ## Source Layout
 
@@ -22,8 +22,11 @@ Two bundled deps: `chatoyant` (LLM abstraction), `magpie-html` (HTML extraction)
 src/
   index.ts          CLI + library exports + createAgent factory
   core/             Agent loop, sessions, memory, context, cost, training pipeline
-  tools/            Built-in tools (read, write, edit, bash, web, memory, delegate, ...)
-  lib/              Shared utilities (embeddings, vectors, diff, errors, terminal)
+  tools/            Built-in tools (grep, ls, read, write, edit, bash, web, memory, delegate, mcp, ...)
+  lib/              Shared utilities (embeddings, vectors, diff, workspace, errors, terminal)
+  mcp/              Native MCP client (JSON-RPC, stdio + HTTP transports)
+  channels/         Channel adapters (Telegram) and ChannelRuntime
+  web/              Built-in web control plane (auth, router, API routes, embedded SPA)
 ```
 
 Every tool has a matching `.test.ts`. Tests run via `node --test`.

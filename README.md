@@ -30,7 +30,7 @@ npx ghostpaw
 
 OpenClaw was acquired by OpenAI (Feb 15, 2026). What was the independent open-source agent is now a subsidiary. Meanwhile: Docker setups that break on install, $30–50/session token burn with no cost controls, a skill marketplace that turned into a malware marketplace (ClawHavoc — 1,184 malicious packages, the #1 ranked skill was a stealer), and 430,000 lines of code to do what should be simple.
 
-Ghostpaw is the other direction. One `.mjs` file. Four core tools. Plain markdown. An API key and Node.js — nothing else.
+Ghostpaw is the other direction. One `.mjs` file. Six core tools. Plain markdown. An API key and Node.js — nothing else.
 
 ## Three Learning Loops
 

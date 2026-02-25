@@ -125,7 +125,7 @@ If none apply, write a skill. "How to deploy to Vercel" is a skill. "How to writ
 
 | Tool | Why it must be a tool |
 | --- | --- |
-| Read, Write, Edit | Filesystem primitives. Can't be composed from anything simpler. |
+| Grep, Ls, Read, Write, Edit | Filesystem primitives. Token-efficient structured output that bash + parsing can't match reliably. Grep and Ls prevent the agent from dumping entire files or shelling out for basic exploration. |
 | Bash | Process execution. The `exec()` syscall — everything else can be built on top of it. |
 | web_search | Structured search results from premium APIs (Brave/Tavily/Serper) or DDG fallback. Agent shouldn't burn tokens curl-scraping search engines. |
 | web_fetch | HTML → clean text needs magpie-html. Not reliable via bash + regex. |
@@ -222,6 +222,7 @@ src/
     agents.ts             # agent profiles (markdown in agents/)
     service.ts            # OS service install (systemd, launchd, cron)
     soul.ts               # default SOUL.md content
+    default_souls.ts      # built-in soul templates for specialized sub-agents (e.g. JS Engineer)
     default_skills.ts     # bundled starter skills
     stream_format.ts      # streaming output formatting
     scout.ts              # training pipeline: scout phase (friction mining)
@@ -229,9 +230,11 @@ src/
     reflect.ts            # training pipeline: reflect phase (skill generation)
   tools/
     registry.ts           # tool registration/management
-    read.ts               # Read tool
-    write.ts              # Write tool
-    edit.ts               # Edit tool (find-and-replace with fuzzy fallback)
+    grep.ts               # Grep tool (structured pattern search, rg with POSIX grep fallback)
+    ls.ts                 # Ls tool (structured directory listing, pure Node.js)
+    read.ts               # Read tool (line ranges, maxChars truncation, binary detection)
+    write.ts              # Write tool (with LLM content sanitization)
+    edit.ts               # Edit tool (search-and-replace, batch, insert-at-line, replace-all)
     bash.ts               # Bash tool (shell execution, secret scrubbing)
     delegate.ts           # sub-agent delegation (foreground/background)
     check_run.ts          # poll background task status
@@ -240,6 +243,7 @@ src/
     search.ts             # web search (Brave/Tavily/Serper/DDG cascade)
     web.ts                # URL → readable content
     secrets.ts            # secret management tool
+    mcp.ts                # MCP client tool (discover/call, stdio + HTTP transport)
     train.ts              # training pipeline tool (absorb → refine → tidy)
     scout.ts              # scouting tool (friction mining / directed research)
   channels/
@@ -265,10 +269,17 @@ src/
     embedding.ts          # character n-gram hashing (deterministic, no API needed)
     vectors.ts            # cosine similarity, top-K search
     diff.ts               # string diff/patch (for Edit tool)
+    workspace.ts          # shared workspace path validation
     errors.ts             # structured error hierarchy
     ids.ts                # URL-safe random ID generation
     terminal.ts           # terminal utilities (masked input, styling)
     skill-history.ts      # skill usage tracking and ranking
+  mcp/
+    client.ts             # MCP client (connect, discover tools, call tools)
+    jsonrpc.ts            # JSON-RPC 2.0 message construction and parsing
+    transport-stdio.ts    # stdio transport (spawn child process, line-delimited JSON)
+    transport-http.ts     # Streamable HTTP transport (POST + optional SSE)
+    types.ts              # MCP protocol type definitions
 
 dist/
   ghostpaw.mjs            # single compiled artifact (ESM)
@@ -357,13 +368,15 @@ All tools are built into the kernel. No plugin system, no dynamic loading — ev
 
 #### Primitives
 
-The foundational 4. With these alone, the agent can do anything — the rest are conveniences.
+The foundational 6. With these alone, the agent can do anything — the rest are conveniences.
 
 | Tool      | Implementation             | Notes                                                                                                                                                           |
 | --------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Read**  | `node:fs.readFile`         | Read file contents. Supports line ranges.                                                                                                                       |
-| **Write** | `node:fs.writeFile`        | Create or overwrite files. Creates directories as needed.                                                                                                       |
-| **Edit**  | String diff/replace        | Find unique string in file, replace with new string. The critical tool — must be rock-solid. Uses bundled diff logic for fuzzy matching when exact match fails. |
+| **Grep**  | `rg` / POSIX `grep` fallback | Search file contents by pattern. Structured results (file, line, content). Auto-detects ripgrep, falls back to POSIX grep. Token-efficient: locate before reading. |
+| **Ls**    | `node:fs.readdir`          | Structured directory listing with depth control and glob filtering. Skips noise dirs (.git, node_modules). Pure Node.js, no external deps.                      |
+| **Read**  | `node:fs.readFile`         | Read file contents. Supports line ranges (`startLine`/`endLine`), `maxChars` truncation, binary detection. Line-boundary-aware truncation.                      |
+| **Write** | `node:fs.writeFile`        | Create or overwrite files. Creates directories as needed. Rejects empty writes to existing files. LLM output sanitization (HTML entities, literal escapes).     |
+| **Edit**  | String diff/replace        | Search-and-replace (single, batch, replace-all), insert-at-line. Fuzzy whitespace fallback. Safety: no-op detection, empty file protection, size shrink warnings. |
 | **Bash**  | `node:child_process.spawn` | Execute shell commands. Configurable timeout (default 120s). Returns stdout + stderr + exit code.                                                               |
 
 #### Built-in Tools
@@ -664,7 +677,7 @@ Craft handles the moment-to-moment ("I just figured this out, let me write it do
 
 **MCP** — OpenClaw supports MCP via `mcporter`, an external CLI tool with a static config file. The agent shells out to `mcporter call server.tool` — adding a dependency and never truly learning MCP patterns. Ghostpaw implements MCP natively in the kernel: a single `mcp` tool with `discover` and `call` actions, supporting both Streamable HTTP and stdio transports, with authentication resolved through the existing SecretStore. No external dependencies, no config file. Server knowledge lives in skills — the agent discovers endpoints dynamically, documents what works, and improves its MCP usage over time through training. Tested against real public servers (OpenMCP, Stripe's 562-tool surface) end-to-end.
 
-**Tool set** — OpenClaw ships 60+ tools across groups (fs, runtime, web, ui, messaging, memory, sessions, automation). Ghostpaw ships a focused set of 14 built-in tools that cover what coding agents actually use, plus native MCP for unlimited external tool access. The skipped tools (canvas, nodes, gateway management) are OpenClaw-specific infrastructure features.
+**Tool set** — OpenClaw ships 60+ tools across groups (fs, runtime, web, ui, messaging, memory, sessions, automation). Ghostpaw ships a focused set of 16 built-in tools that cover what coding agents actually use, plus native MCP for unlimited external tool access. The skipped tools (canvas, nodes, gateway management) are OpenClaw-specific infrastructure features.
 
 **No plugin system** — OpenClaw supports JS/Python plugins, custom tool registration, and a marketplace. Ghostpaw has no plugin API. Skills (markdown) are the extension mechanism. The agent can write and execute code via Bash when needed.
 

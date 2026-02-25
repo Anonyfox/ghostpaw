@@ -178,17 +178,21 @@ export function getSkillRank(workspacePath: string, filename: string): number {
 }
 
 /**
- * Get ranks for all tracked skill files in a single call.
+ * Get ranks for all tracked skill files in a single git call.
+ * Uses `git log --format="" --name-only` to get all filenames touched
+ * by every commit, then counts occurrences. One process instead of N+1.
  */
 export function getAllSkillRanks(workspacePath: string): Record<string, number> {
   if (!hasHistory(workspacePath)) return {};
 
-  const result = git(workspacePath, ["ls-files"]);
+  const result = git(workspacePath, ["log", "--format=", "--name-only"]);
   if (!result.ok || !result.stdout) return {};
 
   const ranks: Record<string, number> = {};
-  for (const file of result.stdout.split("\n").filter((l) => l.trim())) {
-    ranks[file] = getSkillRank(workspacePath, file);
+  for (const line of result.stdout.split("\n")) {
+    const file = line.trim();
+    if (!file) continue;
+    ranks[file] = (ranks[file] ?? 0) + 1;
   }
   return ranks;
 }

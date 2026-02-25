@@ -21,13 +21,13 @@ npm run build   # produces dist/ghostpaw.mjs
 
 ```
 src/
-  index.ts           # entry point: CLI + library exports
-  core/              # agent loop, tools, sessions, context
-  providers/         # LLM adapters (anthropic, openai, google)
-  extensions/        # bundled extensions + loader
-  channels/          # telegram, etc.
-  ui/                # web control UI
-  lib/               # shared utilities
+  index.ts           # entry point: CLI + library exports + createAgent factory
+  core/              # agent loop, sessions, memory, context, cost, training pipeline
+  tools/             # built-in tools (grep, ls, read, write, edit, bash, web, memory, mcp, ...)
+  mcp/               # native MCP client (JSON-RPC, stdio + HTTP transports)
+  channels/          # channel adapters (Telegram) + ChannelRuntime
+  web/               # built-in web control plane (auth, router, API routes, embedded SPA)
+  lib/               # shared utilities (embeddings, vectors, diff, workspace, errors, terminal)
 ```
 
 Everything in `src/` compiles into one file via esbuild. The build script is `build.mjs`.
