@@ -1,6 +1,6 @@
 {
   "name": "ghostpaw",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Single-file AI agent runtime. Independent, model-agnostic, self-contained.",
   "type": "module",
   "main": "./dist/ghostpaw.mjs",
