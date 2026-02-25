@@ -39,6 +39,7 @@ const mockMemories: { id: string; content: string; createdAt: number; sessionId:
 
 function createMockRuntime(): ChannelRuntime {
   return {
+    db: {} as unknown as import("../core/database.js").GhostpawDatabase,
     workspace: "/tmp/web-test",
     model: "test-model",
     eventBus: { on() {}, off() {}, emit() {} } as never,

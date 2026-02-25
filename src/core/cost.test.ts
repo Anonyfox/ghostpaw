@@ -41,6 +41,7 @@ describe("BudgetTracker", () => {
       maxTokensPerSession: 10_000,
       maxTokensPerDay: 100_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
     const usage = tracker.getUsage();
     strictEqual(usage.sessionTokensIn, 0);
@@ -54,6 +55,7 @@ describe("BudgetTracker", () => {
       maxTokensPerSession: 10_000,
       maxTokensPerDay: 100_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
     tracker.record(500, 200);
     const usage = tracker.getUsage();
@@ -68,6 +70,7 @@ describe("BudgetTracker", () => {
       maxTokensPerSession: 10_000,
       maxTokensPerDay: 100_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
     tracker.record(100, 50);
     tracker.record(200, 100);
@@ -84,6 +87,7 @@ describe("BudgetTracker", () => {
       maxTokensPerSession: 1000,
       maxTokensPerDay: 100_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
     tracker.record(400, 100);
     const usage = tracker.getUsage();
@@ -95,6 +99,7 @@ describe("BudgetTracker", () => {
       maxTokensPerSession: 1000,
       maxTokensPerDay: 100_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
     tracker.record(800, 50);
     const usage = tracker.getUsage();
@@ -106,6 +111,7 @@ describe("BudgetTracker", () => {
       maxTokensPerSession: 1000,
       maxTokensPerDay: 100_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
     tracker.record(100, 50);
     ok(!tracker.getUsage().isWarning);
@@ -116,6 +122,7 @@ describe("BudgetTracker", () => {
       maxTokensPerSession: 100,
       maxTokensPerDay: 100_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
     tracker.record(80, 30);
     throws(
@@ -134,6 +141,7 @@ describe("BudgetTracker", () => {
       maxTokensPerSession: 100_000,
       maxTokensPerDay: 500,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
     tracker.record(300, 250);
     throws(
@@ -150,6 +158,7 @@ describe("BudgetTracker", () => {
       maxTokensPerSession: 10_000,
       maxTokensPerDay: 100_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
     tracker.record(100, 50);
     tracker.checkBudget();
@@ -160,6 +169,7 @@ describe("BudgetTracker", () => {
       maxTokensPerSession: 10_000,
       maxTokensPerDay: 100_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
     tracker.record(500, 200);
     tracker.resetSession();
@@ -175,6 +185,7 @@ describe("BudgetTracker", () => {
       maxTokensPerSession: 10_000,
       maxTokensPerDay: 100_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
     tracker.record(1234, 567);
     const summary = tracker.formatSummary();

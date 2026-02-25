@@ -656,6 +656,37 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
     json(res, 200, { deleted: key });
   });
 
+  // ── Costs ───────────────────────────────────────────────────────────────
+
+  router.add("GET", "/api/costs", async (_req, res) => {
+    const { getSpendBreakdown } = await import("../core/cost-guard.js");
+    const { loadConfig } = await import("../core/config.js");
+
+    const config = await loadConfig(runtime.workspace);
+    const limitUsd = config.costControls.maxCostPerDay ?? 0;
+    const breakdown = getSpendBreakdown(runtime.db.sqlite, limitUsd);
+    json(res, 200, breakdown);
+  });
+
+  router.add("PUT", "/api/settings/spend-limit", async (req, res) => {
+    const body = (await parseJSON(req)) as { maxCostPerDay?: number };
+    const limit = body?.maxCostPerDay;
+    if (typeof limit !== "number" || limit < 0) {
+      json(res, 400, { error: "maxCostPerDay must be a non-negative number" });
+      return;
+    }
+
+    const { loadConfig, saveConfig } = await import("../core/config.js");
+    const { getSpendStatus } = await import("../core/cost-guard.js");
+
+    const config = await loadConfig(runtime.workspace);
+    config.costControls.maxCostPerDay = limit;
+    saveConfig(runtime.workspace, config);
+
+    const status = getSpendStatus(runtime.db.sqlite, limit);
+    json(res, 200, status);
+  });
+
   // ── Training ──────────────────────────────────────────────────────────────
 
   let trainingInProgress = false;

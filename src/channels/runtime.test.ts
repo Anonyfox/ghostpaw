@@ -98,6 +98,7 @@ function createTestRuntime(chatFactory: (model: string) => ChatInstance): Channe
   }
 
   return {
+    db: {} as unknown as import("../core/database.js").GhostpawDatabase,
     workspace: "/tmp/test",
     model: "test-model",
     sessions,
@@ -133,6 +134,7 @@ beforeEach(async () => {
     maxTokensPerSession: 100_000,
     maxTokensPerDay: 1_000_000,
     warnAtPercentage: 80,
+    maxCostPerDay: 0,
   });
 });
 

@@ -36,6 +36,7 @@ function createMockRuntime(opts?: {
   const delay = opts?.delay ?? 0;
 
   return {
+    db: {} as unknown as import("../core/database.js").GhostpawDatabase,
     workspace: "/tmp/test",
     model: "test-model",
     sessions: null as never,

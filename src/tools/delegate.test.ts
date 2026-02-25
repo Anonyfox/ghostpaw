@@ -380,6 +380,7 @@ describe("Delegate tool - foreground execution", () => {
       maxTokensPerSession: 1_000_000,
       maxTokensPerDay: 10_000_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
 
     const tool = createDelegateTool({
@@ -513,6 +514,7 @@ describe("Delegate tool - background execution", () => {
       maxTokensPerSession: 1_000_000,
       maxTokensPerDay: 10_000_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
 
     const tool = createDelegateTool({

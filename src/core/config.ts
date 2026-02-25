@@ -6,6 +6,8 @@ export interface CostControls {
   maxTokensPerSession: number;
   maxTokensPerDay: number;
   warnAtPercentage: number;
+  /** Max USD spend in a rolling 24h window. 0 = unlimited. */
+  maxCostPerDay: number;
 }
 
 export interface GhostpawConfig {
@@ -21,6 +23,7 @@ export const DEFAULT_CONFIG: GhostpawConfig = {
     maxTokensPerSession: 200_000,
     maxTokensPerDay: 1_000_000,
     warnAtPercentage: 80,
+    maxCostPerDay: 0,
   },
 };
 
@@ -76,6 +79,9 @@ export async function loadConfig(workspacePath: string): Promise<GhostpawConfig>
       costControls.warnAtPercentage,
       "must be between 0 and 100",
     );
+  }
+  if (typeof costControls.maxCostPerDay !== "number" || costControls.maxCostPerDay < 0) {
+    costControls.maxCostPerDay = 0;
   }
 
   return base;

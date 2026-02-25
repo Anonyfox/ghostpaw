@@ -88,11 +88,17 @@ Talk to Ghostpaw from anywhere. Channels are persistent messaging integrations t
 
 [Telegram setup, Discord, and more →](docs/COMMUNICATION.md) · [Web UI details →](docs/WEB_UI.md)
 
+## Cost Controls
+
+Every LLM call is tracked with real provider-reported token counts and costs. Set a hard dollar limit on a rolling 24-hour window — the agent blocks itself before it overspends. A live dashboard in the web UI shows spend per model, per day, and how much budget remains. Adjust the limit in real time, no restart needed.
+
+No surprise bills. No midnight-reset loopholes. No hope-based cost management.
+
+[How cost tracking works →](docs/COSTS.md)
+
 ## Deployment Philosophy
 
 Use frontier models. They're better than local inference and getting cheaper every quarter. A $5/mo VPS + an API key is a full agent deployment. No GPU. No VRAM. No quantization trade-offs. No Docker compose debugging.
-
-Built-in cost controls (per-session and monthly caps) so you never wake up to a surprise bill.
 
 ## OpenClaw Migration
 

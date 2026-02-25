@@ -7,7 +7,8 @@ export type GhostpawErrorCode =
   | "ERR_PROVIDER"
   | "ERR_VALIDATION"
   | "ERR_SESSION"
-  | "ERR_COMPACTION";
+  | "ERR_COMPACTION"
+  | "ERR_SPEND_LIMIT";
 
 export interface GhostpawErrorOptions {
   cause?: unknown;
@@ -129,6 +130,27 @@ export class ProviderError extends GhostpawError {
 
   override toJSON(): Record<string, unknown> {
     return { ...super.toJSON(), provider: this.provider, statusCode: this.statusCode };
+  }
+}
+
+export class SpendLimitError extends GhostpawError {
+  readonly spent: number;
+  readonly limit: number;
+
+  constructor(spent: number, limit: number, options?: GhostpawErrorOptions) {
+    const spentStr = `$${spent.toFixed(4)}`;
+    const limitStr = `$${limit.toFixed(2)}`;
+    super("ERR_SPEND_LIMIT", `Daily spend limit reached (${spentStr} / ${limitStr})`, {
+      ...options,
+      hint: options?.hint ?? "Adjust the limit in Settings > Costs.",
+    });
+    this.name = "SpendLimitError";
+    this.spent = spent;
+    this.limit = limit;
+  }
+
+  override toJSON(): Record<string, unknown> {
+    return { ...super.toJSON(), spent: this.spent, limit: this.limit };
   }
 }
 

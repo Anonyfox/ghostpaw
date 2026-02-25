@@ -63,7 +63,7 @@ function handleMobileNav() {
 
 // ── Navigation ──────────────────────────────────────────────────────────────
 
-const views = ["chat", "dashboard", "sessions", "skills", "agents", "memory", "train", "scout", "settings"];
+const views = ["chat", "dashboard", "sessions", "skills", "agents", "memory", "train", "scout", "costs", "settings"];
 const viewEls = {};
 views.forEach(v => { viewEls[v] = document.getElementById("view" + v.charAt(0).toUpperCase() + v.slice(1)); });
 
@@ -92,6 +92,7 @@ function switchView(view) {
   if (view === "memory") loadMemory();
   if (view === "train") loadTrain();
   if (view === "scout") loadScout();
+  if (view === "costs") loadCosts();
   if (view === "settings") loadSettings();
 }
 
@@ -2238,6 +2239,131 @@ async function loadSettings() {
   if (!data) return;
   settingsData = data;
   renderSettingsPage();
+}
+
+// ── Costs ───────────────────────────────────────────────────────────────────
+
+async function loadCosts() {
+  const container = document.getElementById("costsContent");
+  if (!container) return;
+  container.innerHTML = '<p style="color:var(--gp-muted)">Loading costs...</p>';
+
+  let data;
+  try {
+    data = await apiJSON("/api/costs");
+  } catch {
+    container.innerHTML = '<p class="gp-text-danger">Failed to load costs.</p>';
+    return;
+  }
+  if (!data) return;
+
+  const spent = data.spent || 0;
+  const limit = data.limit || 0;
+  const pct = data.percentage || 0;
+  const remaining = data.remaining;
+  const isBlocked = data.isBlocked;
+
+  const barColor = pct < 50 ? "green" : pct < 80 ? "yellow" : "red";
+  const spentStr = formatCostDisplay(spent);
+  const limitStr = limit > 0 ? "$" + limit.toFixed(2) : "No limit";
+  const remainStr = limit > 0 && remaining !== undefined ? formatCostDisplay(remaining) : "";
+
+  let html = "";
+
+  if (isBlocked) {
+    html += '<div class="gp-costs-blocked-banner">'
+      + 'Spend limit reached. New conversations are blocked until spend drops below the limit or the limit is increased.'
+      + '</div>';
+  }
+
+  html += '<div class="gp-costs-gauge">'
+    + '<div class="gp-costs-gauge-header">'
+    + '<span class="gp-costs-gauge-label">24h Rolling Spend</span>'
+    + '<span class="gp-costs-gauge-value">' + spentStr + (limit > 0 ? ' / ' + limitStr : '') + '</span>'
+    + '</div>';
+
+  if (limit > 0) {
+    html += '<div class="gp-costs-bar"><div class="gp-costs-bar-fill ' + barColor + '" style="width:' + Math.min(pct, 100) + '%"></div></div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:.75rem;color:#64748b">'
+      + '<span>' + pct + '% used</span>'
+      + '<span>' + remainStr + ' remaining</span>'
+      + '</div>';
+  } else {
+    html += '<div style="font-size:.82rem;color:#64748b">No spend limit configured.</div>';
+  }
+
+  html += '<div class="gp-costs-limit-row">'
+    + '<label style="font-size:.82rem;color:#94a3b8">Daily limit ($)</label>'
+    + '<input type="number" id="costLimitInput" class="gp-costs-limit-input" value="' + (limit > 0 ? limit : '') + '" min="0" step="0.5" placeholder="0 = off">'
+    + '<button id="costLimitSave" class="gp-costs-limit-save">Save</button>'
+    + '<span class="gp-costs-limit-hint">0 = unlimited</span>'
+    + '</div>'
+    + '</div>';
+
+  if (data.byModel && data.byModel.length > 0) {
+    html += '<div class="gp-costs-section">'
+      + '<div class="gp-costs-section-title">By Model</div>'
+      + '<div class="gp-costs-model-list">';
+    for (const m of data.byModel) {
+      html += '<div class="gp-costs-model-row">'
+        + '<span class="gp-costs-model-name">' + escapeHtml(m.model || "unknown") + '</span>'
+        + '<span class="gp-costs-model-meta">' + m.runs + ' runs · ' + formatNumber(m.tokensIn + m.tokensOut) + ' tok</span>'
+        + '<span class="gp-costs-model-cost">' + formatCostDisplay(m.cost) + '</span>'
+        + '</div>';
+    }
+    html += '</div></div>';
+  }
+
+  if (data.byDay && data.byDay.length > 0) {
+    html += '<div class="gp-costs-section">'
+      + '<div class="gp-costs-section-title">By Day</div>'
+      + '<div class="gp-costs-day-list">';
+    for (const d of data.byDay) {
+      html += '<div class="gp-costs-day-row">'
+        + '<span class="gp-costs-day-date">' + escapeHtml(d.date) + '</span>'
+        + '<span class="gp-costs-day-runs">' + d.runs + ' runs</span>'
+        + '<span class="gp-costs-day-cost">' + formatCostDisplay(d.cost) + '</span>'
+        + '</div>';
+    }
+    html += '</div></div>';
+  }
+
+  if ((!data.byModel || data.byModel.length === 0) && (!data.byDay || data.byDay.length === 0)) {
+    html += '<div style="text-align:center;color:#94a3b8;padding:2rem 1rem;background:var(--gp-surface);border:1px solid var(--gp-border);border-radius:.75rem">'
+      + '<div style="font-size:2rem;margin-bottom:.5rem">&#128176;</div>'
+      + 'No cost data in the last 24 hours.'
+      + '</div>';
+  }
+
+  container.innerHTML = html;
+
+  const saveBtn = document.getElementById("costLimitSave");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", async () => {
+      const input = document.getElementById("costLimitInput");
+      const val = parseFloat(input?.value || "0") || 0;
+      if (val < 0) { showToast("Limit must be >= 0", "error"); return; }
+      saveBtn.disabled = true;
+      try {
+        await apiJSON("/api/settings/spend-limit", {
+          method: "PUT",
+          body: JSON.stringify({ maxCostPerDay: val }),
+        });
+        showToast(val > 0 ? "Limit set to $" + val.toFixed(2) : "Limit disabled", "success");
+        await loadCosts();
+      } catch (err) {
+        showToast(err.message || "Failed to save", "error");
+        saveBtn.disabled = false;
+      }
+    });
+  }
+}
+
+function formatCostDisplay(usd) {
+  if (!usd || usd <= 0) return "$0.00";
+  if (usd >= 1) return "$" + usd.toFixed(2);
+  if (usd >= 0.01) return "$" + usd.toFixed(3);
+  return "$" + usd.toFixed(4);
 }
 
 // ── Utilities ───────────────────────────────────────────────────────────────

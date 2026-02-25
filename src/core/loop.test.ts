@@ -109,6 +109,7 @@ beforeEach(async () => {
     maxTokensPerSession: 100_000,
     maxTokensPerDay: 1_000_000,
     warnAtPercentage: 80,
+    maxCostPerDay: 0,
   });
 
   tools.register(echoTool);
@@ -241,6 +242,7 @@ describe("AgentLoop - budget enforcement", () => {
       maxTokensPerSession: 10,
       maxTokensPerDay: 1_000_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
 
     const loop = createAgentLoop({

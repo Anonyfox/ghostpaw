@@ -1,8 +1,10 @@
 import { Chat, type Tool } from "chatoyant";
+import { SpendLimitError } from "../lib/errors.js";
 import type { ToolRegistry } from "../tools/registry.js";
 import { compactMessages, shouldCompact } from "./compaction.js";
 import { assembleSystemPrompt } from "./context.js";
 import { type BudgetTracker, estimateTokens } from "./cost.js";
+import type { CostGuard } from "./cost-guard.js";
 import type { EventBus } from "./events.js";
 import type { RunStore } from "./runs.js";
 import type { SessionStore } from "./session.js";
@@ -59,6 +61,7 @@ export interface AgentLoopConfig {
   compactionThreshold?: number;
   eventBus?: EventBus;
   runs?: RunStore;
+  costGuard?: CostGuard;
 }
 
 export interface AgentLoopHandle {
@@ -83,6 +86,7 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
     compactionThreshold = DEFAULT_COMPACTION_THRESHOLD,
     eventBus,
     runs,
+    costGuard,
   } = config;
 
   const sessionLocks = new Map<string, Promise<void>>();
@@ -243,8 +247,16 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
     return result;
   }
 
+  function checkSpendLimit(): void {
+    if (costGuard?.isBlocked()) {
+      const s = costGuard.status();
+      throw new SpendLimitError(s.spent, s.limit);
+    }
+  }
+
   async function run(sessionId: string, prompt: string): Promise<RunResult> {
     return withLock(sessionId, async () => {
+      checkSpendLimit();
       const runId = beginRun(sessionId, prompt);
       const { chat, inputTokenEstimate, lastMessageId } = await prepare(sessionId, prompt);
 
@@ -275,6 +287,7 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
     await prev;
 
     try {
+      checkSpendLimit();
       const runId = beginRun(sessionId, prompt);
       const { chat, inputTokenEstimate, lastMessageId } = await prepare(sessionId, prompt);
 

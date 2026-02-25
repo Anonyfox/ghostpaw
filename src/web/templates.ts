@@ -1725,6 +1725,153 @@ body {
   margin-bottom: .75rem;
   display: block;
 }
+
+/* ── Costs page ──────────────────────────────────────────── */
+
+.gp-costs-intro {
+  margin-bottom: 1.75rem;
+  line-height: 1.7;
+}
+.gp-costs-intro p {
+  color: #cbd5e1;
+  font-size: .95rem;
+  margin-bottom: .5rem;
+}
+
+.gp-costs-gauge {
+  background: var(--gp-surface);
+  border: 1px solid var(--gp-border);
+  border-radius: .75rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.gp-costs-gauge-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: .75rem;
+}
+.gp-costs-gauge-label {
+  font-size: .85rem; color: #94a3b8; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.gp-costs-gauge-value {
+  font-size: 1.1rem; font-weight: 700;
+  background: var(--gp-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.gp-costs-bar {
+  height: 8px; border-radius: 4px;
+  background: var(--gp-border);
+  overflow: hidden;
+  margin-bottom: .5rem;
+}
+.gp-costs-bar-fill {
+  height: 100%; border-radius: 4px;
+  transition: width .4s ease, background .3s ease;
+}
+.gp-costs-bar-fill.green { background: var(--gp-success); }
+.gp-costs-bar-fill.yellow { background: #fbbf24; }
+.gp-costs-bar-fill.red { background: var(--gp-danger); }
+
+.gp-costs-limit-row {
+  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+  margin-top: .75rem;
+}
+.gp-costs-limit-input {
+  width: 120px;
+  background: var(--gp-surface-2);
+  border: 1px solid var(--gp-border);
+  border-radius: .4rem;
+  color: var(--gp-text);
+  font-size: .85rem;
+  padding: .35rem .5rem;
+  outline: none;
+  transition: border-color .2s;
+}
+.gp-costs-limit-input:focus { border-color: var(--gp-accent); }
+.gp-costs-limit-save {
+  background: transparent;
+  border: 1px solid var(--gp-accent);
+  color: var(--gp-accent);
+  font-size: .75rem;
+  padding: .3rem .7rem;
+  border-radius: .35rem;
+  cursor: pointer;
+  transition: all .2s;
+}
+.gp-costs-limit-save:hover { background: rgba(34,211,238,.08); }
+.gp-costs-limit-hint {
+  font-size: .75rem; color: #64748b;
+}
+
+.gp-costs-blocked-banner {
+  background: rgba(248,113,113,.12);
+  border: 1px solid rgba(248,113,113,.3);
+  border-radius: .65rem;
+  padding: .85rem 1.15rem;
+  margin-bottom: 1.25rem;
+  color: var(--gp-danger);
+  font-size: .9rem;
+  font-weight: 500;
+}
+
+.gp-costs-section {
+  margin-bottom: 1.75rem;
+}
+.gp-costs-section-title {
+  font-size: .85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #94a3b8;
+  margin-bottom: .75rem;
+  padding-bottom: .4rem;
+  border-bottom: 1px solid var(--gp-border);
+}
+
+.gp-costs-model-list {
+  display: flex; flex-direction: column; gap: .5rem;
+}
+.gp-costs-model-row {
+  display: flex; align-items: center; gap: .75rem;
+  background: var(--gp-surface);
+  border: 1px solid var(--gp-border);
+  border-radius: .5rem;
+  padding: .65rem .85rem;
+  transition: border-color .2s;
+}
+.gp-costs-model-row:hover { border-color: rgba(34,211,238,.15); }
+.gp-costs-model-name {
+  font-weight: 600; font-size: .85rem; color: var(--gp-text);
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gp-costs-model-cost {
+  font-weight: 700; font-size: .9rem; color: var(--gp-accent);
+  white-space: nowrap;
+}
+.gp-costs-model-meta {
+  color: #64748b; font-size: .75rem; white-space: nowrap;
+}
+
+.gp-costs-day-list {
+  display: flex; flex-direction: column; gap: .5rem;
+}
+.gp-costs-day-row {
+  display: flex; align-items: center; gap: .75rem;
+  background: var(--gp-surface);
+  border: 1px solid var(--gp-border);
+  border-radius: .5rem;
+  padding: .65rem .85rem;
+}
+.gp-costs-day-date {
+  font-weight: 600; font-size: .85rem; color: var(--gp-text);
+  flex: 1;
+}
+.gp-costs-day-cost {
+  font-weight: 700; font-size: .9rem; color: var(--gp-accent);
+  white-space: nowrap;
+}
+.gp-costs-day-runs {
+  color: #64748b; font-size: .75rem; white-space: nowrap;
+}
 `;
 
 const GP_FAVICON = `<link rel="icon" href="data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs><circle cx="32" cy="28" r="18" fill="none" stroke="url(#g)" stroke-width="3" opacity=".8"/><ellipse cx="24" cy="24" rx="3" ry="4" fill="url(#g)" opacity=".9"/><ellipse cx="40" cy="24" rx="3" ry="4" fill="url(#g)" opacity=".9"/><path d="M18 44c2-4 6-3 8 0s4 8 6 8 4-4 6-8 6-4 8 0" stroke="url(#g)" stroke-width="2.5" fill="none" stroke-linecap="round" opacity=".7"/></svg>')}" type="image/svg+xml">`;
@@ -1828,6 +1975,7 @@ export function appShell(nonce: string): string {
           <div class="gp-nav-item" data-view="memory"><span class="gp-nav-icon">&#129504;</span> Memory</div>
           <div class="gp-nav-item" data-view="train"><span class="gp-nav-icon">&#127891;</span> Train</div>
           <div class="gp-nav-item" data-view="scout"><span class="gp-nav-icon">&#129517;</span> Scout</div>
+          <div class="gp-nav-item" data-view="costs"><span class="gp-nav-icon">&#128176;</span> Costs</div>
           <div class="gp-nav-item" data-view="settings"><span class="gp-nav-icon">&#9881;</span> Settings</div>
         </div>
       </div>
@@ -1924,6 +2072,12 @@ export function appShell(nonce: string): string {
       <div id="viewScout" class="gp-view p-4 d-none">
         <h4 class="mb-4 gp-gradient-text">Scout</h4>
         <div id="scoutContent"></div>
+      </div>
+
+      <!-- Costs view -->
+      <div id="viewCosts" class="gp-view p-4 d-none">
+        <h4 class="mb-4 gp-gradient-text">Costs</h4>
+        <div id="costsContent"></div>
       </div>
 
       <!-- Settings view -->

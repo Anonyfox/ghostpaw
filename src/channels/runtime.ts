@@ -22,6 +22,7 @@ export interface ChannelRuntime {
   readonly memory: MemoryStore;
   readonly eventBus: EventBus;
   readonly secrets: SecretStore;
+  readonly db: import("../core/database.js").GhostpawDatabase;
   setModel(newModel: string): void;
   run(sessionKey: string, text: string): Promise<string>;
   stream(sessionKey: string, text: string): AsyncGenerator<string>;
@@ -85,6 +86,9 @@ export async function createChannelRuntime(config: ChannelRuntimeConfig): Promis
   const runStore = createRunStore(db);
   const budget = createBudgetTracker(ghostpawConfig.costControls);
   const embedding = createEmbeddingProvider();
+
+  const { createCostGuard } = await import("../core/cost-guard.js");
+  const costGuard = createCostGuard(db.sqlite, ghostpawConfig.costControls.maxCostPerDay);
 
   const baseTools: Tool[] = [
     createReadTool(workspace),
@@ -164,6 +168,7 @@ export async function createChannelRuntime(config: ChannelRuntimeConfig): Promis
         parentSessionId: session.id,
         eventBus,
         budget,
+        costGuard,
       }),
     );
     tools.register(createCheckRunTool(runStore));
@@ -176,6 +181,7 @@ export async function createChannelRuntime(config: ChannelRuntimeConfig): Promis
       workspacePath: workspace,
       eventBus,
       runs: runStore,
+      costGuard,
     });
 
     const entry: SessionEntry = { sessionId: session.id, loop, tools };
@@ -197,6 +203,7 @@ export async function createChannelRuntime(config: ChannelRuntimeConfig): Promis
     memory,
     eventBus,
     secrets,
+    db,
 
     setModel(newModel: string): void {
       model = newModel;

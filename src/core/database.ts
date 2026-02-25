@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS logs (
 CREATE INDEX IF NOT EXISTS idx_runs_session ON runs(session_id);
 CREATE INDEX IF NOT EXISTS idx_runs_parent_session ON runs(parent_session_id);
 CREATE INDEX IF NOT EXISTS idx_runs_status ON runs(status);
+CREATE INDEX IF NOT EXISTS idx_runs_created ON runs(created_at);
 CREATE INDEX IF NOT EXISTS idx_logs_created ON logs(created_at);
 `;
 
@@ -163,6 +164,7 @@ export async function createDatabase(pathOrMemory: string): Promise<GhostpawData
         "ALTER TABLE runs ADD COLUMN child_session_id TEXT REFERENCES sessions(id) ON DELETE SET NULL",
       );
     }
+    sqlite.exec("CREATE INDEX IF NOT EXISTS idx_runs_created ON runs(created_at)");
   } catch {
     // best-effort migration
   }

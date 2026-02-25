@@ -2,10 +2,12 @@ import { Chat, createTool, Schema, type Tool } from "chatoyant";
 import { getAgentProfile, listAgentProfiles } from "../core/agents.js";
 import { assembleSystemPrompt } from "../core/context.js";
 import { type BudgetTracker, estimateTokens } from "../core/cost.js";
+import type { CostGuard } from "../core/cost-guard.js";
 import type { EventBus } from "../core/events.js";
 import type { ChatInstance } from "../core/loop.js";
 import type { RunStore } from "../core/runs.js";
 import type { SessionStore } from "../core/session.js";
+import { SpendLimitError } from "../lib/errors.js";
 
 class DelegateParams extends Schema {
   task = Schema.String({
@@ -44,6 +46,7 @@ export interface DelegateConfig {
   chatFactory?: (model: string) => ChatInstance;
   eventBus?: EventBus;
   budget?: BudgetTracker;
+  costGuard?: CostGuard;
 }
 
 function resolveParentSessionId(config: DelegateConfig): string {
@@ -96,6 +99,11 @@ export function createDelegateTool(config: DelegateConfig) {
         return {
           error: `Unknown agent "${agentName}". Available: ${available.join(", ") || "none"}`,
         };
+      }
+
+      if (config.costGuard?.isBlocked()) {
+        const s = config.costGuard.status();
+        throw new SpendLimitError(s.spent, s.limit);
       }
 
       const systemPrompt = assembleSystemPrompt(

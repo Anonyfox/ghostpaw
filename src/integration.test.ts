@@ -108,6 +108,7 @@ beforeEach(async () => {
     maxTokensPerSession: 500_000,
     maxTokensPerDay: 2_000_000,
     warnAtPercentage: 80,
+    maxCostPerDay: 0,
   });
 });
 
@@ -256,6 +257,7 @@ describe("Integration: budget enforcement stops runaway loops", () => {
       maxTokensPerSession: 10,
       maxTokensPerDay: 1_000_000,
       warnAtPercentage: 80,
+      maxCostPerDay: 0,
     });
 
     const loop = createAgentLoop({

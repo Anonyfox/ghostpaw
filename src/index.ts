@@ -73,6 +73,13 @@ export type { CostControls, GhostpawConfig } from "./core/config.js";
 export { DEFAULT_CONFIG, loadConfig } from "./core/config.js";
 export type { BudgetTracker, TokenUsage } from "./core/cost.js";
 export { createBudgetTracker, estimateTokens } from "./core/cost.js";
+export type { CostGuard, SpendBreakdown, SpendStatus } from "./core/cost-guard.js";
+export {
+  createCostGuard,
+  getSpendBreakdown,
+  getSpendStatus,
+  isSpendBlocked,
+} from "./core/cost-guard.js";
 export { startDaemon } from "./core/daemon.js";
 export type { GhostpawDatabase } from "./core/database.js";
 export { createDatabase } from "./core/database.js";
@@ -126,6 +133,7 @@ export {
   DatabaseError,
   GhostpawError,
   ProviderError,
+  SpendLimitError,
   ToolError,
   ValidationError,
 } from "./lib/errors.js";
@@ -261,6 +269,9 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
   const model = options.model ?? config.models.default;
   const purpose = options.purpose ?? "chat";
 
+  const { createCostGuard } = await import("./core/cost-guard.js");
+  const costGuard = createCostGuard(db.sqlite, config.costControls.maxCostPerDay);
+
   let session: import("./core/session.js").Session | null = null;
   function getOrCreateSession() {
     if (!session) {
@@ -280,6 +291,7 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
       parentSessionId: () => getOrCreateSession().id,
       eventBus,
       budget,
+      costGuard,
     }),
   );
   tools.register(createCheckRunTool(runStore));
@@ -292,6 +304,7 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
     workspacePath: workspace,
     eventBus,
     runs: runStore,
+    costGuard,
   });
 
   return {
