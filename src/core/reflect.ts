@@ -19,6 +19,7 @@ import {
   hasHistory,
   initHistory,
 } from "../lib/skill-history.js";
+import { commitSouls, hasSoulHistory, initSoulHistory } from "../lib/soul-history.js";
 import { banner, blank, label, log, startProgress, style } from "../lib/terminal.js";
 
 declare const __VERSION__: string;
@@ -282,29 +283,6 @@ async function runTidy(workspace: string): Promise<number> {
   }
 }
 
-/**
- * Mark the most recent unabsorbed session as absorbed. Called after a training
- * agent run to prevent the training conversation itself from being absorbed
- * in the next training cycle (avoids self-referential feedback loops).
- */
-async function markTrainingSession(workspace: string): Promise<void> {
-  const { createDatabase } = await import("./database.js");
-  const { createSessionStore } = await import("./session.js");
-
-  const dbPath = resolve(workspace, "ghostpaw.db");
-  const db = await createDatabase(dbPath);
-  try {
-    const sessions = createSessionStore(db);
-    const unabsorbed = sessions.listUnabsorbed();
-    if (unabsorbed.length > 0) {
-      const newest = unabsorbed[unabsorbed.length - 1];
-      sessions.markAbsorbed(newest.id);
-    }
-  } finally {
-    db.close();
-  }
-}
-
 // ── Full pipeline ───────────────────────────────────────────────────────────
 
 export async function runTrain(
@@ -324,10 +302,12 @@ export async function runTrain(
   const memBefore = snapshotSkills(workspace);
   const totalSkills = Object.keys(snapshotSkills(workspace)).length;
 
-  const agent = await createAgent({ workspace, excludeTools: ["train", "scout"] });
+  const agent = await createAgent({
+    workspace,
+    excludeTools: ["train", "scout"],
+    purpose: "train",
+  });
   const response = await agent.run(prompt);
-
-  markTrainingSession(workspace);
 
   const changes = detectChanges(workspace, useGit, memBefore);
 
@@ -335,6 +315,9 @@ export async function runTrain(
     const msg = changes.map((c) => `${c.type}: ${c.filename}`).join(", ");
     commitSkills(workspace, `train: ${msg}`);
   }
+
+  if (!hasSoulHistory(workspace)) initSoulHistory(workspace);
+  commitSouls(workspace, "train: post-training soul snapshot");
 
   // Phase 3: Tidy
   onPhase?.("tidy");

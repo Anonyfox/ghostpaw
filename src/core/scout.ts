@@ -273,34 +273,61 @@ async function runFrictionMining(workspace: string): Promise<ScoutTrail[]> {
   const { loadConfig } = await import("./config.js");
   const { createDatabase } = await import("./database.js");
   const { createSecretStore } = await import("./secrets.js");
+  const { createSessionStore, getOrCreateSystemSession } = await import("./session.js");
+  const { createRunStore } = await import("./runs.js");
 
   const dbPath = resolve(workspace, "ghostpaw.db");
   const db = await createDatabase(dbPath);
 
-  let model: string;
   try {
     const secrets = createSecretStore(db);
     secrets.loadIntoEnv();
     secrets.syncProviderKeys();
     const config = await loadConfig(workspace);
-    model = config.models.default;
+    const model = config.models.default;
+
+    const sessions = createSessionStore(db);
+    const runStore = createRunStore(db);
+    const sysSessionId = getOrCreateSystemSession(sessions);
+
+    const context = await gatherContext(workspace);
+    const contextStr = assembleScoutContext(context);
+
+    const run = runStore.create({
+      sessionId: sysSessionId,
+      prompt: "friction mining",
+      agentProfile: "scout",
+      model,
+    });
+
+    const chat = new Chat({ model });
+    chat.system(FRICTION_PROMPT);
+    chat.user(contextStr);
+
+    try {
+      const result = await chat.generateWithResult();
+      runStore.complete(run.id, result.content.slice(0, 500));
+      runStore.recordUsage(
+        run.id,
+        result.model,
+        result.usage.inputTokens,
+        result.usage.outputTokens,
+        result.cost.estimatedUsd,
+      );
+      sessions.updateSessionTokens(
+        sysSessionId,
+        result.usage.inputTokens,
+        result.usage.outputTokens,
+        result.cost.estimatedUsd,
+      );
+      return parseFrictionTrails(result.content);
+    } catch (err) {
+      runStore.fail(run.id, err instanceof Error ? err.message : String(err));
+      throw err;
+    }
   } finally {
     db.close();
   }
-
-  const context = await gatherContext(workspace);
-  const contextStr = assembleScoutContext(context);
-
-  const chat = new Chat({ model }) as {
-    system(s: string): unknown;
-    user(s: string): unknown;
-    generate(): Promise<string>;
-  };
-  chat.system(FRICTION_PROMPT);
-  chat.user(contextStr);
-  const response = await chat.generate();
-
-  return parseFrictionTrails(response);
 }
 
 /** Non-streaming entry point for programmatic use. */
@@ -312,7 +339,11 @@ export async function runScout(workspace: string, direction?: string): Promise<S
 
   const { createAgent } = await import("../index.js");
   const prompt = buildScoutPrompt(workspace, direction);
-  const agent = await createAgent({ workspace, excludeTools: ["train", "scout"] });
+  const agent = await createAgent({
+    workspace,
+    excludeTools: ["train", "scout"],
+    purpose: "scout",
+  });
   const report = await agent.run(prompt);
 
   return { mode: "report", direction, report };
@@ -357,7 +388,11 @@ export async function scout(
   if (opts.stream) {
     const { createAgent } = await import("../index.js");
     const prompt = buildScoutPrompt(workspace, opts.direction);
-    const agent = await createAgent({ workspace, excludeTools: ["train", "scout"] });
+    const agent = await createAgent({
+      workspace,
+      excludeTools: ["train", "scout"],
+      purpose: "scout",
+    });
 
     process.stdout.write(style.dim("ghostpaw "));
     for await (const chunk of agent.stream(prompt)) {

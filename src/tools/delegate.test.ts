@@ -33,11 +33,15 @@ const pingTool = createTool({
 });
 
 function mockChat(responseText: string): ChatInstance {
+  let systemContent = "";
+  let userContent = "";
   return {
-    system() {
+    system(content: string) {
+      systemContent = content;
       return this;
     },
-    user() {
+    user(content: string) {
+      userContent = content;
       return this;
     },
     assistant() {
@@ -46,6 +50,13 @@ function mockChat(responseText: string): ChatInstance {
     addTool() {},
     async generate() {
       return responseText;
+    },
+    get messages() {
+      return [
+        { role: "system", content: systemContent },
+        { role: "user", content: userContent },
+        { role: "assistant", content: responseText },
+      ];
     },
   };
 }
@@ -73,6 +84,13 @@ function capturingChat(responseText: string) {
     },
     async generate() {
       return responseText;
+    },
+    get messages() {
+      return [
+        { role: "system", content: captured.systemPrompt },
+        ...captured.userMessages.map((u) => ({ role: "user" as const, content: u })),
+        { role: "assistant" as const, content: responseText },
+      ];
     },
   };
   return { chat, captured };
@@ -181,7 +199,7 @@ describe("Delegate tool - foreground execution", () => {
     ok(captured.userMessages.includes("do research"));
   });
 
-  it("creates a run record (no child session)", async () => {
+  it("creates a run record linked to child session with token counts", async () => {
     const tool = createDelegateTool({
       workspacePath: workDir,
       tools: [],
@@ -199,6 +217,24 @@ describe("Delegate tool - foreground execution", () => {
     strictEqual(run.status, "completed");
     strictEqual(run.agentProfile, "default");
     strictEqual(run.parentSessionId, parentSessionId);
+    ok(run.childSessionId, "run should link to child session");
+
+    const childSession = sessions.getSession(run.childSessionId!);
+    ok(childSession, "child session should exist");
+    strictEqual(childSession!.purpose, "delegate");
+    ok(
+      childSession!.tokensIn > 0 || childSession!.tokensOut > 0,
+      "child session should have tokens",
+    );
+
+    const history = sessions.getConversationHistory(run.childSessionId!);
+    ok(history.length >= 2, "child session should have persisted messages");
+    const assistantMsg = history.find((m) => m.role === "assistant");
+    ok(assistantMsg, "should have assistant message");
+    ok(
+      assistantMsg!.tokensIn > 0 || assistantMsg!.tokensOut > 0,
+      "assistant message should have token counts",
+    );
   });
 
   it("uses agent profile as soul override when specified", async () => {

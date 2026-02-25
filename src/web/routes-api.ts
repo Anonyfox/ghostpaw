@@ -2,6 +2,12 @@ import { mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 
 import { relative, resolve } from "node:path";
 import type { ChannelRuntime } from "../channels/runtime.js";
 import { getAllSkillRanks, hasHistory } from "../lib/skill-history.js";
+import {
+  commitSouls,
+  getAllSoulLevels,
+  hasSoulHistory,
+  initSoulHistory,
+} from "../lib/soul-history.js";
 import { parseJSON, readBody } from "./body.js";
 import { json } from "./response.js";
 import { extractParam, type Router } from "./router.js";
@@ -62,8 +68,10 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
         lastActive: s.lastActive,
         tokensIn: s.tokensIn,
         tokensOut: s.tokensOut,
+        costUsd: s.costUsd,
         model: s.model,
         absorbedAt: s.absorbedAt,
+        purpose: s.purpose,
         messageCount,
         preview,
       };
@@ -77,8 +85,13 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
     const key = `web:${name || `session-${Date.now()}`}`;
     const session =
       runtime.sessions.getSessionByKey(key) ??
-      runtime.sessions.createSession(key, { model: runtime.model });
+      runtime.sessions.createSession(key, { model: runtime.model, purpose: "chat" });
     json(res, 201, { id: session.id, key });
+  });
+
+  router.add("POST", "/api/sessions/prune", (_req, res) => {
+    const deleted = runtime.sessions.pruneGhostSessions();
+    json(res, 200, { pruned: deleted });
   });
 
   router.add("GET", "/api/sessions/:key/messages", (req, res) => {
@@ -259,6 +272,8 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
       /* no agents dir */
     }
 
+    const levels = hasSoulHistory(runtime.workspace) ? getAllSoulLevels(runtime.workspace) : {};
+
     const agents = files.map((filename) => {
       let title = filename.replace(/\.md$/, "");
       let lines = 0;
@@ -275,7 +290,7 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
       } catch {
         /* keep filename as title */
       }
-      return { filename, title, lines, description };
+      return { filename, title, level: levels[filename] ?? 0, lines, description };
     });
     json(res, 200, agents);
   });
@@ -326,6 +341,11 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
 
     mkdirSync(agentsDir, { recursive: true });
     writeFileSync(fullPath, body.content, "utf-8");
+
+    initSoulHistory(runtime.workspace);
+    const decodedName = decodeURIComponent(filename);
+    commitSouls(runtime.workspace, `manual: edited ${decodedName}`);
+
     json(res, 200, { ok: true });
   });
 
@@ -346,9 +366,111 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
 
     try {
       unlinkSync(fullPath);
+      initSoulHistory(runtime.workspace);
+      commitSouls(runtime.workspace, `deleted: ${decodeURIComponent(filename)}`);
       json(res, 200, { ok: true });
     } catch {
       json(res, 404, { error: "Agent not found" });
+    }
+  });
+
+  router.add("POST", "/api/agents/:filename/refine/discover", async (req, res) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const filename = extractParam(url.pathname, "/api/agents/:filename/refine/discover");
+    if (!filename || !filename.endsWith(".md")) {
+      json(res, 400, { error: "Invalid agent filename" });
+      return;
+    }
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    let clientDisconnected = false;
+    req.on("close", () => {
+      clientDisconnected = true;
+    });
+
+    function send(data: unknown) {
+      if (!clientDisconnected) {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      }
+    }
+
+    try {
+      const { discoverSoulTrails } = await import("../core/refine.js");
+      const trails = await discoverSoulTrails(runtime.workspace, filename, (phase) => {
+        send({ type: "phase", phase });
+      });
+      send({ type: "trails", trails });
+    } catch (err) {
+      send({ type: "error", message: (err as Error).message });
+    } finally {
+      if (!clientDisconnected) res.end();
+    }
+  });
+
+  router.add("POST", "/api/agents/:filename/refine/apply", async (req, res) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const filename = extractParam(url.pathname, "/api/agents/:filename/refine/apply");
+    if (!filename || !filename.endsWith(".md")) {
+      json(res, 400, { error: "Invalid agent filename" });
+      return;
+    }
+
+    const body = (await parseJSON(req)) as {
+      direction?: { title?: string; why?: string };
+      notes?: string;
+    };
+    if (!body?.direction?.title || !body?.direction?.why) {
+      json(res, 400, { error: "Direction (title + why) is required" });
+      return;
+    }
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    let clientDisconnected = false;
+    req.on("close", () => {
+      clientDisconnected = true;
+    });
+
+    function send(data: unknown) {
+      if (!clientDisconnected) {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      }
+    }
+
+    try {
+      const { applySoulRefinement } = await import("../core/refine.js");
+      const result = await applySoulRefinement(
+        runtime.workspace,
+        filename,
+        { title: body.direction.title, why: body.direction.why },
+        body.notes,
+        (phase) => {
+          send({ type: "phase", phase });
+        },
+      );
+
+      send({
+        type: "result",
+        revised: result.revised,
+        level: result.level,
+        summary: result.summary,
+        changelog: result.changelog,
+      });
+    } catch (err) {
+      send({ type: "error", message: (err as Error).message });
+    } finally {
+      if (!clientDisconnected) res.end();
     }
   });
 
@@ -417,13 +539,17 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
           const { listModelIds } = await import("chatoyant/providers/openai");
           return await listModelIds({ apiKey, timeout: 8000 });
         }
+        if (id === "anthropic") {
+          const { listModelIds } = await import("chatoyant/providers/anthropic");
+          return await listModelIds({ apiKey, timeout: 8000 });
+        }
         if (id === "xai") {
           const { getLanguageModelList } = await import("chatoyant/providers/xai");
           const lms = await getLanguageModelList({ apiKey, timeout: 8000 });
           return lms.map((m) => m.id);
         }
       } catch {
-        /* fall back to hardcoded */
+        /* fall back to known models */
       }
       return null;
     }

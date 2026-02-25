@@ -8,11 +8,13 @@ CREATE TABLE IF NOT EXISTS sessions (
   last_active INTEGER NOT NULL,
   tokens_in INTEGER DEFAULT 0,
   tokens_out INTEGER DEFAULT 0,
+  cost_usd REAL DEFAULT 0,
   token_budget INTEGER,
   model TEXT,
   head_message_id TEXT,
   metadata TEXT,
-  absorbed_at INTEGER
+  absorbed_at INTEGER,
+  purpose TEXT DEFAULT 'chat'
 );
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -41,6 +43,7 @@ CREATE TABLE IF NOT EXISTS runs (
   id TEXT PRIMARY KEY,
   session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
   parent_session_id TEXT REFERENCES sessions(id) ON DELETE SET NULL,
+  child_session_id TEXT REFERENCES sessions(id) ON DELETE SET NULL,
   agent_profile TEXT NOT NULL DEFAULT 'default',
   status TEXT NOT NULL DEFAULT 'pending',
   prompt TEXT,
@@ -49,7 +52,11 @@ CREATE TABLE IF NOT EXISTS runs (
   created_at INTEGER NOT NULL,
   started_at INTEGER,
   completed_at INTEGER,
-  announced INTEGER DEFAULT 0
+  announced INTEGER DEFAULT 0,
+  model TEXT,
+  tokens_in INTEGER DEFAULT 0,
+  tokens_out INTEGER DEFAULT 0,
+  cost_usd REAL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id);
@@ -128,9 +135,33 @@ export async function createDatabase(pathOrMemory: string): Promise<GhostpawData
 
   // Migrations for existing databases
   try {
-    const cols = sqlite.prepare("PRAGMA table_info(sessions)").all() as { name: string }[];
-    if (!cols.some((c) => c.name === "absorbed_at")) {
+    const sCols = sqlite.prepare("PRAGMA table_info(sessions)").all() as { name: string }[];
+    if (!sCols.some((c) => c.name === "absorbed_at")) {
       sqlite.exec("ALTER TABLE sessions ADD COLUMN absorbed_at INTEGER");
+    }
+    if (!sCols.some((c) => c.name === "purpose")) {
+      sqlite.exec("ALTER TABLE sessions ADD COLUMN purpose TEXT DEFAULT 'chat'");
+    }
+    if (!sCols.some((c) => c.name === "cost_usd")) {
+      sqlite.exec("ALTER TABLE sessions ADD COLUMN cost_usd REAL DEFAULT 0");
+    }
+    const rCols = sqlite.prepare("PRAGMA table_info(runs)").all() as { name: string }[];
+    if (!rCols.some((c) => c.name === "model")) {
+      sqlite.exec("ALTER TABLE runs ADD COLUMN model TEXT");
+    }
+    if (!rCols.some((c) => c.name === "tokens_in")) {
+      sqlite.exec("ALTER TABLE runs ADD COLUMN tokens_in INTEGER DEFAULT 0");
+    }
+    if (!rCols.some((c) => c.name === "tokens_out")) {
+      sqlite.exec("ALTER TABLE runs ADD COLUMN tokens_out INTEGER DEFAULT 0");
+    }
+    if (!rCols.some((c) => c.name === "cost_usd")) {
+      sqlite.exec("ALTER TABLE runs ADD COLUMN cost_usd REAL DEFAULT 0");
+    }
+    if (!rCols.some((c) => c.name === "child_session_id")) {
+      sqlite.exec(
+        "ALTER TABLE runs ADD COLUMN child_session_id TEXT REFERENCES sessions(id) ON DELETE SET NULL",
+      );
     }
   } catch {
     // best-effort migration

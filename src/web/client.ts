@@ -118,11 +118,12 @@ function renderSessionList() {
     const active = s.key === currentSessionKey ? " active" : "";
     const date = new Date(s.lastActive).toLocaleDateString();
     const tokens = formatNumber(s.tokensIn + s.tokensOut);
+    const cost = formatCost(s.costUsd);
     return '<div class="gp-session-item' + active + '" data-session-key="' + escapeAttr(s.key) + '">'
       + '<div class="gp-session-label">' + escapeHtml(label) + '</div>'
       + '<div class="gp-session-meta">'
       + '<span>' + date + '</span>'
-      + '<span>' + tokens + ' tok</span>'
+      + '<span>' + tokens + ' tok' + (cost ? ' · ' + cost : '') + '</span>'
       + '</div></div>';
   }).join("");
 
@@ -431,13 +432,15 @@ function sessStatusBadge(s) {
 function renderSessionStats(sessions) {
   const total = sessions.length;
   const tokensTotal = sessions.reduce((a, s) => a + s.tokensIn + s.tokensOut, 0);
+  const costTotal = sessions.reduce((a, s) => a + (s.costUsd || 0), 0);
   const absorbed = sessions.filter(s => s.absorbedAt).length;
   const unabsorbed = sessions.filter(s => !s.absorbedAt && s.messageCount > 0).length;
+  const costDisplay = costTotal > 0 ? formatCost(costTotal) : "$0";
   return '<div class="gp-sess-stats">'
     + '<div class="gp-sess-stat"><div class="gp-sess-stat-value">' + total + '</div><div class="gp-sess-stat-label">Sessions</div></div>'
     + '<div class="gp-sess-stat"><div class="gp-sess-stat-value">' + formatNumber(tokensTotal) + '</div><div class="gp-sess-stat-label">Total Tokens</div></div>'
+    + '<div class="gp-sess-stat"><div class="gp-sess-stat-value">' + costDisplay + '</div><div class="gp-sess-stat-label">Total Cost</div></div>'
     + '<div class="gp-sess-stat"><div class="gp-sess-stat-value">' + unabsorbed + '</div><div class="gp-sess-stat-label">Unabsorbed</div></div>'
-    + '<div class="gp-sess-stat"><div class="gp-sess-stat-value">' + absorbed + '</div><div class="gp-sess-stat-label">Absorbed</div></div>'
     + '</div>';
 }
 
@@ -465,6 +468,7 @@ function renderSessionCard(s) {
   const ch = channelOf(s.key);
   const label = channelLabel(s.key);
   const tokens = formatNumber(s.tokensIn + s.tokensOut);
+  const cost = formatCost(s.costUsd);
   const sid = String(s.id);
   const expanded = sessExpandedId === sid;
 
@@ -491,7 +495,7 @@ function renderSessionCard(s) {
     + channelBadge(ch)
     + sessStatusBadge(s)
     + '<span class="gp-sess-meta-item">\uD83D\uDCDD ' + s.messageCount + ' msgs</span>'
-    + '<span class="gp-sess-meta-item">\u26A1 ' + tokens + ' tok</span>'
+    + '<span class="gp-sess-meta-item">\u26A1 ' + tokens + ' tok' + (cost ? ' · ' + cost : '') + '</span>'
     + '<span class="gp-sess-meta-item">\uD83D\uDD52 ' + timeAgo(s.lastActive) + '</span>'
     + '</div>';
   if (expanded) {
@@ -742,6 +746,211 @@ document.getElementById("btnCancelSkill").addEventListener("click", () => {
 let editingAgent = null;
 let isNewAgent = false;
 
+function levelPipsHTML(level) {
+  const maxPips = 10;
+  const filled = Math.min(level, maxPips);
+  let pips = '';
+  for (let i = 0; i < maxPips; i++) {
+    pips += '<span class="gp-agents-pip' + (i < filled ? ' gp-agents-pip-filled' : '') + '"></span>';
+  }
+  return '<div class="gp-agents-level-bar">' + pips
+    + (level > maxPips ? '<span class="gp-agents-pip-overflow">+' + (level - maxPips) + '</span>' : '')
+    + '</div>';
+}
+
+var pendingRefineResult = null;
+
+function clearRefinePanel(card) {
+  var old = card.querySelector(".gp-refine-panel");
+  if (old) old.remove();
+}
+
+async function readSSE(res, onEvent) {
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  var buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\\n\\n");
+    buffer = parts.pop() || "";
+    for (const chunk of parts) {
+      if (!chunk.startsWith("data: ")) continue;
+      try { onEvent(JSON.parse(chunk.slice(6))); } catch {}
+    }
+  }
+}
+
+async function triggerRefine(filename, btn) {
+  btn.disabled = true;
+  btn.textContent = "Analyzing\\u2026";
+  const card = btn.closest(".gp-agents-card");
+  if (card) card.classList.add("gp-agents-card-refining");
+  clearRefinePanel(card);
+
+  var panel = document.createElement("div");
+  panel.className = "gp-refine-panel";
+  panel.innerHTML = '<div class="gp-refine-status">Analyzing performance\\u2026</div>';
+  card.appendChild(panel);
+
+  try {
+    const res = await fetch("/api/agents/" + encodeURIComponent(filename) + "/refine/discover", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || "Discovery failed");
+    }
+
+    var trails = [];
+    await readSSE(res, function(evt) {
+      if (evt.type === "phase") {
+        var labels = { reviewing: "Reviewing delegation history\\u2026", analyzing: "Identifying improvements\\u2026" };
+        var statusEl = panel.querySelector(".gp-refine-status");
+        if (statusEl) statusEl.textContent = labels[evt.phase] || evt.phase;
+      } else if (evt.type === "trails") {
+        trails = evt.trails || [];
+      } else if (evt.type === "error") {
+        throw new Error(evt.message);
+      }
+    });
+
+    if (!trails.length) {
+      panel.innerHTML = '<div class="gp-refine-status">No improvement suggestions found.</div>';
+      btn.disabled = false;
+      btn.textContent = "Refine";
+      if (card) card.classList.remove("gp-agents-card-refining");
+      return;
+    }
+
+    renderTrailCards(panel, filename, trails, card, btn);
+  } catch (err) {
+    panel.innerHTML = '<div class="gp-refine-status gp-text-danger">' + escapeHtml(err.message || "Discovery failed") + '</div>';
+    btn.disabled = false;
+    btn.textContent = "Refine";
+    if (card) card.classList.remove("gp-agents-card-refining");
+  }
+}
+
+function renderTrailCards(panel, filename, trails, card, btn) {
+  var html = '<div class="gp-refine-trails-header">Suggested improvements</div>';
+  html += '<div class="gp-refine-trails">';
+  trails.forEach(function(t, i) {
+    html += '<div class="gp-refine-trail" data-trail-idx="' + i + '">'
+      + '<div class="gp-refine-trail-title">' + escapeHtml(t.title) + '</div>'
+      + '<div class="gp-refine-trail-why">' + escapeHtml(t.why) + '</div>'
+      + '</div>';
+  });
+  html += '</div>';
+  html += '<div class="gp-refine-guidance">'
+    + '<input type="text" class="gp-refine-notes-input" placeholder="Optional: add your own guidance\\u2026" />'
+    + '</div>';
+  html += '<div class="gp-refine-hint">Click a suggestion to apply it</div>';
+  panel.innerHTML = html;
+
+  panel.querySelectorAll(".gp-refine-trail").forEach(function(el) {
+    el.addEventListener("click", function() {
+      var idx = parseInt(el.dataset.trailIdx, 10);
+      var trail = trails[idx];
+      var notes = panel.querySelector(".gp-refine-notes-input").value || "";
+      applyRefine(panel, filename, trail, notes, card, btn);
+    });
+  });
+}
+
+async function applyRefine(panel, filename, trail, notes, card, btn) {
+  panel.innerHTML = '<div class="gp-refine-status">Applying: ' + escapeHtml(trail.title) + '\\u2026</div>';
+
+  try {
+    const res = await fetch("/api/agents/" + encodeURIComponent(filename) + "/refine/apply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ direction: trail, notes: notes || undefined }),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || "Refinement failed");
+    }
+
+    var refineResult = null;
+    await readSSE(res, function(evt) {
+      if (evt.type === "phase") {
+        var labels = {
+          reviewing: "Gathering evidence\\u2026",
+          refining: "Refining soul\\u2026",
+          committing: "Committing\\u2026",
+          summarizing: "Summarizing changes\\u2026"
+        };
+        var statusEl = panel.querySelector(".gp-refine-status");
+        if (statusEl) statusEl.textContent = labels[evt.phase] || evt.phase;
+      } else if (evt.type === "result") {
+        refineResult = evt;
+      } else if (evt.type === "error") {
+        throw new Error(evt.message);
+      }
+    });
+
+    if (refineResult) {
+      pendingRefineResult = { filename: filename, result: refineResult };
+    }
+    await loadAgents();
+  } catch (err) {
+    panel.innerHTML = '<div class="gp-refine-status gp-text-danger">' + escapeHtml(err.message || "Refinement failed") + '</div>';
+    btn.disabled = false;
+    btn.textContent = "Refine";
+    if (card) card.classList.remove("gp-agents-card-refining");
+  }
+}
+
+function showRefineResult(card, result) {
+  clearRefinePanel(card);
+
+  if (!result.revised) {
+    showToast(result.summary || "No changes needed", "success");
+    return;
+  }
+
+  var panel = document.createElement("div");
+  panel.className = "gp-refine-panel";
+
+  var header = '<div class="gp-refine-result-header">'
+    + '<span class="gp-refine-result-badge">Level ' + (result.level || "?") + '</span>'
+    + '<span class="gp-refine-result-title">' + escapeHtml(result.summary) + '</span>'
+    + '<button class="gp-refine-result-close">\\u2715</button>'
+    + '</div>';
+
+  var changelog = result.changelog
+    ? '<div class="gp-refine-changelog">' + renderSimpleMarkdown(result.changelog) + '</div>'
+    : '';
+
+  panel.innerHTML = header + changelog;
+  card.appendChild(panel);
+
+  panel.querySelector(".gp-refine-result-close").addEventListener("click", function() {
+    panel.remove();
+  });
+}
+
+function renderSimpleMarkdown(text) {
+  return text
+    .split("\\n")
+    .map(function(line) {
+      var trimmed = line.trim();
+      if (!trimmed) return "";
+      if (/^[-*]\\s/.test(trimmed)) {
+        return '<div class="gp-refine-bullet">' + escapeHtml(trimmed.slice(2)) + '</div>';
+      }
+      if (/^\\d+\\.\\s/.test(trimmed)) {
+        return '<div class="gp-refine-bullet">' + escapeHtml(trimmed.replace(/^\\d+\\.\\s*/, "")) + '</div>';
+      }
+      return '<div>' + escapeHtml(trimmed) + '</div>';
+    })
+    .filter(function(l) { return l; })
+    .join("");
+}
+
 function agentsIntroHTML() {
   return '<div class="gp-agents-intro">'
     + '<div class="gp-agents-intro-heading">Agent souls</div>'
@@ -762,9 +971,11 @@ async function loadAgents() {
 
   const totalAgents = data.length;
   const totalLines = data.reduce((s, a) => s + (a.lines || 0), 0);
+  const totalLevels = data.reduce((s, a) => s + (a.level || 0), 0);
 
   html += '<div class="gp-agents-stats">'
     + '<div class="gp-agents-stat"><div class="gp-agents-stat-value">' + totalAgents + '</div><div class="gp-agents-stat-label">Souls</div></div>'
+    + '<div class="gp-agents-stat"><div class="gp-agents-stat-value">' + totalLevels + '</div><div class="gp-agents-stat-label">Total Levels</div></div>'
     + '<div class="gp-agents-stat"><div class="gp-agents-stat-value">' + totalLines + '</div><div class="gp-agents-stat-label">Total Lines</div></div>'
     + '</div>';
 
@@ -790,6 +1001,9 @@ async function loadAgents() {
     const desc = a.description
       ? '<div class="gp-agents-card-desc">' + escapeHtml(a.description) + '</div>'
       : '';
+    const lvl = a.level || 0;
+    const levelBadge = '<span class="gp-agents-level-badge">Lv ' + lvl + '</span>';
+    const levelPips = levelPipsHTML(lvl);
     return '<div class="gp-agents-card">'
       + '<div class="gp-agents-card-top">'
       + '<div class="gp-agents-card-info">'
@@ -797,10 +1011,12 @@ async function loadAgents() {
       + '<div class="gp-agents-card-meta">' + escapeHtml(a.filename) + ' \\u00B7 ' + a.lines + ' lines</div>'
       + '</div>'
       + '<div class="gp-agents-card-actions">'
-      + '<span class="gp-agents-badge">Soul</span>'
+      + levelBadge
+      + '<button class="gp-agents-refine-btn" data-refine-agent="' + escapeAttr(a.filename) + '">Refine</button>'
       + '<button class="gp-agents-edit-btn" data-edit-agent="' + escapeAttr(a.filename) + '">Edit</button>'
       + '</div>'
       + '</div>'
+      + levelPips
       + desc
       + '</div>';
   }).join("");
@@ -812,6 +1028,21 @@ async function loadAgents() {
   el.querySelectorAll("[data-edit-agent]").forEach(btn => {
     btn.addEventListener("click", () => openAgentEditor(btn.dataset.editAgent));
   });
+
+  el.querySelectorAll("[data-refine-agent]").forEach(btn => {
+    btn.addEventListener("click", () => triggerRefine(btn.dataset.refineAgent, btn));
+  });
+
+  if (pendingRefineResult) {
+    const fn = pendingRefineResult.filename;
+    const res = pendingRefineResult.result;
+    pendingRefineResult = null;
+    const targetBtn = el.querySelector('[data-refine-agent="' + escapeAttr(fn) + '"]');
+    if (targetBtn) {
+      const targetCard = targetBtn.closest(".gp-agents-card");
+      if (targetCard) showRefineResult(targetCard, res);
+    }
+  }
 }
 
 function wireCreateAgentBtn() {
@@ -2025,6 +2256,13 @@ function formatNumber(n) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1_000) return (n / 1_000).toFixed(1) + "k";
   return String(n);
+}
+
+function formatCost(usd) {
+  if (!usd || usd <= 0) return "";
+  if (usd >= 1) return "$" + usd.toFixed(2);
+  if (usd >= 0.01) return "$" + usd.toFixed(3);
+  return "$" + usd.toFixed(4);
 }
 
 // ── Init ────────────────────────────────────────────────────────────────────

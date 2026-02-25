@@ -14,11 +14,13 @@ const mockSessions: {
   lastActive: number;
   tokensIn: number;
   tokensOut: number;
+  costUsd: number;
   model: string | null;
   headMessageId: string | null;
   tokenBudget: number | null;
   metadata: string | null;
   absorbedAt: number | null;
+  purpose: string;
 }[] = [];
 const mockMessages: {
   id: string;
@@ -51,11 +53,13 @@ function createMockRuntime(): ChannelRuntime {
           lastActive: Date.now(),
           tokensIn: 0,
           tokensOut: 0,
+          costUsd: 0,
           model: "test-model",
           headMessageId: null,
           tokenBudget: null,
           metadata: null,
           absorbedAt: null,
+          purpose: "chat" as const,
         };
         mockSessions.push(s);
         return s;

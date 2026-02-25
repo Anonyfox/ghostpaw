@@ -7,6 +7,7 @@ export interface Run {
   id: string;
   sessionId: string;
   parentSessionId: string | null;
+  childSessionId: string | null;
   agentProfile: string;
   status: RunStatus;
   prompt: string | null;
@@ -16,6 +17,10 @@ export interface Run {
   startedAt: number;
   completedAt: number | null;
   announced: boolean;
+  model: string | null;
+  tokensIn: number;
+  tokensOut: number;
+  costUsd: number;
 }
 
 export interface CreateRunOptions {
@@ -23,12 +28,21 @@ export interface CreateRunOptions {
   prompt: string;
   agentProfile?: string;
   parentSessionId?: string;
+  model?: string;
 }
 
 export interface RunStore {
   create(options: CreateRunOptions): Run;
   complete(runId: string, result: string): void;
   fail(runId: string, error: string): void;
+  recordUsage(
+    runId: string,
+    model: string,
+    tokensIn: number,
+    tokensOut: number,
+    costUsd: number,
+  ): void;
+  linkChildSession(runId: string, childSessionId: string): void;
   get(runId: string): Run | null;
   getActive(sessionId: string): Run | null;
   getCompletedDelegations(parentSessionId: string): Run[];
@@ -40,6 +54,7 @@ function rowToRun(row: Record<string, unknown>): Run {
     id: row.id as string,
     sessionId: row.session_id as string,
     parentSessionId: (row.parent_session_id as string) ?? null,
+    childSessionId: (row.child_session_id as string) ?? null,
     agentProfile: (row.agent_profile as string) ?? "default",
     status: row.status as RunStatus,
     prompt: (row.prompt as string) ?? null,
@@ -49,6 +64,10 @@ function rowToRun(row: Record<string, unknown>): Run {
     startedAt: (row.started_at as number) ?? 0,
     completedAt: (row.completed_at as number) ?? null,
     announced: row.announced === 1,
+    model: (row.model as string) ?? null,
+    tokensIn: (row.tokens_in as number) ?? 0,
+    tokensOut: (row.tokens_out as number) ?? 0,
+    costUsd: (row.cost_usd as number) ?? 0,
   };
 }
 
@@ -62,8 +81,8 @@ export function createRunStore(db: GhostpawDatabase): RunStore {
 
       sqlite
         .prepare(
-          `INSERT INTO runs (id, session_id, parent_session_id, agent_profile, status, prompt, created_at, started_at)
-           VALUES (?, ?, ?, ?, 'running', ?, ?, ?)`,
+          `INSERT INTO runs (id, session_id, parent_session_id, agent_profile, status, prompt, created_at, started_at, model)
+           VALUES (?, ?, ?, ?, 'running', ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -73,12 +92,14 @@ export function createRunStore(db: GhostpawDatabase): RunStore {
           options.prompt,
           now,
           now,
+          options.model ?? null,
         );
 
       return {
         id,
         sessionId: options.sessionId,
         parentSessionId: options.parentSessionId ?? null,
+        childSessionId: null,
         agentProfile: options.agentProfile ?? "default",
         status: "running",
         prompt: options.prompt,
@@ -88,6 +109,10 @@ export function createRunStore(db: GhostpawDatabase): RunStore {
         startedAt: now,
         completedAt: null,
         announced: false,
+        model: options.model ?? null,
+        tokensIn: 0,
+        tokensOut: 0,
+        costUsd: 0,
       };
     },
 
@@ -101,6 +126,20 @@ export function createRunStore(db: GhostpawDatabase): RunStore {
       sqlite
         .prepare("UPDATE runs SET status = 'failed', error = ?, completed_at = ? WHERE id = ?")
         .run(error, Date.now(), runId);
+    },
+
+    recordUsage(runId, model, tokensIn, tokensOut, costUsd) {
+      sqlite
+        .prepare(
+          "UPDATE runs SET model = ?, tokens_in = ?, tokens_out = ?, cost_usd = ? WHERE id = ?",
+        )
+        .run(model, tokensIn, tokensOut, costUsd, runId);
+    },
+
+    linkChildSession(runId, childSessionId) {
+      sqlite
+        .prepare("UPDATE runs SET child_session_id = ? WHERE id = ?")
+        .run(childSessionId, runId);
     },
 
     get(runId) {

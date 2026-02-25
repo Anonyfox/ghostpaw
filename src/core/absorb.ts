@@ -7,7 +7,8 @@ import { Chat } from "chatoyant";
 import type { EmbeddingProvider } from "../lib/embedding.js";
 import type { GhostpawDatabase } from "./database.js";
 import type { MemoryStore } from "./memory.js";
-import type { Message, SessionStore } from "./session.js";
+import { createRunStore } from "./runs.js";
+import { getOrCreateSystemSession, type Message, type SessionStore } from "./session.js";
 
 const EXTRACTION_PROMPT = `Extract key learnings from the conversation below. For each learning, write ONE concise sentence capturing what was learned, discovered, corrected, or preferred.
 
@@ -71,6 +72,11 @@ const MAX_CONVERSATION_CHARS = 30_000;
 export async function absorbSessions(config: AbsorbConfig): Promise<AbsorbResult> {
   const { db, sessions, memory, embedding, model } = config;
 
+  const runStore = createRunStore(db);
+  const sysSessionId = getOrCreateSystemSession(sessions);
+
+  sessions.pruneGhostSessions();
+
   const unabsorbed = sessions.listUnabsorbed();
   let absorbed = 0;
   let memoriesCreated = 0;
@@ -100,28 +106,44 @@ export async function absorbSessions(config: AbsorbConfig): Promise<AbsorbResult
       conversation = `${conversation.slice(0, MAX_CONVERSATION_CHARS)}\n\n[conversation truncated]`;
     }
 
+    const run = runStore.create({
+      sessionId: sysSessionId,
+      prompt: `absorb: ${session.key}`,
+      agentProfile: "absorb",
+      model,
+    });
+
     try {
-      const chat = new Chat({ model }) as {
-        system(s: string): unknown;
-        user(s: string): unknown;
-        generate(): Promise<string>;
-      };
+      const chat = new Chat({ model });
       chat.system(EXTRACTION_PROMPT);
       chat.user(conversation);
-      const response = await chat.generate();
+      const genResult = await chat.generateWithResult();
 
-      const learnings = parseLearnings(response).slice(0, MAX_LEARNINGS_PER_SESSION);
+      runStore.complete(run.id, genResult.content.slice(0, 500));
+      runStore.recordUsage(
+        run.id,
+        genResult.model,
+        genResult.usage.inputTokens,
+        genResult.usage.outputTokens,
+        genResult.cost.estimatedUsd,
+      );
+      sessions.updateSessionTokens(
+        sysSessionId,
+        genResult.usage.inputTokens,
+        genResult.usage.outputTokens,
+        genResult.cost.estimatedUsd,
+      );
+
+      const learnings = parseLearnings(genResult.content).slice(0, MAX_LEARNINGS_PER_SESSION);
       const remaining = MAX_LEARNINGS_PER_RUN - memoriesCreated;
       const toStore = learnings.slice(0, remaining);
 
-      // Compute embeddings first (async / network), then commit atomically
       const prepared: { text: string; vec: number[] }[] = [];
       for (const learning of toStore) {
         const vec = await embedding.embed(learning);
         prepared.push({ text: learning, vec });
       }
 
-      // All inserts + markAbsorbed in one transaction — crash-safe
       db.sqlite.exec("BEGIN");
       try {
         for (const { text, vec } of prepared) {
@@ -135,8 +157,8 @@ export async function absorbSessions(config: AbsorbConfig): Promise<AbsorbResult
       }
 
       memoriesCreated += prepared.length;
-    } catch {
-      // LLM or embedding call failed — mark absorbed to avoid retrying forever
+    } catch (err) {
+      runStore.fail(run.id, err instanceof Error ? err.message : String(err));
       sessions.markAbsorbed(session.id);
     }
 

@@ -1,6 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { commitSkills, initHistory } from "../lib/skill-history.js";
+import { commitSouls, initSoulHistory } from "../lib/soul-history.js";
 import { blank, log, readSecret, style } from "../lib/terminal.js";
 import { DEFAULT_CONFIG } from "./config.js";
 import { SKILL_CRAFT, SKILL_MCP, SKILL_SCOUT, SKILL_TRAINING } from "./default_skills.js";
@@ -117,6 +118,10 @@ export function initWorkspace(workspacePath: string): InitResult {
 
   if (initHistory(workspacePath)) {
     commitSkills(workspacePath, "initial skills");
+  }
+
+  if (initSoulHistory(workspacePath)) {
+    commitSouls(workspacePath, "initial souls");
   }
 
   return result;

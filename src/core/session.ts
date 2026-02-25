@@ -3,6 +3,8 @@ import { type GhostpawDatabase, isNullRow } from "./database.js";
 
 export type MessageRole = "system" | "user" | "assistant";
 
+export type SessionPurpose = "chat" | "delegate" | "train" | "scout" | "refine" | "system";
+
 export interface Session {
   id: string;
   key: string;
@@ -10,11 +12,13 @@ export interface Session {
   lastActive: number;
   tokensIn: number;
   tokensOut: number;
+  costUsd: number;
   tokenBudget: number | null;
   model: string | null;
   headMessageId: string | null;
   metadata: string | null;
   absorbedAt: number | null;
+  purpose: SessionPurpose;
 }
 
 export interface Message {
@@ -44,6 +48,7 @@ export interface CreateSessionOptions {
   model?: string;
   tokenBudget?: number;
   metadata?: Record<string, unknown>;
+  purpose?: SessionPurpose;
 }
 
 export interface SessionStore {
@@ -56,11 +61,17 @@ export interface SessionStore {
   getMessage(id: string): Message | null;
   getConversationHistory(sessionId: string): Message[];
   setHead(sessionId: string, messageId: string): void;
-  updateSessionTokens(sessionId: string, tokensIn: number, tokensOut: number): void;
+  updateSessionTokens(
+    sessionId: string,
+    tokensIn: number,
+    tokensOut: number,
+    costUsd?: number,
+  ): void;
   markAbsorbed(sessionId: string): void;
   listUnabsorbed(): Session[];
   countUnabsorbed(): number;
   deleteOldAbsorbed(ttlMs: number): number;
+  pruneGhostSessions(maxAgeMs?: number): number;
 }
 
 function rowToSession(row: Record<string, unknown>): Session {
@@ -71,11 +82,13 @@ function rowToSession(row: Record<string, unknown>): Session {
     lastActive: row.last_active as number,
     tokensIn: (row.tokens_in as number) ?? 0,
     tokensOut: (row.tokens_out as number) ?? 0,
+    costUsd: (row.cost_usd as number) ?? 0,
     tokenBudget: (row.token_budget as number) ?? null,
     model: (row.model as string) ?? null,
     headMessageId: (row.head_message_id as string) ?? null,
     metadata: (row.metadata as string) ?? null,
     absorbedAt: (row.absorbed_at as number) ?? null,
+    purpose: ((row.purpose as string) ?? "chat") as SessionPurpose,
   };
 }
 
@@ -104,13 +117,14 @@ export function createSessionStore(db: GhostpawDatabase): SessionStore {
       const model = options?.model ?? null;
       const tokenBudget = options?.tokenBudget ?? null;
       const metadata = options?.metadata ? JSON.stringify(options.metadata) : null;
+      const purpose = options?.purpose ?? "chat";
 
       sqlite
         .prepare(
-          `INSERT INTO sessions (id, key, created_at, last_active, model, token_budget, metadata)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO sessions (id, key, created_at, last_active, model, token_budget, metadata, purpose)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .run(id, key, now, now, model, tokenBudget, metadata);
+        .run(id, key, now, now, model, tokenBudget, metadata, purpose);
 
       return {
         id,
@@ -119,11 +133,13 @@ export function createSessionStore(db: GhostpawDatabase): SessionStore {
         lastActive: now,
         tokensIn: 0,
         tokensOut: 0,
+        costUsd: 0,
         tokenBudget,
         model,
         headMessageId: null,
         metadata,
         absorbedAt: null,
+        purpose,
       };
     },
 
@@ -234,12 +250,17 @@ export function createSessionStore(db: GhostpawDatabase): SessionStore {
         .run(messageId, Date.now(), sessionId);
     },
 
-    updateSessionTokens(sessionId: string, tokensIn: number, tokensOut: number): void {
+    updateSessionTokens(
+      sessionId: string,
+      tokensIn: number,
+      tokensOut: number,
+      costUsd?: number,
+    ): void {
       sqlite
         .prepare(
-          "UPDATE sessions SET tokens_in = tokens_in + ?, tokens_out = tokens_out + ?, last_active = ? WHERE id = ?",
+          "UPDATE sessions SET tokens_in = tokens_in + ?, tokens_out = tokens_out + ?, cost_usd = cost_usd + ?, last_active = ? WHERE id = ?",
         )
-        .run(tokensIn, tokensOut, Date.now(), sessionId);
+        .run(tokensIn, tokensOut, costUsd ?? 0, Date.now(), sessionId);
     },
 
     markAbsorbed(sessionId: string): void {
@@ -249,7 +270,7 @@ export function createSessionStore(db: GhostpawDatabase): SessionStore {
     listUnabsorbed(): Session[] {
       const rows = sqlite
         .prepare(
-          "SELECT * FROM sessions WHERE absorbed_at IS NULL AND head_message_id IS NOT NULL ORDER BY last_active ASC",
+          "SELECT * FROM sessions WHERE absorbed_at IS NULL AND head_message_id IS NOT NULL AND purpose IN ('chat', 'delegate') ORDER BY last_active ASC",
         )
         .all() as Record<string, unknown>[];
       return rows.map(rowToSession);
@@ -258,10 +279,25 @@ export function createSessionStore(db: GhostpawDatabase): SessionStore {
     countUnabsorbed(): number {
       const row = sqlite
         .prepare(
-          "SELECT COUNT(*) as cnt FROM sessions WHERE absorbed_at IS NULL AND head_message_id IS NOT NULL",
+          "SELECT COUNT(*) as cnt FROM sessions WHERE absorbed_at IS NULL AND head_message_id IS NOT NULL AND purpose IN ('chat', 'delegate')",
         )
         .get() as { cnt: number } | undefined;
       return row?.cnt ?? 0;
+    },
+
+    pruneGhostSessions(maxAgeMs = 3600_000): number {
+      const cutoff = Date.now() - maxAgeMs;
+      const result = sqlite
+        .prepare(
+          `DELETE FROM sessions
+           WHERE head_message_id IS NULL
+             AND tokens_in = 0 AND tokens_out = 0
+             AND created_at < ?
+             AND purpose NOT IN ('system')
+             AND id NOT IN (SELECT DISTINCT session_id FROM runs)`,
+        )
+        .run(cutoff);
+      return result.changes;
     },
 
     deleteOldAbsorbed(ttlMs: number): number {
@@ -282,4 +318,20 @@ export function createSessionStore(db: GhostpawDatabase): SessionStore {
       return sessions.length;
     },
   };
+}
+
+/**
+ * Returns the ID of the long-lived "system-ops" session used for system
+ * LLM calls (refine, scout mining, absorb). Created lazily on first use.
+ */
+export function getOrCreateSystemSession(sessions: SessionStore): string {
+  const existing = sessions.getSessionByKey("system-ops");
+  if (existing) return existing.id;
+  try {
+    return sessions.createSession("system-ops", { purpose: "system" }).id;
+  } catch {
+    const retry = sessions.getSessionByKey("system-ops");
+    if (retry) return retry.id;
+    throw new Error("Failed to create or find system-ops session");
+  }
 }

@@ -22,11 +22,13 @@ function mockRuntime(workspace = "/tmp") {
         lastActive: Date.now(),
         tokensIn: 0,
         tokensOut: 0,
+        costUsd: 0,
         model: "test",
         headMessageId: null,
         tokenBudget: null,
         metadata: null,
         absorbedAt: null,
+        purpose: "chat" as const,
       }),
       getConversationHistory: () => [],
       countUnabsorbed: () => 0,
@@ -107,6 +109,8 @@ describe("routes-api", () => {
       ["GET", "/api/agents/test.md"],
       ["PUT", "/api/agents/test.md"],
       ["DELETE", "/api/agents/test.md"],
+      ["POST", "/api/agents/test.md/refine/discover"],
+      ["POST", "/api/agents/test.md/refine/apply"],
       ["GET", "/api/memory"],
       ["DELETE", "/api/memory/mem-1"],
       ["GET", "/api/secrets"],
@@ -275,6 +279,32 @@ describe("routes-api", () => {
       const { status, body } = await call("DELETE", "/api/agents/bad.txt");
       assert.strictEqual(status, 400);
       assert.strictEqual(body.error, "Invalid agent filename");
+    });
+
+    it("GET /api/agents includes level field (default 0 without history)", async () => {
+      const agentsDir = join(workspace, "agents");
+      mkdirSync(agentsDir);
+      writeFileSync(join(agentsDir, "coder.md"), "# Coder\n\nWrites code.");
+
+      const { status, body } = await call("GET", "/api/agents");
+      assert.strictEqual(status, 200);
+      assert.strictEqual(body[0].level, 0);
+    });
+
+    it("PUT /api/agents/:filename initializes soul history and commits", async () => {
+      await call("PUT", "/api/agents/tracked.md", { content: "# Tracked\n\nSoul v1." });
+
+      assert.ok(existsSync(join(workspace, ".ghostpaw", "soul-history", "HEAD")));
+    });
+
+    it("PUT /api/agents/:filename increments level on successive saves", async () => {
+      await call("PUT", "/api/agents/evolving.md", { content: "# V1\n\nFirst." });
+      await call("PUT", "/api/agents/evolving.md", { content: "# V2\n\nSecond." });
+
+      const { body } = await call("GET", "/api/agents");
+      const evolving = body.find((a: { filename: string }) => a.filename === "evolving.md");
+      assert.ok(evolving);
+      assert.ok(evolving.level >= 2, `Expected level >= 2 but got ${evolving.level}`);
     });
 
     it("full lifecycle: create, read, update, list, delete", async () => {

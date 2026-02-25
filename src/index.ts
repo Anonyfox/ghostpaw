@@ -107,8 +107,14 @@ export {
   serviceStatus,
   uninstallService,
 } from "./core/service.js";
-export type { Message, MessageRole, Session, SessionStore } from "./core/session.js";
-export { createSessionStore } from "./core/session.js";
+export type {
+  Message,
+  MessageRole,
+  Session,
+  SessionPurpose,
+  SessionStore,
+} from "./core/session.js";
+export { createSessionStore, getOrCreateSystemSession } from "./core/session.js";
 export { DEFAULT_SOUL } from "./core/soul.js";
 export { StreamFormatter } from "./core/stream_format.js";
 export type { EmbeddingProvider } from "./lib/embedding.js";
@@ -170,6 +176,8 @@ export interface AgentOptions {
   model?: string;
   /** Tool names to exclude from this agent's registry (prevents recursion). */
   excludeTools?: string[];
+  /** Session purpose marker (default: "chat"). */
+  purpose?: "chat" | "delegate" | "train" | "scout" | "refine" | "system";
 }
 
 export interface Agent {
@@ -251,8 +259,15 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
 
   const budget = createBudgetTracker(config.costControls);
   const model = options.model ?? config.models.default;
+  const purpose = options.purpose ?? "chat";
 
-  const session = sessions.createSession(`agent-${Date.now()}`, { model });
+  let session: import("./core/session.js").Session | null = null;
+  function getOrCreateSession() {
+    if (!session) {
+      session = sessions.createSession(`agent-${Date.now()}`, { model, purpose });
+    }
+    return session;
+  }
 
   const coreTools = tools.list();
   tools.register(
@@ -262,7 +277,7 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
       defaultModel: model,
       sessions,
       runs: runStore,
-      parentSessionId: session.id,
+      parentSessionId: () => getOrCreateSession().id,
       eventBus,
       budget,
     }),
@@ -280,17 +295,19 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
   });
 
   return {
-    sessionId: session.id,
+    get sessionId() {
+      return getOrCreateSession().id;
+    },
     tools,
     memory,
     eventBus,
     runs: runStore,
     async run(prompt: string): Promise<string> {
-      const result = await loop.run(session.id, prompt);
+      const result = await loop.run(getOrCreateSession().id, prompt);
       return result.text ?? "(no response)";
     },
     async *stream(prompt: string): AsyncGenerator<string> {
-      yield* loop.stream(session.id, prompt);
+      yield* loop.stream(getOrCreateSession().id, prompt);
     },
   };
 }

@@ -7,6 +7,13 @@ import type { EventBus } from "./events.js";
 import type { RunStore } from "./runs.js";
 import type { SessionStore } from "./session.js";
 
+export interface ChatInstanceResult {
+  usage: { inputTokens: number; outputTokens: number };
+  cost: { estimatedUsd: number };
+  model: string;
+  iterations: number;
+}
+
 export interface ChatInstance {
   system(content: string): ChatInstance;
   user(content: string): ChatInstance;
@@ -22,6 +29,13 @@ export interface ChatInstance {
     onToolError?: string;
     toolTimeout?: number;
   }): AsyncIterable<string>;
+  lastResult?: ChatInstanceResult | null;
+  messages?: readonly {
+    role: string;
+    content: string;
+    toolCalls?: unknown[];
+    toolCallId?: string;
+  }[];
 }
 
 export type ChatFactory = (model: string) => ChatInstance;
@@ -153,17 +167,25 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
     text: string | null,
     inputTokenEstimate: number,
     lastMessageId: string | undefined,
+    chat?: ChatInstance,
   ): RunResult {
+    const lr = chat?.lastResult;
+    const tokensIn = lr?.usage.inputTokens ?? inputTokenEstimate;
+    const tokensOut = lr?.usage.outputTokens ?? estimateTokens(text ?? "");
+    const realModel = lr?.model ?? model;
+
     sessions.addMessage(sessionId, {
       role: "assistant",
       content: text,
       parentId: lastMessageId,
-      model,
+      model: realModel,
+      tokensIn,
+      tokensOut,
     });
 
-    const outputTokens = estimateTokens(text ?? "");
-    budget.record(inputTokenEstimate, outputTokens);
-    sessions.updateSessionTokens(sessionId, inputTokenEstimate, outputTokens);
+    const costUsd = lr?.cost.estimatedUsd ?? 0;
+    budget.record(tokensIn, tokensOut);
+    sessions.updateSessionTokens(sessionId, tokensIn, tokensOut, costUsd);
 
     let budgetExceeded = false;
     try {
@@ -193,17 +215,28 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
     inputTokenEstimate: number,
     lastMessageId: string | undefined,
     error?: string,
+    chat?: ChatInstance,
   ): RunResult {
     if (error) {
       if (runId) runs?.fail(runId, error);
       eventBus?.emit("run:error", { runId: runId ?? "", sessionId, error });
     }
 
-    const result = finalize(sessionId, text, inputTokenEstimate, lastMessageId);
+    const result = finalize(sessionId, text, inputTokenEstimate, lastMessageId, chat);
 
     if (!error && runId) {
       const current = runs?.get(runId);
       if (current?.status === "running") runs?.complete(runId, text ?? "");
+      const lr = chat?.lastResult;
+      if (lr) {
+        runs?.recordUsage(
+          runId,
+          lr.model,
+          lr.usage.inputTokens,
+          lr.usage.outputTokens,
+          lr.cost.estimatedUsd,
+        );
+      }
     }
 
     eventBus?.emit("run:end", { runId: runId ?? "", sessionId, text });
@@ -228,7 +261,7 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
         text = `Error: ${error}`;
       }
 
-      return completeRun(sessionId, runId, text, inputTokenEstimate, lastMessageId, error);
+      return completeRun(sessionId, runId, text, inputTokenEstimate, lastMessageId, error, chat);
     });
   }
 
@@ -258,7 +291,7 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
           error = err instanceof Error ? err.message : String(err);
           text = `Error: ${error}`;
         }
-        return completeRun(sessionId, runId, text, inputTokenEstimate, lastMessageId, error);
+        return completeRun(sessionId, runId, text, inputTokenEstimate, lastMessageId, error, chat);
       }
 
       let fullText = "";
@@ -285,6 +318,7 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
         inputTokenEstimate,
         lastMessageId,
         error,
+        chat,
       );
     } finally {
       releaseLock();

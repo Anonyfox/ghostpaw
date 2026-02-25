@@ -147,7 +147,8 @@ export async function createChannelRuntime(config: ChannelRuntimeConfig): Promis
     if (existing) return existing;
 
     const session =
-      sessions.getSessionByKey(sessionKey) ?? sessions.createSession(sessionKey, { model });
+      sessions.getSessionByKey(sessionKey) ??
+      sessions.createSession(sessionKey, { model, purpose: "chat" });
 
     const tools = createToolRegistry();
     for (const t of baseTools) tools.register(t);
