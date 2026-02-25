@@ -32,17 +32,19 @@ OpenClaw was acquired by OpenAI (Feb 15, 2026). What was the independent open-so
 
 Ghostpaw is the other direction. One `.mjs` file. Six core tools. Plain markdown. An API key and Node.js — nothing else.
 
-## Three Learning Loops
+## Four Learning Loops
 
-Most agents are stateless. They're as smart as the model, every time, forever. Ghostpaw stacks three compounding loops on top of each other.
+Most agents are stateless. They're as smart as the model, every time, forever. Ghostpaw stacks four compounding loops on top of each other.
 
 **Loop 1 — Models get better.** This is the ChatGPT mode everyone knows. Ghostpaw is model-agnostic across OpenAI, Anthropic, and xAI. When the next Sonnet or GPT drops, your agent is instantly smarter at baseline. You ride the curve instead of managing local weights.
 
 **Loop 2 — You teach it.** This is the OpenClaw and Claude Code mode. There's a wealth of skills, prompts, and workflows across the internet. Copy a deployment checklist into `skills/`, paste a coding convention, drop in a teammate's debugging playbook. Plain markdown — no marketplace needed, no approval process, no supply chain risk.
 
-**Loop 3 — It teaches itself.** This is what Ghostpaw adds. The agent extracts learnings from every session, refines its own skills through training, and proactively scouts for capability gaps it hasn't been told about. No other tool in this space does autonomous self-improvement from use.
+**Loop 3 — It refines its skills.** The agent extracts learnings from every session, sharpens its own procedures through training, and proactively scouts for capability gaps it hasn't been told about. Procedural knowledge that compounds from real experience.
 
-These loops multiply. Better base models × curated knowledge × self-refined skills = an agent that accelerates the longer you use it.
+**Loop 4 — It refines its cognition.** This is what no other tool does. Ghostpaw doesn't just learn *what* to do — it learns *how to think*. Agent souls (system prompts defining cognitive identity) evolve through evidence-driven refinement: delegation outcomes feed back into soul revisions, version-controlled by git with full rollback. The coordinator gets better at routing. Each specialist gets better at their domain. Research calls this [Agentic Context Engineering](https://arxiv.org/abs/2510.04618) — evolving prompts as playbooks. It's a +10% performance gain from prompt evolution alone.
+
+These loops multiply. Better base models × curated knowledge × self-refined skills × evolving cognition = an agent that accelerates the longer you use it.
 
 ## Skills
 
@@ -57,6 +59,16 @@ Three modes, one system.
 Skills are plain markdown in `skills/`, version-controlled by git for integrity and rollback. No plugins. No marketplace. No supply chain attack surface.
 
 [How the skill system works →](docs/SKILLS.md)
+
+## Souls
+
+Skills teach the agent *what* to do. Souls teach it *how to think*. Every agent — the main coordinator and each specialist — has a soul: a markdown file defining its cognitive identity, judgment calls, and reasoning style.
+
+Ghostpaw runs as a **coordinator with souled specialists**. The main soul routes tasks. Specialist souls (`agents/*.md`) define how each expert thinks — not just their role, but their cognitive mode. A JS engineer soul that says "always validate inputs at boundaries" catches constraints the coordinator didn't mention, because it's baked into the specialist's identity.
+
+Souls improve through evidence-driven refinement: the system analyzes delegation outcomes and memories, proposes focused changes, and commits revisions to a separate git history. Every refinement is diffable and rollback-able. The commit count is the soul's **level** — a level-7 soul has been refined seven times from real-world evidence. This is [Loop 4](#four-learning-loops) — the cognition loop that makes the agent think better over time, not just know more.
+
+[How souls and delegation work →](docs/SOULS.md)
 
 ## Memory
 
