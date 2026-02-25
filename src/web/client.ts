@@ -63,7 +63,7 @@ function handleMobileNav() {
 
 // ── Navigation ──────────────────────────────────────────────────────────────
 
-const views = ["chat", "dashboard", "sessions", "skills", "memory", "train", "scout", "settings"];
+const views = ["chat", "dashboard", "sessions", "skills", "agents", "memory", "train", "scout", "settings"];
 const viewEls = {};
 views.forEach(v => { viewEls[v] = document.getElementById("view" + v.charAt(0).toUpperCase() + v.slice(1)); });
 
@@ -88,6 +88,7 @@ function switchView(view) {
   if (view === "dashboard") loadDashboard();
   if (view === "sessions") loadSessionsView();
   if (view === "skills") loadSkills();
+  if (view === "agents") loadAgents();
   if (view === "memory") loadMemory();
   if (view === "train") loadTrain();
   if (view === "scout") loadScout();
@@ -354,7 +355,7 @@ function renderMarkdown(text) {
 
 // ── Dashboard ───────────────────────────────────────────────────────────────
 
-const STAT_ICONS = { Model: "\\u2728", Sessions: "\\uD83D\\uDCC4", Skills: "\\u26A1", Memories: "\\uD83E\\uDDE0", "Tokens In": "\\u2B07\\uFE0F", "Tokens Out": "\\u2B06\\uFE0F" };
+const STAT_ICONS = { Model: "\\u2728", Sessions: "\\uD83D\\uDCC4", Skills: "\\u26A1", Souls: "\\uD83D\\uDC65", Memories: "\\uD83E\\uDDE0", "Tokens In": "\\u2B07\\uFE0F", "Tokens Out": "\\u2B06\\uFE0F" };
 
 async function loadDashboard() {
   const data = await apiJSON("/api/status");
@@ -364,6 +365,7 @@ async function loadDashboard() {
     { label: "Model", value: data.model || "\\u2014" },
     { label: "Sessions", value: data.sessions },
     { label: "Skills", value: data.skills },
+    { label: "Souls", value: data.agents ?? 0 },
     { label: "Memories", value: data.memories },
     { label: "Tokens In", value: formatNumber(data.tokens.in) },
     { label: "Tokens Out", value: formatNumber(data.tokens.out) },
@@ -733,6 +735,171 @@ document.getElementById("btnCancelSkill").addEventListener("click", () => {
   document.getElementById("skillEditor").classList.add("d-none");
   document.getElementById("skillsContent").classList.remove("d-none");
   editingSkill = null;
+});
+
+// ── Agents ──────────────────────────────────────────────────────────────────
+
+let editingAgent = null;
+let isNewAgent = false;
+
+function agentsIntroHTML() {
+  return '<div class="gp-agents-intro">'
+    + '<div class="gp-agents-intro-heading">Agent souls</div>'
+    + '<p>Your main agent\\u2019s identity lives in SOUL.md. These are the souls of its specialists\\u2009\\u2014\\u2009each one defines who a sub-agent is, '
+    + 'what it knows, and how it behaves. When a task matches a specialist\\u2019s domain, delegation happens automatically.</p>'
+    + '<p>Each soul is a markdown file: human-readable, agent-writable, versioned with git. More souls, sharper delegation.</p>'
+    + '</div>';
+}
+
+async function loadAgents() {
+  const el = document.getElementById("agentsContent");
+  el.innerHTML = '<div class="gp-agents-hint">Loading\\u2026</div>';
+
+  const data = await apiJSON("/api/agents");
+  if (!data) return;
+
+  let html = agentsIntroHTML();
+
+  const totalAgents = data.length;
+  const totalLines = data.reduce((s, a) => s + (a.lines || 0), 0);
+
+  html += '<div class="gp-agents-stats">'
+    + '<div class="gp-agents-stat"><div class="gp-agents-stat-value">' + totalAgents + '</div><div class="gp-agents-stat-label">Souls</div></div>'
+    + '<div class="gp-agents-stat"><div class="gp-agents-stat-value">' + totalLines + '</div><div class="gp-agents-stat-label">Total Lines</div></div>'
+    + '</div>';
+
+  html += '<div class="gp-agents-toolbar">'
+    + '<div style="color:#94a3b8;font-size:.85rem">' + totalAgents + ' soul' + (totalAgents === 1 ? '' : 's') + ' defined</div>'
+    + '<button class="gp-agents-create-btn" id="btnCreateAgent">+ New Soul</button>'
+    + '</div>';
+
+  if (!data.length) {
+    html += '<div class="gp-agents-empty">'
+      + '<span class="gp-agents-empty-icon">\\uD83D\\uDC65</span>'
+      + '<div style="color:var(--gp-text);font-weight:500;margin-bottom:.35rem">No souls yet</div>'
+      + '<div>Define a specialist soul to expand what your agent can handle. '
+      + 'Give it a clear role, domain expertise, and constraints\\u2009\\u2014\\u2009delegation takes care of the rest.</div>'
+      + '</div>';
+    el.innerHTML = html;
+    wireCreateAgentBtn();
+    return;
+  }
+
+  html += '<div class="gp-agents-list">';
+  html += data.map(a => {
+    const desc = a.description
+      ? '<div class="gp-agents-card-desc">' + escapeHtml(a.description) + '</div>'
+      : '';
+    return '<div class="gp-agents-card">'
+      + '<div class="gp-agents-card-top">'
+      + '<div class="gp-agents-card-info">'
+      + '<div class="gp-agents-card-title">' + escapeHtml(a.title) + '</div>'
+      + '<div class="gp-agents-card-meta">' + escapeHtml(a.filename) + ' \\u00B7 ' + a.lines + ' lines</div>'
+      + '</div>'
+      + '<div class="gp-agents-card-actions">'
+      + '<span class="gp-agents-badge">Soul</span>'
+      + '<button class="gp-agents-edit-btn" data-edit-agent="' + escapeAttr(a.filename) + '">Edit</button>'
+      + '</div>'
+      + '</div>'
+      + desc
+      + '</div>';
+  }).join("");
+  html += '</div>';
+
+  el.innerHTML = html;
+  wireCreateAgentBtn();
+
+  el.querySelectorAll("[data-edit-agent]").forEach(btn => {
+    btn.addEventListener("click", () => openAgentEditor(btn.dataset.editAgent));
+  });
+}
+
+function wireCreateAgentBtn() {
+  const btn = document.getElementById("btnCreateAgent");
+  if (btn) btn.addEventListener("click", () => openNewAgentEditor());
+}
+
+function openNewAgentEditor() {
+  editingAgent = null;
+  isNewAgent = true;
+  document.getElementById("agentEditorTitle").textContent = "New Soul";
+  document.getElementById("agentFilename").value = "";
+  document.getElementById("agentFilename").disabled = false;
+  document.getElementById("agentContent").value = "# Name\\n\\nDefine this specialist\\u2019s role, domain expertise, and behavioral constraints.\\n";
+  document.getElementById("agentEditor").classList.remove("d-none");
+  document.getElementById("agentsContent").classList.add("d-none");
+  document.getElementById("btnDeleteAgent").classList.add("d-none");
+  document.getElementById("agentFilename").focus();
+}
+
+async function openAgentEditor(filename) {
+  const data = await apiJSON("/api/agents/" + encodeURIComponent(filename));
+  if (!data) return;
+  editingAgent = filename;
+  isNewAgent = false;
+  document.getElementById("agentEditorTitle").textContent = filename;
+  document.getElementById("agentFilename").value = filename;
+  document.getElementById("agentFilename").disabled = true;
+  document.getElementById("agentContent").value = data.content;
+  document.getElementById("agentEditor").classList.remove("d-none");
+  document.getElementById("agentsContent").classList.add("d-none");
+  document.getElementById("btnDeleteAgent").classList.remove("d-none");
+}
+
+function closeAgentEditor() {
+  document.getElementById("agentEditor").classList.add("d-none");
+  document.getElementById("agentsContent").classList.remove("d-none");
+  editingAgent = null;
+  isNewAgent = false;
+}
+
+document.getElementById("btnSaveAgent").addEventListener("click", async () => {
+  let filename;
+  if (isNewAgent) {
+    filename = document.getElementById("agentFilename").value.trim();
+    if (!filename) { showToast("Filename is required", "error"); return; }
+    if (!filename.endsWith(".md")) filename += ".md";
+    if (!/^[a-zA-Z0-9_-]+\\.md$/.test(filename)) {
+      showToast("Filename must contain only letters, numbers, hyphens, and underscores", "error");
+      return;
+    }
+  } else {
+    filename = editingAgent;
+  }
+  if (!filename) return;
+
+  const content = document.getElementById("agentContent").value;
+  if (!content.trim()) { showToast("Content cannot be empty", "error"); return; }
+
+  try {
+    await api("/api/agents/" + encodeURIComponent(filename), {
+      method: "PUT",
+      body: JSON.stringify({ content }),
+    });
+    showToast(isNewAgent ? "Soul created" : "Soul saved", "success");
+    closeAgentEditor();
+    await loadAgents();
+  } catch (err) {
+    showToast(err.message || "Failed to save", "error");
+  }
+});
+
+document.getElementById("btnCancelAgent").addEventListener("click", () => {
+  closeAgentEditor();
+});
+
+document.getElementById("btnDeleteAgent").addEventListener("click", async () => {
+  if (!editingAgent) return;
+  if (!confirm("Delete " + editingAgent + "? This cannot be undone.")) return;
+
+  try {
+    await api("/api/agents/" + encodeURIComponent(editingAgent), { method: "DELETE" });
+    showToast(editingAgent + " deleted", "success");
+    closeAgentEditor();
+    await loadAgents();
+  } catch (err) {
+    showToast(err.message || "Failed to delete", "error");
+  }
 });
 
 // ── Memory ──────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import type { ChannelRuntime } from "../channels/runtime.js";
 import { getAllSkillRanks, hasHistory } from "../lib/skill-history.js";
@@ -23,11 +23,20 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
       /* no skills dir */
     }
 
+    let agentCount = 0;
+    try {
+      const agentsDir = resolve(runtime.workspace, "agents");
+      agentCount = readdirSync(agentsDir).filter((f) => f.endsWith(".md")).length;
+    } catch {
+      /* no agents dir */
+    }
+
     json(res, 200, {
       version: typeof __VERSION__ !== "undefined" ? __VERSION__ : "dev",
       model: runtime.model,
       sessions: allSessions.length,
       skills: skillCount,
+      agents: agentCount,
       memories: runtime.memory.count(),
       tokens: { in: totalTokensIn, out: totalTokensOut },
     });
@@ -235,6 +244,112 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
     mkdirSync(skillDir, { recursive: true });
     writeFileSync(fullPath, body.content, "utf-8");
     json(res, 200, { ok: true });
+  });
+
+  // ── Agents ──────────────────────────────────────────────────────────────
+
+  router.add("GET", "/api/agents", async (_req, res) => {
+    const agentsDir = resolve(runtime.workspace, "agents");
+    let files: string[] = [];
+    try {
+      files = readdirSync(agentsDir)
+        .filter((f) => f.endsWith(".md"))
+        .sort();
+    } catch {
+      /* no agents dir */
+    }
+
+    const agents = files.map((filename) => {
+      let title = filename.replace(/\.md$/, "");
+      let lines = 0;
+      let description = "";
+      try {
+        const content = readFileSync(resolve(agentsDir, filename), "utf-8");
+        const titleMatch = content.match(/^#\s+(.+)/m);
+        if (titleMatch) title = titleMatch[1]!;
+        lines = content.split("\n").length;
+        const descLine = content
+          .split("\n")
+          .find((l) => l.trim().length > 0 && !l.trim().startsWith("#"));
+        if (descLine) description = descLine.trim().slice(0, 160);
+      } catch {
+        /* keep filename as title */
+      }
+      return { filename, title, lines, description };
+    });
+    json(res, 200, agents);
+  });
+
+  router.add("GET", "/api/agents/:filename", async (req, res) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const filename = extractParam(url.pathname, "/api/agents/:filename");
+    if (!filename || !filename.endsWith(".md")) {
+      json(res, 400, { error: "Invalid agent filename" });
+      return;
+    }
+
+    const agentsDir = resolve(runtime.workspace, "agents");
+    const fullPath = resolve(agentsDir, decodeURIComponent(filename));
+    if (relative(agentsDir, fullPath).startsWith("..")) {
+      json(res, 403, { error: "Access denied" });
+      return;
+    }
+
+    try {
+      const content = readFileSync(fullPath, "utf-8");
+      json(res, 200, { filename, content });
+    } catch {
+      json(res, 404, { error: "Agent not found" });
+    }
+  });
+
+  router.add("PUT", "/api/agents/:filename", async (req, res) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const filename = extractParam(url.pathname, "/api/agents/:filename");
+    if (!filename || !filename.endsWith(".md")) {
+      json(res, 400, { error: "Invalid agent filename" });
+      return;
+    }
+
+    const body = (await parseJSON(req)) as { content?: string };
+    if (typeof body?.content !== "string") {
+      json(res, 400, { error: "Content is required" });
+      return;
+    }
+
+    const agentsDir = resolve(runtime.workspace, "agents");
+    const fullPath = resolve(agentsDir, decodeURIComponent(filename));
+    if (relative(agentsDir, fullPath).startsWith("..")) {
+      json(res, 403, { error: "Access denied" });
+      return;
+    }
+
+    mkdirSync(agentsDir, { recursive: true });
+    writeFileSync(fullPath, body.content, "utf-8");
+    json(res, 200, { ok: true });
+  });
+
+  router.add("DELETE", "/api/agents/:filename", async (req, res) => {
+    const url = new URL(req.url ?? "/", "http://localhost");
+    const filename = extractParam(url.pathname, "/api/agents/:filename");
+    if (!filename || !filename.endsWith(".md")) {
+      json(res, 400, { error: "Invalid agent filename" });
+      return;
+    }
+
+    const agentsDir = resolve(runtime.workspace, "agents");
+    const fullPath = resolve(agentsDir, decodeURIComponent(filename));
+    if (relative(agentsDir, fullPath).startsWith("..")) {
+      json(res, 403, { error: "Access denied" });
+      return;
+    }
+
+    try {
+      unlinkSync(fullPath);
+      json(res, 200, { ok: true });
+    } catch {
+      json(res, 404, { error: "Agent not found" });
+    }
   });
 
   router.add("GET", "/api/memory", async (req, res) => {

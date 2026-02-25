@@ -1143,6 +1143,139 @@ body {
 .gp-rank-pip.gp-rank-pip-mid { background: var(--gp-accent-2); }
 .gp-rank-pip.gp-rank-pip-high { background: var(--gp-success); }
 
+/* ── Agents page ─────────────────────────────────────────── */
+
+.gp-agents-intro {
+  margin-bottom: 1.75rem;
+  line-height: 1.7;
+}
+.gp-agents-intro p {
+  color: #cbd5e1;
+  font-size: .95rem;
+  margin-bottom: .75rem;
+}
+.gp-agents-intro .gp-agents-intro-heading {
+  color: var(--gp-text);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: .5rem;
+}
+
+.gp-agents-stats {
+  display: flex; gap: 1rem; flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+.gp-agents-stat {
+  background: var(--gp-surface);
+  border: 1px solid var(--gp-border);
+  border-radius: .75rem;
+  padding: 1rem 1.25rem;
+  flex: 1; min-width: 100px; text-align: center;
+}
+.gp-agents-stat-value {
+  font-size: 1.5rem; font-weight: 700;
+  background: var(--gp-gradient); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.gp-agents-stat-label {
+  font-size: .8rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em;
+}
+
+.gp-agents-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem; gap: .75rem;
+}
+
+.gp-agents-create-btn {
+  background: linear-gradient(135deg, var(--gp-accent), var(--gp-accent-2));
+  color: #0a0e17;
+  border: none;
+  border-radius: .5rem;
+  padding: .45rem 1.1rem;
+  font-weight: 600;
+  font-size: .85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: box-shadow .2s, transform .1s;
+}
+.gp-agents-create-btn:hover { box-shadow: 0 0 16px rgba(34,211,238,.3); transform: translateY(-1px); }
+
+.gp-agents-list {
+  display: flex; flex-direction: column; gap: .75rem;
+}
+
+.gp-agents-card {
+  background: var(--gp-surface);
+  border: 1px solid var(--gp-border);
+  border-radius: .75rem;
+  padding: 1rem 1.25rem;
+  transition: border-color .2s, box-shadow .2s;
+}
+.gp-agents-card:hover {
+  border-color: rgba(34, 211, 238, 0.25);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.06);
+}
+.gp-agents-card-top {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem;
+}
+.gp-agents-card-info { flex: 1; min-width: 0; }
+.gp-agents-card-title {
+  font-weight: 600; color: var(--gp-text); font-size: .95rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gp-agents-card-meta {
+  color: #64748b; font-size: .8rem; margin-top: .15rem;
+}
+.gp-agents-card-desc {
+  color: #94a3b8; font-size: .85rem; line-height: 1.5;
+  margin-top: .5rem;
+}
+.gp-agents-card-actions {
+  display: flex; align-items: center; gap: .5rem; flex-shrink: 0;
+}
+
+.gp-agents-edit-btn {
+  background: transparent;
+  border: 1px solid var(--gp-border);
+  color: var(--gp-muted);
+  font-size: .75rem;
+  padding: .25rem .6rem;
+  border-radius: .35rem;
+  cursor: pointer;
+  transition: all .2s;
+}
+.gp-agents-edit-btn:hover {
+  border-color: var(--gp-accent);
+  color: var(--gp-accent);
+}
+
+.gp-agents-badge {
+  font-size: .7rem;
+  font-weight: 600;
+  padding: .2rem .55rem;
+  border-radius: 2rem;
+  white-space: nowrap;
+  background: rgba(34,211,238,.12);
+  color: #67e8f9;
+}
+
+.gp-agents-empty {
+  text-align: center;
+  color: #94a3b8;
+  padding: 2rem 1rem;
+  background: var(--gp-surface);
+  border: 1px solid var(--gp-border);
+  border-radius: .75rem;
+}
+.gp-agents-empty-icon {
+  font-size: 2rem;
+  margin-bottom: .75rem;
+  display: block;
+}
+
+.gp-agents-hint {
+  color: #94a3b8; font-size: .85rem; text-align: center; padding: 1rem;
+}
+
 /* ── Scout page ────────────────────────────────────────────── */
 
 .gp-scout-intro {
@@ -1504,6 +1637,7 @@ export function appShell(nonce: string): string {
           <div class="gp-nav-item" data-view="dashboard"><span class="gp-nav-icon">&#9638;</span> Dashboard</div>
           <div class="gp-nav-item" data-view="sessions"><span class="gp-nav-icon">&#128196;</span> Sessions</div>
           <div class="gp-nav-item" data-view="skills"><span class="gp-nav-icon">&#9889;</span> Skills</div>
+          <div class="gp-nav-item" data-view="agents"><span class="gp-nav-icon">&#128101;</span> Souls</div>
           <div class="gp-nav-item" data-view="memory"><span class="gp-nav-icon">&#129504;</span> Memory</div>
           <div class="gp-nav-item" data-view="train"><span class="gp-nav-icon">&#127891;</span> Train</div>
           <div class="gp-nav-item" data-view="scout"><span class="gp-nav-icon">&#129517;</span> Scout</div>
@@ -1566,6 +1700,24 @@ export function appShell(nonce: string): string {
             <button id="btnSaveSkill" class="btn btn-gp btn-sm">Save</button>
             <button id="btnCancelSkill" class="btn btn-sm btn-gp-outline">Cancel</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Agents view -->
+      <div id="viewAgents" class="gp-view p-4 d-none">
+        <h4 class="mb-4 gp-gradient-text">Souls</h4>
+        <div id="agentsContent"></div>
+        <div id="agentEditor" class="d-none mt-3">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 id="agentEditorTitle" class="mb-0" style="color:var(--gp-accent)"></h5>
+            <div class="d-flex gap-2">
+              <button id="btnSaveAgent" class="btn btn-gp btn-sm">Save</button>
+              <button id="btnCancelAgent" class="btn btn-sm btn-gp-outline">Cancel</button>
+              <button id="btnDeleteAgent" class="btn btn-sm btn-gp-outline gp-text-danger d-none" style="border-color:var(--gp-danger)">Delete</button>
+            </div>
+          </div>
+          <input type="text" id="agentFilename" class="form-control gp-input mb-2 font-monospace" placeholder="filename.md" style="font-size:.85rem">
+          <textarea id="agentContent" class="form-control gp-input font-monospace" rows="20"></textarea>
         </div>
       </div>
 

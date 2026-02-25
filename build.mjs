@@ -1,5 +1,4 @@
 import { chmodSync, readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { build, context } from "esbuild";
 
 const isWatch = process.argv.includes("--watch");
