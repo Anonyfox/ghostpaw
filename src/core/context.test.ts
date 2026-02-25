@@ -113,4 +113,73 @@ describe("assembleSystemPrompt", () => {
     const prompt = assembleSystemPrompt(workDir);
     ok(prompt.includes("read") || prompt.includes("Read"));
   });
+
+  it("includes agent index when agents/ directory has profiles", () => {
+    const agentsDir = join(workDir, "agents");
+    mkdirSync(agentsDir);
+    writeFileSync(
+      join(agentsDir, "js-engineer.md"),
+      "# JavaScript Engineer\n\nYou build reliable, lean JS/TS code with TDD.",
+    );
+
+    const prompt = assembleSystemPrompt(workDir);
+    ok(prompt.includes("## Agents"));
+    ok(prompt.includes("agents/js-engineer.md"));
+    ok(prompt.includes("JavaScript Engineer"));
+    ok(prompt.includes("1 specialist"));
+  });
+
+  it("shows agent summary in the index", () => {
+    const agentsDir = join(workDir, "agents");
+    mkdirSync(agentsDir);
+    writeFileSync(
+      join(agentsDir, "researcher.md"),
+      "# Deep Researcher\n\nPerforms thorough web research and synthesizes findings.",
+    );
+
+    const prompt = assembleSystemPrompt(workDir);
+    ok(prompt.includes("Deep Researcher"));
+    ok(prompt.includes("Performs thorough web research"));
+  });
+
+  it("omits agent index when no agents/ directory exists", () => {
+    const prompt = assembleSystemPrompt(workDir);
+    ok(!prompt.includes("## Agents"));
+  });
+
+  it("omits agent index when agents/ directory is empty", () => {
+    mkdirSync(join(workDir, "agents"));
+    const prompt = assembleSystemPrompt(workDir);
+    ok(!prompt.includes("## Agents"));
+  });
+
+  it("places agent index between memory and skills", () => {
+    const agentsDir = join(workDir, "agents");
+    const skillsDir = join(workDir, "skills");
+    mkdirSync(agentsDir);
+    mkdirSync(skillsDir);
+    writeFileSync(join(agentsDir, "coder.md"), "# Coder\nWrites code.");
+    writeFileSync(join(skillsDir, "deploy.md"), "# Deploy\nSteps...");
+
+    const prompt = assembleSystemPrompt(workDir);
+    const memoryIdx = prompt.indexOf("## Memory");
+    const agentsIdx = prompt.indexOf("## Agents");
+    const skillsIdx = prompt.indexOf("## Skills");
+
+    ok(memoryIdx < agentsIdx, "Memory before Agents");
+    ok(agentsIdx < skillsIdx, "Agents before Skills");
+  });
+
+  it("lists multiple agents sorted alphabetically", () => {
+    const agentsDir = join(workDir, "agents");
+    mkdirSync(agentsDir);
+    writeFileSync(join(agentsDir, "researcher.md"), "# Researcher\nResearch things.");
+    writeFileSync(join(agentsDir, "coder.md"), "# Coder\nWrite code.");
+
+    const prompt = assembleSystemPrompt(workDir);
+    ok(prompt.includes("2 specialists"));
+    const coderIdx = prompt.indexOf("agents/coder.md");
+    const researcherIdx = prompt.indexOf("agents/researcher.md");
+    ok(coderIdx < researcherIdx, "coder before researcher (alphabetical)");
+  });
 });

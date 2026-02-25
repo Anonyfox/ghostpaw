@@ -41,9 +41,7 @@ export function isJsonRpcMessage(line: string): boolean {
   }
 }
 
-export function parseResponse(
-  raw: string,
-): JsonRpcResponse | JsonRpcErrorResponse {
+export function parseResponse(raw: string): JsonRpcResponse | JsonRpcErrorResponse {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -51,11 +49,7 @@ export function parseResponse(
     throw new Error(`Invalid JSON in response: ${raw.slice(0, 200)}`);
   }
 
-  if (
-    typeof parsed !== "object" ||
-    parsed === null ||
-    Array.isArray(parsed)
-  ) {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error("JSON-RPC response must be an object");
   }
 

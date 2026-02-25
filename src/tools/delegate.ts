@@ -17,17 +17,21 @@ class DelegateParams extends Schema {
   });
   background = Schema.Boolean({
     description:
-      "If true, run asynchronously and return immediately. Use check_run to get results later.",
+      "If true, run asynchronously and return immediately. Results are delivered automatically when done.",
     optional: true,
   });
   model = Schema.String({
     description: "Model override (default: same as parent)",
     optional: true,
   });
+  timeout = Schema.Number({
+    description: "Max seconds to wait (default: 1800). Increase for complex multi-step tasks.",
+    optional: true,
+  });
 }
 
 const DELEGATE_MAX_ITERATIONS = 15;
-const DELEGATE_TIMEOUT_MS = 5 * 60 * 1000;
+const DELEGATE_DEFAULT_TIMEOUT_MS = 30 * 60 * 1000;
 const DELEGATE_CIRCUIT_BREAKER = new Set(["delegate", "check_run"]);
 
 export interface DelegateConfig {
@@ -49,22 +53,32 @@ export function createDelegateTool(config: DelegateConfig) {
 
   return createTool({
     name: "delegate",
-    description:
-      "Delegate a task to a focused agent that runs autonomously with its own context. " +
-      "Agents cannot delegate further (no recursion)." +
-      (() => {
-        const available = listAgentProfiles(config.workspacePath);
-        return available.length > 0 ? ` Available experts: ${available.join(", ")}.` : "";
-      })(),
+    description: (() => {
+      const available = listAgentProfiles(config.workspacePath);
+      const base =
+        "Delegate a task to a specialist agent. Agents cannot delegate further (no recursion).";
+      if (available.length === 0) return base;
+      return `${base} Available: ${available.join(", ")}. MUST be used for any coding/scripting task when a specialist exists.`;
+    })(),
     // biome-ignore lint: TS index-signature limitation on class instances vs SchemaInstance
     parameters: new DelegateParams() as any,
     execute: async ({ args }) => {
-      const { task, agent, background, model } = args as {
+      const {
+        task,
+        agent,
+        background,
+        model,
+        timeout: timeoutSec,
+      } = args as {
         task: string;
         agent?: string;
         background?: boolean;
         model?: string;
+        timeout?: number;
       };
+
+      const effectiveTimeoutMs =
+        timeoutSec && timeoutSec > 0 ? timeoutSec * 1000 : DELEGATE_DEFAULT_TIMEOUT_MS;
 
       const agentName = agent || "default";
       const resolvedModel = model || config.defaultModel;
@@ -79,9 +93,11 @@ export function createDelegateTool(config: DelegateConfig) {
         };
       }
 
-      const systemPrompt = profile
-        ? profile.systemPrompt
-        : assembleSystemPrompt(config.workspacePath);
+      const systemPrompt = assembleSystemPrompt(
+        config.workspacePath,
+        null,
+        profile?.systemPrompt ?? null,
+      );
 
       const run = config.runs.create({
         sessionId: config.parentSessionId,
@@ -113,18 +129,20 @@ export function createDelegateTool(config: DelegateConfig) {
         config.budget.record(inputTokens, outputTokens);
       }
 
-      if (background) {
+      function withTimeout(promise: Promise<string>): Promise<string> {
         let timeoutHandle: ReturnType<typeof setTimeout>;
-        const timeout = new Promise<never>((_, reject) => {
+        const deadline = new Promise<never>((_, reject) => {
           timeoutHandle = setTimeout(
-            () => reject(new Error(`Delegate timed out after ${DELEGATE_TIMEOUT_MS / 1000}s`)),
-            DELEGATE_TIMEOUT_MS,
+            () => reject(new Error(`Delegate timed out after ${effectiveTimeoutMs / 1000}s`)),
+            effectiveTimeoutMs,
           );
           timeoutHandle.unref();
         });
+        return Promise.race([promise, deadline]).finally(() => clearTimeout(timeoutHandle));
+      }
 
-        Promise.race([executeRun(), timeout])
-          .finally(() => clearTimeout(timeoutHandle))
+      if (background) {
+        withTimeout(executeRun())
           .then((result) => {
             config.runs.complete(run.id, result);
             recordBudget(result);
@@ -148,12 +166,12 @@ export function createDelegateTool(config: DelegateConfig) {
           runId: run.id,
           agent: agentName,
           status: "running",
-          message: `Background task started. Use check_run with runId "${run.id}" to get results.`,
+          message: `Background task started. Results will be delivered automatically when done.`,
         };
       }
 
       try {
-        const result = await executeRun();
+        const result = await withTimeout(executeRun());
         config.runs.complete(run.id, result);
         recordBudget(result);
         config.eventBus?.emit("delegate:done", {
@@ -161,11 +179,16 @@ export function createDelegateTool(config: DelegateConfig) {
           status: "completed",
           result,
         });
-        return { result, agent: agentName, runId: run.id };
+        return `[${agentName} completed successfully]\n\n${result}`;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         config.runs.fail(run.id, msg);
-        return { error: `Delegate (${agentName}) failed: ${msg}`, runId: run.id };
+        return {
+          status: "failed",
+          agent: agentName,
+          runId: run.id,
+          error: msg,
+        };
       }
     },
   });

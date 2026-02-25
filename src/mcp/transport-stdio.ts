@@ -1,12 +1,12 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import { createInterface } from "node:readline";
+import { isJsonRpcMessage, parseResponse } from "./jsonrpc.js";
 import type {
   JsonRpcNotification,
   JsonRpcRequest,
   JsonRpcResponse,
   McpTransport,
 } from "./types.js";
-import { isJsonRpcMessage, parseResponse } from "./jsonrpc.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const KILL_GRACE_MS = 2_000;
@@ -73,9 +73,7 @@ export function createStdioTransport(config: {
   proc.on("error", (err) => rejectAll(`MCP stdio process error: ${err.message}`));
   proc.on("exit", (code) => rejectAll(`MCP stdio process exited (code ${code ?? "unknown"})`));
 
-  function send(
-    msg: JsonRpcRequest | JsonRpcNotification,
-  ): Promise<JsonRpcResponse | null> {
+  function send(msg: JsonRpcRequest | JsonRpcNotification): Promise<JsonRpcResponse | null> {
     if (!connected || !proc?.stdin?.writable) {
       return Promise.reject(new Error("MCP stdio transport is disconnected"));
     }

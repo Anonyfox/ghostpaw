@@ -1,16 +1,17 @@
 import { readFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join } from "node:path";
 import { createTool, Schema } from "chatoyant";
+import { isInsideWorkspace } from "../lib/workspace.js";
 
 class ReadParams extends Schema {
   path = Schema.String({ description: "File path relative to workspace" });
   startLine = Schema.Integer({ description: "Start line (1-indexed, inclusive)", optional: true });
   endLine = Schema.Integer({ description: "End line (1-indexed, inclusive)", optional: true });
-}
-
-function isInsideWorkspace(workspacePath: string, filePath: string): boolean {
-  const resolved = resolve(workspacePath, filePath);
-  return !relative(workspacePath, resolved).startsWith("..");
+  maxChars = Schema.Integer({
+    description:
+      "Truncate output at this many characters. Use startLine/endLine for precise ranges.",
+    optional: true,
+  });
 }
 
 function addLineNumbers(content: string, startOffset: number): string {
@@ -19,6 +20,19 @@ function addLineNumbers(content: string, startOffset: number): string {
   return lines
     .map((line, i) => `${String(startOffset + i).padStart(maxDigits)}|${line}`)
     .join("\n");
+}
+
+function truncateAtLineBreak(text: string, limit: number): string {
+  if (text.length <= limit) return text;
+  const lastNewline = text.lastIndexOf("\n", limit);
+  return lastNewline > 0 ? text.slice(0, lastNewline) : text.slice(0, limit);
+}
+
+const BINARY_CHECK_BYTES = 8192;
+
+function isBinaryContent(raw: string): boolean {
+  const check = raw.slice(0, BINARY_CHECK_BYTES);
+  return check.includes("\0");
 }
 
 const HTML_ENTITY_RE = /&(?:amp|lt|gt|quot|apos|#\d+|#x[\da-fA-F]+);/;
@@ -52,10 +66,12 @@ export function createReadTool(workspacePath: string) {
         path: filePath,
         startLine,
         endLine,
+        maxChars,
       } = args as {
         path: string;
         startLine?: number;
         endLine?: number;
+        maxChars?: number;
       };
 
       if (!isInsideWorkspace(workspacePath, filePath)) {
@@ -72,10 +88,18 @@ export function createReadTool(workspacePath: string) {
         return { error: `Failed to read "${filePath}": ${msg}` };
       }
 
+      if (isBinaryContent(raw)) {
+        return {
+          error: `"${filePath}" appears to be a binary file — not readable as text.`,
+          bytes: Buffer.byteLength(raw, "utf-8"),
+        };
+      }
+
       const allLines = raw.split("\n");
       const totalLines = allLines.length;
       const totalBytes = Buffer.byteLength(raw, "utf-8");
       const anomalies = detectAnomalies(raw, filePath);
+      const charLimit = maxChars && maxChars > 0 ? maxChars : 0;
 
       const hasStart = typeof startLine === "number" && startLine > 0;
       const hasEnd = typeof endLine === "number" && endLine > 0;
@@ -83,21 +107,44 @@ export function createReadTool(workspacePath: string) {
         const start = Math.max(1, hasStart ? startLine : 1);
         const end = Math.min(totalLines, hasEnd ? endLine : totalLines);
         const sliced = allLines.slice(start - 1, end);
+        let numbered = addLineNumbers(sliced.join("\n"), start);
+
+        let truncated = false;
+        if (charLimit && numbered.length > charLimit) {
+          numbered = truncateAtLineBreak(numbered, charLimit);
+          truncated = true;
+        }
+
         const result: Record<string, unknown> = {
           lines: totalLines,
           bytes: totalBytes,
           range: `${start}-${end}`,
-          content: addLineNumbers(sliced.join("\n"), start),
+          content: numbered,
         };
+        if (truncated) {
+          result.truncated = true;
+          result.notice = `Truncated at ~${charLimit} chars. Use startLine/endLine for precise ranges.`;
+        }
         if (anomalies.length > 0) result.warning = anomalies.join(" ");
         return result;
+      }
+
+      let numbered = addLineNumbers(raw, 1);
+      let truncated = false;
+      if (charLimit && numbered.length > charLimit) {
+        numbered = truncateAtLineBreak(numbered, charLimit);
+        truncated = true;
       }
 
       const result: Record<string, unknown> = {
         lines: totalLines,
         bytes: totalBytes,
-        content: addLineNumbers(raw, 1),
+        content: numbered,
       };
+      if (truncated) {
+        result.truncated = true;
+        result.notice = `Truncated at ~${charLimit} chars. Total: ${raw.length} chars. Use startLine/endLine to read specific sections.`;
+      }
       if (anomalies.length > 0) result.warning = anomalies.join(" ");
       return result;
     },

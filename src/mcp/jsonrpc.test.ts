@@ -33,7 +33,7 @@ describe("createNotification", () => {
     const n = createNotification("notifications/initialized");
     strictEqual(n.jsonrpc, "2.0");
     strictEqual(n.method, "notifications/initialized");
-    strictEqual((n as Record<string, unknown>).id, undefined);
+    strictEqual((n as unknown as Record<string, unknown>).id, undefined);
   });
 });
 
@@ -89,25 +89,16 @@ describe("parseResponse", () => {
   });
 
   it("throws on wrong jsonrpc version", () => {
-    throws(
-      () => parseResponse('{"jsonrpc":"1.0","id":1,"result":{}}'),
-      /Invalid jsonrpc version/,
-    );
+    throws(() => parseResponse('{"jsonrpc":"1.0","id":1,"result":{}}'), /Invalid jsonrpc version/);
   });
 
   it("throws when missing both result and error", () => {
-    throws(
-      () => parseResponse('{"jsonrpc":"2.0","id":1}'),
-      /missing both result and error/,
-    );
+    throws(() => parseResponse('{"jsonrpc":"2.0","id":1}'), /missing both result and error/);
   });
 
   it("throws on malformed error object", () => {
     throws(
-      () =>
-        parseResponse(
-          '{"jsonrpc":"2.0","id":1,"error":{"code":"wrong","message":123}}',
-        ),
+      () => parseResponse('{"jsonrpc":"2.0","id":1,"error":{"code":"wrong","message":123}}'),
       /Malformed JSON-RPC error/,
     );
   });
@@ -149,9 +140,7 @@ describe("parseSSEData", () => {
 
 describe("isErrorResponse", () => {
   it("identifies error responses", () => {
-    const err = parseResponse(
-      '{"jsonrpc":"2.0","id":1,"error":{"code":-1,"message":"fail"}}',
-    );
+    const err = parseResponse('{"jsonrpc":"2.0","id":1,"error":{"code":-1,"message":"fail"}}');
     ok(isErrorResponse(err));
   });
 

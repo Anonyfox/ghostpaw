@@ -1,7 +1,7 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, describe, it } from "node:test";
-import type { McpTransport } from "./types.js";
 import { createStdioTransport } from "./transport-stdio.js";
+import type { McpTransport } from "./types.js";
 
 const ECHO_SCRIPT = `
 const rl = require("readline").createInterface({ input: process.stdin });

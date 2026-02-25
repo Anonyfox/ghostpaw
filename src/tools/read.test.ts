@@ -90,10 +90,12 @@ describe("Read tool", () => {
     strictEqual(typeof result.content, "string");
   });
 
-  it("handles binary-like files gracefully", async () => {
+  it("detects binary files and returns error", async () => {
     writeFileSync(join(workDir, "bin.dat"), Buffer.from([0x00, 0x01, 0xff, 0xfe]));
-    const result = await exec({ path: "bin.dat" });
-    ok(result);
+    const result = (await exec({ path: "bin.dat" })) as { error: string; bytes: number };
+    ok(result.error);
+    ok(result.error.includes("binary"));
+    ok(typeof result.bytes === "number");
   });
 
   it("returns lines and bytes metadata", async () => {
@@ -122,7 +124,7 @@ describe("Read tool", () => {
   });
 
   it("warns on single-line large file (likely garbled)", async () => {
-    const garbled = "#!/usr/bin/env node" + "\\nimport fs from 'fs';".repeat(50);
+    const garbled = `#!/usr/bin/env node${"\\nimport fs from 'fs';".repeat(50)}`;
     writeFileSync(join(workDir, "garbled.mjs"), garbled);
     const result = (await exec({ path: "garbled.mjs" })) as {
       lines: number;
@@ -151,6 +153,41 @@ describe("Read tool", () => {
     writeFileSync(join(workDir, "normal.js"), "const a = 1;\nconst b = 2;\n");
     const result = (await exec({ path: "normal.js" })) as { warning?: string };
     strictEqual(result.warning, undefined);
+  });
+
+  it("truncates content at maxChars", async () => {
+    const content = Array.from({ length: 100 }, (_, i) => `line ${i + 1}`).join("\n");
+    writeFileSync(join(workDir, "big.txt"), content);
+    const result = (await exec({ path: "big.txt", maxChars: 50 })) as {
+      content: string;
+      truncated: boolean;
+      notice: string;
+      lines: number;
+    };
+    ok(result.truncated);
+    ok(result.content.length <= 50);
+    ok(result.notice.includes("Truncated"));
+    strictEqual(result.lines, 100);
+  });
+
+  it("does not truncate when maxChars exceeds content", async () => {
+    writeFileSync(join(workDir, "small.txt"), "tiny file\n");
+    const result = (await exec({ path: "small.txt", maxChars: 10000 })) as {
+      content: string;
+      truncated?: boolean;
+    };
+    ok(!result.truncated);
+  });
+
+  it("truncates ranged reads with maxChars", async () => {
+    const content = Array.from({ length: 100 }, (_, i) => `line ${i + 1}`).join("\n");
+    writeFileSync(join(workDir, "big.txt"), content);
+    const result = (await exec({ path: "big.txt", startLine: 1, endLine: 50, maxChars: 30 })) as {
+      content: string;
+      truncated: boolean;
+    };
+    ok(result.truncated);
+    ok(result.content.length <= 30);
   });
 });
 

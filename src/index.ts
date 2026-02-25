@@ -139,6 +139,9 @@ export { createBashTool } from "./tools/bash.js";
 export { createCheckRunTool } from "./tools/check_run.js";
 export { createDelegateTool } from "./tools/delegate.js";
 export { createEditTool } from "./tools/edit.js";
+export { createGrepTool } from "./tools/grep.js";
+export { createLsTool } from "./tools/ls.js";
+export { createMcpTool } from "./tools/mcp.js";
 export type { MemoryToolConfig } from "./tools/memory.js";
 export { createMemoryTool } from "./tools/memory.js";
 export { createReadTool } from "./tools/read.js";
@@ -157,7 +160,6 @@ export { createSecretsTool } from "./tools/secrets.js";
 export { createSkillsTool } from "./tools/skills.js";
 export { createWebFetchTool } from "./tools/web.js";
 export { createWriteTool } from "./tools/write.js";
-export { createMcpTool } from "./tools/mcp.js";
 export type { WebChannelConfig, WebStartResult } from "./web/index.js";
 export { createWebChannel } from "./web/index.js";
 
@@ -203,6 +205,8 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
   const { createSkillsTool } = await import("./tools/skills.js");
   const { createTrainTool } = await import("./tools/train.js");
   const { createScoutTool } = await import("./tools/scout.js");
+  const { createGrepTool } = await import("./tools/grep.js");
+  const { createLsTool } = await import("./tools/ls.js");
   const { createMemoryStore } = await import("./core/memory.js");
   const { createEmbeddingProvider } = await import("./lib/embedding.js");
   const { createEventBus } = await import("./core/events.js");
@@ -224,6 +228,8 @@ export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
   const eventBus = createEventBus();
   const runStore = createRunStore(db);
 
+  tools.register(createGrepTool(workspace));
+  tools.register(createLsTool(workspace));
   tools.register(createReadTool(workspace));
   tools.register(createWriteTool(workspace));
   tools.register(createEditTool(workspace));

@@ -1,8 +1,8 @@
 import { ok, strictEqual, throws } from "node:assert";
 import { createServer, type Server } from "node:http";
-import { afterEach, beforeEach, describe, it } from "node:test";
-import type { McpTransport } from "./types.js";
+import { afterEach, describe, it } from "node:test";
 import { createHttpTransport, validateHttpUrl } from "./transport-http.js";
+import type { McpTransport } from "./types.js";
 
 let server: Server | null = null;
 let transport: McpTransport | null = null;
@@ -10,17 +10,29 @@ let serverPort = 0;
 
 function startServer(
   handler: (
-    req: { method: string; url: string; headers: Record<string, string | string[] | undefined>; body: string },
+    req: {
+      method: string;
+      url: string;
+      headers: Record<string, string | string[] | undefined>;
+      body: string;
+    },
     respond: (status: number, headers: Record<string, string>, body: string) => void,
   ) => void,
 ): Promise<number> {
   return new Promise((resolve) => {
     server = createServer((req, res) => {
       let body = "";
-      req.on("data", (c) => { body += c; });
+      req.on("data", (c) => {
+        body += c;
+      });
       req.on("end", () => {
         handler(
-          { method: req.method!, url: req.url!, headers: req.headers as Record<string, string>, body },
+          {
+            method: req.method!,
+            url: req.url!,
+            headers: req.headers as Record<string, string>,
+            body,
+          },
           (status, headers, responseBody) => {
             res.writeHead(status, headers);
             res.end(responseBody);
@@ -36,7 +48,10 @@ function startServer(
 }
 
 afterEach(async () => {
-  if (transport) { await transport.close(); transport = null; }
+  if (transport) {
+    await transport.close();
+    transport = null;
+  }
   if (server) {
     await new Promise<void>((r) => server!.close(() => r()));
     server = null;
@@ -54,10 +69,7 @@ describe("validateHttpUrl", () => {
   });
 
   it("rejects remote http", () => {
-    throws(
-      () => validateHttpUrl("http://example.com/mcp"),
-      /requires HTTPS/,
-    );
+    throws(() => validateHttpUrl("http://example.com/mcp"), /requires HTTPS/);
   });
 
   it("rejects invalid URLs", () => {
@@ -107,7 +119,11 @@ describe("HttpTransport", () => {
       if (callCount > 1) receivedSessionId = (headers["mcp-session-id"] as string) ?? "";
 
       let id: number | undefined;
-      try { id = JSON.parse(body).id; } catch { /* notification */ }
+      try {
+        id = JSON.parse(body).id;
+      } catch {
+        /* notification */
+      }
 
       if (id !== undefined) {
         respond(
@@ -195,8 +211,11 @@ describe("HttpTransport", () => {
   it("rejects after close", async () => {
     serverPort = await startServer(({ body }, respond) => {
       const msg = JSON.parse(body);
-      respond(200, { "Content-Type": "application/json" },
-        JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: {} }));
+      respond(
+        200,
+        { "Content-Type": "application/json" },
+        JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: {} }),
+      );
     });
 
     transport = createHttpTransport({ url: `http://127.0.0.1:${serverPort}/mcp` });

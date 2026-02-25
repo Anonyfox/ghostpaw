@@ -94,4 +94,3 @@ export interface McpTransport {
   close(): Promise<void>;
   isConnected(): boolean;
 }
-

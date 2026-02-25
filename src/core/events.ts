@@ -13,6 +13,12 @@ export type AgentEventMap = {
     status: string;
     result: string | null;
   };
+  "delegate:auto-result": {
+    sessionId: string;
+    sessionKey: string;
+    agent: string;
+    text: string | null;
+  };
 };
 
 type Handler = (data: never) => void;

@@ -108,6 +108,40 @@ export async function createChannelRuntime(config: ChannelRuntimeConfig): Promis
 
   const entries = new Map<string, SessionEntry>();
 
+  // ── Background delegation auto-resume ───────────────────────────────────
+
+  eventBus.on("delegate:done", (data) => {
+    if (data.status !== "completed" && data.status !== "failed") return;
+    const run = runStore.get(data.childRunId);
+    if (!run?.parentSessionId || run.announced) return;
+
+    let parentKey: string | undefined;
+    let parentEntry: SessionEntry | undefined;
+    for (const [key, entry] of entries) {
+      if (entry.sessionId === run.parentSessionId) {
+        parentKey = key;
+        parentEntry = entry;
+        break;
+      }
+    }
+    if (!parentEntry || !parentKey) return;
+
+    const verb = data.status === "completed" ? "completed" : "failed";
+    const prompt = `[System: Background delegation by "${run.agentProfile}" ${verb}. Check the completed tasks in your context and report the result to the user.]`;
+
+    parentEntry.loop
+      .run(parentEntry.sessionId, prompt)
+      .then((result) => {
+        eventBus.emit("delegate:auto-result", {
+          sessionId: parentEntry.sessionId,
+          sessionKey: parentKey,
+          agent: run.agentProfile,
+          text: result.text,
+        });
+      })
+      .catch(() => {});
+  });
+
   function resolveSession(sessionKey: string): SessionEntry {
     const existing = entries.get(sessionKey);
     if (existing) return existing;

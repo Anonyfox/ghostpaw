@@ -1,13 +1,13 @@
-import { deepStrictEqual, ok, rejects, strictEqual } from "node:assert";
+import { ok, rejects, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
+import { connectMcpServer } from "./client.js";
+import { resetIdCounter } from "./jsonrpc.js";
 import type {
   JsonRpcNotification,
   JsonRpcRequest,
   JsonRpcResponse,
   McpTransport,
 } from "./types.js";
-import { connectMcpServer } from "./client.js";
-import { resetIdCounter } from "./jsonrpc.js";
 
 function createMockTransport(
   responses: Record<string, (params?: Record<string, unknown>) => unknown>,
@@ -21,7 +21,9 @@ function createMockTransport(
       if (!handler) throw new Error(`Unexpected method: ${req.method}`);
       return { jsonrpc: "2.0", id: req.id, result: handler(req.params) };
     },
-    async close() { connected = false; },
+    async close() {
+      connected = false;
+    },
     isConnected: () => connected,
   };
 }
@@ -72,7 +74,12 @@ describe("connectMcpServer", () => {
       initialize: INIT_RESPONSE,
       "tools/list": TOOLS_RESPONSE,
       "tools/call": (params) => ({
-        content: [{ type: "text", text: `echoed: ${(params as any).arguments.msg}` }],
+        content: [
+          {
+            type: "text",
+            text: `echoed: ${(params as Record<string, Record<string, string>>).arguments.msg}`,
+          },
+        ],
       }),
     });
 
@@ -94,10 +101,7 @@ describe("connectMcpServer", () => {
 
     const client = await connectMcpServer("test", transport);
 
-    await rejects(
-      () => client.callTool("nonexistent", {}),
-      /no tool named "nonexistent"/,
-    );
+    await rejects(() => client.callTool("nonexistent", {}), /no tool named "nonexistent"/);
 
     await client.disconnect();
   });
@@ -123,10 +127,7 @@ describe("connectMcpServer", () => {
       initialize: () => ({ broken: true }),
     });
 
-    await rejects(
-      () => connectMcpServer("bad", transport),
-      /invalid initialize result/,
-    );
+    await rejects(() => connectMcpServer("bad", transport), /invalid initialize result/);
   });
 
   it("handles server with no tools", async () => {
@@ -164,9 +165,6 @@ describe("connectMcpServer", () => {
       isConnected: () => true,
     };
 
-    await rejects(
-      () => connectMcpServer("slow", transport, { timeoutMs: 200 }),
-      /timed out/,
-    );
+    await rejects(() => connectMcpServer("slow", transport, { timeoutMs: 200 }), /timed out/);
   });
 });

@@ -316,7 +316,9 @@ export function registerAPIRoutes(router: Router, runtime: ChannelRuntime): void
           const lms = await getLanguageModelList({ apiKey, timeout: 8000 });
           return lms.map((m) => m.id);
         }
-      } catch { /* fall back to hardcoded */ }
+      } catch {
+        /* fall back to hardcoded */
+      }
       return null;
     }
 

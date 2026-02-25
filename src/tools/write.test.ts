@@ -1,5 +1,5 @@
 import { ok, strictEqual } from "node:assert";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
@@ -44,10 +44,18 @@ describe("Write tool", () => {
     strictEqual(readFileSync(join(workDir, "a/b/c/deep.txt"), "utf-8"), "nested");
   });
 
-  it("writes empty files", async () => {
+  it("writes empty new files", async () => {
     await exec({ path: "empty.txt", content: "" });
     ok(existsSync(join(workDir, "empty.txt")));
     strictEqual(readFileSync(join(workDir, "empty.txt"), "utf-8"), "");
+  });
+
+  it("rejects empty content for existing files", async () => {
+    writeFileSync(join(workDir, "existing.txt"), "important data");
+    const result = (await exec({ path: "existing.txt", content: "" })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("Refusing"));
+    strictEqual(readFileSync(join(workDir, "existing.txt"), "utf-8"), "important data");
   });
 
   it("prevents path traversal outside workspace", async () => {

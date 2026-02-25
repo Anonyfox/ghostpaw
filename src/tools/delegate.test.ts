@@ -107,7 +107,7 @@ describe("Delegate tool - metadata", () => {
       parentSessionId,
     });
     strictEqual(tool.name, "delegate");
-    ok(tool.description.includes("delegate"));
+    ok(tool.description.includes("Delegate"));
     ok(tool.description.includes("cannot delegate further"));
   });
 
@@ -162,7 +162,7 @@ describe("Delegate tool - circuit breaker", () => {
 });
 
 describe("Delegate tool - foreground execution", () => {
-  it("executes task and returns result", async () => {
+  it("executes task and returns completed result", async () => {
     const { chat, captured } = capturingChat("task completed");
     const tool = createDelegateTool({
       workspacePath: workDir,
@@ -174,8 +174,10 @@ describe("Delegate tool - foreground execution", () => {
       chatFactory: () => chat,
     });
 
-    const result = (await exec(tool, { task: "do research" })) as { result: string };
-    strictEqual(result.result, "task completed");
+    const result = (await exec(tool, { task: "do research" })) as string;
+    ok(typeof result === "string");
+    ok(result.includes("completed successfully"));
+    ok(result.includes("task completed"));
     ok(captured.userMessages.includes("do research"));
   });
 
@@ -190,16 +192,16 @@ describe("Delegate tool - foreground execution", () => {
       chatFactory: () => mockChat("ok"),
     });
 
-    const result = (await exec(tool, { task: "test" })) as { runId: string };
-    const run = runs.get(result.runId);
-    ok(run);
-    strictEqual(run!.status, "completed");
-    strictEqual(run!.agentProfile, "default");
-    strictEqual(run!.parentSessionId, parentSessionId);
-    strictEqual(run!.sessionId, parentSessionId);
+    await exec(tool, { task: "test" });
+    const allRuns = runs.getCompletedDelegations(parentSessionId);
+    ok(allRuns.length > 0);
+    const run = allRuns[0]!;
+    strictEqual(run.status, "completed");
+    strictEqual(run.agentProfile, "default");
+    strictEqual(run.parentSessionId, parentSessionId);
   });
 
-  it("uses agent profile system prompt when specified", async () => {
+  it("uses agent profile as soul override when specified", async () => {
     mkdirSync(join(workDir, "agents"));
     writeFileSync(join(workDir, "agents", "coder.md"), "You are a coder. Write clean TypeScript.");
 
@@ -219,6 +221,50 @@ describe("Delegate tool - foreground execution", () => {
     ok(captured.systemPrompt.includes("TypeScript"));
   });
 
+  it("composes agent profile with environment and memory guidance", async () => {
+    mkdirSync(join(workDir, "agents"));
+    writeFileSync(join(workDir, "agents", "coder.md"), "# Coder Soul\nYou write code.");
+
+    const { chat, captured } = capturingChat("coded");
+    const tool = createDelegateTool({
+      workspacePath: workDir,
+      tools: [],
+      defaultModel: "test-model",
+      sessions,
+      runs,
+      parentSessionId,
+      chatFactory: () => chat,
+    });
+
+    await exec(tool, { task: "write code", agent: "coder" });
+    ok(captured.systemPrompt.includes("# Coder Soul"));
+    ok(captured.systemPrompt.includes("## Environment"));
+    ok(captured.systemPrompt.includes("## Memory"));
+  });
+
+  it("composes agent profile with skills when available", async () => {
+    mkdirSync(join(workDir, "agents"));
+    mkdirSync(join(workDir, "skills"));
+    writeFileSync(join(workDir, "agents", "coder.md"), "# Coder Soul");
+    writeFileSync(join(workDir, "skills", "testing.md"), "# Testing Guide\nHow to test.");
+
+    const { chat, captured } = capturingChat("coded");
+    const tool = createDelegateTool({
+      workspacePath: workDir,
+      tools: [],
+      defaultModel: "test-model",
+      sessions,
+      runs,
+      parentSessionId,
+      chatFactory: () => chat,
+    });
+
+    await exec(tool, { task: "write tests", agent: "coder" });
+    ok(captured.systemPrompt.includes("# Coder Soul"));
+    ok(captured.systemPrompt.includes("## Skills"));
+    ok(captured.systemPrompt.includes("testing.md"));
+  });
+
   it("uses default system prompt when agent is omitted", async () => {
     const { chat, captured } = capturingChat("done");
     const tool = createDelegateTool({
@@ -232,7 +278,7 @@ describe("Delegate tool - foreground execution", () => {
     });
 
     await exec(tool, { task: "do something" });
-    ok(captured.systemPrompt.includes("ghostpaw"));
+    ok(captured.systemPrompt.includes("Ghostpaw"));
   });
 
   it("returns error for unknown agent profile", async () => {
@@ -356,7 +402,7 @@ describe("Delegate tool - background execution", () => {
       runId: string;
     };
 
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 20));
 
     const run = runs.get(result.runId);
     ok(run);
@@ -396,7 +442,7 @@ describe("Delegate tool - background execution", () => {
       runId: string;
     };
 
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 20));
 
     const run = runs.get(result.runId);
     ok(run);
@@ -420,7 +466,7 @@ describe("Delegate tool - background execution", () => {
     });
 
     await exec(tool, { task: "bg", background: true });
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 20));
 
     strictEqual(doneEvents.length, 1);
     strictEqual(doneEvents[0]!.status, "completed");
@@ -446,7 +492,7 @@ describe("Delegate tool - background execution", () => {
     });
 
     await exec(tool, { task: "bg task", background: true });
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 20));
 
     const usage = budget.getUsage();
     ok(usage.sessionTokensIn > 0);
@@ -482,9 +528,14 @@ describe("Delegate tool - error handling", () => {
       chatFactory: () => errorChat,
     });
 
-    const result = (await exec(tool, { task: "do something" })) as { error: string };
+    const result = (await exec(tool, { task: "do something" })) as {
+      status: string;
+      error: string;
+      agent: string;
+    };
+    strictEqual(result.status, "failed");
+    strictEqual(result.agent, "default");
     ok(result.error.includes("API rate limited"));
-    ok(result.error.includes("default"));
   });
 });
 
@@ -500,16 +551,131 @@ describe("Delegate tool - dynamic profile discovery", () => {
       chatFactory: () => mockChat("ok"),
     });
 
-    // Agent doesn't exist yet
     const r1 = (await exec(tool, { task: "test", agent: "latecomer" })) as { error: string };
     ok(r1.error.includes("Unknown agent"));
 
-    // Create agent after tool was created
     mkdirSync(join(workDir, "agents"));
     writeFileSync(join(workDir, "agents", "latecomer.md"), "I arrive late but I work.");
 
-    // Now it should be found
-    const r2 = (await exec(tool, { task: "test", agent: "latecomer" })) as { result: string };
-    strictEqual(r2.result, "ok");
+    const r2 = (await exec(tool, { task: "test", agent: "latecomer" })) as string;
+    ok(typeof r2 === "string");
+    ok(r2.includes("ok"));
+  });
+});
+
+describe("Delegate tool - timeout", () => {
+  it("applies custom timeout on slow sub-agent", async () => {
+    let generateCalled = false;
+    const slowChat: ChatInstance = {
+      system() {
+        return this;
+      },
+      user() {
+        return this;
+      },
+      assistant() {
+        return this;
+      },
+      addTool() {},
+      async generate() {
+        generateCalled = true;
+        await new Promise((r) => setTimeout(r, 500));
+        return "slow result";
+      },
+    };
+
+    const tool = createDelegateTool({
+      workspacePath: workDir,
+      tools: [],
+      defaultModel: "test-model",
+      sessions,
+      runs,
+      parentSessionId,
+      chatFactory: () => slowChat,
+    });
+
+    const result = (await exec(tool, { task: "slow", timeout: 0.05 })) as {
+      status: string;
+      error: string;
+    };
+    ok(generateCalled);
+    strictEqual(result.status, "failed");
+    ok(result.error.includes("timed out"));
+  });
+
+  it("foreground delegation times out on hung sub-agent", async () => {
+    const hungChat: ChatInstance = {
+      system() {
+        return this;
+      },
+      user() {
+        return this;
+      },
+      assistant() {
+        return this;
+      },
+      addTool() {},
+      generate() {
+        return new Promise(() => {});
+      },
+    };
+
+    const tool = createDelegateTool({
+      workspacePath: workDir,
+      tools: [],
+      defaultModel: "test-model",
+      sessions,
+      runs,
+      parentSessionId,
+      chatFactory: () => hungChat,
+    });
+
+    const result = (await exec(tool, { task: "hung", timeout: 0.05 })) as {
+      status: string;
+      error: string;
+    };
+    strictEqual(result.status, "failed");
+    ok(result.error.includes("timed out"));
+  });
+
+  it("background delegation times out with custom timeout", async () => {
+    const hungChat: ChatInstance = {
+      system() {
+        return this;
+      },
+      user() {
+        return this;
+      },
+      assistant() {
+        return this;
+      },
+      addTool() {},
+      generate() {
+        return new Promise(() => {});
+      },
+    };
+
+    const tool = createDelegateTool({
+      workspacePath: workDir,
+      tools: [],
+      defaultModel: "test-model",
+      sessions,
+      runs,
+      parentSessionId,
+      chatFactory: () => hungChat,
+      eventBus,
+    });
+
+    const result = (await exec(tool, { task: "bg hung", background: true, timeout: 0.05 })) as {
+      runId: string;
+    };
+    ok(result.runId);
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    const run = runs.get(result.runId);
+    ok(run);
+    strictEqual(run!.status, "failed");
+    ok(run!.error!.includes("timed out"));
   });
 });

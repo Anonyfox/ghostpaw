@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { type AgentSummary, getAgentSummary, listAgentProfiles } from "./agents.js";
 import { DEFAULT_SOUL } from "./soul.js";
 
 function loadSoul(workspacePath: string): string | null {
@@ -62,6 +63,49 @@ Skip recall for straightforward tasks where past context clearly doesn't apply �
 
 **Epistemic rule**: Memories describe what WAS true in past sessions — not what IS true now. After recalling memories, always verify claims about files, code, or state against live tool output (\`read\`, \`bash\`, \`skills\`). If a memory says "file X is a working 150-line script" but \`read\` returns \`lines: 1, bytes: 4000\`, the file is corrupted — report the actual state, not the memory.`;
 
+function loadAgentIndex(workspacePath: string): AgentSummary[] {
+  const names = listAgentProfiles(workspacePath);
+  const summaries: AgentSummary[] = [];
+  for (const name of names) {
+    const s = getAgentSummary(workspacePath, name);
+    if (s) summaries.push(s);
+  }
+  return summaries;
+}
+
+function formatAgentIndex(agents: AgentSummary[]): string {
+  const lines = agents.map((a) => {
+    const desc = a.summary ? ` -- ${a.summary}` : "";
+    return `- agents/${a.name}.md: ${a.title}${desc}`;
+  });
+  return [
+    "## Agents",
+    "",
+    `You have ${agents.length} specialist${agents.length === 1 ? "" : "s"}. ` +
+      "**You MUST delegate to the matching specialist for any task in their domain** — " +
+      "this is mandatory, not optional. Do not attempt their work yourself.",
+    "",
+    ...lines,
+  ].join("\n");
+}
+
+function formatRoutingHint(agents: AgentSummary[]): string {
+  const codeAgent = agents.find(
+    (a) =>
+      a.name.includes("engineer") ||
+      a.title.toLowerCase().includes("engineer") ||
+      a.title.toLowerCase().includes("developer") ||
+      a.summary.toLowerCase().includes("code") ||
+      a.summary.toLowerCase().includes("script"),
+  );
+  if (!codeAgent) return "";
+  return [
+    "⚠️ **ROUTING RULE**: For ANY task that involves writing, editing, or debugging code/scripts,",
+    `call \`delegate\` with \`agent="${codeAgent.name}"\` FIRST. Do not use \`write\`, \`edit\`, or \`bash\` to produce code directly.`,
+    `The ${codeAgent.name} specialist handles all coding — you handle everything else.`,
+  ].join(" ");
+}
+
 function formatEnvironment(workspacePath: string): string {
   const abs = resolve(workspacePath);
   return `## Environment
@@ -75,14 +119,21 @@ function formatEnvironment(workspacePath: string): string {
 export function assembleSystemPrompt(
   workspacePath: string,
   budgetSummary: string | null = null,
+  soulOverride: string | null = null,
 ): string {
   const sections: string[] = [];
 
-  sections.push(loadSoul(workspacePath) ?? DEFAULT_SOUL);
+  sections.push(soulOverride ?? loadSoul(workspacePath) ?? DEFAULT_SOUL);
 
   sections.push(formatEnvironment(workspacePath));
 
   sections.push(MEMORY_GUIDANCE);
+
+  const agents = loadAgentIndex(workspacePath);
+  if (agents.length > 0) {
+    sections.push(formatAgentIndex(agents));
+    sections.push(formatRoutingHint(agents));
+  }
 
   const skills = loadSkillIndex(workspacePath);
   if (skills.length > 0) {

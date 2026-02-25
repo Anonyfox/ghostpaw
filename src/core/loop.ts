@@ -12,8 +12,16 @@ export interface ChatInstance {
   user(content: string): ChatInstance;
   assistant(content: string): ChatInstance;
   addTool(tool: Tool): void;
-  generate(options?: { maxIterations?: number; onToolError?: string }): Promise<string>;
-  stream?(options?: { maxIterations?: number; onToolError?: string }): AsyncIterable<string>;
+  generate(options?: {
+    maxIterations?: number;
+    onToolError?: string;
+    toolTimeout?: number;
+  }): Promise<string>;
+  stream?(options?: {
+    maxIterations?: number;
+    onToolError?: string;
+    toolTimeout?: number;
+  }): AsyncIterable<string>;
 }
 
 export type ChatFactory = (model: string) => ChatInstance;
@@ -46,6 +54,7 @@ export interface AgentLoopHandle {
 
 const DEFAULT_MAX_ITERATIONS = 20;
 const DEFAULT_COMPACTION_THRESHOLD = 150_000;
+const TOOL_TIMEOUT_MS = 10 * 60 * 1000;
 
 export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
   const {
@@ -209,7 +218,11 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
       let text: string | null = null;
       let error: string | undefined;
       try {
-        text = await chat.generate({ maxIterations, onToolError: "respond" });
+        text = await chat.generate({
+          maxIterations,
+          onToolError: "respond",
+          toolTimeout: TOOL_TIMEOUT_MS,
+        });
       } catch (err) {
         error = err instanceof Error ? err.message : String(err);
         text = `Error: ${error}`;
@@ -236,7 +249,11 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
         let text: string | null = null;
         let error: string | undefined;
         try {
-          text = await chat.generate({ maxIterations, onToolError: "respond" });
+          text = await chat.generate({
+            maxIterations,
+            onToolError: "respond",
+            toolTimeout: TOOL_TIMEOUT_MS,
+          });
         } catch (err) {
           error = err instanceof Error ? err.message : String(err);
           text = `Error: ${error}`;
@@ -247,7 +264,11 @@ export function createAgentLoop(config: AgentLoopConfig): AgentLoopHandle {
       let fullText = "";
       let error: string | undefined;
       try {
-        for await (const chunk of chat.stream({ maxIterations, onToolError: "respond" })) {
+        for await (const chunk of chat.stream({
+          maxIterations,
+          onToolError: "respond",
+          toolTimeout: TOOL_TIMEOUT_MS,
+        })) {
           fullText += chunk;
           eventBus?.emit("stream:chunk", { sessionId, chunk });
           yield chunk;

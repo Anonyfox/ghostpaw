@@ -1,15 +1,11 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { createTool, Schema } from "chatoyant";
+import { isInsideWorkspace } from "../lib/workspace.js";
 
 class WriteParams extends Schema {
   path = Schema.String({ description: "File path relative to workspace" });
   content = Schema.String({ description: "File content to write" });
-}
-
-function isInsideWorkspace(workspacePath: string, filePath: string): boolean {
-  const resolved = resolve(workspacePath, filePath);
-  return !relative(workspacePath, resolved).startsWith("..");
 }
 
 const HTML_ENTITIES: Record<string, string> = {
@@ -23,14 +19,15 @@ const HTML_ENTITIES: Record<string, string> = {
   "&#x2F;": "/",
 };
 
-const HTML_ENTITY_RE = /&(?:amp|lt|gt|quot|apos|#39|#x27|#x2F);/g;
+const HTML_ENTITY_DETECT = /&(?:amp|lt|gt|quot|apos|#39|#x27|#x2F);/;
+const HTML_ENTITY_REPLACE = /&(?:amp|lt|gt|quot|apos|#39|#x27|#x2F);/g;
 
 function hasHtmlEntities(text: string): boolean {
-  return HTML_ENTITY_RE.test(text);
+  return HTML_ENTITY_DETECT.test(text);
 }
 
 function unescapeHtmlEntities(text: string): string {
-  return text.replace(HTML_ENTITY_RE, (m) => HTML_ENTITIES[m] ?? m);
+  return text.replace(HTML_ENTITY_REPLACE, (m) => HTML_ENTITIES[m] ?? m);
 }
 
 function hasLiteralEscapes(text: string): boolean {
@@ -78,6 +75,12 @@ export function createWriteTool(workspacePath: string) {
 
       const content = sanitizeLlmContent(rawContent, filePath);
       const fullPath = join(workspacePath, filePath);
+
+      if (!content && existsSync(fullPath)) {
+        return {
+          error: `Refusing to write empty content to existing file "${filePath}". Use edit to modify files, or provide content for new files.`,
+        };
+      }
 
       try {
         mkdirSync(dirname(fullPath), { recursive: true });

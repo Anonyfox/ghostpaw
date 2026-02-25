@@ -1,13 +1,12 @@
 import { createTool, Schema, type Tool } from "chatoyant";
-import { type McpClient, connectMcpServer } from "../mcp/client.js";
+import { connectMcpServer, type McpClient } from "../mcp/client.js";
 import { createHttpTransport } from "../mcp/transport-http.js";
 import { createStdioTransport } from "../mcp/transport-stdio.js";
 import type { McpToolSchema } from "../mcp/types.js";
 
 class McpParams extends Schema {
   action = Schema.Enum(["discover", "call"] as const, {
-    description:
-      "discover: list tools on an MCP server. call: invoke a specific tool.",
+    description: "discover: list tools on an MCP server. call: invoke a specific tool.",
   });
   server = Schema.String({
     description:
@@ -18,8 +17,7 @@ class McpParams extends Schema {
     optional: true,
   });
   input = Schema.String({
-    description:
-      "Tool arguments as a JSON object string (required for action: call).",
+    description: "Tool arguments as a JSON object string (required for action: call).",
     optional: true,
   });
   auth = Schema.String({
@@ -34,9 +32,7 @@ interface McpToolConfig {
 }
 
 function cleanServerString(raw: string): string {
-  return raw
-    .replace(/^[\s\u200B\uFEFF"'`<]+/, "")
-    .replace(/[\s\u200B\uFEFF"'`>]+$/, "");
+  return raw.replace(/^[\s\u200B\uFEFF"'`<]+/, "").replace(/[\s\u200B\uFEFF"'`>]+$/, "");
 }
 
 function isUrl(server: string): boolean {
@@ -114,10 +110,7 @@ export function createMcpTool(config: McpToolConfig): {
 } {
   const connections = new Map<string, McpClient>();
 
-  async function getOrConnect(
-    server: string,
-    auth: string | undefined,
-  ): Promise<McpClient> {
+  async function getOrConnect(server: string, auth: string | undefined): Promise<McpClient> {
     const existing = connections.get(server);
     if (existing) return existing;
 

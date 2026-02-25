@@ -5,6 +5,12 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { createMcpTool } from "./mcp.js";
 
+type ToolExecArg = Parameters<ReturnType<typeof createMcpTool>["tool"]["execute"]>[0];
+
+function execArgs(args: Record<string, unknown>): ToolExecArg {
+  return { args, ctx: { model: "test" } } as ToolExecArg;
+}
+
 const MCP_SERVER_CODE = `
 const rl = require("readline").createInterface({ input: process.stdin });
 rl.on("line", (line) => {
@@ -108,10 +114,9 @@ describe("mcp tool", () => {
     const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
     shutdownFn = shutdown;
 
-    const result = await tool.execute({
-      args: { action: "discover", server: `node ${serverPath}` },
-      ctx: { model: "test" },
-    } as any);
+    const result = await tool.execute(
+      execArgs({ action: "discover", server: `node ${serverPath}` }),
+    );
 
     const parsed = result as Record<string, unknown>;
     ok(parsed.tools);
@@ -127,20 +132,11 @@ describe("mcp tool", () => {
 
     const server = `node ${serverPath}`;
 
-    await tool.execute({
-      args: { action: "discover", server },
-      ctx: { model: "test" },
-    } as any);
+    await tool.execute(execArgs({ action: "discover", server }));
 
-    const result = await tool.execute({
-      args: {
-        action: "call",
-        server,
-        tool: "ping",
-        input: '{"msg":"hello"}',
-      },
-      ctx: { model: "test" },
-    } as any);
+    const result = await tool.execute(
+      execArgs({ action: "call", server, tool: "ping", input: '{"msg":"hello"}' }),
+    );
 
     strictEqual(result, "pong: hello");
   });
@@ -151,16 +147,14 @@ describe("mcp tool", () => {
 
     const server = `node ${serverPath}`;
 
-    const r1 = await tool.execute({
-      args: { action: "call", server, tool: "ping", input: '{"msg":"a"}' },
-      ctx: { model: "test" },
-    } as any);
+    const r1 = await tool.execute(
+      execArgs({ action: "call", server, tool: "ping", input: '{"msg":"a"}' }),
+    );
     strictEqual(r1, "pong: a");
 
-    const r2 = await tool.execute({
-      args: { action: "call", server, tool: "echo", input: '{"text":"hello"}' },
-      ctx: { model: "test" },
-    } as any);
+    const r2 = await tool.execute(
+      execArgs({ action: "call", server, tool: "echo", input: '{"text":"hello"}' }),
+    );
     strictEqual(r2, "hello");
   });
 
@@ -168,10 +162,7 @@ describe("mcp tool", () => {
     const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
     shutdownFn = shutdown;
 
-    const result = await tool.execute({
-      args: { action: "discover", server: "" },
-      ctx: { model: "test" },
-    } as any);
+    const result = await tool.execute(execArgs({ action: "discover", server: "" }));
 
     ok((result as Record<string, unknown>).error);
   });
@@ -180,10 +171,7 @@ describe("mcp tool", () => {
     const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
     shutdownFn = shutdown;
 
-    const result = await tool.execute({
-      args: { action: "call", server: `node ${serverPath}` },
-      ctx: { model: "test" },
-    } as any);
+    const result = await tool.execute(execArgs({ action: "call", server: `node ${serverPath}` }));
 
     const err = result as Record<string, unknown>;
     ok(String(err.error).includes("tool is required"));
@@ -193,15 +181,9 @@ describe("mcp tool", () => {
     const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
     shutdownFn = shutdown;
 
-    const result = await tool.execute({
-      args: {
-        action: "call",
-        server: `node ${serverPath}`,
-        tool: "ping",
-        input: "not json",
-      },
-      ctx: { model: "test" },
-    } as any);
+    const result = await tool.execute(
+      execArgs({ action: "call", server: `node ${serverPath}`, tool: "ping", input: "not json" }),
+    );
 
     const err = result as Record<string, unknown>;
     ok(String(err.error).includes("Invalid JSON"));
@@ -214,10 +196,9 @@ describe("mcp tool", () => {
     const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
     shutdownFn = shutdown;
 
-    const result = await tool.execute({
-      args: { action: "discover", server: `node ${crashScript}` },
-      ctx: { model: "test" },
-    } as any);
+    const result = await tool.execute(
+      execArgs({ action: "discover", server: `node ${crashScript}` }),
+    );
 
     const err = result as Record<string, unknown>;
     ok(err.error);
@@ -230,15 +211,14 @@ describe("mcp tool", () => {
     });
     shutdownFn = shutdown;
 
-    const result = await tool.execute({
-      args: {
+    const result = await tool.execute(
+      execArgs({
         action: "call",
         server: `node ${envServerPath}`,
         tool: "check_env",
         auth: "MY_SECRET",
-      },
-      ctx: { model: "test" },
-    } as any);
+      }),
+    );
 
     strictEqual(result, "secret=s3cret");
   });
@@ -247,17 +227,13 @@ describe("mcp tool", () => {
     const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
 
     const server = `node ${serverPath}`;
-    await tool.execute({
-      args: { action: "discover", server },
-      ctx: { model: "test" },
-    } as any);
+    await tool.execute(execArgs({ action: "discover", server }));
 
     await shutdown();
 
-    const result = await tool.execute({
-      args: { action: "call", server, tool: "ping", input: '{"msg":"after"}' },
-      ctx: { model: "test" },
-    } as any);
+    const result = await tool.execute(
+      execArgs({ action: "call", server, tool: "ping", input: '{"msg":"after"}' }),
+    );
     strictEqual(result, "pong: after");
 
     shutdownFn = shutdown;
@@ -267,10 +243,9 @@ describe("mcp tool", () => {
     const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
     shutdownFn = shutdown;
 
-    const result = await tool.execute({
-      args: { action: "discover", server: "https://nonexistent.invalid/mcp" },
-      ctx: { model: "test" },
-    } as any);
+    const result = await tool.execute(
+      execArgs({ action: "discover", server: "https://nonexistent.invalid/mcp" }),
+    );
 
     const err = result as Record<string, unknown>;
     ok(err.error);

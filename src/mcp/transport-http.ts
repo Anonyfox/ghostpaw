@@ -1,10 +1,10 @@
+import { isErrorResponse, parseResponse, parseSSEData } from "./jsonrpc.js";
 import type {
   JsonRpcNotification,
   JsonRpcRequest,
   JsonRpcResponse,
   McpTransport,
 } from "./types.js";
-import { isErrorResponse, parseResponse, parseSSEData } from "./jsonrpc.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -15,8 +15,7 @@ export function validateHttpUrl(url: string): void {
   } catch {
     throw new Error(`Invalid MCP HTTP URL: ${url}`);
   }
-  const isLocalhost =
-    parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+  const isLocalhost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
   if (parsed.protocol !== "https:" && !isLocalhost) {
     throw new Error(
       `MCP HTTP transport requires HTTPS for remote hosts (got ${url}). Use http:// only for localhost.`,
@@ -41,9 +40,7 @@ export function createHttpTransport(config: {
   let sessionId: string | null = null;
   let connected = true;
 
-  async function send(
-    msg: JsonRpcRequest | JsonRpcNotification,
-  ): Promise<JsonRpcResponse | null> {
+  async function send(msg: JsonRpcRequest | JsonRpcNotification): Promise<JsonRpcResponse | null> {
     if (!connected) {
       throw new Error("MCP HTTP transport is disconnected");
     }
@@ -77,9 +74,7 @@ export function createHttpTransport(config: {
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new Error(
-        `MCP HTTP error ${res.status}: ${body.slice(0, 500)}`,
-      );
+      throw new Error(`MCP HTTP error ${res.status}: ${body.slice(0, 500)}`);
     }
 
     const isNotification = !("id" in msg) || msg.id === undefined;
@@ -114,9 +109,7 @@ export function createHttpTransport(config: {
     const text = await res.text();
     const parsed = parseResponse(text);
     if (isErrorResponse(parsed)) {
-      throw new Error(
-        `MCP server error: ${parsed.error.message} (code ${parsed.error.code})`,
-      );
+      throw new Error(`MCP server error: ${parsed.error.message} (code ${parsed.error.code})`);
     }
     return parsed as JsonRpcResponse;
   }

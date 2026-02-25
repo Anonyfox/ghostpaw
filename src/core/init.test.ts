@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
+import { SOUL_ENGINEER } from "./default_souls.js";
 import { ensureWorkspace, initWorkspace } from "./init.js";
 import { DEFAULT_SOUL } from "./soul.js";
 
@@ -27,7 +28,7 @@ describe("initWorkspace - fresh directory", () => {
     ok(existsSync(join(workDir, "config.json")));
     ok(existsSync(join(workDir, ".gitignore")));
 
-    strictEqual(result.created.length, 10);
+    strictEqual(result.created.length, 11);
     strictEqual(result.skipped.length, 0);
   });
 
@@ -70,7 +71,7 @@ describe("initWorkspace - idempotency", () => {
     const result = initWorkspace(workDir);
 
     strictEqual(result.created.length, 0);
-    strictEqual(result.skipped.length, 10);
+    strictEqual(result.skipped.length, 11);
   });
 
   it("does not overwrite existing SOUL.md", () => {
@@ -177,6 +178,67 @@ describe("default skills", () => {
       "Custom training.",
     );
     strictEqual(readFileSync(join(workDir, "skills", "skill-scout.md"), "utf-8"), "Custom scout.");
+  });
+});
+
+describe("default agent profiles", () => {
+  it("creates agents/js-engineer.md", () => {
+    initWorkspace(workDir);
+    ok(existsSync(join(workDir, "agents", "js-engineer.md")));
+  });
+
+  it("js-engineer.md contains key sections", () => {
+    initWorkspace(workDir);
+    const content = readFileSync(join(workDir, "agents", "js-engineer.md"), "utf-8");
+    ok(content.includes("# JavaScript Engineer"));
+    ok(content.includes("## Workflow"));
+    ok(content.includes("## TDD"));
+    ok(content.includes("## Tool Discipline"));
+    ok(content.includes("## What You Never Do"));
+  });
+
+  it("does not overwrite existing agent profiles", () => {
+    mkdirSync(join(workDir, "agents"), { recursive: true });
+    writeFileSync(join(workDir, "agents", "js-engineer.md"), "Custom engineer.");
+    initWorkspace(workDir);
+    strictEqual(
+      readFileSync(join(workDir, "agents", "js-engineer.md"), "utf-8"),
+      "Custom engineer.",
+    );
+  });
+});
+
+describe("SOUL_ENGINEER", () => {
+  it("is a non-empty string with substantial content", () => {
+    ok(SOUL_ENGINEER.length > 500);
+  });
+
+  it("contains cognitive mode sections, not task-specific steps", () => {
+    ok(SOUL_ENGINEER.includes("## Workflow"));
+    ok(SOUL_ENGINEER.includes("## Progressive Complexity"));
+    ok(SOUL_ENGINEER.includes("## TDD"));
+    ok(SOUL_ENGINEER.includes("## Code Standards"));
+    ok(SOUL_ENGINEER.includes("## Guardrails Are Automated"));
+    ok(SOUL_ENGINEER.includes("## Tool Discipline"));
+    ok(SOUL_ENGINEER.includes("## What You Never Do"));
+  });
+
+  it("encodes verification-first habits", () => {
+    ok(SOUL_ENGINEER.includes("read") && SOUL_ENGINEER.includes("lines"));
+    ok(SOUL_ENGINEER.includes("Memory is noise for code state"));
+    ok(SOUL_ENGINEER.includes("API shapes are never assumed"));
+  });
+
+  it("encodes TDD discipline", () => {
+    ok(SOUL_ENGINEER.includes("Write the test BEFORE the implementation"));
+    ok(SOUL_ENGINEER.includes("node:test"));
+    ok(SOUL_ENGINEER.includes("node:assert"));
+  });
+
+  it("prefers node builtins over npm packages", () => {
+    ok(SOUL_ENGINEER.includes("node:fs"));
+    ok(SOUL_ENGINEER.includes("node:http"));
+    ok(SOUL_ENGINEER.includes("Prefer `node:` built-ins"));
   });
 });
 

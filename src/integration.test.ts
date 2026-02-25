@@ -759,16 +759,17 @@ describe("Integration: delegate tool with agent profiles", () => {
     const result = (await delegateTool.execute({
       args: { task: "research TypeScript frameworks", agent: "researcher" },
       // biome-ignore lint: chatoyant ToolInput cast
-    } as any)) as { result: string; agent: string; runId: string };
+    } as any)) as string;
 
-    strictEqual(result.agent, "researcher");
-    ok(result.result.includes("found 5 items"));
+    ok(typeof result === "string");
+    ok(result.includes("researcher completed successfully"));
+    ok(result.includes("found 5 items"));
 
-    const run = runStore.get(result.runId);
-    ok(run);
-    strictEqual(run!.status, "completed");
-    strictEqual(run!.agentProfile, "researcher");
-    strictEqual(run!.parentSessionId, parentSession.id);
+    const allRuns = runStore.getCompletedDelegations(parentSession.id);
+    ok(allRuns.length > 0);
+    strictEqual(allRuns[0]!.status, "completed");
+    strictEqual(allRuns[0]!.agentProfile, "researcher");
+    strictEqual(allRuns[0]!.parentSessionId, parentSession.id);
   });
 
   it("background delegation completes asynchronously and is queryable", async () => {

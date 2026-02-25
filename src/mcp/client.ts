@@ -1,5 +1,6 @@
 import { createNotification, createRequest, isErrorResponse } from "./jsonrpc.js";
 import type {
+  JsonRpcErrorResponse,
   McpInitializeResult,
   McpToolResult,
   McpToolSchema,
@@ -57,10 +58,7 @@ export async function connectMcpServer(
   const { tools } = result;
   const toolNames = new Set(tools.map((t) => t.name));
 
-  async function callTool(
-    name: string,
-    args: Record<string, unknown>,
-  ): Promise<McpToolResult> {
+  async function callTool(name: string, args: Record<string, unknown>): Promise<McpToolResult> {
     if (!transport.isConnected()) {
       throw new Error(`MCP server "${serverName}" is disconnected`);
     }
@@ -72,9 +70,11 @@ export async function connectMcpServer(
     const resp = await transport.send(req.msg);
     if (!resp) throw new Error(`MCP server "${serverName}" returned no response for tools/call`);
 
-    if (isErrorResponse(resp as any)) {
-      const err = (resp as any).error;
-      throw new Error(`MCP tool "${name}" error: ${err.message} (code ${err.code})`);
+    const checked = resp as typeof resp | JsonRpcErrorResponse;
+    if (isErrorResponse(checked)) {
+      throw new Error(
+        `MCP tool "${name}" error: ${checked.error.message} (code ${checked.error.code})`,
+      );
     }
 
     const callResult = resp.result as McpToolResult;
@@ -91,15 +91,17 @@ export async function connectMcpServer(
   return { serverName, tools, callTool, disconnect };
 }
 
-function withTimeout<T>(
-  promise: Promise<T>,
-  ms: number,
-  message: string,
-): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(message)), ms);
     promise
-      .then((v) => { clearTimeout(timer); resolve(v); })
-      .catch((e) => { clearTimeout(timer); reject(e); });
+      .then((v) => {
+        clearTimeout(timer);
+        resolve(v);
+      })
+      .catch((e) => {
+        clearTimeout(timer);
+        reject(e);
+      });
   });
 }

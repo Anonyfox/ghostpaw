@@ -22,7 +22,9 @@ afterEach(() => {
   rmSync(workDir, { recursive: true, force: true });
 });
 
-describe("Edit tool", () => {
+// ── Original single-edit tests ─────────────────────────────────────────
+
+describe("Edit tool - single edit", () => {
   it("has correct tool metadata", () => {
     strictEqual(editTool.name, "edit");
     ok(editTool.description.length > 0);
@@ -117,5 +119,295 @@ describe("Edit tool", () => {
     writeFileSync(join(workDir, "test.txt"), "keep this remove this keep this too");
     await exec({ path: "test.txt", search: " remove this", replacement: "" });
     strictEqual(readFileSync(join(workDir, "test.txt"), "utf-8"), "keep this keep this too");
+  });
+});
+
+// ── No-op detection ────────────────────────────────────────────────────
+
+describe("Edit tool - no-op detection", () => {
+  it("rejects when search equals replacement", async () => {
+    writeFileSync(join(workDir, "test.txt"), "hello world");
+    const result = (await exec({
+      path: "test.txt",
+      search: "hello",
+      replacement: "hello",
+    })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("identical"));
+    strictEqual(readFileSync(join(workDir, "test.txt"), "utf-8"), "hello world");
+  });
+});
+
+// ── Empty file protection ──────────────────────────────────────────────
+
+describe("Edit tool - empty file protection", () => {
+  it("rejects edit that would empty the file", async () => {
+    writeFileSync(join(workDir, "test.txt"), "only content");
+    const result = (await exec({
+      path: "test.txt",
+      search: "only content",
+      replacement: "",
+    })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("empty file"));
+    strictEqual(readFileSync(join(workDir, "test.txt"), "utf-8"), "only content");
+  });
+});
+
+// ── Size shrink warning ────────────────────────────────────────────────
+
+describe("Edit tool - size warnings", () => {
+  it("warns when file shrinks significantly", async () => {
+    const big = `${"A".repeat(200)}\nkeep\n`;
+    writeFileSync(join(workDir, "big.txt"), big);
+    const result = (await exec({
+      path: "big.txt",
+      search: "A".repeat(200),
+      replacement: "B",
+    })) as { success: boolean; warning?: string };
+    ok(result.success);
+    ok(result.warning);
+    ok(result.warning!.includes("shrank"));
+  });
+});
+
+// ── Replace-all ────────────────────────────────────────────────────────
+
+describe("Edit tool - replaceAll", () => {
+  it("replaces all occurrences", async () => {
+    writeFileSync(join(workDir, "test.txt"), "foo bar foo baz foo");
+    const result = (await exec({
+      path: "test.txt",
+      search: "foo",
+      replacement: "qux",
+      replaceAll: true,
+    })) as { success: boolean; replacements: number };
+    ok(result.success);
+    strictEqual(result.replacements, 3);
+    strictEqual(readFileSync(join(workDir, "test.txt"), "utf-8"), "qux bar qux baz qux");
+  });
+
+  it("returns error when pattern not found", async () => {
+    writeFileSync(join(workDir, "test.txt"), "hello world");
+    const result = (await exec({
+      path: "test.txt",
+      search: "zzz",
+      replacement: "aaa",
+      replaceAll: true,
+    })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("not found"));
+  });
+
+  it("rejects replaceAll that empties the file", async () => {
+    writeFileSync(join(workDir, "test.txt"), "aaa");
+    const result = (await exec({
+      path: "test.txt",
+      search: "aaa",
+      replacement: "",
+      replaceAll: true,
+    })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("empty file"));
+    strictEqual(readFileSync(join(workDir, "test.txt"), "utf-8"), "aaa");
+  });
+
+  it("warns on large shrink with replaceAll", async () => {
+    const content = `${"remove_me ".repeat(30)}keep`;
+    writeFileSync(join(workDir, "test.txt"), content);
+    const result = (await exec({
+      path: "test.txt",
+      search: "remove_me ",
+      replacement: "",
+      replaceAll: true,
+    })) as { success: boolean; warning?: string };
+    ok(result.success);
+    ok(result.warning);
+    ok(result.warning!.includes("shrank"));
+  });
+});
+
+// ── Insert at line ─────────────────────────────────────────────────────
+
+describe("Edit tool - insertAfterLine", () => {
+  it("inserts at the beginning of file (line 0)", async () => {
+    writeFileSync(join(workDir, "test.txt"), "line1\nline2\n");
+    const result = (await exec({
+      path: "test.txt",
+      insertAfterLine: 0,
+      content: "inserted",
+    })) as { success: boolean; insertedAtLine: number };
+    ok(result.success);
+    strictEqual(result.insertedAtLine, 0);
+    const content = readFileSync(join(workDir, "test.txt"), "utf-8");
+    ok(content.startsWith("inserted\nline1"));
+  });
+
+  it("inserts after a specific line", async () => {
+    writeFileSync(join(workDir, "test.txt"), "line1\nline2\nline3\n");
+    const result = (await exec({
+      path: "test.txt",
+      insertAfterLine: 2,
+      content: "new_line",
+    })) as { success: boolean; insertedAtLine: number };
+    ok(result.success);
+    strictEqual(result.insertedAtLine, 2);
+    const lines = readFileSync(join(workDir, "test.txt"), "utf-8").split("\n");
+    strictEqual(lines[2], "new_line");
+  });
+
+  it("inserts multi-line content", async () => {
+    writeFileSync(join(workDir, "test.txt"), "a\nb\n");
+    const result = (await exec({
+      path: "test.txt",
+      insertAfterLine: 1,
+      content: "x\ny\nz",
+    })) as { success: boolean; linesInserted: number };
+    ok(result.success);
+    strictEqual(result.linesInserted, 3);
+  });
+
+  it("clamps out-of-bounds line to end of file", async () => {
+    writeFileSync(join(workDir, "test.txt"), "a\nb\n");
+    const result = (await exec({
+      path: "test.txt",
+      insertAfterLine: 999,
+      content: "appended",
+    })) as { success: boolean; notice?: string };
+    ok(result.success);
+    ok(result.notice);
+    ok(result.notice!.includes("exceeds"));
+  });
+
+  it("rejects insert with empty content", async () => {
+    writeFileSync(join(workDir, "test.txt"), "content");
+    const result = (await exec({
+      path: "test.txt",
+      insertAfterLine: 1,
+      content: "",
+    })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("Nothing to insert"));
+  });
+
+  it("does not enter insert mode without content parameter", async () => {
+    writeFileSync(join(workDir, "test.txt"), "line1\n");
+    const result = (await exec({
+      path: "test.txt",
+      insertAfterLine: 1,
+      replacement: "via_replacement",
+    })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("Missing"));
+  });
+});
+
+// ── Batch edits ────────────────────────────────────────────────────────
+
+describe("Edit tool - batch edits", () => {
+  it("applies multiple edits atomically", async () => {
+    writeFileSync(join(workDir, "test.txt"), "alpha beta gamma delta");
+    const result = (await exec({
+      path: "test.txt",
+      edits: JSON.stringify([
+        { search: "alpha", replacement: "ALPHA" },
+        { search: "gamma", replacement: "GAMMA" },
+      ]),
+    })) as { success: boolean; editsApplied: number; matchKinds: string[] };
+    ok(result.success);
+    strictEqual(result.editsApplied, 2);
+    strictEqual(result.matchKinds.length, 2);
+    const content = readFileSync(join(workDir, "test.txt"), "utf-8");
+    ok(content.includes("ALPHA"));
+    ok(content.includes("GAMMA"));
+    ok(content.includes("beta"));
+  });
+
+  it("rejects entire batch if any edit fails", async () => {
+    writeFileSync(join(workDir, "test.txt"), "alpha beta gamma");
+    const result = (await exec({
+      path: "test.txt",
+      edits: JSON.stringify([
+        { search: "alpha", replacement: "ALPHA" },
+        { search: "nonexistent", replacement: "X" },
+      ]),
+    })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("edits[1]"));
+    strictEqual(readFileSync(join(workDir, "test.txt"), "utf-8"), "alpha beta gamma");
+  });
+
+  it("rejects batch that would empty file", async () => {
+    writeFileSync(join(workDir, "test.txt"), "only");
+    const result = (await exec({
+      path: "test.txt",
+      edits: JSON.stringify([{ search: "only", replacement: "" }]),
+    })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("empty file"));
+    strictEqual(readFileSync(join(workDir, "test.txt"), "utf-8"), "only");
+  });
+
+  it("rejects invalid JSON in edits", async () => {
+    writeFileSync(join(workDir, "test.txt"), "content");
+    const result = (await exec({
+      path: "test.txt",
+      edits: "not json",
+    })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("valid JSON"));
+  });
+
+  it("rejects edits with missing fields", async () => {
+    writeFileSync(join(workDir, "test.txt"), "content");
+    const result = (await exec({
+      path: "test.txt",
+      edits: JSON.stringify([{ search: "content" }]),
+    })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("edits[0]"));
+  });
+
+  it("rejects empty edits array", async () => {
+    writeFileSync(join(workDir, "test.txt"), "content");
+    const result = (await exec({
+      path: "test.txt",
+      edits: "[]",
+    })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("non-empty"));
+  });
+
+  it("detects no-op in batch edits", async () => {
+    writeFileSync(join(workDir, "test.txt"), "alpha beta");
+    const result = (await exec({
+      path: "test.txt",
+      edits: JSON.stringify([{ search: "alpha", replacement: "alpha" }]),
+    })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("identical"));
+  });
+
+  it("warns on large batch shrink", async () => {
+    const content = `${"A".repeat(200)} keep`;
+    writeFileSync(join(workDir, "test.txt"), content);
+    const result = (await exec({
+      path: "test.txt",
+      edits: JSON.stringify([{ search: "A".repeat(200), replacement: "B" }]),
+    })) as { success: boolean; warning?: string };
+    ok(result.success);
+    ok(result.warning);
+    ok(result.warning!.includes("shrank"));
+  });
+});
+
+// ── Missing parameters ─────────────────────────────────────────────────
+
+describe("Edit tool - parameter validation", () => {
+  it("returns error when no mode parameters given", async () => {
+    writeFileSync(join(workDir, "test.txt"), "content");
+    const result = (await exec({ path: "test.txt" })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("Missing"));
   });
 });
