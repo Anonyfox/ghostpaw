@@ -61,7 +61,11 @@ The gap: **a JS/TS agent runtime that's minimal, self-hosted, model-independent,
 
 One `.mjs` file that IS the agent. CLI tool, runtime, and importable library in one artifact. Self-manages a workspace of markdown files on the host. Self-extends by writing new skill files through usage. Reads OpenClaw skill/soul format natively.
 
-The key differentiator: **skills compound.** Every interaction can produce a new skill (procedural knowledge in a markdown file), which makes the agent permanently better at that task. Memory stores facts. Skills store procedures. Cron automates execution. Together, they form a learning system that no stateless agent — custom GPTs, Claude Projects, or any prompt-only tool — can replicate. The agent on day 100 is fundamentally more capable than on day 1.
+The architecture is a **coordinator with souled specialists** — a Mixture of Experts pattern where a main agent (with `SOUL.md`) routes tasks to specialist sub-agents (with `agents/*.md`), each thinking according to their own evolved soul. The coordinator holds context and makes routing decisions. Specialists have full Cursor-like tool access (grep, read, edit, bash, etc.) but cannot delegate further (no recursion).
+
+The key differentiator: **four compounding learning loops.** (1) Frontier models get better — ride the curve. (2) You teach it — drop knowledge into `skills/` and `agents/`. (3) Skills compound — the agent extracts learnings from sessions, refines its own procedures through training, and scouts for capability gaps. (4) Souls refine — agent identities (system prompts) evolve through evidence-driven refinement, version-controlled by git with full rollback. Skills are *what* to do. Souls are *how to think*. Both improve autonomously.
+
+Memory stores facts. Skills store procedures. Souls store judgment. Cron automates execution. Together, they form a learning system that no stateless agent — custom GPTs, Claude Projects, or any prompt-only tool — can replicate. The agent on day 100 is fundamentally more capable than on day 1.
 
 Published as `ghostpaw` on npm. Three ways to run:
 
@@ -228,6 +232,8 @@ src/
     scout.ts              # training pipeline: scout phase (friction mining)
     absorb.ts             # training pipeline: absorb phase (knowledge extraction)
     reflect.ts            # training pipeline: reflect phase (skill generation)
+    refine.ts             # soul refinement: two-phase evidence-driven soul improvement
+    cost-guard.ts         # rolling 24h USD spend limit (maxCostPerDay)
   tools/
     registry.ts           # tool registration/management
     grep.ts               # Grep tool (structured pattern search, rg with POSIX grep fallback)
@@ -273,7 +279,8 @@ src/
     errors.ts             # structured error hierarchy
     ids.ts                # URL-safe random ID generation
     terminal.ts           # terminal utilities (masked input, styling)
-    skill-history.ts      # skill usage tracking and ranking
+    skill-history.ts      # skill usage tracking and ranking (git-based)
+    soul-history.ts       # soul evolution tracking (independent git-based, agents/ work-tree)
   mcp/
     client.ts             # MCP client (connect, discover tools, call tools)
     jsonrpc.ts            # JSON-RPC 2.0 message construction and parsing
@@ -320,11 +327,16 @@ The single file detects how it's invoked:
 ```bash
 ghostpaw                          # interactive chat (default)
 ghostpaw run "do the thing"       # one-shot prompt, exits when done
+ghostpaw daemon                   # headless background mode (channels only, no REPL)
 ghostpaw init                     # explicitly re-scaffold workspace
 ghostpaw secrets                  # list/set/delete API keys
 ghostpaw train                    # absorb experience → improve skills → tidy
 ghostpaw scout                    # discover new skill opportunities
 ghostpaw scout "docker deploys"   # directed scout with full agent run
+ghostpaw service install          # install as OS service (systemd/launchd/cron)
+ghostpaw service uninstall        # remove OS service
+ghostpaw service status           # check if service is installed/running
+ghostpaw service logs             # tail service logs
 ```
 
 Initialization is seamless: the first time any command runs, Ghostpaw detects the workspace isn't set up, scaffolds the required files (config.json, SOUL.md, directories), and — if running in a TTY — prompts for an API key. `ghostpaw init` exists for explicit re-scaffolding but is never a required first step.
@@ -347,10 +359,11 @@ Detection: check `import.meta.url` against `process.argv[1]`. If match → CLI m
 ### Core Flow
 
 1. **Context assembly** — build system prompt in this order:
-   - SOUL.md (personality/behavior — the agent's identity)
+   - SOUL.md (personality/behavior — the agent's identity). For delegated agents, their `agents/*.md` soul replaces SOUL.md via `soulOverride`.
+   - Environment section (workspace root, tool usage rules, ground truth policy)
    - Memory guidance (tells the agent to auto-recall relevant past context before answering)
+   - Agent index from `agents/` (name + title + summary for each specialist, with mandatory delegation rules). Auto-generates a `ROUTING RULE` when a coding specialist exists — forces delegation for all code tasks.
    - Skill index from `skills/` (lightweight filename + title listing — agent reads full skills on demand)
-   - Tool descriptions (structured definitions of all available tools)
    - Cost/budget notice (current token usage, remaining budget — only when approaching limit)
    - Session history from SQLite (walk the message tree from head to root, apply compaction if needed)
 2. **Model call** — send assembled prompt to LLM provider via chatoyant, stream response
@@ -428,12 +441,15 @@ API keys are resolved from environment variables or from Ghostpaw's secret store
   "costControls": {
     "maxTokensPerSession": 200000,
     "maxTokensPerDay": 1000000,
-    "warnAtPercentage": 80
+    "warnAtPercentage": 80,
+    "maxCostPerDay": 5.00
   }
 }
 ```
 
 One model for everything — no tiers, no complexity. Can be overridden per-session or per-delegation via the `--model` flag or delegate tool parameter. Model names follow the provider's native naming — chatoyant resolves the right provider and API format automatically.
+
+`maxCostPerDay` enforces a rolling 24-hour USD spend limit across all operations (chat, delegation, training, scouting). The guard checks before every LLM call — not after. When the limit is reached, requests are blocked with a clear `SpendLimitError`. Set to `0` to disable. The web UI costs page shows real-time spend per model and per day, with a color-coded gauge (green → yellow → red).
 
 ---
 
@@ -592,24 +608,51 @@ The agent writes new skills for itself. When it figures out how to do something 
 
 New workspaces ship with three **meta-skills** that bootstrap the flywheel: `skill-craft.md` (how to create and evolve skills during conversation), `skill-training.md` (the systematic retrospective playbook), and `skill-scout.md` (creative ideation for discovering new opportunities). Together they teach the agent when to create skills, how to structure them, and how to improve them from practice. See **Craft, Train, Scout** below for the full lifecycle.
 
-For complex logic — API integrations, data pipelines, multi-step automation — the agent creates **executable skills**: a markdown skill paired with a companion `.mjs` script in `.ghostpaw/scripts/`. The script runs in the Node.js runtime with access to `fetch()`, the standard library, `process.env` for secrets, and optionally Ghostpaw's own library (database, memory store). The skill describes when and why; the script encodes the reliable execution path.
+For complex logic — API integrations, data pipelines, multi-step automation — the agent naturally creates companion scripts alongside markdown skills. The markdown skill describes when and why; a `.mjs` script (created via the write tool, executed via bash) encodes the reliable execution path. This is an emergent pattern, not a formalized subsystem — the agent discovers it because it has full filesystem and shell access. The skill-craft meta-skill teaches this pattern explicitly.
 
 The agent on day 100 has a `skills/` directory full of battle-tested procedures it wrote from experience. This accumulated knowledge is plain text — human-readable, git-versionable, shareable between workspaces. You can copy one agent's skills to another and instantly transfer its expertise.
 
-### Agent Profiles
+### Agent Profiles (Souls)
 
-For delegation, agent profiles in `agents/` serve the same role as skills but scoped to sub-agents. Each profile is a markdown file that defines a focused persona:
+Skills teach the agent *what* to do. Souls teach it *how to think*. Agent profiles in `agents/` define cognitive identities for specialist sub-agents — not just role labels, but judgment, constraints, and reasoning style.
 
 ```markdown
-# Code Reviewer
+# JavaScript Engineer
 
-You are a thorough code reviewer. When given code to review:
-- Check for bugs, security issues, and performance problems
-- Suggest concrete improvements with code examples
-- Be direct and specific, not vague
+You are a specialist JavaScript/TypeScript engineer operating as a sub-agent.
+You build reliable, lean code verified by real execution — not assumptions.
+
+## Workflow
+1. Understand — Read all relevant files first. Check actual state on disk.
+2. Discover — Before using any library, verify its API with a small test.
+3. Plan small — Smallest increment that can be written and verified.
+4. Write — One concept, one file. Clean, minimal, readable.
+5. Verify — Run it. Read stdout, stderr, exit code. Check output files.
+6. Repeat — Build up in verified increments until done.
+
+## Code Standards
+- One file, one concept. Colocated tests.
+- Errors are API. Clear, actionable messages.
+- TDD — write the test before the implementation.
 ```
 
-The delegate tool spawns a sub-agent loaded with that profile's system prompt. Profiles are discovered dynamically — drop a `.md` file in `agents/`, it's immediately available.
+A soul doesn't list procedures (that's what skills are for). A soul defines *judgment* — the cognitive stance the agent brings to every task.
+
+**The JS engineer soul is a Cursor-like coding agent.** It receives the full tool set (grep, ls, read, write, edit, bash — the same primitives Cursor uses) and its soul encodes how to use them well: read before writing, verify after every change, TDD, progressive complexity, automated guardrails. It can build arbitrary code projects — standalone scripts, full npm packages, multi-file applications — because it has filesystem access and shell execution with a cognitive framework that ensures quality. New workspaces ship with a built-in JS engineer soul in `default_souls.ts`.
+
+**Discovery is dynamic** — drop a `.md` file in `agents/`, it's immediately available. The context assembly auto-generates a `ROUTING RULE` when a coding specialist exists, forcing the coordinator to delegate all code tasks. This is the Mixture of Experts architecture: the coordinator routes, the specialist thinks according to its evolved soul.
+
+### Soul Refinement (Loop 4)
+
+Souls improve through a two-phase evidence-driven refinement pipeline (`src/core/refine.ts`):
+
+**Phase 1 — Discover trails.** The system gathers evidence: relevant memories (semantic search) and recent delegation run outcomes (successes and failures). An LLM analyzes the gap between what the soul says and how it performed. Returns 2–4 specific, actionable improvement suggestions.
+
+**Phase 2 — Apply refinement.** The user picks a trail (optionally adding notes). The LLM makes a focused, moderate revision — preserving structure, adding or tightening clauses. The revised soul is committed to `.ghostpaw/soul-history/` (a separate git repo with `agents/` as the work-tree). A second LLM call generates a human-readable changelog. The commit count is the soul's **level** — a level-7 soul has been refined seven times from real-world evidence.
+
+Soul history is independent of skill history — they evolve at different rates. Every revision is diffable, rollback-able via `git revert`, and survives renames via `--follow`. The web UI's Agents page exposes the full discover → apply cycle through the browser.
+
+This is the fourth learning loop: the agent doesn't just learn *what* to do (skills), it learns *how to think* (souls). Research calls this pattern Agentic Context Engineering ([arXiv:2510.04618](https://arxiv.org/abs/2510.04618), ICLR 2026) — treating system prompts as evolving playbooks. Ghostpaw applies it at two levels independently: the coordinator's soul and each specialist's soul.
 
 ### Why Not a Plugin System
 
@@ -690,7 +733,7 @@ Craft handles the moment-to-moment ("I just figured this out, let me write it do
 | Docker sandboxing          | Optional in OpenClaw (most users run `sandbox: "off"`). Security via secret isolation, output scrubbing, and delegation circuit breakers instead.             |
 | ClawHub marketplace        | Actively harmful (1,184 malicious skills). Local-only skills is a feature, not a limitation.                                                                 |
 | macOS menu bar app         | UI wrapper. The built-in web control plane covers browser-based interaction from any device.                                                                   |
-| Multi-agent routing        | Complex orchestration layer. The delegate tool covers the core use case. Full routing not day-1.                                                             |
+| Multi-agent routing        | Ghostpaw uses a coordinator-with-souled-specialists pattern instead. Single coordinator routes to specialists with their own evolved souls. Simpler than OpenClaw's multi-manager fleet, fewer failure modes, lower cost. See **Agent Profiles (Souls)** above. |
 | Browser tool (Playwright)  | Heavyweight dependency. Agent can drive Chrome via CDP through Bash + a skill, as Armin Ronacher demonstrated.                                               |
 | JS/Python plugin system    | Over-engineering. Skills (markdown) + secrets (env vars) + bash (code execution) cover the same ground with zero API surface.                                |
 
@@ -730,6 +773,8 @@ Features:
 - **Memory** — semantic search with relevance bars, source filtering, timeline grouping.
 - **Sessions** — all conversations across all channels, grouped by channel type, with inline transcript expansion.
 - **Skills** — rank visualization, descriptions, inline editing.
+- **Agents** — list specialist souls with levels, view/edit soul content inline, trigger soul refinement (discover trails → pick direction → apply revision) directly from the browser.
+- **Costs** — live spend dashboard. Total spend, per-model breakdown, per-day breakdown, budget gauge (green → yellow → red), block indicator when limit reached. Adjustable `maxCostPerDay` limit — takes effect immediately.
 - **Settings** — live model/provider switching (with live model lists from provider APIs), secret management (create, update, delete API keys), grouped by provider with active status.
 - **Dashboard** — at-a-glance agent stats.
 
@@ -751,7 +796,7 @@ Each channel follows the same adapter pattern: receive message → channel runti
 - **File system boundaries** — Write tool enforces workspace-only access. Paths resolving outside the workspace are rejected.
 - **Secret isolation** — API keys stored in SQLite, synced to `process.env` at startup. Never injected into the system prompt, never visible to the LLM. Input validation catches common mistakes (wrong-provider keys, shell assignment syntax, quoted values).
 - **Secret scrubbing** — bash tool output (stdout/stderr) is scrubbed for known API key values before returning to the LLM conversation.
-- **Cost guardrails** — token budgets per session and per day. Hard stops, not just warnings.
+- **Cost guardrails** — dual-layer protection. Token budgets per session and per day (in-memory tracking). Rolling 24-hour USD spend limit (`maxCostPerDay`) backed by the runs table — the guard checks before every LLM call, blocks when the limit is reached, and surfaces a clear `SpendLimitError`. Delegation inherits the same guard — sub-agents can't bypass the limit. Web UI costs page shows live spend breakdowns by model and day.
 - **Delegation circuit breaker** — sub-agents cannot delegate further. No runaway recursion.
 - **Channel isolation** — channels only connect in interactive/daemon mode. Autonomous runs (cron, library) never open protocol connections unless explicitly sending a one-shot notification.
 - **Session serialization** — only one agent loop per session at a time. No race conditions on shared state.
@@ -769,7 +814,7 @@ Created automatically on first run — no separate `init` command needed. Ghostp
   SOUL.md                 # personality/behavior (default provided, user customizes)
   agents/                 # agent profile .md files (for delegation)
   skills/                 # SKILL.md files (OpenClaw-compatible, index in prompt, read on demand)
-  .ghostpaw/              # runtime files (cached web content, skill-history git repo, executable scripts)
+  .ghostpaw/              # runtime files (cached web content, skill-history, soul-history git repos)
 ```
 
 The agent operates in whatever directory you run it from — cwd IS the workspace. Sessions are scoped by cwd path.
@@ -801,19 +846,23 @@ All state in SQLite. All behavior in markdown files. Clean separation: the compi
 - **Model-agnostic** — Anthropic, OpenAI, xAI, Google treated equally. No platform favoritism.
 - **Actually reliable** — tiny surface area (tools + SQLite + one process) vs a 4,885-file monorepo of interdependent complexity
 - **Secure by default** — no marketplace, no community upload, no malware vector. Skills are local files you control and audit.
-- **Cost-controlled** — token budgets per session and per day, hard limits. No runaway loops burning uncapped API credits.
+- **Cost-controlled** — dual-layer: token budgets per session/day AND rolling 24h USD spend limits. Hard stops before the LLM call, not after. No runaway loops burning uncapped API credits.
 - **Ecosystem compatible** — reads OpenClaw SKILL.md/SOUL.md format. Community skills for free, corporate baggage stays behind.
 - **Skills as primary mechanism** — OpenClaw has skills but buries them under plugins, marketplace, and MCP. Ghostpaw makes skills the only extension path — focused, auditable, self-authoring.
+- **Souled specialists** — OpenClaw spawns soulless workers. Ghostpaw delegates to specialists with evolved cognitive identities — they think according to their soul, not just execute instructions. Produces higher-quality results because judgment is baked in, not hoped for. Research on hierarchical coordination ([arXiv:2502.11098](https://arxiv.org/abs/2502.11098)) shows this pattern outperforms flat multi-agent collaboration.
+- **Self-improving cognition** — OpenClaw's souls are static config. Ghostpaw's souls evolve from evidence: delegation outcomes feed back into focused revisions, version-controlled with rollback. The coordinator gets better at routing AND each specialist gets better at their domain. No other agent tool has this loop.
+- **Fewer failure modes** — single coordinator eliminates inter-agent misalignment (14 documented failure modes in multi-agent systems, [arXiv:2503.13657](https://arxiv.org/abs/2503.13657)). One decision-maker, no conflicting interpretations, no manager disagreements. Tradeoff: less parallelism.
 
 ### vs Custom GPTs / Claude Projects / Stateless Agents
 
 - **Persistent memory with auto-recall** — facts survive across sessions via vector embeddings in SQLite. The agent recalls relevant memories automatically before answering — no explicit prompting needed. Custom GPTs forget everything between conversations.
 - **Self-authoring skills** — the agent writes and improves its own procedural knowledge. GPTs have static system prompts that only humans can edit.
+- **Self-refining cognition** — beyond skills, agent identities (souls) evolve through evidence-driven refinement. The agent doesn't just learn what to do — it learns how to think better. No stateless agent has this capability.
 - **Local execution** — bash, filesystem, code execution on your machine. GPTs run in a sandbox with no access to your environment.
 - **Multi-channel** — terminal REPL, Telegram, and a built-in web control plane with real-time chat, training, scouting, and full agent management. Talk to the same agent from your phone or browser with full conversation history. No stateless agent offers this.
 - **Scheduling** — cron jobs make skills autonomous. A skill + a cron schedule = recurring intelligence. No stateless agent can do this.
-- **Compounding** — the agent on day 100 has a `skills/` directory full of battle-tested procedures. The GPT on day 100 is the same as day 1.
-- **Transferable expertise** — copy one agent's `skills/` directory to another workspace. Instant knowledge transfer in plain text files.
+- **Compounding** — the agent on day 100 has a `skills/` directory full of battle-tested procedures AND souls refined through dozens of real encounters. The GPT on day 100 is the same as day 1.
+- **Transferable expertise** — copy one agent's `skills/` and `agents/` directories to another workspace. Instant knowledge transfer in plain text files.
 
 ---
 
