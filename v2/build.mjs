@@ -1,8 +1,45 @@
 import { chmodSync, readFileSync } from "node:fs";
-import { build, context } from "esbuild";
+import { build, buildSync, context } from "esbuild";
 
 const isWatch = process.argv.includes("--watch");
 const pkg = JSON.parse(readFileSync("package.json", "utf-8"));
+
+// Phase 1: Bundle the Preact SPA client for the browser.
+// Output stays in memory — no temp files.
+const clientResult = buildSync({
+  entryPoints: ["src/channels/web/client/index.tsx"],
+  bundle: true,
+  format: "esm",
+  platform: "browser",
+  target: ["es2022"],
+  jsx: "automatic",
+  jsxImportSource: "preact",
+  minify: true,
+  write: false,
+});
+const CLIENT_JS = clientResult.outputFiles[0].text;
+const BOOTSTRAP_CSS = readFileSync("node_modules/bootstrap/dist/css/bootstrap.min.css", "utf-8");
+
+// Phase 2: Bundle the server, embedding client assets as virtual modules.
+const embeddedAssets = {
+  "embedded:client-js": CLIENT_JS,
+  "embedded:bootstrap-css": BOOTSTRAP_CSS,
+};
+
+/** @type {import('esbuild').Plugin} */
+const embeddedAssetPlugin = {
+  name: "embedded-asset",
+  setup(build) {
+    build.onResolve({ filter: /^embedded:/ }, (args) => ({
+      path: args.path,
+      namespace: "embedded",
+    }));
+    build.onLoad({ filter: /.*/, namespace: "embedded" }, (args) => ({
+      contents: `export default ${JSON.stringify(embeddedAssets[args.path])};`,
+      loader: "js",
+    }));
+  },
+};
 
 const BANNER = [
   "#!/usr/bin/env node",
@@ -16,10 +53,10 @@ const buildOptions = {
   bundle: true,
   format: "esm",
   platform: "node",
-  target: "node22.5",
+  target: "node24",
   outfile: "dist/ghostpaw.mjs",
   banner: { js: BANNER },
-  plugins: [],
+  plugins: [embeddedAssetPlugin],
   define: { __VERSION__: JSON.stringify(pkg.version) },
   minify: false,
   sourcemap: false,
@@ -37,5 +74,6 @@ if (isWatch) {
 
   const out = Object.entries(result.metafile.outputs)[0];
   const kb = (out[1].bytes / 1024).toFixed(1);
-  console.log(`built ${out[0]} (${kb} KB)`);
+  const clientKB = (Buffer.byteLength(CLIENT_JS) / 1024).toFixed(1);
+  console.log(`built ${out[0]} (${kb} KB, client: ${clientKB} KB)`);
 }

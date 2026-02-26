@@ -65,15 +65,19 @@ tools/
   skills.ts
   train.ts
   scout.ts
-  secrets.ts
   delegate.ts
   check_run.ts
 ```
 
-Complex tools become folders:
+Tools with multiple related operations become folders:
 
 ```
 tools/
+  secrets/
+    index.ts          public surface — exports factory functions
+    list_secrets.ts   one tool per file
+    set_secret.ts
+    remove_secret.ts
   mcp/
     index.ts          public surface
     transport.ts
@@ -133,7 +137,7 @@ If `agent.ts` is growing beyond ~50 lines, it's a signal that logic is leaking o
 
 ## src/index.ts
 
-The CLI entrypoint. Argument parsing, bootstrap (the `--experimental-sqlite` self-re-exec), and dispatch to the appropriate channel based on how Ghostpaw was invoked.
+The CLI entrypoint. Warning suppression, argument parsing, and dispatch to the appropriate channel based on how Ghostpaw was invoked.
 
 ## Recursive Scaling
 
@@ -162,12 +166,14 @@ One SQLite file: `ghostpaw.db`. One connection. Managed in two layers:
 Concrete decisions that apply across the codebase. When in doubt, these are authoritative.
 
 - **ESM only.** No CJS anywhere in application code.
-- **Node 22.5+.** Use modern APIs freely.
+- **Node 24+.** Native TypeScript type stripping, `node:sqlite` without flags. No transpiler needed to run source or tests.
+- **`.ts` extensions in imports.** Enables both esbuild bundling and Node's native TS execution. `allowImportingTsExtensions` in tsconfig.
 - **`node:sqlite` for all persistence.** One database file. Dynamically imported always. Connection managed by `lib/`, tables owned by features.
-- **Dates are stored as ISO 8601 UTC strings.** No local time anywhere in storage or logic. Display formatting is a channel concern.
+- **Timestamps are Unix milliseconds (INTEGER).** `Date.now()` everywhere. Compact, fast comparisons, native SQLite sorting. Human-readable formatting is a channel concern.
 - **IDs are ULIDs** where unique identifiers are needed. Sortable, timestamp-embedded, no coordination required.
 - **Secrets never enter conversation context.** Stored in the database, accessed by the `secrets` tool, injected into tool execution — but never included in messages sent to the LLM.
 - **Default content (souls, skills) ships as TypeScript.** Bundled into the artifact. Written to disk on first run (`init`), then owned by the user.
+- **`citty` for CLI.** Subcommand routing, auto-generated help, error handling. Zero dependencies, built on `node:util.parseArgs`.
 - **`chatoyant` is the LLM abstraction.** Provider-agnostic. No direct HTTP calls to model APIs.
 - **`grammY` for Telegram.** Long-polling, offline catch-up.
 - **Preact for web client.** TSX components, Bootstrap CSS, client-side routing. Bundled into the server as a text asset.

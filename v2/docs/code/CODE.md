@@ -90,7 +90,7 @@ This analysis comes BEFORE writing test code. The test descriptions (`it("...")`
 
 **Every dependency is justified.** Before adding a package, write one sentence explaining what it does that Node built-ins cannot. If you can't, don't add it.
 
-**`node:sqlite` is always dynamically imported.** The bootstrap self-re-exec for `--experimental-sqlite` depends on this. Never static import.
+**`node:sqlite` is always dynamically imported.** The module is available without flags on Node 24+, but remains experimental. Dynamic import keeps the dependency explicit and contained in `lib/database.ts`.
 
 ## Layers and Dependency Direction
 
@@ -126,7 +126,7 @@ This analysis comes BEFORE writing test code. The test descriptions (`it("...")`
 
 ## Style
 
-**ESM only.** `.js` extensions on all relative imports (TypeScript NodeNext convention). No CJS, no interop hacks in application code.
+**ESM only.** `.ts` extensions on all relative imports. Works with both esbuild bundling and Node 24's native TypeScript execution. No CJS, no interop hacks in application code.
 
 **Biome for formatting and linting.** 2-space indent, double quotes, trailing commas, semicolons, 100-char line width. Run it, fix everything, no overrides.
 
