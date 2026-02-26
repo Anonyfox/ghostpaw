@@ -1,72 +1,37 @@
-import { useCallback, useEffect, useState } from "preact/hooks";
-import { apiGet } from "../api.ts";
-import { AddSecretForm } from "../components/add_secret_form.tsx";
-import type { SecretInfo } from "../components/secret_row.tsx";
-import { SecretRow } from "../components/secret_row.tsx";
+import { useState } from "preact/hooks";
+import { ConfigPanel } from "../components/config_panel.tsx";
+import { ModelSelector } from "../components/model_selector.tsx";
+import { SecretsPanel } from "../components/secrets_panel.tsx";
+
+type Tab = "secrets" | "config";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "secrets", label: "API Keys" },
+  { id: "config", label: "Configuration" },
+];
 
 export function SettingsPage() {
-  const [secrets, setSecrets] = useState<SecretInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const fetchSecrets = useCallback(() => {
-    apiGet<{ secrets: SecretInfo[] }>("/api/secrets")
-      .then((data) => {
-        setSecrets(data.secrets);
-        setLoading(false);
-      })
-      .catch((err: Error) => {
-        setError(err.message);
-        setLoading(false);
-      });
-  }, []);
-
-  useEffect(() => {
-    fetchSecrets();
-  }, [fetchSecrets]);
-
-  const renderSection = (title: string, category: string) => {
-    const items = secrets.filter((s) => s.category === category);
-    if (items.length === 0) return null;
-    return (
-      <section class="mb-4">
-        <h5 class="mb-3">{title}</h5>
-        <div class="list-group">
-          {items.map((s) => (
-            <SecretRow key={s.key} secret={s} onChanged={fetchSecrets} />
-          ))}
-        </div>
-      </section>
-    );
-  };
+  const [activeTab, setActiveTab] = useState<Tab>("secrets");
 
   return (
     <div>
       <h2 class="mb-4">Settings</h2>
-      {loading && <p class="text-muted">Loading...</p>}
-      {error && <div class="alert alert-danger">{error}</div>}
-      {!loading && !error && (
-        <>
-          {renderSection("LLM Providers", "llm")}
-          {renderSection("Search Providers", "search")}
-          {(() => {
-            const custom = secrets.filter((s) => s.category === "custom");
-            return (
-              <section class="mb-4">
-                <h5 class="mb-3">Custom Secrets</h5>
-                {custom.length > 0 && (
-                  <div class="list-group mb-3">
-                    {custom.map((s) => (
-                      <SecretRow key={s.key} secret={s} onChanged={fetchSecrets} />
-                    ))}
-                  </div>
-                )}
-                <AddSecretForm onAdded={fetchSecrets} />
-              </section>
-            );
-          })()}
-        </>
-      )}
+      <ModelSelector />
+      <ul class="nav nav-tabs mb-4">
+        {TABS.map((tab) => (
+          <li key={tab.id} class="nav-item">
+            <button
+              type="button"
+              class={`nav-link${activeTab === tab.id ? " active" : ""}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {activeTab === "secrets" && <SecretsPanel />}
+      {activeTab === "config" && <ConfigPanel />}
     </div>
   );
 }

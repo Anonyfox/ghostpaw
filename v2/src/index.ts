@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { defineCommand, runMain } from "citty";
+import { initConfigTable } from "./core/config/index.ts";
 import { initSecretsTable, loadSecretsIntoEnv, syncProviderKeys } from "./core/secrets/index.ts";
 import { openDatabase } from "./lib/database.ts";
 import { isEntrypoint } from "./lib/is_entrypoint.ts";
@@ -32,6 +33,7 @@ const main = defineCommand({
     const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
     const db = await openDatabase(resolve(workspace, "ghostpaw.db"));
     initSecretsTable(db);
+    initConfigTable(db);
     loadSecretsIntoEnv(db);
     syncProviderKeys(db);
 
@@ -66,6 +68,7 @@ const main = defineCommand({
   },
   subCommands: {
     secrets: () => import("./channels/cli/secrets.ts").then((m) => m.default),
+    config: () => import("./channels/cli/config.ts").then((m) => m.default),
   },
 });
 

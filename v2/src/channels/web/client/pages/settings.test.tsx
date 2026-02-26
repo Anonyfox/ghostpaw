@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { render } from "preact";
+import { clearModelsCache } from "../components/model_selector.tsx";
 import { createTestDOM, waitFor } from "../test_dom.ts";
 import { SettingsPage } from "./settings.tsx";
 
@@ -37,14 +38,79 @@ const MOCK_SECRETS = {
   ],
 };
 
-function mockFetch(data: unknown): void {
-  globalThis.fetch = (async () => ({
-    ok: true,
-    status: 200,
-    statusText: "OK",
-    json: async () => data,
-  })) as unknown as typeof fetch;
+const MOCK_CONFIG = {
+  config: [
+    {
+      key: "default_model",
+      value: "claude-sonnet-4-6",
+      type: "string",
+      category: "model",
+      source: "default",
+      isDefault: true,
+      label: "Default Model",
+    },
+    {
+      key: "max_cost_per_day",
+      value: "5",
+      type: "number",
+      category: "cost",
+      source: "default",
+      isDefault: true,
+      label: "Max Cost Per Day",
+    },
+  ],
+};
+
+const MOCK_MODELS = {
+  currentModel: "claude-sonnet-4-6",
+  currentProvider: "anthropic",
+  providers: [
+    {
+      id: "anthropic",
+      name: "Anthropic",
+      hasKey: true,
+      isCurrent: true,
+      models: ["claude-sonnet-4-6"],
+      modelsSource: "live",
+    },
+    {
+      id: "openai",
+      name: "OpenAI",
+      hasKey: false,
+      isCurrent: false,
+      models: [],
+      modelsSource: "static",
+    },
+    { id: "xai", name: "xAI", hasKey: false, isCurrent: false, models: [], modelsSource: "static" },
+  ],
+};
+
+function mockFetch(urlMap: Record<string, unknown>): void {
+  globalThis.fetch = (async (url: string) => {
+    for (const [pattern, data] of Object.entries(urlMap)) {
+      if (url.includes(pattern)) {
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          json: async () => data,
+        };
+      }
+    }
+    return {
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+      json: async () => ({ error: "Not found" }),
+    };
+  }) as unknown as typeof fetch;
 }
+
+const ALL_MOCKS = {
+  "/api/secrets": MOCK_SECRETS,
+  "/api/config": MOCK_CONFIG,
+  "/api/models": MOCK_MODELS,
+};
 
 describe("SettingsPage", () => {
   let dom: ReturnType<typeof createTestDOM>;
@@ -52,6 +118,7 @@ describe("SettingsPage", () => {
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
+    clearModelsCache();
     dom = createTestDOM();
   });
 
@@ -61,17 +128,8 @@ describe("SettingsPage", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("shows loading state initially", () => {
-    mockFetch(MOCK_SECRETS);
-    render(<SettingsPage />, dom.container);
-
-    const loading = dom.container.querySelector(".text-muted");
-    assert.ok(loading);
-    assert.equal(loading!.textContent, "Loading...");
-  });
-
   it("renders the Settings heading", () => {
-    mockFetch(MOCK_SECRETS);
+    mockFetch(ALL_MOCKS);
     render(<SettingsPage />, dom.container);
 
     const heading = dom.container.querySelector("h2");
@@ -79,50 +137,83 @@ describe("SettingsPage", () => {
     assert.equal(heading!.textContent, "Settings");
   });
 
-  it("renders all three sections after loading", async () => {
-    mockFetch(MOCK_SECRETS);
+  it("renders the model selector above tabs", async () => {
+    mockFetch(ALL_MOCKS);
     render(<SettingsPage />, dom.container);
-    await waitFor(() => (dom.container.textContent ?? "").includes("Custom Secrets"));
+    await waitFor(() => (dom.container.textContent ?? "").includes("Active Model"));
 
-    const text = dom.container.textContent ?? "";
-    assert.ok(text.includes("LLM Providers"), "has LLM section");
-    assert.ok(text.includes("Search Providers"), "has Search section");
+    const html = dom.container.innerHTML;
+    const modelPos = html.indexOf("Active Model");
+    const tabPos = html.indexOf("nav-tabs");
+    assert.ok(modelPos < tabPos, "model selector appears before tabs");
   });
 
-  it("shows configured status for each secret", async () => {
-    mockFetch(MOCK_SECRETS);
+  it("renders two tab buttons", () => {
+    mockFetch(ALL_MOCKS);
+    render(<SettingsPage />, dom.container);
+
+    const tabs = dom.container.querySelectorAll(".nav-link");
+    assert.equal(tabs.length, 2);
+    assert.equal(tabs[0].textContent, "API Keys");
+    assert.equal(tabs[1].textContent, "Configuration");
+  });
+
+  it("shows API Keys tab as active by default", () => {
+    mockFetch(ALL_MOCKS);
+    render(<SettingsPage />, dom.container);
+
+    const activeTab = dom.container.querySelector(".nav-link.active");
+    assert.ok(activeTab);
+    assert.equal(activeTab!.textContent, "API Keys");
+  });
+
+  it("shows secrets content on API Keys tab", async () => {
+    mockFetch(ALL_MOCKS);
     render(<SettingsPage />, dom.container);
     await waitFor(() => (dom.container.textContent ?? "").includes("Anthropic"));
 
-    const text = dom.container.textContent ?? "";
-    assert.ok(text.includes("OpenAI"), "shows OpenAI");
-    assert.ok(text.includes("Brave Search"), "shows Brave");
+    assert.ok(dom.container.textContent?.includes("LLM Providers"));
+    assert.ok(dom.container.textContent?.includes("Search Providers"));
   });
 
-  it("shows custom secrets in the Custom section", async () => {
-    mockFetch(MOCK_SECRETS);
+  it("switches to Configuration tab when clicked", async () => {
+    mockFetch(ALL_MOCKS);
     render(<SettingsPage />, dom.container);
-    await waitFor(() => (dom.container.textContent ?? "").includes("MY_CUSTOM_KEY"));
+
+    const configTab = Array.from(dom.container.querySelectorAll(".nav-link")).find(
+      (b) => b.textContent === "Configuration",
+    );
+    assert.ok(configTab);
+    (configTab as HTMLElement).click();
+
+    await waitFor(
+      () => dom.container.querySelector(".nav-link.active")?.textContent === "Configuration",
+    );
+    await waitFor(() => (dom.container.textContent ?? "").includes("Max Cost Per Day"));
+
+    assert.ok(dom.container.textContent?.includes("Cost"));
+    assert.ok(!dom.container.textContent?.includes("LLM Providers"));
   });
 
-  it("always shows the Custom Secrets section with Add Secret button", async () => {
-    mockFetch({ secrets: MOCK_SECRETS.secrets.filter((s) => s.category !== "custom") });
+  it("switches back to API Keys tab", async () => {
+    mockFetch(ALL_MOCKS);
     render(<SettingsPage />, dom.container);
-    await waitFor(() => (dom.container.textContent ?? "").includes("Custom Secrets"));
 
-    const text = dom.container.textContent ?? "";
-    assert.ok(text.includes("Add Secret"), "Add Secret button present");
-  });
+    const configTab = Array.from(dom.container.querySelectorAll(".nav-link")).find(
+      (b) => b.textContent === "Configuration",
+    ) as HTMLElement;
+    configTab.click();
+    await waitFor(
+      () => dom.container.querySelector(".nav-link.active")?.textContent === "Configuration",
+    );
 
-  it("shows error state when fetch fails", async () => {
-    globalThis.fetch = (async () => ({
-      ok: false,
-      status: 500,
-      statusText: "Server Error",
-      json: async () => ({ error: "Server Error" }),
-    })) as unknown as typeof fetch;
-
-    render(<SettingsPage />, dom.container);
-    await waitFor(() => dom.container.querySelector(".alert-danger") !== null);
+    const secretsTab = Array.from(dom.container.querySelectorAll(".nav-link")).find(
+      (b) => b.textContent === "API Keys",
+    ) as HTMLElement;
+    secretsTab.click();
+    await waitFor(
+      () => dom.container.querySelector(".nav-link.active")?.textContent === "API Keys",
+    );
+    await waitFor(() => (dom.container.textContent ?? "").includes("Anthropic"));
   });
 });

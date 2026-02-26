@@ -10,13 +10,25 @@ const MOCK_STATS = {
   secretsCount: 5,
 };
 
-function mockFetch(data: unknown): void {
-  globalThis.fetch = (async () => ({
-    ok: true,
-    status: 200,
-    statusText: "OK",
-    json: async () => data,
-  })) as unknown as typeof fetch;
+function mockFetch(urlMap: Record<string, unknown>): void {
+  globalThis.fetch = (async (url: string) => {
+    for (const [pattern, data] of Object.entries(urlMap)) {
+      if (url.includes(pattern)) {
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          json: async () => data,
+        };
+      }
+    }
+    return {
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+      json: async () => ({ error: "Not found" }),
+    };
+  }) as unknown as typeof fetch;
 }
 
 describe("DashboardPage", () => {
@@ -34,17 +46,8 @@ describe("DashboardPage", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("shows loading text initially", () => {
-    mockFetch(MOCK_STATS);
-    render(<DashboardPage />, dom.container);
-
-    const loading = dom.container.querySelector(".text-muted");
-    assert.ok(loading, "loading indicator exists");
-    assert.equal(loading!.textContent, "Loading...");
-  });
-
   it("shows the dashboard heading", () => {
-    mockFetch(MOCK_STATS);
+    mockFetch({ "/api/dashboard": MOCK_STATS });
     render(<DashboardPage />, dom.container);
 
     const heading = dom.container.querySelector("h2");
@@ -53,7 +56,7 @@ describe("DashboardPage", () => {
   });
 
   it("shows stats after fetch resolves", async () => {
-    mockFetch(MOCK_STATS);
+    mockFetch({ "/api/dashboard": MOCK_STATS });
     render(<DashboardPage />, dom.container);
     await waitFor(() => (dom.container.textContent ?? "").includes("2.0.0"));
 

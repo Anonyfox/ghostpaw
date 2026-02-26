@@ -6,7 +6,9 @@ import { generateNonce } from "./csp_nonce.ts";
 import { createRateLimiter } from "./rate_limiter.ts";
 import { createRoute, matchRoute } from "./router.ts";
 import { createAuthHandlers } from "./routes/auth.ts";
+import { createConfigApiHandlers } from "./routes/config_api.ts";
 import { createDashboardHandler } from "./routes/dashboard_api.ts";
+import { createModelsApiHandlers } from "./routes/models_api.ts";
 import { createSecretsApiHandlers } from "./routes/secrets_api.ts";
 import { createSpaHandler } from "./routes/spa.ts";
 import { createStaticHandlers } from "./routes/static.ts";
@@ -46,6 +48,8 @@ export function createWebServer(config: WebServerConfig): Server {
   const spaHandler = createSpaHandler(renderShell, bootId);
   const dashboardHandler = createDashboardHandler({ version, db });
   const secretsHandlers = createSecretsApiHandlers(db);
+  const configHandlers = createConfigApiHandlers(db);
+  const modelsHandlers = createModelsApiHandlers(db);
 
   const routes = [
     createRoute("POST", "/api/auth/login", authHandlers.login, false),
@@ -54,6 +58,12 @@ export function createWebServer(config: WebServerConfig): Server {
     createRoute("GET", "/api/secrets", secretsHandlers.list, true),
     createRoute("POST", "/api/secrets", secretsHandlers.set, true),
     createRoute("DELETE", "/api/secrets/:key", secretsHandlers.remove, true),
+    createRoute("GET", "/api/config", configHandlers.list, true),
+    createRoute("POST", "/api/config", configHandlers.set, true),
+    createRoute("POST", "/api/config/:key/undo", configHandlers.undo, true),
+    createRoute("DELETE", "/api/config/:key", configHandlers.reset, true),
+    createRoute("GET", "/api/models", modelsHandlers.list, true),
+    createRoute("POST", "/api/models", modelsHandlers.set, true),
     createRoute("GET", "/assets/app.js", staticHandlers.serveAppJs, false),
     createRoute("GET", "/assets/style.css", staticHandlers.serveStyleCss, false),
   ];
