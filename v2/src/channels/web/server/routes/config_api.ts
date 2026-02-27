@@ -1,19 +1,15 @@
-import type { ConfigType, ConfigValue } from "../../../../core/config/index.ts";
 import {
-  CONFIG_TYPES,
   deleteConfig,
   getCurrentEntry,
-  inferTypeFromString,
   KNOWN_CONFIG_KEYS,
   listConfig,
-  parseConfigValue,
   setConfig,
   undoConfig,
 } from "../../../../core/config/index.ts";
-import type { DatabaseHandle } from "../../../../lib/database.ts";
+import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { ConfigInfo } from "../../shared/config_types.ts";
-import { readJsonBody } from "../body_parser.ts";
 import type { RouteContext } from "../types.ts";
+import { parseConfigSetBody } from "./parse_config_set_body.ts";
 
 function json(ctx: RouteContext, status: number, data: unknown): void {
   ctx.res.writeHead(status, { "Content-Type": "application/json" });
@@ -35,61 +31,24 @@ export function createConfigApiHandlers(db: DatabaseHandle) {
           source: isDefault ? "default" : e.source,
           isDefault,
           label: known?.label,
+          description: known?.description,
         };
       });
       json(ctx, 200, { config });
     },
 
     async set(ctx: RouteContext): Promise<void> {
-      let body: unknown;
+      const result = await parseConfigSetBody(ctx.req);
+      if ("error" in result) {
+        json(ctx, 400, { error: result.error });
+        return;
+      }
       try {
-        body = await readJsonBody(ctx.req);
-      } catch {
-        json(ctx, 400, { error: "Invalid request body." });
-        return;
-      }
-
-      if (typeof body !== "object" || body === null) {
-        json(ctx, 400, { error: "Invalid request body." });
-        return;
-      }
-
-      const { key, value, type: explicitType } = body as Record<string, unknown>;
-      if (typeof key !== "string" || !key.trim()) {
-        json(ctx, 400, { error: "Missing or empty key." });
-        return;
-      }
-      if (typeof value !== "string") {
-        json(ctx, 400, { error: "Missing value." });
-        return;
-      }
-
-      const known = KNOWN_CONFIG_KEYS.find((k) => k.key === key);
-      const validExplicitType =
-        typeof explicitType === "string" &&
-        (CONFIG_TYPES as readonly string[]).includes(explicitType)
-          ? (explicitType as ConfigType)
-          : undefined;
-      const type: ConfigType = known
-        ? known.type
-        : (validExplicitType ?? inferTypeFromString(value));
-
-      let parsed: ConfigValue;
-      try {
-        parsed = parseConfigValue(value, type);
-      } catch (err) {
-        const detail = err instanceof Error ? err.message : "";
-        json(ctx, 400, { error: `${key} expects ${type}, got "${value}". ${detail}`.trim() });
-        return;
-      }
-
-      try {
-        setConfig(db, key, parsed, "web", known ? undefined : type);
+        setConfig(db, result.key, result.value, "web", result.isKnown ? undefined : result.type);
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
         return;
       }
-
       json(ctx, 200, { ok: true });
     },
 

@@ -1,82 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
-import type { ModelsResponse } from "../../shared/models_types.ts";
-import { apiGet, apiPost } from "../api.ts";
 import { ProviderCard } from "./provider_card.tsx";
-
-interface CachedResponse {
-  data: ModelsResponse;
-  fetchedAt: number;
-}
-
-const CACHE_TTL_MS = 60 * 60 * 1000;
-let modelsCache: CachedResponse | null = null;
-
-export function clearModelsCache(): void {
-  modelsCache = null;
-}
+import { useModelData } from "./use_model_data.ts";
 
 export function ModelSelector() {
-  const [data, setData] = useState<ModelsResponse | null>(modelsCache?.data ?? null);
-  const [loading, setLoading] = useState(!modelsCache);
-  const [error, setError] = useState("");
-  const [activating, setActivating] = useState(false);
-  const [feedback, setFeedback] = useState<{
-    type: "success" | "danger";
-    message: string;
-  } | null>(null);
-  const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const fetchModels = useCallback(
-    (bypassCache = false) => {
-      if (!bypassCache && modelsCache && Date.now() - modelsCache.fetchedAt < CACHE_TTL_MS) {
-        setData(modelsCache.data);
-        setLoading(false);
-        setError("");
-        return;
-      }
-      setLoading(data === null);
-      apiGet<ModelsResponse>("/api/models")
-        .then((resp) => {
-          modelsCache = { data: resp, fetchedAt: Date.now() };
-          setData(resp);
-          setLoading(false);
-          setError("");
-        })
-        .catch((err: Error) => {
-          setError(err.message);
-          setLoading(false);
-        });
-    },
-    [data],
-  );
-
-  useEffect(() => {
-    fetchModels();
-  }, [fetchModels]);
-
-  useEffect(() => {
-    return () => {
-      if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
-    };
-  }, []);
-
-  const handleActivate = async (model: string) => {
-    setActivating(true);
-    setFeedback(null);
-    if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
-    try {
-      await apiPost<{ ok: boolean; model: string; provider: string }>("/api/models", { model });
-      setFeedback({ type: "success", message: `Switched to ${model}` });
-      feedbackTimer.current = setTimeout(() => setFeedback(null), 3000);
-      fetchModels(true);
-    } catch (err: unknown) {
-      setFeedback({ type: "danger", message: (err as Error).message });
-      feedbackTimer.current = setTimeout(() => setFeedback(null), 5000);
-    } finally {
-      setActivating(false);
-    }
-  };
-
+  const { data, loading, error, activating, feedback, handleActivate } = useModelData();
   const noKeysConfigured = data?.providers.every((p) => !p.hasKey);
   const staleModel = data && data.currentProvider === null;
 

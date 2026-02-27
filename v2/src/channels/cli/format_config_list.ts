@@ -1,6 +1,6 @@
 import type { ConfigCategory, ConfigEntry } from "../../core/config/index.ts";
 import { KNOWN_CONFIG_KEYS, listConfig, parseConfigValue } from "../../core/config/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 
 export function formatConfigList(db: DatabaseHandle, category?: ConfigCategory): string[] {

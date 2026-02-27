@@ -8,4 +8,5 @@ export interface ConfigInfo {
   source: ConfigSource;
   isDefault: boolean;
   label?: string;
+  description?: string;
 }

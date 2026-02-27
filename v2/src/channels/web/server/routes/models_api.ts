@@ -1,7 +1,7 @@
 import { detectProviderByModel, isProviderActive } from "chatoyant";
 import { getConfig, setConfig } from "../../../../core/config/index.ts";
 import { isProviderId, listProviders } from "../../../../core/models/index.ts";
-import type { DatabaseHandle } from "../../../../lib/database.ts";
+import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { ModelsResponse } from "../../shared/models_types.ts";
 import { readJsonBody } from "../body_parser.ts";
 import type { RouteContext } from "../types.ts";

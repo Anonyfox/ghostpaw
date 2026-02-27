@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { render } from "preact";
 import { Router } from "wouter-preact";
-import { createTestDOM } from "../test_dom.ts";
+import { createTestDOM } from "../create_test_dom.ts";
 import { Layout } from "./layout.tsx";
 
 function renderLayout(container: HTMLElement, children: preact.ComponentChildren = "content") {

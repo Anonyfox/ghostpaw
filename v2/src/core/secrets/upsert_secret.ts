@@ -1,4 +1,4 @@
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 export function upsertSecret(db: DatabaseHandle, key: string, value: string): void {
   db.prepare(

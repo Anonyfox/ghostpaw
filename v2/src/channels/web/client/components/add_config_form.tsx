@@ -1,6 +1,6 @@
 import type { RefObject } from "preact";
 import { useRef, useState } from "preact/hooks";
-import { apiPost } from "../api.ts";
+import { apiPost } from "../api_post.ts";
 
 const TYPE_OPTIONS = ["string", "integer", "number", "boolean"] as const;
 type TypeOption = (typeof TYPE_OPTIONS)[number];

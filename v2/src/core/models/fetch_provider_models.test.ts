@@ -1,7 +1,7 @@
 import { deepStrictEqual, ok, strictEqual } from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { ModelFetcher } from "./fetch_provider_models.ts";
 import { fetchProviderModels } from "./fetch_provider_models.ts";
+import type { ModelFetcher } from "./types.ts";
 
 const MOCK_MODELS = ["model-a", "model-b", "model-c"];
 

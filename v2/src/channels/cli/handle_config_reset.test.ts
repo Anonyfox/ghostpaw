@@ -1,8 +1,8 @@
 import { strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { getConfig, initConfigTable, setConfig } from "../../core/config/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
-import { openTestDatabase } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
+import { openTestDatabase } from "../../lib/index.ts";
 import { handleConfigReset } from "./handle_config_reset.ts";
 
 let db: DatabaseHandle;

@@ -5,7 +5,7 @@ import {
   parseConfigValue,
   setConfig,
 } from "../../core/config/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 import { inferTypeFromString } from "./infer_type_from_string.ts";
 
 export interface ConfigSetResult {

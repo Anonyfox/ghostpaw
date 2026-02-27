@@ -35,3 +35,10 @@ export interface ProviderInfo {
   modelsSource: ModelsSource;
   error?: string;
 }
+
+export type ModelFetcher = (apiKey: string) => Promise<string[]>;
+
+export interface ListProvidersOptions {
+  fetchers?: Partial<Record<ProviderId, ModelFetcher>>;
+  timeoutMs?: number;
+}

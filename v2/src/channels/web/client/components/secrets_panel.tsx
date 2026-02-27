@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "preact/hooks";
-import { apiGet } from "../api.ts";
+import { apiGet } from "../api_get.ts";
 import { AddSecretForm } from "./add_secret_form.tsx";
-import type { SecretInfo } from "./secret_row.tsx";
+import type { SecretInfo } from "./secret_info.ts";
 import { SecretRow } from "./secret_row.tsx";
 
 export function SecretsPanel() {

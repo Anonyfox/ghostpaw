@@ -4,8 +4,8 @@ import { Readable } from "node:stream";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { getConfig, initConfigTable, setConfig } from "../../../../core/config/index.ts";
 import { initSecretsTable } from "../../../../core/secrets/index.ts";
-import type { DatabaseHandle } from "../../../../lib/database.ts";
-import { openTestDatabase } from "../../../../lib/database.ts";
+import type { DatabaseHandle } from "../../../../lib/index.ts";
+import { openTestDatabase } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";
 import { createModelsApiHandlers } from "./models_api.ts";
 

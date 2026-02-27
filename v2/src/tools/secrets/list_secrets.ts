@@ -1,6 +1,6 @@
 import { createTool, Schema } from "chatoyant";
 import { activeSearchProvider, KNOWN_KEYS, listSecrets } from "../../core/secrets/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ListSecretsParams extends Schema {}
 

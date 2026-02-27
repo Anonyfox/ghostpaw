@@ -1,21 +1,15 @@
 import { detectProviderByModel } from "chatoyant";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 import { getConfig } from "../config/index.ts";
 import { listSecrets } from "../secrets/index.ts";
-import type { ModelFetcher } from "./fetch_provider_models.ts";
 import { fetchProviderModels } from "./fetch_provider_models.ts";
-import type { ProviderId, ProviderInfo } from "./types.ts";
+import type { ListProvidersOptions, ProviderId, ProviderInfo } from "./types.ts";
 import {
   isProviderId,
   PROVIDER_DISPLAY_NAMES,
   PROVIDER_IDS,
   PROVIDER_SECRET_KEYS,
 } from "./types.ts";
-
-export interface ListProvidersOptions {
-  fetchers?: Partial<Record<ProviderId, ModelFetcher>>;
-  timeoutMs?: number;
-}
 
 export async function listProviders(
   db: DatabaseHandle,

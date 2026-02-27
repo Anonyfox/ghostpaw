@@ -1,5 +1,4 @@
-import type { DatabaseHandle } from "../../lib/database.ts";
-import { isNullRow } from "../../lib/is_null_row.ts";
+import { type DatabaseHandle, isNullRow } from "../../lib/index.ts";
 import { getCurrentEntry } from "./get_current_entry.ts";
 
 export function undoConfig(db: DatabaseHandle, key: string): boolean {

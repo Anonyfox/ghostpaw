@@ -1,14 +1,10 @@
 import type { RefObject } from "preact";
 import { useRef, useState } from "preact/hooks";
-import { apiDelete, apiPost } from "../api.ts";
-
-export interface SecretInfo {
-  key: string;
-  label: string;
-  category: "llm" | "search" | "custom";
-  configured: boolean;
-  isActiveSearch: boolean;
-}
+import { apiDelete } from "../api_delete.ts";
+import { apiPost } from "../api_post.ts";
+import { FeedbackAlert } from "./feedback_alert.tsx";
+import { InlineEditForm } from "./inline_edit_form.tsx";
+import type { SecretInfo } from "./secret_info.ts";
 
 interface SecretRowProps {
   secret: SecretInfo;
@@ -59,76 +55,66 @@ export function SecretRow({ secret, onChanged }: SecretRowProps) {
 
   return (
     <div class="list-group-item">
-      <div class="d-flex align-items-center justify-content-between">
-        <div>
-          <span class="fw-medium">{secret.label}</span>
-          {secret.isActiveSearch && <span class="badge bg-info ms-2">active</span>}
-          {secret.configured ? (
-            <span class="badge bg-success ms-2">configured</span>
-          ) : (
-            <span class="badge bg-secondary ms-2">not set</span>
-          )}
-        </div>
-        <div>
-          {!editing && (
-            <>
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-primary me-1"
-                onClick={() => {
-                  setEditing(true);
-                  setFeedback(null);
-                }}
-              >
-                {secret.configured ? "Update" : "Set"}
-              </button>
-              {secret.configured && (
-                <button type="button" class="btn btn-sm btn-outline-danger" onClick={handleRemove}>
-                  Remove
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      <SecretRowHeader
+        secret={secret}
+        editing={editing}
+        onEdit={() => {
+          setEditing(true);
+          setFeedback(null);
+        }}
+        onRemove={handleRemove}
+      />
       {editing && (
-        <div class="mt-2">
-          <div class="input-group input-group-sm">
-            <input
-              type="password"
-              class="form-control"
-              placeholder={`Enter ${secret.label} key`}
-              ref={inputRef}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSave();
-                if (e.key === "Escape") setEditing(false);
-              }}
-              // biome-ignore lint/a11y/noAutofocus: intentional for inline edit
-              autoFocus
-            />
-            <button
-              type="button"
-              class="btn btn-sm btn-primary"
-              onClick={handleSave}
-              disabled={submitting}
-            >
-              {submitting ? "Saving..." : "Save"}
-            </button>
-            <button
-              type="button"
-              class="btn btn-sm btn-secondary"
-              onClick={() => setEditing(false)}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <InlineEditForm
+          inputRef={inputRef}
+          type="password"
+          placeholder={`Enter ${secret.label} key`}
+          submitting={submitting}
+          onSave={handleSave}
+          onCancel={() => setEditing(false)}
+        />
       )}
-      {feedback && (
-        <div class={`alert alert-${feedback.type} mt-2 mb-0 py-1 px-2 small`}>
-          {feedback.message}
-        </div>
-      )}
+      <FeedbackAlert feedback={feedback} />
+    </div>
+  );
+}
+
+function SecretRowHeader({
+  secret,
+  editing,
+  onEdit,
+  onRemove,
+}: {
+  secret: SecretInfo;
+  editing: boolean;
+  onEdit: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <span class="fw-medium">{secret.label}</span>
+        {secret.isActiveSearch && <span class="badge bg-info ms-2">active</span>}
+        {secret.configured ? (
+          <span class="badge bg-success ms-2">configured</span>
+        ) : (
+          <span class="badge bg-secondary ms-2">not set</span>
+        )}
+      </div>
+      <div>
+        {!editing && (
+          <>
+            <button type="button" class="btn btn-sm btn-outline-primary me-1" onClick={onEdit}>
+              {secret.configured ? "Update" : "Set"}
+            </button>
+            {secret.configured && (
+              <button type="button" class="btn btn-sm btn-outline-danger" onClick={onRemove}>
+                Remove
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

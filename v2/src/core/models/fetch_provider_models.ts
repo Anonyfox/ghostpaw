@@ -1,7 +1,5 @@
 import { getModelsForProvider } from "chatoyant";
-import type { FetchResult, ProviderId } from "./types.ts";
-
-export type ModelFetcher = (apiKey: string) => Promise<string[]>;
+import type { FetchResult, ModelFetcher, ProviderId } from "./types.ts";
 
 const DEFAULT_TIMEOUT_MS = 5000;
 

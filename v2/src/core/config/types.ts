@@ -26,5 +26,6 @@ export interface KnownConfigKey {
   defaultValue: ConfigValue;
   category: Exclude<ConfigCategory, "custom">;
   label: string;
+  description: string;
   validate?: (value: ConfigValue) => boolean;
 }

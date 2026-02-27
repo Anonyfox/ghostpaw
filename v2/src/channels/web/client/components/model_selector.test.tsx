@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { render } from "preact";
-import { createTestDOM, waitFor } from "../test_dom.ts";
-import { clearModelsCache, ModelSelector } from "./model_selector.tsx";
+import { createTestDOM } from "../create_test_dom.ts";
+import { waitFor } from "../wait_for.ts";
+import { clearModelsCache } from "./clear_models_cache.ts";
+import { ModelSelector } from "./model_selector.tsx";
 
 const MOCK_RESPONSE = {
   currentModel: "claude-sonnet-4-6",

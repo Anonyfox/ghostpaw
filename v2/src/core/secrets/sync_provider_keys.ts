@@ -1,4 +1,4 @@
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 import { getSecret } from "./get_secret.ts";
 import { KNOWN_KEYS } from "./known_keys.ts";
 import { upsertSecret } from "./upsert_secret.ts";

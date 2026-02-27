@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initSecretsTable } from "../../../core/secrets/index.ts";
-import type { DatabaseHandle } from "../../../lib/database.ts";
-import { openTestDatabase } from "../../../lib/database.ts";
+import type { DatabaseHandle } from "../../../lib/index.ts";
+import { openTestDatabase } from "../../../lib/index.ts";
 import { createWebServer } from "./create_server.ts";
 
 const VALID_HASH = `${"a".repeat(64)}:${"b".repeat(128)}`;

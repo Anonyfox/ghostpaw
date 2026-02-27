@@ -1,6 +1,6 @@
 import { createTool, Schema } from "chatoyant";
 import { deleteConfig, getCurrentEntry, KNOWN_CONFIG_KEYS } from "../../core/config/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ResetConfigParams extends Schema {
   key = Schema.String({

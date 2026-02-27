@@ -1,7 +1,8 @@
 import { getSecret } from "../../core/secrets/index.ts";
 import { upsertSecret } from "../../core/secrets/upsert_secret.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
-import { hashPassword, isHashedPassword } from "../web/server/password.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
+import { hashPassword } from "../web/server/hash_password.ts";
+import { isHashedPassword } from "../web/server/is_hashed_password.ts";
 
 export interface PrepareWebResult {
   passwordHash: string;

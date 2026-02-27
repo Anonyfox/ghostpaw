@@ -5,7 +5,7 @@ import {
   listSecrets,
   setSecret,
 } from "../../../../core/secrets/index.ts";
-import type { DatabaseHandle } from "../../../../lib/database.ts";
+import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { readJsonBody } from "../body_parser.ts";
 import type { RouteContext } from "../types.ts";
 

@@ -1,8 +1,8 @@
 import { strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { getSecret, initSecretsTable, setSecret } from "../../core/secrets/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
-import { openTestDatabase } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
+import { openTestDatabase } from "../../lib/index.ts";
 import { handleSecretsDelete } from "./handle_delete.ts";
 
 let db: DatabaseHandle;

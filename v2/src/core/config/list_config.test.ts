@@ -1,7 +1,7 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { DatabaseHandle } from "../../lib/database.ts";
-import { openTestDatabase } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
+import { openTestDatabase } from "../../lib/index.ts";
 import { KNOWN_CONFIG_KEYS } from "./known_keys.ts";
 import { listConfig } from "./list_config.ts";
 import { initConfigTable } from "./schema.ts";

@@ -7,6 +7,7 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
     defaultValue: "claude-sonnet-4-6",
     category: "model",
     label: "Default Model",
+    description: "LLM model identifier used for new sessions.",
   },
   {
     key: "max_tokens_per_session",
@@ -14,6 +15,7 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
     defaultValue: 200_000,
     category: "cost",
     label: "Max Tokens Per Session",
+    description: "Hard limit on tokens consumed in a single session. Prevents runaway costs.",
     validate: (v) => typeof v === "number" && v > 0,
   },
   {
@@ -22,6 +24,7 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
     defaultValue: 1_000_000,
     category: "cost",
     label: "Max Tokens Per Day",
+    description: "Daily token budget across all sessions. Zero means unlimited.",
     validate: (v) => typeof v === "number" && v > 0,
   },
   {
@@ -30,6 +33,7 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
     defaultValue: 80,
     category: "cost",
     label: "Warning Threshold (%)",
+    description: "Percentage of token/cost budget that triggers a warning (0-100).",
     validate: (v) => typeof v === "number" && v >= 0 && v <= 100,
   },
   {
@@ -38,6 +42,86 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
     defaultValue: 0,
     category: "cost",
     label: "Max Cost Per Day (USD)",
+    description: "Daily spend cap in USD. Zero means no cap.",
     validate: (v) => typeof v === "number" && v >= 0,
+  },
+  {
+    key: "memory_half_life_days",
+    type: "number",
+    defaultValue: 90,
+    category: "behavior",
+    label: "Memory Half-Life (days)",
+    description:
+      "Days until an unconfirmed memory's influence halves. Lower = faster forgetting. THE most impactful memory knob.",
+    validate: (v) => typeof v === "number" && v > 0,
+  },
+  {
+    key: "memory_candidate_pool_multiplier",
+    type: "integer",
+    defaultValue: 20,
+    category: "behavior",
+    label: "Memory Candidate Pool Multiplier",
+    description:
+      "Pre-ranking fetches k × this many candidates from SQLite before cosine re-ranking. Higher = better recall, slower search.",
+    validate: (v) => typeof v === "number" && Number.isInteger(v) && v > 0,
+  },
+  {
+    key: "memory_ema_alpha",
+    type: "number",
+    defaultValue: 0.3,
+    category: "behavior",
+    label: "Memory EMA Alpha",
+    description:
+      "Confirmation boost rate (0-1 exclusive). Each confirm: new = alpha + (1-alpha) × old. Higher = faster confidence ramp.",
+    validate: (v) => typeof v === "number" && v > 0 && v < 1,
+  },
+  {
+    key: "memory_max_confidence",
+    type: "number",
+    defaultValue: 0.99,
+    category: "behavior",
+    label: "Memory Max Confidence",
+    description: "Upper bound for memory confidence after repeated confirmations (0-1].",
+    validate: (v) => typeof v === "number" && v > 0 && v <= 1,
+  },
+  {
+    key: "memory_fallback_threshold",
+    type: "number",
+    defaultValue: 0.15,
+    category: "behavior",
+    label: "Memory Fallback Threshold",
+    description:
+      "If the best vector-search score is below this, FTS5 full-text fallback activates. Lower = less fallback.",
+    validate: (v) => typeof v === "number" && v >= 0,
+  },
+  {
+    key: "memory_fallback_min_results",
+    type: "integer",
+    defaultValue: 3,
+    category: "behavior",
+    label: "Memory Fallback Min Results",
+    description:
+      "Minimum vector-search results required to skip the FTS5 fallback. Fewer results than this triggers fallback.",
+    validate: (v) => typeof v === "number" && Number.isInteger(v) && v >= 0,
+  },
+  {
+    key: "memory_min_score",
+    type: "number",
+    defaultValue: 0.01,
+    category: "behavior",
+    label: "Memory Min Score",
+    description:
+      "Floor score for search results. Memories scoring below this are dropped entirely.",
+    validate: (v) => typeof v === "number" && v >= 0,
+  },
+  {
+    key: "memory_recall_k",
+    type: "integer",
+    defaultValue: 10,
+    category: "behavior",
+    label: "Memory Recall K",
+    description:
+      "Number of results returned by memory recall. More = richer context but more tokens consumed.",
+    validate: (v) => typeof v === "number" && Number.isInteger(v) && v > 0,
   },
 ];

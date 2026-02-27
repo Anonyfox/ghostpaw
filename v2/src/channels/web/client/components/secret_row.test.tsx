@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { render } from "preact";
-import { createTestDOM, waitFor } from "../test_dom.ts";
-import type { SecretInfo } from "./secret_row.tsx";
+import { createTestDOM } from "../create_test_dom.ts";
+import { waitFor } from "../wait_for.ts";
+import type { SecretInfo } from "./secret_info.ts";
 import { SecretRow } from "./secret_row.tsx";
 
 const CONFIGURED: SecretInfo = {

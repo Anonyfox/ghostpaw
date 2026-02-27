@@ -1,4 +1,4 @@
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 import { getCurrentEntry } from "./get_current_entry.ts";
 import { KNOWN_CONFIG_KEYS } from "./known_keys.ts";
 import { serializeConfigValue } from "./serialize_value.ts";

@@ -5,7 +5,7 @@ import type {
   ConfigValue,
 } from "../../core/config/index.ts";
 import { getConfig, getCurrentEntry, KNOWN_CONFIG_KEYS } from "../../core/config/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 export interface ConfigGetResult {
   found: boolean;

@@ -3,8 +3,8 @@ import { describe, it } from "node:test";
 import { KNOWN_CONFIG_KEYS } from "./known_keys.ts";
 
 describe("KNOWN_CONFIG_KEYS", () => {
-  it("contains exactly 5 system keys", () => {
-    strictEqual(KNOWN_CONFIG_KEYS.length, 5);
+  it("contains exactly 13 system keys", () => {
+    strictEqual(KNOWN_CONFIG_KEYS.length, 13);
   });
 
   it("has default_model in the model category", () => {
@@ -47,10 +47,11 @@ describe("KNOWN_CONFIG_KEYS", () => {
     strictEqual(key.defaultValue, 0);
   });
 
-  it("every entry has a non-empty key and label", () => {
+  it("every entry has a non-empty key, label, and description", () => {
     for (const k of KNOWN_CONFIG_KEYS) {
       ok(k.key.length > 0, `key must be non-empty: ${k.key}`);
       ok(k.label.length > 0, `label must be non-empty: ${k.label}`);
+      ok(k.description.length > 0, `description must be non-empty: ${k.key}`);
     }
   });
 
@@ -127,5 +128,66 @@ describe("KNOWN_CONFIG_KEYS", () => {
     for (const k of KNOWN_CONFIG_KEYS.filter((k) => k.type === "integer")) {
       ok(Number.isInteger(k.defaultValue), `${k.key} default should be an integer`);
     }
+  });
+
+  it("has 8 memory behavior keys", () => {
+    const memKeys = KNOWN_CONFIG_KEYS.filter((k) => k.key.startsWith("memory_"));
+    strictEqual(memKeys.length, 8);
+    for (const k of memKeys) {
+      strictEqual(k.category, "behavior");
+      ok(k.validate, `memory key ${k.key} should have a validate function`);
+    }
+  });
+
+  it("memory_half_life_days rejects zero and negative", () => {
+    const key = KNOWN_CONFIG_KEYS.find((k) => k.key === "memory_half_life_days")!;
+    ok(key.validate!(90));
+    ok(key.validate!(0.5));
+    ok(!key.validate!(0));
+    ok(!key.validate!(-1));
+  });
+
+  it("memory_ema_alpha accepts (0, 1) exclusive", () => {
+    const key = KNOWN_CONFIG_KEYS.find((k) => k.key === "memory_ema_alpha")!;
+    ok(key.validate!(0.3));
+    ok(key.validate!(0.01));
+    ok(key.validate!(0.99));
+    ok(!key.validate!(0));
+    ok(!key.validate!(1));
+    ok(!key.validate!(-0.1));
+  });
+
+  it("memory_max_confidence accepts (0, 1] inclusive on upper bound", () => {
+    const key = KNOWN_CONFIG_KEYS.find((k) => k.key === "memory_max_confidence")!;
+    ok(key.validate!(0.99));
+    ok(key.validate!(1));
+    ok(key.validate!(0.5));
+    ok(!key.validate!(0));
+    ok(!key.validate!(-0.1));
+  });
+
+  it("memory_recall_k rejects zero and negative", () => {
+    const key = KNOWN_CONFIG_KEYS.find((k) => k.key === "memory_recall_k")!;
+    ok(key.validate!(10));
+    ok(key.validate!(1));
+    ok(!key.validate!(0));
+    ok(!key.validate!(-1));
+    ok(!key.validate!(3.5));
+  });
+
+  it("memory_fallback_min_results accepts zero", () => {
+    const key = KNOWN_CONFIG_KEYS.find((k) => k.key === "memory_fallback_min_results")!;
+    ok(key.validate!(0));
+    ok(key.validate!(3));
+    ok(!key.validate!(-1));
+    ok(!key.validate!(2.5));
+  });
+
+  it("memory_min_score accepts zero", () => {
+    const key = KNOWN_CONFIG_KEYS.find((k) => k.key === "memory_min_score")!;
+    ok(key.validate!(0));
+    ok(key.validate!(0.01));
+    ok(key.validate!(0.5));
+    ok(!key.validate!(-0.01));
   });
 });

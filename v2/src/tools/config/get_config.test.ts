@@ -1,8 +1,8 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initConfigTable, setConfig } from "../../core/config/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
-import { openTestDatabase } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
+import { openTestDatabase } from "../../lib/index.ts";
 import { createGetConfigTool } from "./get_config.ts";
 
 describe("get_config tool", () => {

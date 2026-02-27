@@ -1,6 +1,6 @@
 import type { ConfigValue } from "../../core/config/index.ts";
 import { deleteConfig, getCurrentEntry, KNOWN_CONFIG_KEYS } from "../../core/config/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 export interface ConfigResetResult {
   key: string;

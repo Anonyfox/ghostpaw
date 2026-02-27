@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { render } from "preact";
-import { createTestDOM, waitFor } from "../test_dom.ts";
+import { createTestDOM } from "../create_test_dom.ts";
+import { waitFor } from "../wait_for.ts";
 import { DashboardPage } from "./dashboard.tsx";
 
 const MOCK_STATS = {

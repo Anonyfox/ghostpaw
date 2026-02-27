@@ -1,5 +1,5 @@
 import { activeSearchProvider, KNOWN_KEYS, listSecrets } from "../../core/secrets/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 
 export function formatSecretsList(db: DatabaseHandle): string[] {

@@ -1,7 +1,6 @@
 import { defineCommand } from "citty";
 import { canonicalKeyName, loadSecretsIntoEnv } from "../../core/secrets/index.ts";
-import { readSecretFromStream } from "../../lib/read_secret_from_stream.ts";
-import { readSecretInteractive } from "../../lib/read_secret_interactive.ts";
+import { readSecretFromStream, readSecretInteractive } from "../../lib/index.ts";
 import { log, style } from "../../lib/terminal/index.ts";
 import { formatSecretsList } from "./format_list.ts";
 import { handleSecretsDelete } from "./handle_delete.ts";

@@ -7,7 +7,7 @@ import {
   parseConfigValue,
   setConfig,
 } from "../../core/config/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 class SetConfigParams extends Schema {
   key = Schema.String({ description: "Configuration key name" });

@@ -5,7 +5,7 @@ import {
   KNOWN_CONFIG_KEYS,
   undoConfig,
 } from "../../core/config/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 export interface ConfigUndoResult {
   success: boolean;

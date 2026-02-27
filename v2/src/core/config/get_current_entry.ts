@@ -1,5 +1,4 @@
-import type { DatabaseHandle } from "../../lib/database.ts";
-import { isNullRow } from "../../lib/is_null_row.ts";
+import { type DatabaseHandle, isNullRow } from "../../lib/index.ts";
 import type { ConfigEntry } from "./types.ts";
 
 export function getCurrentEntry(db: DatabaseHandle, key: string): ConfigEntry | null {

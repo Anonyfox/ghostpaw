@@ -3,8 +3,8 @@ import type { IncomingMessage } from "node:http";
 import { Readable } from "node:stream";
 import { afterEach, before, beforeEach, describe, it } from "node:test";
 import { initSecretsTable, setSecret } from "../../../../core/secrets/index.ts";
-import type { DatabaseHandle } from "../../../../lib/database.ts";
-import { openTestDatabase } from "../../../../lib/database.ts";
+import type { DatabaseHandle } from "../../../../lib/index.ts";
+import { openTestDatabase } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";
 import { createSecretsApiHandlers } from "./secrets_api.ts";
 

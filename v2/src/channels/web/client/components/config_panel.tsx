@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "preact/hooks";
 import type { ConfigInfo } from "../../shared/config_types.ts";
-import { apiGet } from "../api.ts";
+import { apiGet } from "../api_get.ts";
 import { AddConfigForm } from "./add_config_form.tsx";
 import { ConfigRow } from "./config_row.tsx";
 

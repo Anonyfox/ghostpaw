@@ -1,10 +1,9 @@
 import { resolve } from "node:path";
 import { defineCommand, runMain } from "citty";
 import { initConfigTable } from "./core/config/index.ts";
+import { initMemoryTable } from "./core/memory/index.ts";
 import { initSecretsTable, loadSecretsIntoEnv, syncProviderKeys } from "./core/secrets/index.ts";
-import { openDatabase } from "./lib/database.ts";
-import { isEntrypoint } from "./lib/is_entrypoint.ts";
-import { suppressWarnings } from "./lib/suppress_warnings.ts";
+import { isEntrypoint, openDatabase, suppressWarnings } from "./lib/index.ts";
 import { banner, log } from "./lib/terminal/index.ts";
 
 declare const __VERSION__: string | undefined;
@@ -34,6 +33,7 @@ const main = defineCommand({
     const db = await openDatabase(resolve(workspace, "ghostpaw.db"));
     initSecretsTable(db);
     initConfigTable(db);
+    initMemoryTable(db);
     loadSecretsIntoEnv(db);
     syncProviderKeys(db);
 

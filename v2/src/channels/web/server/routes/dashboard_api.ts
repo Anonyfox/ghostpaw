@@ -1,5 +1,5 @@
 import { listSecrets } from "../../../../core/secrets/index.ts";
-import type { DatabaseHandle } from "../../../../lib/database.ts";
+import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";
 
 export interface DashboardStats {

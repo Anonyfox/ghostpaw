@@ -1,6 +1,6 @@
 import { createTool, Schema } from "chatoyant";
 import { getConfig, getCurrentEntry, KNOWN_CONFIG_KEYS } from "../../core/config/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 class GetConfigParams extends Schema {
   key = Schema.String({ description: "Configuration key name (e.g., default_model, temperature)" });
@@ -30,6 +30,7 @@ export function createGetConfigTool(db: DatabaseHandle) {
           category: entry.category,
           source: entry.source,
           label: known?.label,
+          description: known?.description,
         };
       }
 
@@ -41,6 +42,7 @@ export function createGetConfigTool(db: DatabaseHandle) {
           category: known.category,
           source: "default",
           label: known.label,
+          description: known.description,
         };
       }
 

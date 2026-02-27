@@ -5,7 +5,7 @@ import {
   KNOWN_CONFIG_KEYS,
   undoConfig,
 } from "../../core/config/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 class UndoConfigParams extends Schema {
   key = Schema.String({ description: "Configuration key to undo the last change for" });

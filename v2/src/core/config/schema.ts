@@ -1,4 +1,4 @@
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 export function initConfigTable(db: DatabaseHandle): void {
   db.exec(`

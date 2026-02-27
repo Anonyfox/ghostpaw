@@ -1,6 +1,6 @@
 import { createTool, Schema } from "chatoyant";
 import { canonicalKeyName, setSecret } from "../../core/secrets/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 class SetSecretParams extends Schema {
   key = Schema.String({

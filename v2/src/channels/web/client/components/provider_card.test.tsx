@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { render } from "preact";
 import type { ProviderInfo } from "../../shared/models_types.ts";
-import { createTestDOM } from "../test_dom.ts";
+import { createTestDOM } from "../create_test_dom.ts";
 import { ProviderCard } from "./provider_card.tsx";
 
 const ACTIVE_PROVIDER: ProviderInfo = {

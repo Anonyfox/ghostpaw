@@ -1,10 +1,11 @@
 import { createTool, Schema } from "chatoyant";
 import type { ConfigType } from "../../core/config/index.ts";
-import { listConfig, parseConfigValue } from "../../core/config/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
+import { KNOWN_CONFIG_KEYS, listConfig, parseConfigValue } from "../../core/config/index.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ListConfigParams extends Schema {
   category = Schema.String({
+    optional: true,
     description: "Filter by category: model, cost, behavior, or custom. Omit for all.",
   });
 }
@@ -24,13 +25,18 @@ export function createListConfigTool(db: DatabaseHandle) {
 
       const filtered = category ? all.filter((e) => e.category === category) : all;
 
-      const entries = filtered.map((e) => ({
-        key: e.key,
-        value: safeParseValue(e.value, e.type),
-        type: e.type,
-        category: e.category,
-        source: e.source,
-      }));
+      const entries = filtered.map((e) => {
+        const known = KNOWN_CONFIG_KEYS.find((k) => k.key === e.key);
+        return {
+          key: e.key,
+          value: safeParseValue(e.value, e.type),
+          type: e.type,
+          category: e.category,
+          source: e.source,
+          label: known?.label,
+          description: known?.description,
+        };
+      });
 
       return { entries };
     },

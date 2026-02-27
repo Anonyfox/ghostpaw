@@ -104,6 +104,7 @@ describe("type compatibility", () => {
       defaultValue: "claude-sonnet-4-6",
       category: "model",
       label: "Default Model",
+      description: "LLM model identifier used for new sessions.",
     };
     strictEqual(key.key, "default_model");
     strictEqual(key.validate, undefined);
@@ -116,6 +117,7 @@ describe("type compatibility", () => {
       defaultValue: 0,
       category: "cost",
       label: "Max Cost Per Day",
+      description: "Daily spend cap in USD. Zero means no cap.",
       validate: (v) => (v as number) >= 0,
     };
     ok(key.validate!(0));

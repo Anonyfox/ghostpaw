@@ -1,8 +1,8 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, before, beforeEach, describe, it } from "node:test";
 import { initSecretsTable, listSecrets } from "../../core/secrets/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
-import { openTestDatabase } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
+import { openTestDatabase } from "../../lib/index.ts";
 import { createSetSecretTool } from "./set_secret.ts";
 
 describe("set_secret tool", () => {

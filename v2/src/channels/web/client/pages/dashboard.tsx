@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { apiGet } from "../api.ts";
+import { apiGet } from "../api_get.ts";
 
 interface DashboardStats {
   version: string;

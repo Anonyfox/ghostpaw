@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { DatabaseHandle } from "../../../lib/index.ts";
 
 export interface RouteContext {
   req: IncomingMessage;
@@ -15,4 +16,15 @@ export interface Route {
   paramNames: string[];
   handler: RouteHandler;
   requiresAuth: boolean;
+}
+
+export interface WebServerConfig {
+  port: number;
+  passwordHash: string;
+  clientJs: string;
+  bootstrapCss: string;
+  db: DatabaseHandle;
+  customCss?: string;
+  secure?: boolean;
+  version?: string;
 }

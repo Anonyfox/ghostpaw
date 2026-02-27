@@ -1,7 +1,9 @@
 import type { RefObject } from "preact";
 import { useRef, useState } from "preact/hooks";
 import type { ConfigInfo } from "../../shared/config_types.ts";
-import { apiDelete, apiPost } from "../api.ts";
+import { FeedbackAlert } from "./feedback_alert.tsx";
+import { InlineEditForm } from "./inline_edit_form.tsx";
+import { useConfigActions } from "./use_config_actions.ts";
 
 interface ConfigRowProps {
   config: ConfigInfo;
@@ -16,52 +18,65 @@ export function ConfigRow({ config, onChanged }: ConfigRowProps) {
     message: string;
   } | null>(null);
   const inputRef: RefObject<HTMLInputElement> = useRef(null);
-
-  const handleSave = async () => {
-    const raw = inputRef.current?.value ?? "";
-    setSubmitting(true);
-    try {
-      await apiPost<{ ok: boolean }>("/api/config", {
-        key: config.key,
-        value: raw,
-        ...(config.category === "custom" ? { type: config.type } : {}),
-      });
-      setEditing(false);
-      setFeedback({ type: "success", message: "Saved." });
-      onChanged();
-    } catch (err: unknown) {
-      setFeedback({ type: "danger", message: errorMessage(err) });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleUndo = async () => {
-    try {
-      await apiPost(`/api/config/${encodeURIComponent(config.key)}/undo`);
-      setFeedback({ type: "success", message: "Undone." });
-      onChanged();
-    } catch (err: unknown) {
-      setFeedback({ type: "danger", message: errorMessage(err) });
-    }
-  };
-
-  const handleReset = async () => {
-    try {
-      await apiDelete(`/api/config/${encodeURIComponent(config.key)}`);
-      setFeedback({ type: "success", message: "Reset." });
-      onChanged();
-    } catch (err: unknown) {
-      setFeedback({ type: "danger", message: errorMessage(err) });
-    }
-  };
+  const { handleSave, handleUndo, handleReset } = useConfigActions(
+    config,
+    inputRef,
+    setEditing,
+    setSubmitting,
+    setFeedback,
+    onChanged,
+  );
 
   const displayValue =
     config.type === "boolean" ? (config.value === "true" ? "true" : "false") : config.value;
 
   return (
     <div class="list-group-item">
-      <div class="d-flex align-items-center justify-content-between">
+      <ConfigRowHeader
+        config={config}
+        displayValue={displayValue}
+        editing={editing}
+        onEdit={() => {
+          setEditing(true);
+          setFeedback(null);
+        }}
+        onUndo={handleUndo}
+        onReset={handleReset}
+      />
+      {editing && (
+        <InlineEditForm
+          inputRef={inputRef}
+          type="text"
+          defaultValue={config.value}
+          placeholder={`Enter ${config.type} value`}
+          submitting={submitting}
+          onSave={handleSave}
+          onCancel={() => setEditing(false)}
+        />
+      )}
+      <FeedbackAlert feedback={feedback} />
+    </div>
+  );
+}
+
+function ConfigRowHeader({
+  config,
+  displayValue,
+  editing,
+  onEdit,
+  onUndo,
+  onReset,
+}: {
+  config: ConfigInfo;
+  displayValue: string;
+  editing: boolean;
+  onEdit: () => void;
+  onUndo: () => void;
+  onReset: () => void;
+}) {
+  return (
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
         <div>
           <span class="fw-medium">{config.label ?? config.key}</span>
           <span class="badge bg-secondary ms-2">{config.type}</span>
@@ -71,77 +86,28 @@ export function ConfigRow({ config, onChanged }: ConfigRowProps) {
             <span class="badge bg-info ms-1">overridden</span>
           )}
         </div>
-        <div class="d-flex align-items-center gap-1">
-          {!editing && <span class="text-muted small me-2 font-monospace">{displayValue}</span>}
-          {!editing && (
-            <>
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-primary"
-                onClick={() => {
-                  setEditing(true);
-                  setFeedback(null);
-                }}
-              >
-                Edit
-              </button>
-              {!config.isDefault && (
-                <>
-                  <button type="button" class="btn btn-sm btn-outline-warning" onClick={handleUndo}>
-                    Undo
-                  </button>
-                  <button type="button" class="btn btn-sm btn-outline-danger" onClick={handleReset}>
-                    Reset
-                  </button>
-                </>
-              )}
-            </>
-          )}
-        </div>
+        {config.description && <div class="text-muted small">{config.description}</div>}
       </div>
-      {editing && (
-        <div class="mt-2">
-          <div class="input-group input-group-sm">
-            <input
-              type="text"
-              class="form-control"
-              defaultValue={config.value}
-              placeholder={`Enter ${config.type} value`}
-              ref={inputRef}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSave();
-                if (e.key === "Escape") setEditing(false);
-              }}
-              // biome-ignore lint/a11y/noAutofocus: intentional for inline edit
-              autoFocus
-            />
-            <button
-              type="button"
-              class="btn btn-sm btn-primary"
-              onClick={handleSave}
-              disabled={submitting}
-            >
-              {submitting ? "Saving..." : "Save"}
+      <div class="d-flex align-items-center gap-1">
+        {!editing && <span class="text-muted small me-2 font-monospace">{displayValue}</span>}
+        {!editing && (
+          <>
+            <button type="button" class="btn btn-sm btn-outline-primary" onClick={onEdit}>
+              Edit
             </button>
-            <button
-              type="button"
-              class="btn btn-sm btn-secondary"
-              onClick={() => setEditing(false)}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-      {feedback && (
-        <div class={`alert alert-${feedback.type} mt-2 mb-0 py-1 px-2 small`}>
-          {feedback.message}
-        </div>
-      )}
+            {!config.isDefault && (
+              <>
+                <button type="button" class="btn btn-sm btn-outline-warning" onClick={onUndo}>
+                  Undo
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onClick={onReset}>
+                  Reset
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
-}
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
 }

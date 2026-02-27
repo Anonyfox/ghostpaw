@@ -1,4 +1,4 @@
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 import { canonicalKeyName } from "./canonicalize.ts";
 import { cleanKeyValue } from "./clean.ts";
 import { REVERSE_ALIASES } from "./reverse_aliases.ts";

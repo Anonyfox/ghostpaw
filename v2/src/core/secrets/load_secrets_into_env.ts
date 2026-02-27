@@ -1,4 +1,4 @@
-import type { DatabaseHandle } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 import { REVERSE_ALIASES } from "./reverse_aliases.ts";
 
 export function loadSecretsIntoEnv(db: DatabaseHandle): void {

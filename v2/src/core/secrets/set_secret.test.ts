@@ -1,7 +1,7 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { DatabaseHandle } from "../../lib/database.ts";
-import { openTestDatabase } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
+import { openTestDatabase } from "../../lib/index.ts";
 import { getSecret } from "./get_secret.ts";
 import { initSecretsTable } from "./schema.ts";
 import { setSecret } from "./set_secret.ts";

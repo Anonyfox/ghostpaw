@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { initSecretsTable } from "../../core/secrets/index.ts";
-import type { DatabaseHandle } from "../../lib/database.ts";
-import { openDatabase } from "../../lib/database.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
+import { openDatabase } from "../../lib/index.ts";
 
 // Workspace is passed via process.env.GHOSTPAW_WORKSPACE, set by the root
 // command's setup() hook. This is a conscious trade-off: citty does not

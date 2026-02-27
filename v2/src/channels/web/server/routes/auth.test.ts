@@ -2,8 +2,8 @@ import { deepStrictEqual, strictEqual } from "node:assert/strict";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Readable } from "node:stream";
 import { before, describe, it } from "node:test";
-import { hashPassword } from "../password.ts";
-import { createSessionToken } from "../session_token.ts";
+import { createSessionToken } from "../create_session_token.ts";
+import { hashPassword } from "../hash_password.ts";
 import { createAuthHandlers } from "./auth.ts";
 
 function mockReq(body: object, headers: Record<string, string> = {}): IncomingMessage {
