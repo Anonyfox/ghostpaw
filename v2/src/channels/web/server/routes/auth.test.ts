@@ -61,7 +61,7 @@ describe("auth handlers", () => {
     it("correct password sets cookie and returns 200", async () => {
       const req = mockReq({ password: TEST_PASSWORD });
       const res = mockRes();
-      await handlers.login({ req, res, params: {}, nonce: "" });
+      await handlers.login({ req, res, params: {} });
       strictEqual(res._status, 200);
       deepStrictEqual(JSON.parse(res._body), { ok: true });
       strictEqual(res._headers.has("set-cookie"), true);
@@ -71,7 +71,7 @@ describe("auth handlers", () => {
     it("wrong password returns 401", async () => {
       const req = mockReq({ password: "wrong" });
       const res = mockRes();
-      await handlers.login({ req, res, params: {}, nonce: "" });
+      await handlers.login({ req, res, params: {} });
       strictEqual(res._status, 401);
       deepStrictEqual(JSON.parse(res._body), { error: "Invalid password." });
     });
@@ -79,7 +79,7 @@ describe("auth handlers", () => {
     it("missing password field returns 400", async () => {
       const req = mockReq({ username: "admin" });
       const res = mockRes();
-      await handlers.login({ req, res, params: {}, nonce: "" });
+      await handlers.login({ req, res, params: {} });
       strictEqual(res._status, 400);
       deepStrictEqual(JSON.parse(res._body), { error: "Missing password field." });
     });
@@ -89,7 +89,7 @@ describe("auth handlers", () => {
       const req = Readable.from([json]) as IncomingMessage;
       req.headers = { "content-type": "text/plain" };
       const res = mockRes();
-      await handlers.login({ req, res, params: {}, nonce: "" });
+      await handlers.login({ req, res, params: {} });
       strictEqual(res._status, 400);
     });
   });
@@ -98,7 +98,7 @@ describe("auth handlers", () => {
     it("clears cookie and returns 200", async () => {
       const req = mockReq({});
       const res = mockRes();
-      await handlers.logout({ req, res, params: {}, nonce: "" });
+      await handlers.logout({ req, res, params: {} });
       strictEqual(res._status, 200);
       deepStrictEqual(JSON.parse(res._body), { ok: true });
       strictEqual(res._headers.has("set-cookie"), true);
@@ -111,20 +111,20 @@ describe("auth handlers", () => {
       const token = createSessionToken(passwordHash);
       const req = mockReq({}, { cookie: `ghostpaw_session=${token}` });
       const res = mockRes();
-      strictEqual(handlers.checkSession({ req, res, params: {}, nonce: "" }), true);
+      strictEqual(handlers.checkSession({ req, res, params: {} }), true);
     });
 
     it("returns false for missing cookie", () => {
       const req = mockReq({});
       req.headers = { "content-type": "application/json" };
       const res = mockRes();
-      strictEqual(handlers.checkSession({ req, res, params: {}, nonce: "" }), false);
+      strictEqual(handlers.checkSession({ req, res, params: {} }), false);
     });
 
     it("returns false for invalid token", () => {
       const req = mockReq({}, { cookie: "ghostpaw_session=bogus.token" });
       const res = mockRes();
-      strictEqual(handlers.checkSession({ req, res, params: {}, nonce: "" }), false);
+      strictEqual(handlers.checkSession({ req, res, params: {} }), false);
     });
   });
 });

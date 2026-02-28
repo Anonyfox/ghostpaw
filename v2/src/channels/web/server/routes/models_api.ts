@@ -2,9 +2,10 @@ import { detectProviderByModel, isProviderActive } from "chatoyant";
 import { getConfig, setConfig } from "../../../../core/config/index.ts";
 import { isProviderId, listProviders } from "../../../../core/models/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
-import type { ModelsResponse } from "../../shared/models_types.ts";
+import type { ModelsResponse } from "../../shared/models_response.ts";
 import { readJsonBody } from "../body_parser.ts";
 import type { RouteContext } from "../types.ts";
+import { modelsCache } from "./models_cache.ts";
 
 function json(ctx: RouteContext, status: number, data: unknown): void {
   ctx.res.writeHead(status, { "Content-Type": "application/json" });
@@ -26,7 +27,11 @@ export function createModelsApiHandlers(db: DatabaseHandle) {
         // unrecognized model — fall through with null provider
       }
 
-      const providers = await listProviders(db);
+      let providers = modelsCache.get();
+      if (!providers) {
+        providers = await listProviders(db);
+        modelsCache.set(providers);
+      }
 
       const response: ModelsResponse = { currentModel, currentProvider, providers };
       json(ctx, 200, response);
@@ -72,6 +77,7 @@ export function createModelsApiHandlers(db: DatabaseHandle) {
       }
 
       setConfig(db, "default_model", model.trim(), "web");
+      modelsCache.invalidate();
       json(ctx, 200, { ok: true, model: model.trim(), provider });
     },
   };

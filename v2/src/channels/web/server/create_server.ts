@@ -2,7 +2,6 @@ import { randomBytes } from "node:crypto";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { createServer } from "node:http";
 import { buildRoutes } from "./build_routes.ts";
-import { generateNonce } from "./csp_nonce.ts";
 import { matchRoute } from "./match_route.ts";
 import { createRateLimiter } from "./rate_limiter.ts";
 import { createSpaHandler } from "./routes/spa.ts";
@@ -25,7 +24,7 @@ export function createWebServer(config: WebServerConfig): Server {
     spaHandler,
   });
 
-  const generalLimiter = createRateLimiter(100, 60_000);
+  const generalLimiter = createRateLimiter(600, 60_000);
   const authLimiter = createRateLimiter(5, 60_000);
   const cleanupTimer = setInterval(() => {
     generalLimiter.cleanup();
@@ -60,8 +59,7 @@ function handleRequest(
     authLimiter: ReturnType<typeof createRateLimiter>;
   },
 ): Promise<void> | void {
-  const nonce = generateNonce();
-  applySecurityHeaders(res, nonce);
+  res.setHeader("X-Content-Type-Options", "nosniff");
 
   const ip = req.socket.remoteAddress ?? "unknown";
   if (!deps.generalLimiter.check(ip)) {
@@ -75,7 +73,7 @@ function handleRequest(
 
   if (match) {
     const { route, params } = match;
-    const ctx = { req, res, params, nonce };
+    const ctx = { req, res, params };
     if (route.requiresAuth && !deps.checkSession(ctx)) {
       jsonError(res, 401, "Unauthorized.");
       return;
@@ -88,7 +86,8 @@ function handleRequest(
   }
 
   if (method === "GET") {
-    deps.spaHandler({ req, res, params: {}, nonce });
+    applySecurityHeaders(res);
+    deps.spaHandler({ req, res, params: {} });
     return;
   }
 

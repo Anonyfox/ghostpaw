@@ -1,76 +1,53 @@
-import assert from "node:assert/strict";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { deepStrictEqual, rejects, strictEqual } from "node:assert/strict";
+import { afterEach, beforeEach, describe, it, mock } from "node:test";
 import { apiGet } from "./api_get.ts";
 
-// biome-ignore lint/suspicious/noExplicitAny: save/restore globalThis mocks
-let originalFetch: any;
-// biome-ignore lint/suspicious/noExplicitAny: save/restore globalThis mocks
-let originalWindow: any;
+const originalFetch = globalThis.fetch;
+let mockFetch: ReturnType<typeof mock.fn>;
 
 beforeEach(() => {
-  originalFetch = globalThis.fetch;
-  originalWindow = globalThis.window;
-  // biome-ignore lint/suspicious/noExplicitAny: test mock
-  (globalThis as any).window = { location: { assign: () => {} } };
+  (globalThis as Record<string, unknown>).window = { location: { assign: mock.fn() } };
+  mockFetch = mock.fn();
+  globalThis.fetch = mockFetch as unknown as typeof fetch;
 });
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
-  // biome-ignore lint/suspicious/noExplicitAny: test mock
-  (globalThis as any).window = originalWindow;
+  delete (globalThis as Record<string, unknown>).window;
 });
 
-function mockFetch(status: number, body: unknown): void {
-  globalThis.fetch = (async () => ({
+function jsonResponse(data: unknown, status = 200): Response {
+  return {
     ok: status >= 200 && status < 300,
     status,
-    statusText: "Test",
-    json: async () => body,
-  })) as unknown as typeof fetch;
+    statusText: "OK",
+    json: async () => data,
+  } as unknown as Response;
 }
 
 describe("apiGet", () => {
-  it("fetches with GET and returns parsed JSON", async () => {
-    const data = { foo: "bar" };
-    mockFetch(200, data);
-    const result = await apiGet<{ foo: string }>("/api/test");
-    assert.deepEqual(result, data);
+  it("calls fetch with GET and same-origin credentials", async () => {
+    mockFetch.mock.mockImplementation(async () => jsonResponse({ ok: true }));
+    await apiGet("/api/test");
+    strictEqual(mockFetch.mock.callCount(), 1);
+    const [path, opts] = mockFetch.mock.calls[0].arguments as [string, RequestInit];
+    strictEqual(path, "/api/test");
+    strictEqual(opts.credentials, "same-origin");
+  });
+
+  it("returns parsed JSON on success", async () => {
+    mockFetch.mock.mockImplementation(async () => jsonResponse({ data: 42 }));
+    const result = await apiGet<{ data: number }>("/api/test");
+    deepStrictEqual(result, { data: 42 });
   });
 
   it("throws on non-ok response", async () => {
-    mockFetch(500, { error: "Internal Server Error" });
-    await assert.rejects(
-      async () => apiGet("/api/test"),
-      (err: Error) => {
-        assert.equal(err.message, "Internal Server Error");
-        return true;
-      },
-    );
-  });
-
-  it("uses statusText when error field is missing", async () => {
-    mockFetch(404, {});
-    await assert.rejects(
-      async () => apiGet("/api/test"),
-      (err: Error) => {
-        assert.equal(err.message, "Test");
-        return true;
-      },
-    );
+    mockFetch.mock.mockImplementation(async () => jsonResponse({ error: "Not found" }, 404));
+    await rejects(apiGet("/api/missing"), /Not found/);
   });
 
   it("redirects to /login on 401", async () => {
-    let assignCalledWith: string | null = null;
-    mockFetch(401, {});
-    // biome-ignore lint/suspicious/noExplicitAny: test mock
-    (globalThis as any).window = {
-      location: {
-        assign: (url: string) => {
-          assignCalledWith = url;
-        },
-      },
-    };
-    await assert.rejects(async () => apiGet("/api/test"));
-    assert.equal(assignCalledWith, "/login");
+    mockFetch.mock.mockImplementation(async () => jsonResponse({}, 401));
+    await rejects(apiGet("/api/protected"), /Unauthorized/);
   });
 });

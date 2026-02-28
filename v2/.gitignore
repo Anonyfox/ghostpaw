@@ -3,3 +3,4 @@ dist/
 playground/
 *.tgz
 .DS_Store
+docs/haunt-journals/

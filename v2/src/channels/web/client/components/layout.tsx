@@ -22,13 +22,13 @@ export function Layout({ children }: LayoutProps) {
         <Link href="/dashboard" class="nav-link text-light">
           Dashboard
         </Link>
-        <Link href="/chat" class="nav-link text-secondary">
+        <Link href="/chat" class="nav-link text-light">
           Chat
         </Link>
         <Link href="/sessions" class="nav-link text-secondary">
           Sessions
         </Link>
-        <Link href="/settings" class="nav-link text-secondary">
+        <Link href="/settings" class="nav-link text-light">
           Settings
         </Link>
         <div class="mt-auto">

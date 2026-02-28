@@ -47,7 +47,7 @@ describe("dashboard API", () => {
 
   it("returns 200 with JSON content type", () => {
     const res = mockRes();
-    const ctx = { req: {}, res, params: {}, nonce: "test" } as unknown as RouteContext;
+    const ctx = { req: {}, res, params: {} } as unknown as RouteContext;
     const handler = createDashboardHandler({ version: "1.0.0", db });
     handler(ctx);
     strictEqual(res.status, 200);
@@ -56,7 +56,7 @@ describe("dashboard API", () => {
 
   it("response includes version from config", () => {
     const res = mockRes();
-    const ctx = { req: {}, res, params: {}, nonce: "test" } as unknown as RouteContext;
+    const ctx = { req: {}, res, params: {} } as unknown as RouteContext;
     const handler = createDashboardHandler({ version: "2.3.4", db });
     handler(ctx);
     const data = JSON.parse(res.body);
@@ -65,7 +65,7 @@ describe("dashboard API", () => {
 
   it("response includes uptimeMs as a number > 0", () => {
     const res = mockRes();
-    const ctx = { req: {}, res, params: {}, nonce: "test" } as unknown as RouteContext;
+    const ctx = { req: {}, res, params: {} } as unknown as RouteContext;
     const handler = createDashboardHandler({ version: "1.0.0", db });
     handler(ctx);
     const data = JSON.parse(res.body);
@@ -78,7 +78,7 @@ describe("dashboard API", () => {
     setSecret(db, "API_KEY_OPENAI", "sk-openai-test");
 
     const res = mockRes();
-    const ctx = { req: {}, res, params: {}, nonce: "test" } as unknown as RouteContext;
+    const ctx = { req: {}, res, params: {} } as unknown as RouteContext;
     const handler = createDashboardHandler({ version: "1.0.0", db });
     handler(ctx);
     const data = JSON.parse(res.body);
@@ -87,7 +87,7 @@ describe("dashboard API", () => {
 
   it("secretsCount is zero when no secrets exist", () => {
     const res = mockRes();
-    const ctx = { req: {}, res, params: {}, nonce: "test" } as unknown as RouteContext;
+    const ctx = { req: {}, res, params: {} } as unknown as RouteContext;
     const handler = createDashboardHandler({ version: "1.0.0", db });
     handler(ctx);
     const data = JSON.parse(res.body);

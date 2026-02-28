@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { defineCommand, runMain } from "citty";
+import { initChatTables } from "./core/chat/index.ts";
 import { initConfigTable } from "./core/config/index.ts";
 import { initMemoryTable } from "./core/memory/index.ts";
 import { initSecretsTable, loadSecretsIntoEnv, syncProviderKeys } from "./core/secrets/index.ts";
@@ -33,6 +34,7 @@ const main = defineCommand({
     const db = await openDatabase(resolve(workspace, "ghostpaw.db"));
     initSecretsTable(db);
     initConfigTable(db);
+    initChatTables(db);
     initMemoryTable(db);
     loadSecretsIntoEnv(db);
     syncProviderKeys(db);
@@ -52,21 +54,30 @@ const main = defineCommand({
         db,
       });
 
-      server.on("error", (err: NodeJS.ErrnoException) => {
-        if (err.code === "EADDRINUSE") {
-          log.error(`port ${webConfig.port} is already in use (set WEB_UI_PORT to change)`);
-          process.exit(1);
-        }
-        throw err;
-      });
-      server.listen(webConfig.port, webConfig.host, () => {
-        log.done(`web ui: http://${webConfig.host}:${webConfig.port}`);
+      await new Promise<void>((resolve, reject) => {
+        server.on("error", (err: NodeJS.ErrnoException) => {
+          if (err.code === "EADDRINUSE") {
+            log.error(`port ${webConfig.port} is already in use (set WEB_UI_PORT to change)`);
+            process.exit(1);
+          }
+          reject(err);
+        });
+        server.listen(webConfig.port, webConfig.host, () => {
+          log.done(`web ui: http://${webConfig.host}:${webConfig.port}`);
+          resolve();
+        });
       });
     } else {
       log.info("web ui disabled (set WEB_UI_PASSWORD to enable)");
     }
+
+    if (process.stdin.isTTY && process.stdout.isTTY) {
+      const { runTui } = await import("./channels/tui/index.ts");
+      await runTui({ db, version: VERSION });
+    }
   },
   subCommands: {
+    run: () => import("./channels/cli/run.ts").then((m) => m.default),
     secrets: () => import("./channels/cli/secrets.ts").then((m) => m.default),
     config: () => import("./channels/cli/config.ts").then((m) => m.default),
   },

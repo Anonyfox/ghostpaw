@@ -8,9 +8,7 @@ describe("RouteContext", () => {
       req: {} as RouteContext["req"],
       res: {} as RouteContext["res"],
       params: { id: "42" },
-      nonce: "abc",
     };
-    strictEqual(ctx.nonce, "abc");
     strictEqual(ctx.params.id, "42");
   });
 });

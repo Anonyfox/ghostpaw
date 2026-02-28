@@ -5,7 +5,6 @@ export interface RouteContext {
   req: IncomingMessage;
   res: ServerResponse;
   params: Record<string, string>;
-  nonce: string;
 }
 
 export type RouteHandler = (ctx: RouteContext) => void | Promise<void>;

@@ -41,8 +41,8 @@ function mockRes(): ServerResponse & {
   return res;
 }
 
-function ctx(req: IncomingMessage, res: ServerResponse, nonce: string): RouteContext {
-  return { req, res, params: {}, nonce };
+function ctx(req: IncomingMessage, res: ServerResponse): RouteContext {
+  return { req, res, params: {} };
 }
 
 describe("serveSpaShell", () => {
@@ -51,27 +51,27 @@ describe("serveSpaShell", () => {
     const handler = createSpaHandler(renderShellFn, "boot-xyz");
     const req = mockReq();
     const res = mockRes();
-    handler(ctx(req, res, ""));
+    handler(ctx(req, res));
     strictEqual(res._status, 200);
     strictEqual(res._headers.get("content-type"), "text/html; charset=utf-8");
     strictEqual(res._body, "<html><body>app</body></html>");
   });
 
-  it("passes the context's nonce to the render function", () => {
-    const renderShellFn = (nonce: string): string => `<script nonce="${nonce}">`;
+  it("passes bootId to the render function", () => {
+    const renderShellFn = (bootId: string): string => `<script src="/app.js?v=${bootId}">`;
     const handler = createSpaHandler(renderShellFn, "boot-xyz");
     const req = mockReq();
     const res = mockRes();
-    handler(ctx(req, res, "abc123nonce"));
-    strictEqual(res._body, '<script nonce="abc123nonce">');
+    handler(ctx(req, res));
+    strictEqual(res._body, '<script src="/app.js?v=boot-xyz">');
   });
 
-  it("sets no-cache header (CSP nonces change per request)", () => {
+  it("sets no-cache header", () => {
     const renderShellFn = (): string => "<html></html>";
     const handler = createSpaHandler(renderShellFn, "boot-xyz");
     const req = mockReq();
     const res = mockRes();
-    handler(ctx(req, res, ""));
+    handler(ctx(req, res));
     strictEqual(res._headers.get("cache-control"), "no-cache");
   });
 });

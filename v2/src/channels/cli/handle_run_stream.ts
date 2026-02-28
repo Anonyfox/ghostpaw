@@ -1,0 +1,35 @@
+import type { TurnContext } from "../../core/chat/index.ts";
+import { closeSession, createSession, streamTurn } from "../../core/chat/index.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
+import { resolveModel } from "./resolve_model.ts";
+import type { RunInput, RunResult } from "./run_types.ts";
+import { DEFAULT_SYSTEM_PROMPT } from "./run_types.ts";
+import { toRunResult } from "./to_run_result.ts";
+
+export async function* handleRunStream(
+  db: DatabaseHandle,
+  input: RunInput,
+): AsyncGenerator<string, RunResult> {
+  const model = resolveModel(db, input.model);
+  const systemPrompt = input.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
+  const session = createSession(db, `cli:run:${Date.now()}`, { purpose: "chat" });
+  const ctx: TurnContext = { db, tools: [], createChat: input.createChat };
+
+  const gen = streamTurn(
+    { sessionId: session.id, content: input.prompt, systemPrompt, model },
+    ctx,
+  );
+
+  try {
+    for (;;) {
+      const next = await gen.next();
+      if (next.done) {
+        return toRunResult(next.value);
+      }
+      yield next.value;
+    }
+  } finally {
+    closeSession(db, session.id);
+    await gen.return(undefined as never);
+  }
+}

@@ -1,5 +1,5 @@
 import { useRef, useState } from "preact/hooks";
-import type { ProviderInfo } from "../../shared/models_types.ts";
+import type { ProviderInfo } from "../../shared/provider_info.ts";
 
 interface ProviderCardProps {
   provider: ProviderInfo;

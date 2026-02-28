@@ -1,0 +1,12 @@
+import type { TurnResult } from "../../core/chat/index.ts";
+import type { RunResult } from "./run_types.ts";
+
+export function toRunResult(turn: TurnResult): RunResult {
+  return {
+    content: turn.content,
+    model: turn.model,
+    tokensIn: turn.usage.inputTokens,
+    tokensOut: turn.usage.outputTokens,
+    totalTokens: turn.usage.totalTokens,
+  };
+}

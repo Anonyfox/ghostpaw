@@ -1,5 +1,6 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
+import { initChatTables } from "../../../core/chat/index.ts";
 import { initConfigTable } from "../../../core/config/index.ts";
 import { initSecretsTable } from "../../../core/secrets/index.ts";
 import type { DatabaseHandle } from "../../../lib/index.ts";
@@ -13,6 +14,7 @@ describe("buildRoutes", () => {
     db = await openTestDatabase();
     initSecretsTable(db);
     initConfigTable(db);
+    initChatTables(db);
   });
 
   it("returns routes array and checkSession function", () => {
@@ -44,6 +46,6 @@ describe("buildRoutes", () => {
       spaHandler: () => {},
     });
 
-    strictEqual(result.routes.length, 14);
+    strictEqual(result.routes.length, 20);
   });
 });

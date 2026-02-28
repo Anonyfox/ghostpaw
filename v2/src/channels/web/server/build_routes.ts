@@ -1,6 +1,8 @@
 import type { DatabaseHandle } from "../../../lib/index.ts";
 import { createRoute } from "./create_route.ts";
 import { createAuthHandlers } from "./routes/auth.ts";
+import { createChatApiHandlers } from "./routes/chat_api.ts";
+import { createChatSessionsApiHandlers } from "./routes/chat_sessions_api.ts";
 import { createConfigApiHandlers } from "./routes/config_api.ts";
 import { createDashboardHandler } from "./routes/dashboard_api.ts";
 import { createModelsApiHandlers } from "./routes/models_api.ts";
@@ -37,6 +39,8 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
   const secrets = createSecretsApiHandlers(config.db);
   const cfg = createConfigApiHandlers(config.db);
   const models = createModelsApiHandlers(config.db);
+  const chat = createChatApiHandlers(config.db);
+  const chatSessions = createChatSessionsApiHandlers(config.db);
 
   return {
     checkSession: auth.checkSession,
@@ -53,6 +57,12 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("DELETE", "/api/config/:key", cfg.reset, true),
       createRoute("GET", "/api/models", models.list, true),
       createRoute("POST", "/api/models", models.set, true),
+      createRoute("GET", "/api/chat", chatSessions.list, true),
+      createRoute("PATCH", "/api/chat/:id", chatSessions.rename, true),
+      createRoute("POST", "/api/chat", chat.create, true),
+      createRoute("GET", "/api/chat/:id", chat.history, true),
+      createRoute("GET", "/api/chat/:id/stream", chat.stream, true),
+      createRoute("POST", "/api/chat/:id/send", chat.send, true),
       createRoute("GET", "/assets/app.js", statics.serveAppJs, false),
       createRoute("GET", "/assets/style.css", statics.serveStyleCss, false),
     ],

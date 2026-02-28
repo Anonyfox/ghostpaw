@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import { render } from "preact";
 import { createTestDOM } from "../create_test_dom.ts";
 import { waitFor } from "../wait_for.ts";
-import { clearModelsCache } from "./clear_models_cache.ts";
 import { ModelSelector } from "./model_selector.tsx";
 
 const MOCK_RESPONSE = {
@@ -81,7 +80,6 @@ describe("ModelSelector", () => {
 
   beforeEach(() => {
     originalFetch = globalThis.fetch;
-    clearModelsCache();
     dom = createTestDOM();
   });
 
@@ -195,7 +193,7 @@ describe("ModelSelector", () => {
     assert.ok(badge, "feedback rendered as inline badge, not block alert");
   });
 
-  it("uses cached data on re-render without refetching", async () => {
+  it("fetches from server on each mount (server-side caching)", async () => {
     let fetchCount = 0;
     globalThis.fetch = (async () => {
       fetchCount++;
@@ -205,10 +203,5 @@ describe("ModelSelector", () => {
     render(<ModelSelector />, dom.container);
     await waitFor(() => dom.container.textContent?.includes("Anthropic") ?? false);
     assert.equal(fetchCount, 1);
-
-    render(null, dom.container);
-    render(<ModelSelector />, dom.container);
-    await waitFor(() => dom.container.textContent?.includes("Anthropic") ?? false);
-    assert.equal(fetchCount, 1, "cached data used, no second fetch");
   });
 });

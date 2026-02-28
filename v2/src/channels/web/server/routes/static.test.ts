@@ -42,7 +42,7 @@ function mockRes(): ServerResponse & {
 }
 
 function ctx(req: IncomingMessage, res: ServerResponse): RouteContext {
-  return { req, res, params: {}, nonce: "" };
+  return { req, res, params: {} };
 }
 
 describe("serveAppJs", () => {

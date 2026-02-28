@@ -9,6 +9,14 @@ export function createTestDOM() {
   globalThis.document = window.document as any;
   // biome-ignore lint/suspicious/noExplicitAny: happy-dom ↔ lib.dom type gap
   globalThis.window = window as any;
+  // biome-ignore lint/suspicious/noExplicitAny: happy-dom ↔ lib.dom type gap
+  globalThis.location = window.location as any;
+  // biome-ignore lint/suspicious/noExplicitAny: happy-dom ↔ lib.dom type gap
+  globalThis.history = window.history as any;
+  // biome-ignore lint/suspicious/noExplicitAny: happy-dom ↔ lib.dom type gap
+  globalThis.addEventListener = window.addEventListener.bind(window) as any;
+  // biome-ignore lint/suspicious/noExplicitAny: happy-dom ↔ lib.dom type gap
+  globalThis.removeEventListener = window.removeEventListener.bind(window) as any;
 
   const container = window.document.createElement("div");
   container.id = "test-root";

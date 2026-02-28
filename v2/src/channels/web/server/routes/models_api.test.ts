@@ -50,7 +50,7 @@ function ctx(
   res: ReturnType<typeof mockRes>,
   params: Record<string, string> = {},
 ): RouteContext {
-  return { req, res: res as never, params, nonce: "test" };
+  return { req, res: res as never, params };
 }
 
 describe("models API", () => {

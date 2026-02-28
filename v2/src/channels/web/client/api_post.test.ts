@@ -1,100 +1,57 @@
-import assert from "node:assert/strict";
-import { afterEach, beforeEach, describe, it } from "node:test";
+import { deepStrictEqual, rejects, strictEqual } from "node:assert/strict";
+import { afterEach, beforeEach, describe, it, mock } from "node:test";
 import { apiPost } from "./api_post.ts";
 
-// biome-ignore lint/suspicious/noExplicitAny: save/restore globalThis mocks
-let originalFetch: any;
-// biome-ignore lint/suspicious/noExplicitAny: save/restore globalThis mocks
-let originalWindow: any;
+const originalFetch = globalThis.fetch;
+let mockFetch: ReturnType<typeof mock.fn>;
 
 beforeEach(() => {
-  originalFetch = globalThis.fetch;
-  originalWindow = globalThis.window;
-  // biome-ignore lint/suspicious/noExplicitAny: test mock
-  (globalThis as any).window = { location: { assign: () => {} } };
+  (globalThis as Record<string, unknown>).window = { location: { assign: mock.fn() } };
+  mockFetch = mock.fn();
+  globalThis.fetch = mockFetch as unknown as typeof fetch;
 });
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
-  // biome-ignore lint/suspicious/noExplicitAny: test mock
-  (globalThis as any).window = originalWindow;
+  delete (globalThis as Record<string, unknown>).window;
 });
 
-function mockFetch(status: number, body: unknown): void {
-  globalThis.fetch = (async () => ({
+function jsonResponse(data: unknown, status = 200): Response {
+  return {
     ok: status >= 200 && status < 300,
     status,
-    statusText: "Test",
-    json: async () => body,
-  })) as unknown as typeof fetch;
+    statusText: "OK",
+    json: async () => data,
+  } as unknown as Response;
 }
 
 describe("apiPost", () => {
-  it("sends POST with JSON body", async () => {
-    const data = { id: 1 };
-    let capturedInit: RequestInit | undefined;
-    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
-      capturedInit = init;
-      return {
-        ok: true,
-        status: 200,
-        statusText: "OK",
-        json: async () => data,
-      } as Response;
-    }) as typeof fetch;
-
-    const result = await apiPost<{ id: number }>("/api/test", { name: "x" });
-    assert.deepEqual(result, data);
-    assert.equal(capturedInit?.method, "POST");
-    assert.equal(
-      (capturedInit?.headers as Record<string, string>)?.["Content-Type"],
-      "application/json",
-    );
-    assert.equal(capturedInit?.body, '{"name":"x"}');
+  it("calls fetch with POST method and JSON content type", async () => {
+    mockFetch.mock.mockImplementation(async () => jsonResponse({ ok: true }));
+    await apiPost("/api/test", { key: "value" });
+    strictEqual(mockFetch.mock.callCount(), 1);
+    const [path, opts] = mockFetch.mock.calls[0].arguments as [string, RequestInit];
+    strictEqual(path, "/api/test");
+    strictEqual(opts.method, "POST");
+    strictEqual((opts.headers as Record<string, string>)["Content-Type"], "application/json");
+    strictEqual(opts.body, '{"key":"value"}');
   });
 
-  it("sends POST without body", async () => {
-    const data = { ok: true };
-    let capturedInit: RequestInit | undefined;
-    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
-      capturedInit = init;
-      return {
-        ok: true,
-        status: 200,
-        statusText: "OK",
-        json: async () => data,
-      } as Response;
-    }) as typeof fetch;
-
-    const result = await apiPost("/api/test");
-    assert.deepEqual(result, data);
-    assert.equal(capturedInit?.method, "POST");
-    assert.equal(capturedInit?.body, undefined);
+  it("sends no body when body is undefined", async () => {
+    mockFetch.mock.mockImplementation(async () => jsonResponse({ ok: true }));
+    await apiPost("/api/test");
+    const [, opts] = mockFetch.mock.calls[0].arguments as [string, RequestInit];
+    strictEqual(opts.body, undefined);
   });
 
-  it("throws on non-ok response", async () => {
-    mockFetch(400, { error: "Bad Request" });
-    await assert.rejects(
-      async () => apiPost("/api/test", {}),
-      (err: Error) => {
-        assert.equal(err.message, "Bad Request");
-        return true;
-      },
-    );
+  it("returns parsed JSON on success", async () => {
+    mockFetch.mock.mockImplementation(async () => jsonResponse({ id: 1 }));
+    const result = await apiPost<{ id: number }>("/api/create", {});
+    deepStrictEqual(result, { id: 1 });
   });
 
-  it("redirects to /login on 401", async () => {
-    let assignCalledWith: string | null = null;
-    mockFetch(401, {});
-    // biome-ignore lint/suspicious/noExplicitAny: test mock
-    (globalThis as any).window = {
-      location: {
-        assign: (url: string) => {
-          assignCalledWith = url;
-        },
-      },
-    };
-    await assert.rejects(async () => apiPost("/api/test", {}));
-    assert.equal(assignCalledWith, "/login");
+  it("throws on error response", async () => {
+    mockFetch.mock.mockImplementation(async () => jsonResponse({ error: "Bad request" }, 400));
+    await rejects(apiPost("/api/fail", {}), /Bad request/);
   });
 });

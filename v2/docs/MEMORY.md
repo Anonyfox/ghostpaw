@@ -26,6 +26,14 @@ Decay is computed at query time, never stored. No background jobs. No batch proc
 
 The system converges toward correct state even without perfect maintenance. Contradictory memories coexist harmlessly — "User loves pizza" from three months ago and "User prefers sushi" from yesterday both exist, but the sushi memory scores dramatically higher because it's fresher and more confident. No explicit cleanup needed for the system to behave correctly. Explicit maintenance (forgetting outdated memories, merging duplicates) makes convergence faster, but the ranking formula is the safety net.
 
+## What Memory Does Not Store
+
+Memory stores beliefs about the world — facts, observations, technical knowledge, preferences as discrete data points. It does not store relational understanding.
+
+"User prefers tabs over spaces" is a memory — a discrete observation with confidence and decay. "The user is someone who cares deeply about consistency and encodes their values into tooling choices" is relational understanding — an integrated model of who someone is, built from many observations over time. That belongs in the pack system, not in memory.
+
+The distinction: a memory is an atom. A pack bond is a molecule made from many atoms. Individual observations about people are memories. The ghost's understanding of who those people are, how they relate, and where the ghost itself stands toward them lives in pack bonds. Both systems are independent. They reinforce each other — a fading memory about someone can be refreshed when the ghost revisits the bond — but they store fundamentally different things. Memory stores what the ghost noticed. Pack stores who the ghost knows.
+
 ## Recall
 
 Recall is how the agent accesses what it knows. It happens automatically before every response — the user's message is searched against the memory store and relevant results are injected into context. Zero cognitive load on the agent, zero extra LLM calls.
