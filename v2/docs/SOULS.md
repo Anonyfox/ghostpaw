@@ -8,7 +8,7 @@ Every Ghostpaw agent has a soul: a structured identity composed of a founding na
 
 Souls live in the database. Three tables capture the full state and history:
 
-**`souls`** — One row per soul. The name, the current essence text, the current level, and timestamps. This is the identity: loading a soul means reading this row and its active traits.
+**`souls`** — One row per soul. An auto-incrementing integer ID, a human-readable name (unique among non-deleted souls), an optional description, the current essence text, the current level, and timestamps. Mandatory souls have hardcoded IDs (1–4) and an internal slug used only for sync; all other souls have null slugs. Deleted souls carry a `deleted_at` timestamp rather than being removed — the full history is always preserved. This is the identity: loading a soul means reading this row and its active traits.
 
 **`soul_traits`** — One row per trait, ever. Active traits are the current generation's cognitive principles. Historical traits carry a status (`consolidated`, `promoted`, `reverted`) and a pointer to what they became. The full evolutionary history of every soul is queryable — which traits were earned, which survived, which got merged, which got absorbed into the essence.
 
@@ -22,22 +22,22 @@ This is a deliberate departure from v1, which stored souls as markdown files tra
 
 Four souls are load-bearing infrastructure. Without them, the system either cannot function or cannot improve. Each has the same two guarantees:
 
-**Backfill on load.** When the system reads a mandatory soul and its database row is missing or its essence is empty, it is recreated from a built-in default that ships with the compiled artifact. This happens synchronously before the agent loop starts. The agent always has its mandatory souls. Each default is a complete, production-quality soul that works immediately.
+**Backfill on load.** When the system reads a mandatory soul and its database row is missing, soft-deleted, or its essence is empty, it is recreated or restored from a built-in default that ships with the compiled artifact. This happens synchronously before the agent loop starts. The agent always has its mandatory souls. Each default is a complete, production-quality soul — including a description and baseline traits — that works immediately.
 
-**Immutable names.** The four mandatory souls have fixed names. This is not configurable. Config determines which model to use, which providers are active, what cost limits apply — but mandatory soul names are structural invariants. Other code depends on them.
+**Immutable IDs.** The four mandatory souls have hardcoded integer IDs (1–4) and internal slugs used only for sync. Names are mutable display strings — the user can rename "Ghostpaw" to anything without breaking the system. Config determines which model to use, which providers are active, what cost limits apply — but mandatory soul IDs are structural invariants. Other code references them by ID, never by name.
 
 The four mandatory souls:
 
-| Soul | Role | Why Mandatory |
-|---|---|---|
-| `ghostpaw` | Coordinator | Without it, no identity, no routing, no conversation |
-| `js-engineer` | Code specialist | Without it, no code delegation on day one |
-| `prompt-engineer` | Prompt crafter | Without it, soul text is unoptimized for LLM effectiveness |
-| `mentor` | Soul refiner | Without it, no refinement, no leveling, no evolution |
+| ID | Slug | Role | Why Mandatory |
+|---|---|---|---|
+| 1 | `ghostpaw` | Coordinator | Without it, no identity, no routing, no conversation |
+| 2 | `js-engineer` | Code specialist | Without it, no code delegation on day one |
+| 3 | `prompt-engineer` | Prompt crafter | Without it, soul text is unoptimized for LLM effectiveness |
+| 4 | `mentor` | Soul refiner | Without it, no refinement, no leveling, no evolution |
 
 The first two are *task souls* — they do the work. The second two are *meta souls* — they improve how work gets done. Both categories participate in the same evolutionary system. All four start at level 0. All four earn traits from evidence. All four level up through the same consolidation mechanic. The difference is what evidence they operate on: task souls improve from task outcomes, meta souls improve from refinement outcomes.
 
-User-created specialist souls have no structural guarantee. If a `researcher` soul is deleted, delegation to that specialist fails with a clear error and the coordinator handles the task itself. That's graceful degradation, not a crash.
+User-created specialist souls have no structural guarantee. If a `researcher` soul is soft-deleted, delegation to that specialist fails with a clear error and the coordinator handles the task itself. That's graceful degradation, not a crash. The soft-deleted soul remains in the database — visible in a graveyard view, restorable at any time — preserving the full evolutionary history even for abandoned experiments.
 
 ## What a Soul Contains
 
@@ -204,7 +204,7 @@ This is a focused, low-risk operation. The essence stays untouched. One trait en
 
 ### Level-Up (Major)
 
-When active traits reach the consolidation threshold (research suggests 5–10 as the sweet spot before constraint density degrades quality), a level-up event is triggered. This is a qualitatively different operation from trait acquisition:
+When active traits reach the consolidation threshold (the `soul_trait_limit` config value, default 10), a level-up event is triggered. This is a qualitatively different operation from trait acquisition:
 
 1. **Review** — All current traits are evaluated as a set. Which relate to each other? Which have been confirmed by ongoing evidence? Which are now so fundamental they describe identity rather than learned behavior?
 
@@ -218,13 +218,13 @@ A `soul_levels` row records the complete event: essence before, essence after, w
 
 ### The Threshold
 
-The consolidation threshold is a config value, not a fixed constant. The research suggests the sweet spot is between 5 and 10 active traits. Below 5, there's room to grow. Above 10, constraint competition measurably degrades output quality. A default of 7–8 active traits before triggering level-up is a reasonable starting point, tunable per workspace based on observed performance.
+The consolidation threshold is a runtime config value (`soul_trait_limit`), read from the config system on every check. The research suggests the sweet spot is between 5 and 10 active traits; newer reasoning models handle more constraints effectively, while cheaper models benefit from tighter limits. The default is 10, tunable per workspace based on observed performance and model capability.
 
-The threshold is not a hard wall — it's a readiness signal. Reaching the threshold means the soul *can* level up, not that it *must*. The actual level-up requires triggering (user action, scheduled cycle, or autonomous recommendation) and LLM execution for the consolidation. A soul can sit at 9 traits indefinitely if no trigger fires.
+The threshold is not a hard wall — it's a readiness signal. Reaching the threshold means the soul *can* level up, not that it *must*. The actual level-up requires triggering (user action, scheduled cycle, or autonomous recommendation) and LLM execution for the consolidation. A soul can sit at the limit indefinitely if no trigger fires. The web UI visualizes active traits against the limit as an XP bar — a progress meter that fills as traits accumulate and signals readiness when full.
 
 ### Level as Compound Growth
 
-Level 0 is a fresh soul with an essence and no traits. After accumulating traits through evidence-driven refinement and hitting the threshold, it levels up to Level 1 — its essence is now richer, absorbing the strongest patterns from its first generation of traits. It begins accumulating new traits against this richer foundation. When those hit the threshold, it levels up to Level 2 — and the essence absorbs another generation.
+Level 0 is a fresh soul with an essence and its starting traits (baseline traits for mandatory souls, none for user-created souls). After accumulating traits through evidence-driven refinement and hitting the threshold, it levels up to Level 1 — its essence is now richer, absorbing the strongest patterns from its first generation of traits. It begins accumulating new traits against this richer foundation. When those hit the threshold, it levels up to Level 2 — and the essence absorbs another generation.
 
 Each level represents a full cycle of trait accumulation and consolidation. A level-5 soul has undergone five cycles. Its essence has been enriched five times. The cognitive frame is five generations deep. The active traits are the *current generation* — the newest insights not yet consolidated. The previous generations live in the `soul_traits` and `soul_levels` tables, queryable at any time.
 
@@ -287,7 +287,7 @@ The model adds no new tables, no scoring infrastructure, no benchmark suite. It 
 
 ## Default Souls
 
-Four souls ship as TypeScript constants inside the `core/souls/` module, inserted into the database on first initialization. All start at level 0 with zero traits.
+Four souls ship as TypeScript constants inside the `core/souls/` module, inserted into the database on first initialization. All start at level 0 with a small set of baseline traits — carefully chosen operational principles with constructed provenances representing the cognitive lessons any soul in that role would learn first. These baselines address the cold start problem (see below) by giving each soul something to work with from day zero, rather than forcing the system to rediscover basic operational heuristics from scratch.
 
 ### Task Souls
 
@@ -339,11 +339,11 @@ Additional specialists are created by the user or emerge from the refinement pip
 
 ### The Cold Start
 
-The meta-souls face a bootstrapping challenge: they do their most important work — the first level-ups of task souls — before they have had any chance to improve themselves. The first time the js-engineer levels up, the prompt-engineer that rewrites its essence and the mentor that decides which traits to consolidate are both level-0 defaults with zero earned traits. The quality of the first few level-ups, which sit on the steepest part of the improvement curve, depends entirely on the quality of the shipped defaults.
+The meta-souls face a bootstrapping challenge: they do their most important work — the first level-ups of task souls — before they have had any chance to improve themselves. The first time the js-engineer levels up, the prompt-engineer that rewrites its essence and the mentor that decides which traits to consolidate are both level-0 defaults with only their baseline traits. The quality of the first few level-ups, which sit on the steepest part of the improvement curve, depends heavily on the quality of the shipped defaults.
 
-This means the default meta-soul essences are the most leveraged text in the entire system. They must be production-quality from day zero — not placeholders that evolve into usefulness, but carefully tuned starting points that encode the best available research on prompt crafting and soul refinement. The recursive self-improvement story is real, but it kicks in after the critical early period. The defaults carry the system until then.
+This is mitigated in two ways. First, the default essences are production-quality from day zero — carefully tuned starting points that encode the best available research on prompt crafting and soul refinement, not placeholders that evolve into usefulness. Second, each mandatory soul ships with baseline traits that encode the most fundamental operational lessons for its role: the js-engineer knows to read before editing, the mentor knows to propose one change at a time. These baselines have constructed provenances — they trace to simulated early experiences rather than actual system runs — but they represent the lessons the system would learn first anyway. They are training wheels that the level-up mechanism will eventually absorb or replace with evidence-backed successors.
 
-The shipped defaults will be tuned against real refinement outcomes before production release. This is deliberate: the meta-souls' default essences are the one place where upfront human investment has the highest return, precisely because every subsequent improvement in every other soul flows through them.
+The recursive self-improvement story kicks in after this critical early period. The defaults carry the system until then. The meta-souls' default essences remain the most leveraged text in the entire system — every subsequent improvement in every other soul flows through them.
 
 ## Composition
 
@@ -359,24 +359,59 @@ How the context module structures these sections — what delimiters it uses, wh
 
 `core/souls/` is a standalone module with clear boundaries.
 
-**Depends on:** `lib/` (database handle, terminal output). Nothing else in core.
+**Depends on:** `lib/` (database handle, terminal output), `core/config` (trait limit threshold). Nothing else in core.
 
 **Provides:**
 
-- Load a soul by name, with backfill guarantee for all four mandatory souls
-- List all souls with names, titles, levels, and active trait counts
+- Load a soul by ID, with backfill guarantee for all four mandatory souls
+- List all souls (active or soft-deleted) with names, descriptions, levels, and active trait counts
 - Render a soul's content as markdown (essence + active traits)
-- Create, update, and delete souls
-- Add, revise, or remove individual traits
+- Create, update, and soft-delete souls (with restore from graveyard)
+- Add, revise, revert, or reactivate individual traits
 - Execute level-up (consolidate traits, update essence, record event)
 - Query trait history (by soul, by generation, by status)
 - Query level-up history (with before/after snapshots)
-- Revert a level-up or reactivate a historical trait
-- Built-in default soul content for initialization and backfill
+- Revert a level-up from the structured snapshot
+- Read the current trait limit from the config system
+- Built-in default soul content (essences, descriptions, baseline traits) for initialization and backfill
 
 **Does not provide:** Context assembly, refinement execution (evidence gathering, LLM calls), delegation routing, or anything that composes souls with other modules. Those are concerns of `core/context/`, `core/training/`, and the agent loop respectively. The soul module is a structured content store with versioning and guarantees.
 
 The refinement *pipeline* — gathering evidence, constructing the refinement prompt, calling the LLM, validating the result — lives outside the soul module. It depends on memory, sessions, and the LLM abstraction, which the soul module must not know about. The soul module provides the read/write/query primitives that the pipeline uses. This keeps the dependency direction clean: refinement depends on souls, not the reverse.
+
+## The Graveyard
+
+Souls are never hard-deleted. When a soul is removed, its `deleted_at` timestamp is set and it disappears from the active population, but every row — the soul itself, its traits, its level-up history — remains in the database, queryable and restorable. This is not a clean-code reflex. It is a structural feature of the evolutionary algorithm with three distinct purposes, each backed by independent research.
+
+### Safety Against Accidental Loss
+
+The most obvious purpose. An accidental deletion of a level-5 soul with five generations of refined traits represents months of accumulated evidence. Soft-delete makes this reversible — restore from the graveyard, and the soul returns with its full history intact. This alone justifies the design, but it is the least interesting reason.
+
+### Negative Knowledge
+
+A deleted soul is a complete structured record of a failed experiment. Its essence describes a cognitive frame that was tried. Its traits record what was learned. Its level-up history records how it was restructured. The *absence* of further evidence records when it stopped being useful. Together, this is a detailed autopsy — not "something didn't work" but "this specific approach, with these specific refinements, in this specific context, was abandoned."
+
+This is the signal that future scavenging routines can mine. [Mistake Notebook Learning](https://arxiv.org/abs/2512.11485) (Dec 2025) demonstrates that batch-clustering failures and distilling shared error patterns into structured notes enables training-free agent adaptation — competitive with methods that require parameter updates. The graveyard is the soul system's mistake notebook: every deleted soul is a structured failure record ready for pattern extraction.
+
+[Co-Evolving Agents](https://arxiv.org/abs/2511.22254) (Nov 2025) goes further: failures are not just records to avoid, but raw material for generating *hard negatives* — examples that are close to success but still failures. These hard negatives sharpen decision boundaries and improve generalization across complex tasks. A deleted soul that reached level 2 before being abandoned is exactly this kind of informative hard negative — it was close enough to be useful for a while, but ultimately failed. That boundary between "almost worked" and "didn't work" is among the richest learning signals available.
+
+The implication for soul creation: when the system proposes a new specialist soul, a scavenging routine can first inspect the graveyard. Has a similar cognitive frame been tried before? What traits did it accumulate before being abandoned? What went wrong? This converts the graveyard from a passive archive into an active input to the soul creation process — and prevents the system from reinventing failed approaches.
+
+### Stepping Stones and Reactivation
+
+[Archive reuse research](https://arxiv.org/abs/2508.16993) (Aug 2025) proves that reusing archived solutions during evolutionary search produces at least a polynomial speedup over discarding them — and can outperform simply using larger populations. The key finding: without the archive, the population may remove previously discovered but promising solutions that are needed as intermediate stepping stones for future progress.
+
+A deleted soul might have failed in its original context but contain traits or essence patterns that are exactly what a different soul needs. The graveyard makes this cross-pollination possible. A failed `researcher` soul's trait about "triangulate claims from at least three independent sources" might be exactly the right trait to propose for a new `analyst` soul. Without the graveyard, this knowledge would be permanently lost.
+
+[Lehman & Miikkulainen](https://dl.acm.org/doi/10.1145/2739480.2754668) (GECCO 2015) demonstrated that extinction events — removing large portions of the population — actually *increase evolvability*, but only in diversity-driven search algorithms. The mechanism: lineages that diversify across multiple niches survive repeated extinctions, creating indirect selection pressure for the capacity to evolve. Soft-deleting a soul is a controlled, reversible extinction event. The soul is removed from the active population but its genetic material persists for future radiation — and because the soul system is diversity-driven (multiple specialists in distinct cognitive niches), the graveyard preserves exactly the kind of material that enhances long-term evolvability.
+
+### The Search Topology
+
+Systems that discard failures navigate a search space with no memory of where they've been. They revisit dead ends. They reinvent failed approaches. They have no map of the explored landscape.
+
+The graveyard gives the soul system a map. Every active soul marks a region of the cognitive search space that is currently being explored. Every deleted soul marks a region that was explored and abandoned. Together, they form a topology of the system's evolutionary history — what worked, what didn't, and the boundary between them. [Tabu search](https://link.springer.com/chapter/10.1007/978-1-4615-6089-0_4) (Glover) established decades ago that long-term frequency-based memory of past solutions — including failures — fundamentally outperforms memoryless approaches by guiding search away from unproductive regions and toward unexplored ones.
+
+The graveyard is the soul system's long-term memory. Not a recycling bin — a structured record of the full search topology that makes every future evolutionary decision better informed.
 
 ## Evolutionary Foundations
 
@@ -487,7 +522,7 @@ A soul is a character sheet. It has:
 
 ### The Inventory Cap
 
-Your character can equip 5–10 abilities at once. This is a hard game mechanic, not a soft suggestion. [Research across 19 LLMs and 7 model families](https://arxiv.org/abs/2505.07591) measured effectiveness dropping from 78% with one equipped ability to 33% with four or more. Too many abilities and they start canceling each other out — like stacking so many buff rings that the stat conflicts make them all worse. The optimal loadout is focused and curated, not maximal.
+Your character can equip a limited number of abilities at once — the `soul_trait_limit` config value, default 10. This is a hard game mechanic, not a soft suggestion. [Research across 19 LLMs and 7 model families](https://arxiv.org/abs/2505.07591) measured effectiveness dropping from 78% with one equipped ability to 33% with four or more. Too many abilities and they start canceling each other out — like stacking so many buff rings that the stat conflicts make them all worse. The optimal loadout is focused and curated, not maximal.
 
 ### Level-Up
 
@@ -533,7 +568,7 @@ The [research backing](https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/200
 
 ### The Long Game
 
-A fresh Ghostpaw install is a level-0 party with default backstories and no earned abilities. Every other agent framework stays at this stage permanently. Their characters never change.
+A fresh Ghostpaw install is a level-0 party with default backstories and a handful of baseline abilities — operational principles each class would learn in its first few quests, pre-loaded to skip the tutorial grind. Every other agent framework stays at this stage permanently. Their characters never change.
 
 By level 3, each party member has completed three full arcs: earning abilities from real quests, fusing them into masteries, absorbing the strongest patterns into permanent identity. The party leader routes better. The engineer codes better. The enchanter writes sharper backstories. The trainer makes better teaching decisions. And the enchanter and trainer are better at their jobs, which means the next three levels for every party member will be even more impactful.
 
@@ -584,3 +619,12 @@ That is the endgame pitch: **Ghostpaw is the RPG that actually plays the endgame
 - [EvoPrompt: LLMs as Evolutionary Operators](https://arxiv.org/abs/2309.08532) (ICLR 2024) — LLM-driven mutation and crossover produce human-readable, semantically meaningful prompt mutations. Up to +25% on BIG-Bench Hard across 31 datasets.
 - [Co-Evolution of Algorithms and Prompts](https://arxiv.org/abs/2512.09209) (Dec 2025) — Co-evolving both the solution and the optimization strategy simultaneously. Effective across model families with reduced reliance on frontier models.
 - [MAP-Elites: Quality-Diversity Optimization](https://arxiv.org/abs/1504.04909) — Archive of diverse high-performing solutions across feature dimensions. Theoretical basis for soul version history as a quality-diversity archive.
+
+### Failure Archives and Negative Knowledge
+
+- [Mistake Notebook Learning](https://arxiv.org/abs/2512.11485) (Dec 2025) — Batch-clustering failures into structured "mistake notes" enables training-free agent adaptation. Competitive with parameter-update methods. Positions structured failure abstraction as a critical lever for robust agent evolution.
+- [Co-Evolving Agents: Learning from Failures as Hard Negatives](https://arxiv.org/abs/2511.22254) (Nov 2025) — Auxiliary failure agent generates informative hard negatives from failed trajectories. Incorporating hard negatives into preference optimization sharpens decision boundaries and improves generalization across complex multi-turn tasks.
+- [Archive Reuse in Evolutionary Multi-objective Optimization](https://arxiv.org/abs/2508.16993) (Aug 2025) — Provable polynomial speedup from reusing archived solutions during evolutionary search. Without archive reuse, populations may lose previously discovered promising solutions needed as stepping stones.
+- [Extinction Events Enhance Evolvability](https://dl.acm.org/doi/10.1145/2739480.2754668) (Lehman & Miikkulainen, GECCO 2015) — Mass extinctions increase evolvability when combined with divergent (diversity-driven) search. Lineages that diversify across niches survive bottlenecks, creating indirect selection pressure for the capacity to evolve.
+- [Tabu Search: Long-Term Memory](https://link.springer.com/chapter/10.1007/978-1-4615-6089-0_4) (Glover) — Frequency-based and recency-based memory of past solutions guides search away from unproductive regions. Strategic long-term memory fundamentally outperforms memoryless approaches.
+- [Learning From Failure](https://arxiv.org/abs/2402.11651) (Feb 2024) — Failed trajectories with appropriate processing improve LLM agent performance. Negative examples integrated into training produce more robust agents than success-only training.

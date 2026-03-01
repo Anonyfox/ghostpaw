@@ -3,8 +3,8 @@ import { describe, it } from "node:test";
 import { KNOWN_CONFIG_KEYS } from "./known_keys.ts";
 
 describe("KNOWN_CONFIG_KEYS", () => {
-  it("contains exactly 13 system keys", () => {
-    strictEqual(KNOWN_CONFIG_KEYS.length, 13);
+  it("contains exactly 14 system keys", () => {
+    strictEqual(KNOWN_CONFIG_KEYS.length, 14);
   });
 
   it("has default_model in the model category", () => {

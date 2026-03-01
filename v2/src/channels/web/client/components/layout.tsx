@@ -22,6 +22,9 @@ export function Layout({ children }: LayoutProps) {
         <Link href="/dashboard" class="nav-link text-light">
           Dashboard
         </Link>
+        <Link href="/souls" class="nav-link text-light">
+          Souls
+        </Link>
         <Link href="/chat" class="nav-link text-light">
           Chat
         </Link>

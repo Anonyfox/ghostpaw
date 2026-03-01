@@ -21,10 +21,11 @@ describe("CONFIG_TYPES", () => {
 });
 
 describe("CONFIG_CATEGORIES", () => {
-  it("contains model, cost, behavior, and custom", () => {
+  it("contains model, cost, behavior, souls, and custom", () => {
     ok(CONFIG_CATEGORIES.includes("model"));
     ok(CONFIG_CATEGORIES.includes("cost"));
     ok(CONFIG_CATEGORIES.includes("behavior"));
+    ok(CONFIG_CATEGORIES.includes("souls"));
     ok(CONFIG_CATEGORIES.includes("custom"));
   });
 

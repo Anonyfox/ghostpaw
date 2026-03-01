@@ -124,4 +124,14 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
       "Number of results returned by memory recall. More = richer context but more tokens consumed.",
     validate: (v) => typeof v === "number" && Number.isInteger(v) && v > 0,
   },
+  {
+    key: "soul_trait_limit",
+    type: "integer",
+    defaultValue: 10,
+    category: "souls",
+    label: "Soul Trait Limit",
+    description:
+      "Active traits per soul before level-up is unlocked. Research suggests 5\u201310 depending on model capability. Raise for reasoning models, lower for cheaper ones.",
+    validate: (v) => typeof v === "number" && Number.isInteger(v) && v >= 1,
+  },
 ];

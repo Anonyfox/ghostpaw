@@ -6,6 +6,7 @@ import {
   loadSecretsIntoEnv,
   syncProviderKeys,
 } from "../../core/secrets/index.ts";
+import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openDatabase } from "../../lib/index.ts";
 
@@ -15,6 +16,8 @@ export async function withRunDb<T>(fn: (db: DatabaseHandle) => T | Promise<T>): 
   initSecretsTable(db);
   initConfigTable(db);
   initChatTables(db);
+  initSoulsTables(db);
+  ensureMandatorySouls(db);
   loadSecretsIntoEnv(db);
   syncProviderKeys(db);
   try {

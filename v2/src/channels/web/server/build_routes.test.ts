@@ -46,6 +46,6 @@ describe("buildRoutes", () => {
       spaHandler: () => {},
     });
 
-    strictEqual(result.routes.length, 20);
+    strictEqual(result.routes.length, 35);
   });
 });

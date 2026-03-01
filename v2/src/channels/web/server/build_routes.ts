@@ -7,6 +7,9 @@ import { createConfigApiHandlers } from "./routes/config_api.ts";
 import { createDashboardHandler } from "./routes/dashboard_api.ts";
 import { createModelsApiHandlers } from "./routes/models_api.ts";
 import { createSecretsApiHandlers } from "./routes/secrets_api.ts";
+import { createSoulGenerateHandlers } from "./routes/soul_generate.ts";
+import { createSoulTraitsApiHandlers } from "./routes/soul_traits_api.ts";
+import { createSoulsApiHandlers } from "./routes/souls_api.ts";
 import { createStaticHandlers } from "./routes/static.ts";
 import type { Route, RouteHandler } from "./types.ts";
 
@@ -41,6 +44,9 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
   const models = createModelsApiHandlers(config.db);
   const chat = createChatApiHandlers(config.db);
   const chatSessions = createChatSessionsApiHandlers(config.db);
+  const souls = createSoulsApiHandlers(config.db);
+  const soulGenerate = createSoulGenerateHandlers(config.db);
+  const soulTraits = createSoulTraitsApiHandlers(config.db);
 
   return {
     checkSession: auth.checkSession,
@@ -63,6 +69,26 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("GET", "/api/chat/:id", chat.history, true),
       createRoute("GET", "/api/chat/:id/stream", chat.stream, true),
       createRoute("POST", "/api/chat/:id/send", chat.send, true),
+      createRoute("GET", "/api/souls", souls.list, true),
+      createRoute("GET", "/api/souls/deleted", souls.listDeleted, true),
+      createRoute("POST", "/api/souls", souls.create, true),
+      createRoute("GET", "/api/souls/:id", souls.detail, true),
+      createRoute("PATCH", "/api/souls/:id", souls.update, true),
+      createRoute("DELETE", "/api/souls/:id", souls.archive, true),
+      createRoute("POST", "/api/souls/:id/restore", souls.restore, true),
+      createRoute(
+        "POST",
+        "/api/souls/:id/generate-description",
+        soulGenerate.generateDescription,
+        true,
+      ),
+      createRoute("POST", "/api/souls/:id/generate-name", soulGenerate.generateName, true),
+      createRoute("GET", "/api/souls/:id/levels", souls.levels, true),
+      createRoute("POST", "/api/souls/:id/revert-level-up", souls.revertLevel, true),
+      createRoute("POST", "/api/souls/:id/traits", soulTraits.add, true),
+      createRoute("PATCH", "/api/souls/:id/traits/:tid", soulTraits.revise, true),
+      createRoute("POST", "/api/souls/:id/traits/:tid/revert", soulTraits.revert, true),
+      createRoute("POST", "/api/souls/:id/traits/:tid/reactivate", soulTraits.reactivate, true),
       createRoute("GET", "/assets/app.js", statics.serveAppJs, false),
       createRoute("GET", "/assets/style.css", statics.serveStyleCss, false),
     ],

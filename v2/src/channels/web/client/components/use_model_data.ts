@@ -15,7 +15,6 @@ export function useModelData() {
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchModels = useCallback(() => {
-    setLoading(data === null);
     apiGet<ModelsResponse>("/api/models")
       .then((resp) => {
         setData(resp);
@@ -26,7 +25,7 @@ export function useModelData() {
         setError(err.message);
         setLoading(false);
       });
-  }, [data]);
+  }, []);
 
   useEffect(() => {
     fetchModels();

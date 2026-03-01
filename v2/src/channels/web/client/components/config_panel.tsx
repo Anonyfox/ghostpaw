@@ -6,12 +6,13 @@ import { ConfigRow } from "./config_row.tsx";
 
 const HIDDEN_KEYS = new Set(["default_model"]);
 
-const CATEGORY_ORDER = ["model", "cost", "behavior", "custom"] as const;
+const CATEGORY_ORDER = ["model", "cost", "behavior", "souls", "custom"] as const;
 
 const CATEGORY_LABELS: Record<string, string> = {
   model: "Model",
   cost: "Cost",
   behavior: "Behavior",
+  souls: "Souls",
   custom: "Custom",
 };
 

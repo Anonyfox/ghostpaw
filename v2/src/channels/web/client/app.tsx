@@ -4,12 +4,16 @@ import { ChatPage } from "./pages/chat.tsx";
 import { DashboardPage } from "./pages/dashboard.tsx";
 import { LoginPage } from "./pages/login.tsx";
 import { SettingsPage } from "./pages/settings.tsx";
+import { SoulDetailPage } from "./pages/soul_detail.tsx";
+import { SoulsPage } from "./pages/souls.tsx";
 
 function AuthenticatedRoutes() {
   return (
     <Layout>
       <Switch>
         <Route path="/dashboard" component={DashboardPage} />
+        <Route path="/souls" component={SoulsPage} />
+        <Route path="/souls/:id" component={SoulDetailPage} />
         <Route path="/chat" component={ChatPage} />
         <Route path="/chat/:id" component={ChatPage} />
         <Route path="/settings" component={SettingsPage} />

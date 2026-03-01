@@ -1,7 +1,7 @@
 export const CONFIG_TYPES = ["string", "integer", "number", "boolean"] as const;
 export type ConfigType = (typeof CONFIG_TYPES)[number];
 
-export const CONFIG_CATEGORIES = ["model", "cost", "behavior", "custom"] as const;
+export const CONFIG_CATEGORIES = ["model", "cost", "behavior", "souls", "custom"] as const;
 export type ConfigCategory = (typeof CONFIG_CATEGORIES)[number];
 
 export const CONFIG_SOURCES = ["cli", "web", "agent", "env", "import", "default"] as const;

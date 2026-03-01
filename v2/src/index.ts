@@ -4,6 +4,7 @@ import { initChatTables } from "./core/chat/index.ts";
 import { initConfigTable } from "./core/config/index.ts";
 import { initMemoryTable } from "./core/memory/index.ts";
 import { initSecretsTable, loadSecretsIntoEnv, syncProviderKeys } from "./core/secrets/index.ts";
+import { ensureMandatorySouls, initSoulsTables } from "./core/souls/index.ts";
 import { isEntrypoint, openDatabase, suppressWarnings } from "./lib/index.ts";
 import { banner, log } from "./lib/terminal/index.ts";
 
@@ -36,6 +37,8 @@ const main = defineCommand({
     initConfigTable(db);
     initChatTables(db);
     initMemoryTable(db);
+    initSoulsTables(db);
+    ensureMandatorySouls(db);
     loadSecretsIntoEnv(db);
     syncProviderKeys(db);
 
