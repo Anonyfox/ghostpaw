@@ -35,9 +35,7 @@ export function TrainerOptionsPicker({
           <button
             key={opt.id}
             type="button"
-            class={`list-group-item list-group-item-action ${
-              selected === opt.id ? "active" : ""
-            }`}
+            class={`list-group-item list-group-item-action ${selected === opt.id ? "active" : ""}`}
             onClick={() => setSelected(opt.id)}
           >
             <div class="d-flex align-items-start">
@@ -53,11 +51,7 @@ export function TrainerOptionsPicker({
 
       {selected && (
         <div class="d-flex gap-2 mb-3">
-          <button
-            type="button"
-            class="btn btn-sm btn-info"
-            onClick={handlePickClick}
-          >
+          <button type="button" class="btn btn-sm btn-info" onClick={handlePickClick}>
             Apply Selected
           </button>
           <button
@@ -79,18 +73,10 @@ export function TrainerOptionsPicker({
             placeholder="Or describe your own direction..."
           />
           <div class="d-flex gap-2">
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-info"
-              onClick={handleCustomSubmit}
-            >
+            <button type="button" class="btn btn-sm btn-outline-info" onClick={handleCustomSubmit}>
               Use Custom Guidance
             </button>
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-secondary"
-              onClick={onCancel}
-            >
+            <button type="button" class="btn btn-sm btn-outline-secondary" onClick={onCancel}>
               Cancel
             </button>
           </div>

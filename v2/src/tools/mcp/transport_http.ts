@@ -45,9 +45,7 @@ export function createHttpTransport(config: {
   let sessionId: string | null = null;
   let connected = true;
 
-  async function send(
-    msg: JsonRpcRequest | JsonRpcNotification,
-  ): Promise<JsonRpcResponse | null> {
+  async function send(msg: JsonRpcRequest | JsonRpcNotification): Promise<JsonRpcResponse | null> {
     if (!connected) {
       throw new Error("MCP HTTP transport is disconnected");
     }

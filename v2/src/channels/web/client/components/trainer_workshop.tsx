@@ -75,8 +75,7 @@ export function TrainerWorkshop({
     try {
       const endpoint =
         act === "scout" ? "/api/trainer/scout/propose" : "/api/trainer/train/propose";
-      const body =
-        act === "scout" ? (value ? { direction: value } : {}) : { skillName: value };
+      const body = act === "scout" ? (value ? { direction: value } : {}) : { skillName: value };
       const res = await apiPost<TrainerProposalResponse>(endpoint, body);
       setOptions(res.options);
       setSessionId(res.sessionId);
@@ -149,9 +148,7 @@ export function TrainerWorkshop({
   };
 
   const loadingText =
-    phase === "proposing"
-      ? PROPOSING_TEXT[action ?? "scout"]
-      : EXECUTING_TEXT[action ?? "scout"];
+    phase === "proposing" ? PROPOSING_TEXT[action ?? "scout"] : EXECUTING_TEXT[action ?? "scout"];
 
   const workshopBorder = pendingChanges > 0 ? "border-warning" : "border-info";
 

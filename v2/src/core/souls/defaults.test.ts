@@ -37,8 +37,8 @@ describe("DEFAULT_SOULS", () => {
     }
   });
 
-  it("has exactly five entries", () => {
-    strictEqual(Object.keys(DEFAULT_SOULS).length, 5);
+  it("has exactly four entries", () => {
+    strictEqual(Object.keys(DEFAULT_SOULS).length, 4);
   });
 
   it("ghostpaw default addresses the coordinator role", () => {
@@ -47,10 +47,6 @@ describe("DEFAULT_SOULS", () => {
 
   it("js-engineer default addresses engineering", () => {
     ok(DEFAULT_SOULS["js-engineer"].essence.includes("engineer"));
-  });
-
-  it("prompt-engineer default addresses prompt craft", () => {
-    ok(DEFAULT_SOULS["prompt-engineer"].essence.includes("cognitive"));
   });
 
   it("mentor default addresses refinement", () => {

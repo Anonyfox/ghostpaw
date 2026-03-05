@@ -19,7 +19,11 @@ export default defineCommand({
 
     const rank = skillRank(workspace, skill.name);
     console.log(style.cyan(`# ${skill.name}`));
-    console.log(style.dim(`Rank: ${rank} | Files: ${skill.files.scripts.length + skill.files.references.length + skill.files.assets.length + skill.files.other.length + 1} | Path: skills/${skill.name}/`));
+    console.log(
+      style.dim(
+        `Rank: ${rank} | Files: ${skill.files.scripts.length + skill.files.references.length + skill.files.assets.length + skill.files.other.length + 1} | Path: skills/${skill.name}/`,
+      ),
+    );
     console.log();
     console.log(skill.body);
   },

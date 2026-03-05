@@ -4,7 +4,6 @@ import {
   addMessage,
   closeSession,
   createSession,
-  getSession,
   initChatTables,
 } from "../../../../core/chat/index.ts";
 import { initConfigTable } from "../../../../core/config/schema.ts";

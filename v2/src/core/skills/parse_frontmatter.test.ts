@@ -1,5 +1,5 @@
-import { describe, it } from "node:test";
 import { deepStrictEqual, strictEqual } from "node:assert";
+import { describe, it } from "node:test";
 import { parseFrontmatter } from "./parse_frontmatter.ts";
 
 describe("parseFrontmatter", () => {

@@ -1,5 +1,5 @@
-import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
+import { createInterface } from "node:readline/promises";
 import type { TrainerOption } from "../../harness/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 
@@ -22,9 +22,7 @@ export async function promptChoice(options: TrainerOption[]): Promise<ChoiceResu
 
   const rl = createInterface({ input: stdin, output: stdout });
   try {
-    const answer = await rl.question(
-      style.dim("Pick a number, or type custom guidance: "),
-    );
+    const answer = await rl.question(style.dim("Pick a number, or type custom guidance: "));
     const trimmed = answer.trim();
     if (!trimmed) return {};
 

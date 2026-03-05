@@ -83,7 +83,10 @@ export function SkillDetailModal({ skillName, onClose, onTrain }: SkillDetailMod
                 <h6 class="small text-muted mb-2">Validation</h6>
                 {issues.map((issue, i) => (
                   <div key={i} class="d-flex align-items-center gap-2 mb-1">
-                    <span class={`badge ${severityBadge(issue.severity)}`} style="font-size: 0.65rem;">
+                    <span
+                      class={`badge ${severityBadge(issue.severity)}`}
+                      style="font-size: 0.65rem;"
+                    >
                       {issue.severity}
                     </span>
                     <span class="small">{issue.message}</span>

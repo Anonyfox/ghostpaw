@@ -30,7 +30,10 @@ export default defineCommand({
       if (args.session) {
         const id = Number.parseInt(args.session as string, 10);
         if (!Number.isInteger(id) || id <= 0) {
-          console.error(style.boldRed("error".padStart(10)), " Session ID must be a positive integer.");
+          console.error(
+            style.boldRed("error".padStart(10)),
+            " Session ID must be a positive integer.",
+          );
           process.exitCode = 1;
           return;
         }

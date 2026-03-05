@@ -98,7 +98,14 @@ describe("rewriteEssence", () => {
     ).run(500, "test:parent", "chat", "test-model", now, now);
 
     const factory = mockChatFactory("Rewritten essence with evolved understanding.");
-    const result = await rewriteEssence(db, 500, testInput, "test-model", factory);
+    const result = await rewriteEssence(
+      db,
+      "/tmp/ghostpaw-test",
+      500,
+      testInput,
+      "test-model",
+      factory,
+    );
 
     ok(result.includes("Rewritten essence"));
 
@@ -118,7 +125,7 @@ describe("rewriteEssence", () => {
     ).run(501, "test:parent2", "chat", "test-model", now, now);
 
     const factory = mockChatFactory("Updated essence.");
-    await rewriteEssence(db, 501, testInput, "test-model", factory);
+    await rewriteEssence(db, "/tmp/ghostpaw-test", 501, testInput, "test-model", factory);
 
     const sessions = db
       .prepare("SELECT * FROM sessions WHERE key LIKE 'system:essence-rewrite:%'")
@@ -140,7 +147,7 @@ describe("rewriteEssence", () => {
 
     const factory = mockChatFactory("");
     await rejects(
-      () => rewriteEssence(db, 502, testInput, "test-model", factory),
+      () => rewriteEssence(db, "/tmp/ghostpaw-test", 502, testInput, "test-model", factory),
       /empty or error/i,
     );
   });

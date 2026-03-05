@@ -1,11 +1,11 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
 import { strictEqual } from "node:assert";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, unlinkSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { skillDiff } from "./skill_diff.ts";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { checkpoint } from "./checkpoint.ts";
 import { resetGitAvailableCache } from "./git.ts";
+import { skillDiff } from "./skill_diff.ts";
 
 let workspace: string;
 
@@ -40,7 +40,10 @@ describe("skillDiff", () => {
     makeSkill("deploy");
     checkpoint(workspace, ["deploy"], "init");
 
-    writeFileSync(join(workspace, "skills", "deploy", "SKILL.md"), "---\nname: deploy\ndescription: test\n---\nUpdated body.");
+    writeFileSync(
+      join(workspace, "skills", "deploy", "SKILL.md"),
+      "---\nname: deploy\ndescription: test\n---\nUpdated body.",
+    );
     const diff = skillDiff(workspace, "deploy");
     strictEqual(diff !== null, true);
     strictEqual(diff!.includes("Updated body"), true);

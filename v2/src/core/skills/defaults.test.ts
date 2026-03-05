@@ -1,16 +1,15 @@
-import { describe, it } from "node:test";
 import { strictEqual } from "node:assert";
+import { describe, it } from "node:test";
 import { DEFAULT_SKILLS } from "./defaults.ts";
 
 const VALID_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 describe("DEFAULT_SKILLS", () => {
-  it("contains all three default skills", () => {
+  it("contains both default skills", () => {
     const names = Object.keys(DEFAULT_SKILLS);
-    strictEqual(names.includes("skill-training"), true);
-    strictEqual(names.includes("skill-scout"), true);
+    strictEqual(names.includes("effective-writing"), true);
     strictEqual(names.includes("skill-mcp"), true);
-    strictEqual(names.length, 3);
+    strictEqual(names.length, 2);
   });
 
   for (const [name, skill] of Object.entries(DEFAULT_SKILLS)) {

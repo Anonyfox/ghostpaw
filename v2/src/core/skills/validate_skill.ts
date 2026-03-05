@@ -31,9 +31,7 @@ function validateSingleSkill(workspace: string, name: string): ValidationResult 
   }
 
   if (!existsSync(skillMd)) {
-    issues.push(
-      issue("error", "missing-skill-md", `No SKILL.md found in skills/${name}/.`, true),
-    );
+    issues.push(issue("error", "missing-skill-md", `No SKILL.md found in skills/${name}/.`, true));
     return {
       name,
       path: `skills/${name}`,
@@ -53,9 +51,7 @@ function validateSingleSkill(workspace: string, name: string): ValidationResult 
   const { frontmatter, body } = parseFrontmatter(content);
 
   if (!frontmatter) {
-    issues.push(
-      issue("error", "missing-frontmatter", `SKILL.md has no YAML frontmatter.`, true),
-    );
+    issues.push(issue("error", "missing-frontmatter", `SKILL.md has no YAML frontmatter.`, true));
   } else {
     if (!frontmatter.name) {
       issues.push(issue("warning", "missing-name", `Frontmatter is missing "name" field.`, true));
@@ -92,9 +88,7 @@ function validateSingleSkill(workspace: string, name: string): ValidationResult 
 
   const gitArtifact = join(skillDir, ".git");
   if (existsSync(gitArtifact)) {
-    issues.push(
-      issue("warning", "git-artifact", `.git file found inside skills/${name}/.`, true),
-    );
+    issues.push(issue("warning", "git-artifact", `.git file found inside skills/${name}/.`, true));
   }
 
   return {

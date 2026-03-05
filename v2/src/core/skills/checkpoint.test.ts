@@ -1,11 +1,10 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
-import { strictEqual, throws, deepStrictEqual } from "node:assert";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
+import { deepStrictEqual, strictEqual, throws } from "node:assert";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { checkpoint } from "./checkpoint.ts";
-import { initHistory } from "./init_history.ts";
-import { resetGitAvailableCache, git } from "./git.ts";
+import { git, resetGitAvailableCache } from "./git.ts";
 
 let workspace: string;
 
@@ -55,10 +54,7 @@ describe("checkpoint", () => {
   });
 
   it("throws when a named skill directory does not exist", () => {
-    throws(
-      () => checkpoint(workspace, ["nonexistent"], "oops"),
-      /does not exist/,
-    );
+    throws(() => checkpoint(workspace, ["nonexistent"], "oops"), /does not exist/);
   });
 
   it("returns committed: false when skills array is empty", () => {
@@ -86,7 +82,10 @@ describe("checkpoint", () => {
     makeSkill("testing");
     checkpoint(workspace, ["deploy", "testing"], "first");
 
-    writeFileSync(join(workspace, "skills", "deploy", "SKILL.md"), "---\nname: deploy\ndescription: updated\n---\nNew body.");
+    writeFileSync(
+      join(workspace, "skills", "deploy", "SKILL.md"),
+      "---\nname: deploy\ndescription: updated\n---\nNew body.",
+    );
     const result = checkpoint(workspace, ["deploy", "testing"], "update deploy only");
     strictEqual(result.committed, true);
     deepStrictEqual(result.skills, ["deploy"]);

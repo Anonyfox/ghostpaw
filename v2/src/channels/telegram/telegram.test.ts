@@ -14,6 +14,7 @@ describe("createTelegramChannel", () => {
 
     const mockBot = {
       catch: () => {},
+      command: () => {},
       on: () => {},
       start: async () => {},
       stop: async () => {},

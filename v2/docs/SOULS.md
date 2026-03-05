@@ -32,10 +32,12 @@ The four mandatory souls:
 |---|---|---|---|
 | 1 | `ghostpaw` | Coordinator | Without it, no identity, no routing, no conversation |
 | 2 | `js-engineer` | Code specialist | Without it, no code delegation on day one |
-| 3 | `prompt-engineer` | Prompt crafter | Without it, soul text is unoptimized for LLM effectiveness |
-| 4 | `mentor` | Soul refiner | Without it, no refinement, no leveling, no evolution |
+| 3 | `mentor` | Soul refiner | Without it, no refinement, no leveling, no evolution |
+| 4 | `trainer` | Skill builder | Without it, no skill creation, no operational learning |
 
 The first two are *task souls* — they do the work. The second two are *meta souls* — they improve how work gets done. Both categories participate in the same evolutionary system. All four start at level 0. All four earn traits from evidence. All four level up through the same consolidation mechanic. The difference is what evidence they operate on: task souls improve from task outcomes, meta souls improve from refinement outcomes.
+
+The writing craft — attention architecture, subliminal coding, constraint density, inhabitation — is not a soul but a universal skill (`effective-writing`) available to every soul in every context. This knowledge is too valuable to lock behind delegation to a single specialist. Every soul that writes text (delegation prompts, trait principles, skill procedures, essence rewrites) benefits from it directly.
 
 User-created specialist souls have no structural guarantee. If a `researcher` soul is soft-deleted, delegation to that specialist fails with a clear error and the coordinator handles the task itself. That's graceful degradation, not a crash. The soft-deleted soul remains in the database — visible in a graveyard view, restorable at any time — preserving the full evolutionary history even for abandoned experiments.
 
@@ -210,7 +212,7 @@ When active traits reach the consolidation threshold (the `soul_trait_limit` con
 
 2. **Consolidate** — Related traits merge into richer principles. Three traits about error handling become one nuanced "how you approach failure" principle. The source traits get `status: consolidated` with a pointer to the new merged trait. The consolidated trait carries the combined provenance of its sources.
 
-3. **Promote** — Traits that have become identity-level get absorbed into the essence narrative. The `prompt-engineer` soul rewrites the essence to weave promoted patterns into the narrative. These traits get `status: promoted`.
+3. **Promote** — Traits that have become identity-level get absorbed into the essence narrative. The essence is rewritten to weave promoted patterns into the narrative (guided by the `effective-writing` skill). These traits get `status: promoted`.
 
 4. **Reset** — Surviving unconsolidated traits get their generation bumped to the new level. The active trait count drops from the ceiling back into growing range, opening room for new evidence-driven growth.
 
@@ -297,16 +299,6 @@ Four souls ship as TypeScript constants inside the `core/souls/` module, inserte
 
 ### Meta Souls
 
-**`prompt-engineer`** — The prompt crafter. Embodies the science of formulating language for maximum LLM effectiveness. Any LLM encountering this name immediately understands the role: this is the agent that knows how to write prompts that work.
-
-Within the soul system, the prompt-engineer is delegated to when soul text needs to be written or rewritten — during level-up consolidation, when a user creates a new soul, or when an existing soul's narrative needs restructuring. It writes the essence prose that goes into the database.
-
-Beyond soul refinement, the prompt-engineer is a generally useful specialist. Any task that requires crafting effective instructions, system prompts, or structured LLM input can be delegated to it. This makes it the only meta soul that doubles as a practical everyday tool — the user gets a prompt engineering specialist for free, and the soul system gets a specialist writer for its most critical output.
-
-The prompt-engineer's cognitive frame encodes the research on prompt effectiveness: that narrative backstories outperform trait lists by 18–27% ([Anthology](https://aclanthology.org/2024.emnlp-main.723)); that identity-level instructions placed first have the strongest behavioral influence ([ACL Findings 2024](https://aclanthology.org/2024.findings-acl.693)); that constraint density degrades adherence past a measurable ceiling ([arXiv:2505.07591](https://arxiv.org/abs/2505.07591)); that optimized system prompts generalize across model families ([SPRIG](https://arxiv.org/abs/2410.14826)); and that concise, structured prompts outperform verbose ones while using fewer tokens. It doesn't just write prose — it writes prose *engineered* for the transformer architecture that will interpret it.
-
-As a soul, the prompt-engineer itself evolves. Its traits accumulate from evidence: "Essence rewrites that preserve the original author's vocabulary produce better identity consistency" is the kind of trait it earns when the refinement pipeline observes that paraphrase-heavy rewrites cause regression. Over time, it becomes a better writer of souls — not because it was told to, but because the evidence shows which of its writing strategies produce souls that perform better in practice.
-
 **`mentor`** — The soul refiner. Contains the cognitive frame for *how to evolve souls*: how to analyze evidence for a specific soul, how to propose traits that are genuinely cognitive rather than procedural, how to judge which traits to consolidate during level-up and which to promote into the essence, and how to evaluate whether a refinement actually improved the soul or just rearranged it.
 
 The name is the soul-system equivalent of "trainer" in the skills system. A trainer teaches you *what to do* (procedural). A mentor develops *how you think* (cognitive). That distinction — procedures vs cognition, skills vs souls — is the same distinction that runs through the entire architecture. Any LLM encountering the `mentor` soul understands immediately: this is the one that helps others grow.
@@ -317,11 +309,9 @@ That last point is the recursive insight. The mentor is the mutation operator. [
 
 ### The Recursive Property
 
-The prompt-engineer and mentor are souls within the soul system. They have essences and traits. They level up through the same consolidation mechanic. And critically: **the mentor refines itself.**
+The mentor is a soul within the soul system. It has an essence and traits. It levels up through the same consolidation mechanic. And critically: **the mentor refines itself.**
 
 When the mentor proposes a trait for the js-engineer, the outcome of that refinement (did the engineer perform better?) is evidence about the mentor's effectiveness. If the mentor's trait proposals consistently produce high-fitness traits, that's evidence for reinforcing its approach. If its proposals produce traits that get reverted, that's evidence for adjusting its judgment. This evidence feeds back into the mentor's own refinement cycle — its own traits evolve based on the quality of the refinements it produces.
-
-The prompt-engineer undergoes the same recursive improvement. When it rewrites an essence during level-up, the resulting soul's performance is evidence about its effectiveness. Better prompt-engineer = better-written essences = better-performing souls = better evidence for further prompt-engineer improvement.
 
 This recursive self-improvement has three properties worth noting:
 
@@ -333,17 +323,19 @@ This recursive self-improvement has three properties worth noting:
 
 ### The Minimum Viable Set
 
-These four souls — coordinator, engineer, prompt-engineer, mentor — are the minimum set for a self-improving agent system. The coordinator routes work. The engineer executes code tasks. The prompt-engineer writes effective soul text. The mentor evolves everything. Remove any one and the system either can't function (coordinator), can't delegate (engineer), can't write well-crafted souls (prompt-engineer), or can't improve (mentor).
+These four souls — coordinator, engineer, mentor, trainer — are the minimum set for a self-improving agent system. The coordinator routes work. The engineer executes code tasks. The mentor evolves souls. The trainer evolves skills. Remove any one and the system either can't function (coordinator), can't delegate (engineer), can't improve cognition (mentor), or can't improve operations (trainer).
+
+The writing craft that makes soul text and skill text effective is not a soul — it is the `effective-writing` skill, available to every soul. This is a deliberate architectural choice: writing quality is a universal capability, not a specialist identity. Every soul that writes (and they all do) benefits from it directly rather than through delegation.
 
 Additional specialists are created by the user or emerge from the refinement pipeline as the system discovers recurring delegation patterns. The four built-in souls are the bootstrap — enough for the system to function, delegate, and evolve from day one.
 
 ### The Cold Start
 
-The meta-souls face a bootstrapping challenge: they do their most important work — the first level-ups of task souls — before they have had any chance to improve themselves. The first time the js-engineer levels up, the prompt-engineer that rewrites its essence and the mentor that decides which traits to consolidate are both level-0 defaults with only their baseline traits. The quality of the first few level-ups, which sit on the steepest part of the improvement curve, depends heavily on the quality of the shipped defaults.
+The meta-souls face a bootstrapping challenge: they do their most important work — the first level-ups of task souls — before they have had any chance to improve themselves. The first time the js-engineer levels up, the mentor that decides which traits to consolidate is a level-0 default with only its baseline traits. The quality of the first few level-ups, which sit on the steepest part of the improvement curve, depends heavily on the quality of the shipped defaults.
 
-This is mitigated in two ways. First, the default essences are production-quality from day zero — carefully tuned starting points that encode the best available research on prompt crafting and soul refinement, not placeholders that evolve into usefulness. Second, each mandatory soul ships with baseline traits that encode the most fundamental operational lessons for its role: the js-engineer knows to read before editing, the mentor knows to propose one change at a time. These baselines have constructed provenances — they trace to simulated early experiences rather than actual system runs — but they represent the lessons the system would learn first anyway. They are training wheels that the level-up mechanism will eventually absorb or replace with evidence-backed successors.
+This is mitigated in three ways. First, the default essences are production-quality from day zero — carefully tuned starting points that encode the best available research on soul refinement, not placeholders that evolve into usefulness. Second, each mandatory soul ships with baseline traits that encode the most fundamental operational lessons for its role: the js-engineer knows to read before editing, the mentor knows to propose one change at a time. These baselines have constructed provenances — they trace to simulated early experiences rather than actual system runs — but they represent the lessons the system would learn first anyway. Third, the `effective-writing` skill ships with the writing craft knowledge that all souls need for high-quality text generation from day one — attention architecture, subliminal coding, and revision technique are available immediately, not something the system must learn.
 
-The recursive self-improvement story kicks in after this critical early period. The defaults carry the system until then. The meta-souls' default essences remain the most leveraged text in the entire system — every subsequent improvement in every other soul flows through them.
+The recursive self-improvement story kicks in after this critical early period. The defaults carry the system until then. The mentor's default essence remains the most leveraged text in the soul system — every subsequent improvement in every other soul flows through it.
 
 ## Composition
 
@@ -480,7 +472,7 @@ The research answers which matters more for a personal agent. [ACE](https://arxi
 
 **3. Island model convergence.** Each soul evolves independently in its domain. The coordinator improves routing. The engineer improves code judgment. The researcher improves analysis. Cross-soul pattern detection provides migration between islands. [Island model research](https://hrcak.srce.hr/en/clanak/221148) proves that with appropriate migration, island models achieve **polynomial convergence** where single-population approaches need **exponential time** on separable problems. Agent cognition is separable — routing, coding, and researching are independent cognitive domains. A three-specialist system converges on optimal cognitive patterns orders of magnitude faster than a single generalist soul evolving across all domains simultaneously.
 
-**4. Cooperative coevolution.** The [No Free Lunch theorem](https://www.cs.ubc.ca/~hutter/earg/papers07/00585893.pdf) (Wolpert & Macready 1997) proves no algorithm beats random search in the general case. But cooperative coevolutionary self-play is a [documented exception](https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20060007558.pdf) — genuine free lunches exist when agents cooperate to improve each other. Ghostpaw's four mandatory souls form exactly this dynamic: the mentor improves the engineer's cognition, the engineer produces better code, better code produces richer evidence, richer evidence makes the mentor better at improving things. The prompt-engineer writes the soul text that all souls use, and its own text quality improves from the outcomes of the souls it writes. These coupled feedback loops produce system-level improvement that exceeds what any individual soul's evolution predicts.
+**4. Cooperative coevolution.** The [No Free Lunch theorem](https://www.cs.ubc.ca/~hutter/earg/papers07/00585893.pdf) (Wolpert & Macready 1997) proves no algorithm beats random search in the general case. But cooperative coevolutionary self-play is a [documented exception](https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20060007558.pdf) — genuine free lunches exist when agents cooperate to improve each other. Ghostpaw's mandatory souls form exactly this dynamic: the mentor improves the engineer's cognition, the engineer produces better code, better code produces richer evidence, richer evidence makes the mentor better at improving things. The trainer improves skills from experience, better skills make all souls more effective, and the `effective-writing` skill — available to every soul — ensures the text quality of soul essences, trait proposals, and delegation prompts improves through the training cycle rather than being locked in a single specialist. These coupled feedback loops produce system-level improvement that exceeds what any individual soul's evolution predicts.
 
 **5. Automatic constraint management.** Every system that accumulates rules in system prompts eventually degrades — from 77.67% adherence with one constraint to 32.96% with four or more ([arXiv:2505.07591](https://arxiv.org/abs/2505.07591)). Most systems do not even detect this happening. Ghostpaw's consolidation mechanic automatically compresses the cognitive genome when traits approach the measured effectiveness ceiling. Related traits merge into richer principles. Mature traits get promoted into the essence as permanent passives. The active constraint count resets to growth range. The ceiling is not a wall — it is a trigger for restructuring that opens new room for improvement. [Parsimony pressure research](https://link.springer.com/chapter/10.1007/978-3-642-33206-7_9) provides the theoretical foundation: controlled size pressure using Price's theorem maintains solution quality while preventing bloat.
 
@@ -518,7 +510,7 @@ A soul is a character sheet. It has:
 
 **Level** — a single number representing completed growth arcs. A level-5 character has earned abilities across five full cycles, consolidated them, and absorbed the strongest patterns into permanent identity. The level is not cosmetic — it represents five generations of [evolutionary refinement](https://arxiv.org/abs/2510.04618), each building on the compressed wisdom of the previous.
 
-**Class** (role) — coordinator, engineer, researcher, prompt-engineer, mentor. The class determines what quests the character receives and what evidence drives growth.
+**Class** (role) — coordinator, engineer, mentor, trainer, researcher, or any user-created specialist. The class determines what quests the character receives and what evidence drives growth.
 
 ### The Inventory Cap
 
@@ -544,19 +536,21 @@ Ghostpaw is not one character. It is a **party**:
 
 **The DPS** (`js-engineer`) — the damage dealer who does the actual work. Gets better at building reliable, elegant solutions. Levels up from task outcomes. Shows the pattern for all future specialists — any new party member follows the same character sheet format and progression rules.
 
-**The Enchanter** (`prompt-engineer`) — crafts the text that defines every character's backstory and abilities. When someone levels up, the enchanter writes their new, richer backstory. This is the party's scribe and artificer rolled into one. Gets better at writing [text engineered for the architecture that interprets it](https://arxiv.org/abs/2410.14826). Levels up from how well the characters it writes actually perform.
-
 **The Class Trainer** (`mentor`) — decides which abilities a character should learn from their quest evidence, which abilities should fuse during level-up, and which should become permanent passives. Contains the [evolutionary knowledge](https://proceedings.mlr.press/v235/fernando24a.html) of what makes a refinement valuable versus wasteful. Gets better at identifying what matters. Levels up from how well the characters it trains perform.
+
+**The Skill Smith** (`trainer`) — forges and refines the party's operational playbooks. Turns accumulated experience into codified procedures that every party member can use. Gets better at distilling what works. Levels up from how well the skills it creates perform in practice.
+
+**The Party-Wide Passive** (`effective-writing` skill) — not a party member but a permanent enchantment on the entire party. Every character benefits from the writing craft — attention architecture, subliminal coding, constraint density management — without needing a dedicated enchanter. The craft improves through the training cycle (the Skill Smith refines it) rather than requiring a character slot.
 
 ### The Recursive Twist
 
-The enchanter and the class trainer are themselves party members who level up within the same system they manage.
+The class trainer and skill smith are themselves party members who level up within the same system they manage.
 
 The class trainer teaches the engineer a new ability. If the engineer performs better afterward, that is XP for the trainer — evidence that its teaching judgment was sound. If the engineer performs worse, the trainer's last decision gets reverted, and the failure itself becomes evidence for the trainer's next refinement cycle. [Promptbreeder](https://proceedings.mlr.press/v235/fernando24a.html) (ICML 2024) proved this recursive pattern escapes local optima that fixed training strategies cannot.
 
-The enchanter writes the engineer's backstory during level-up. If the rewritten backstory produces better field performance, that is XP for the enchanter. Over time, the enchanter becomes a better writer of character backstories and the trainer becomes a better judge of which abilities matter — which makes every other party member's leveling more effective — which produces richer evidence for the enchanter and trainer to grow from.
+The skill smith refines the `effective-writing` skill during training sessions. If the refined writing craft produces better soul essences and delegation prompts across the party, that improvement feeds back into every future level-up and every future delegation. Over time, the class trainer becomes a better judge of which abilities matter and the skill smith produces sharper playbooks — which makes every other party member's leveling more effective — which produces richer evidence for both to grow from.
 
-This is the RPG equivalent of a game where the blacksmith who forges your weapons and the trainer who teaches your abilities are themselves party members who level up from how well their creations perform in combat. The support characters that enable growth are themselves growing. [Co-evolutionary research](https://arxiv.org/abs/2512.09209) (Dec 2025) validates: this recursive pattern outperforms evolving either the tools or the tool-makers alone.
+This is the RPG equivalent of a game where the trainer who teaches your abilities and the smith who forges your party buffs are themselves party members who level up from how well their creations perform in combat. The support characters that enable growth are themselves growing. [Co-evolutionary research](https://arxiv.org/abs/2512.09209) (Dec 2025) validates: this recursive pattern outperforms evolving either the tools or the tool-makers alone.
 
 ### Party Synergy
 
@@ -568,11 +562,11 @@ The [research backing](https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/200
 
 ### The Long Game
 
-A fresh Ghostpaw install is a level-0 party with default backstories and a handful of baseline abilities — operational principles each class would learn in its first few quests, pre-loaded to skip the tutorial grind. Every other agent framework stays at this stage permanently. Their characters never change.
+A fresh Ghostpaw install is a level-0 party with default backstories, a handful of baseline abilities, and the `effective-writing` passive already active — operational principles each class would learn in its first few quests, pre-loaded to skip the tutorial grind. Every other agent framework stays at this stage permanently. Their characters never change.
 
-By level 3, each party member has completed three full arcs: earning abilities from real quests, fusing them into masteries, absorbing the strongest patterns into permanent identity. The party leader routes better. The engineer codes better. The enchanter writes sharper backstories. The trainer makes better teaching decisions. And the enchanter and trainer are better at their jobs, which means the next three levels for every party member will be even more impactful.
+By level 3, each party member has completed three full arcs: earning abilities from real quests, fusing them into masteries, absorbing the strongest patterns into permanent identity. The party leader routes better. The engineer codes better. The class trainer makes better teaching decisions. The skill smith produces sharper playbooks. And the writing craft — refined through the training cycle — makes every piece of text in the system more effective.
 
-By level 5, the compound advantage is dramatic. The quality gap between a level-5 party and a level-0 static agent is not 5x the level-1 gap. It is exponentially larger — each level was built on a stronger foundation, guided by a better trainer, written by a better enchanter. [ACE](https://arxiv.org/abs/2510.04618) measures the early gains at +10.6%. [EvoPrompt](https://arxiv.org/abs/2309.08532) measures the ceiling at +25%. The memetic architecture and cooperative coevolution push effective improvement beyond what either number predicts in isolation.
+By level 5, the compound advantage is dramatic. The quality gap between a level-5 party and a level-0 static agent is not 5x the level-1 gap. It is exponentially larger — each level was built on a stronger foundation, guided by a better trainer, informed by sharper skills. [ACE](https://arxiv.org/abs/2510.04618) measures the early gains at +10.6%. [EvoPrompt](https://arxiv.org/abs/2309.08532) measures the ceiling at +25%. The memetic architecture and cooperative coevolution push effective improvement beyond what either number predicts in isolation.
 
 That is the endgame pitch: **Ghostpaw is the RPG that actually plays the endgame.** Other frameworks are stuck in the tutorial forever.
 

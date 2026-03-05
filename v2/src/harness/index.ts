@@ -5,7 +5,6 @@ export type {
   DistillResult,
   DistillToolCalls,
 } from "./distill_types.ts";
-export { handlePostSession } from "./post_session.ts";
 export { createEntity } from "./entity.ts";
 export type { MentorResult } from "./invoke_mentor.ts";
 export { invokeMentor } from "./invoke_mentor.ts";
@@ -19,6 +18,7 @@ export { buildLevelUpPrompt } from "./mentor_level_up_prompt.ts";
 export { buildRefinePrompt } from "./mentor_refine_prompt.ts";
 export { buildReviewPrompt } from "./mentor_review_prompt.ts";
 export { resolveModel } from "./model.ts";
+export { handlePostSession } from "./post_session.ts";
 export type { EntityToolSets, EntityToolsConfig } from "./tools.ts";
 export { createEntityToolSets } from "./tools.ts";
 export type { TrainerOption } from "./trainer_parse_options.ts";

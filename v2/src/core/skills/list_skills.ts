@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { allSkillRanks } from "./all_skill_ranks.ts";
 import { discoverSkills } from "./discover_skills.ts";
 import { parseFrontmatter } from "./parse_frontmatter.ts";
-import { allSkillRanks } from "./all_skill_ranks.ts";
 import { pendingChanges } from "./pending_changes.ts";
 import type { SkillSummary } from "./types.ts";
 

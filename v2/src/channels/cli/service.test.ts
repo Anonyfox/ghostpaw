@@ -1,11 +1,12 @@
 import { ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
+import type { CommandMeta } from "citty";
 import service from "./service.ts";
 
 describe("service CLI command", () => {
   it("exports a citty command with meta", () => {
     ok(service.meta);
-    strictEqual(service.meta!.name, "service");
+    strictEqual((service.meta as CommandMeta).name, "service");
   });
 
   it("has install subcommand", () => {

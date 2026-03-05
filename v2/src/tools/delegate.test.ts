@@ -14,9 +14,9 @@ describe("createDelegateTool", () => {
   });
 
   it("includes specialist names in description when provided", () => {
-    const tool = createDelegateTool(mockHandler("ok"), ["js-engineer", "prompt-engineer"]);
+    const tool = createDelegateTool(mockHandler("ok"), ["js-engineer", "mentor"]);
     ok(tool.description.includes("js-engineer"));
-    ok(tool.description.includes("prompt-engineer"));
+    ok(tool.description.includes("mentor"));
   });
 
   it("omits specialist line when none available", () => {

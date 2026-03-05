@@ -1,9 +1,9 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
 import { strictEqual } from "node:assert";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { validateSkill, validateAllSkills } from "./validate_skill.ts";
+import { afterEach, beforeEach, describe, it } from "node:test";
+import { validateAllSkills, validateSkill } from "./validate_skill.ts";
 
 let workspace: string;
 
@@ -37,33 +37,48 @@ describe("validateSkill", () => {
     mkdirSync(join(workspace, "skills", "empty"), { recursive: true });
     const result = validateSkill(workspace, "empty");
     strictEqual(result.valid, false);
-    strictEqual(result.issues.some((i) => i.code === "missing-skill-md"), true);
+    strictEqual(
+      result.issues.some((i) => i.code === "missing-skill-md"),
+      true,
+    );
     strictEqual(result.issues.find((i) => i.code === "missing-skill-md")?.autoFixable, true);
   });
 
   it("detects missing-frontmatter", () => {
     makeSkill("legacy", "# Legacy\n\nNo frontmatter here.");
     const result = validateSkill(workspace, "legacy");
-    strictEqual(result.issues.some((i) => i.code === "missing-frontmatter"), true);
+    strictEqual(
+      result.issues.some((i) => i.code === "missing-frontmatter"),
+      true,
+    );
   });
 
   it("detects missing-name in frontmatter", () => {
     makeSkill("noname", "---\ndescription: A skill.\n---\n\n# Body");
     const result = validateSkill(workspace, "noname");
-    strictEqual(result.issues.some((i) => i.code === "missing-name"), true);
+    strictEqual(
+      result.issues.some((i) => i.code === "missing-name"),
+      true,
+    );
   });
 
   it("detects missing-description", () => {
     makeSkill("nodesc", "---\nname: nodesc\n---\n\n# Body");
     const result = validateSkill(workspace, "nodesc");
     strictEqual(result.valid, false);
-    strictEqual(result.issues.some((i) => i.code === "missing-description"), true);
+    strictEqual(
+      result.issues.some((i) => i.code === "missing-description"),
+      true,
+    );
   });
 
   it("detects name-mismatch", () => {
     makeSkill("myskill", "---\nname: wrong-name\ndescription: test\n---\n\n# Body");
     const result = validateSkill(workspace, "myskill");
-    strictEqual(result.issues.some((i) => i.code === "name-mismatch"), true);
+    strictEqual(
+      result.issues.some((i) => i.code === "name-mismatch"),
+      true,
+    );
   });
 
   it("detects invalid-name-chars for uppercase", () => {
@@ -73,7 +88,10 @@ describe("validateSkill", () => {
       "---\nname: BadName\ndescription: test\n---\n\n# Body",
     );
     const result = validateSkill(workspace, "BadName");
-    strictEqual(result.issues.some((i) => i.code === "invalid-name-chars"), true);
+    strictEqual(
+      result.issues.some((i) => i.code === "invalid-name-chars"),
+      true,
+    );
     strictEqual(result.issues.find((i) => i.code === "invalid-name-chars")?.autoFixable, false);
   });
 
@@ -84,20 +102,29 @@ describe("validateSkill", () => {
       "---\nname: bad_name\ndescription: test\n---\n\n# Body",
     );
     const result = validateSkill(workspace, "bad_name");
-    strictEqual(result.issues.some((i) => i.code === "invalid-name-chars"), true);
+    strictEqual(
+      result.issues.some((i) => i.code === "invalid-name-chars"),
+      true,
+    );
   });
 
   it("detects empty-body", () => {
     makeSkill("empty-body", "---\nname: empty-body\ndescription: test\n---\n");
     const result = validateSkill(workspace, "empty-body");
-    strictEqual(result.issues.some((i) => i.code === "empty-body"), true);
+    strictEqual(
+      result.issues.some((i) => i.code === "empty-body"),
+      true,
+    );
   });
 
   it("detects oversized-body", () => {
     const longBody = Array.from({ length: 600 }, (_, i) => `Line ${i}`).join("\n");
     makeSkill("big", `---\nname: big\ndescription: test\n---\n\n${longBody}`);
     const result = validateSkill(workspace, "big");
-    strictEqual(result.issues.some((i) => i.code === "oversized-body"), true);
+    strictEqual(
+      result.issues.some((i) => i.code === "oversized-body"),
+      true,
+    );
     strictEqual(result.valid, true);
   });
 
@@ -105,7 +132,10 @@ describe("validateSkill", () => {
     makeSkill("git-issue");
     writeFileSync(join(workspace, "skills", "git-issue", ".git"), "gitdir: /somewhere");
     const result = validateSkill(workspace, "git-issue");
-    strictEqual(result.issues.some((i) => i.code === "git-artifact"), true);
+    strictEqual(
+      result.issues.some((i) => i.code === "git-artifact"),
+      true,
+    );
   });
 
   it("reports multiple issues on one skill", () => {
@@ -122,13 +152,19 @@ describe("validateAllSkills", () => {
     makeSkill("testing");
     const results = validateAllSkills(workspace);
     strictEqual(results.length, 2);
-    strictEqual(results.every((r) => r.valid), true);
+    strictEqual(
+      results.every((r) => r.valid),
+      true,
+    );
   });
 
   it("catches flat files at skills/ root", () => {
     writeFileSync(join(workspace, "skills", "legacy.md"), "# Legacy skill");
     const results = validateAllSkills(workspace);
-    strictEqual(results.some((r) => r.issues.some((i) => i.code === "flat-file")), true);
+    strictEqual(
+      results.some((r) => r.issues.some((i) => i.code === "flat-file")),
+      true,
+    );
   });
 
   it("returns empty for nonexistent skills/", () => {

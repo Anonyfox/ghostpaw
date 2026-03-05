@@ -96,10 +96,7 @@ describe("parseResponse", () => {
   });
 
   it("throws on wrong jsonrpc version", () => {
-    throws(
-      () => parseResponse('{"jsonrpc":"1.0","id":1,"result":{}}'),
-      /Invalid jsonrpc version/,
-    );
+    throws(() => parseResponse('{"jsonrpc":"1.0","id":1,"result":{}}'), /Invalid jsonrpc version/);
   });
 
   it("throws when missing both result and error", () => {
@@ -114,10 +111,7 @@ describe("parseResponse", () => {
   });
 
   it("throws on non-number id in success response", () => {
-    throws(
-      () => parseResponse('{"jsonrpc":"2.0","id":"abc","result":{}}'),
-      /Invalid response id/,
-    );
+    throws(() => parseResponse('{"jsonrpc":"2.0","id":"abc","result":{}}'), /Invalid response id/);
   });
 });
 

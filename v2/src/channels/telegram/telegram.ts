@@ -2,6 +2,7 @@ import { Bot } from "grammy";
 import { getOrCreateSession } from "../../core/chat/index.ts";
 import type { HandleMessageDeps } from "./handle_message.ts";
 import { handleMessage } from "./handle_message.ts";
+import { handleReset } from "./handle_reset.ts";
 import { sessionKeyForChat } from "./session_key.ts";
 import type { ReactionEmoji, TelegramChannel, TelegramChannelConfig } from "./types.ts";
 
@@ -56,10 +57,16 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
     process.stderr.write(`  telegram  error: ${msg}\n`);
   });
 
+  bot.command("reset", async (ctx) => {
+    const chatId = ctx.chat.id;
+    await handleReset({ db, isAllowed, sendMessage }, chatId);
+  });
+
   bot.on("message:text", async (ctx) => {
     const chatId = ctx.chat.id;
     const messageId = ctx.message.message_id;
     const text = ctx.message.text;
+    if (text.startsWith("/")) return;
     await handleMessage(deps, chatId, messageId, text);
   });
 

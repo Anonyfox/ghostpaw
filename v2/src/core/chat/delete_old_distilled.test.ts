@@ -1,8 +1,8 @@
-import { ok, strictEqual } from "node:assert/strict";
+import { strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initRunsTable } from "../runs/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
+import { initRunsTable } from "../runs/index.ts";
 import { deleteOldDistilled } from "./delete_old_distilled.ts";
 import { initChatTables } from "./schema.ts";
 
@@ -31,13 +31,7 @@ function insertSession(opts: {
   db.prepare(
     `INSERT INTO sessions (key, purpose, created_at, last_active_at, distilled_at, closed_at)
      VALUES (?, 'chat', ?, ?, ?, ?)`,
-  ).run(
-    `test:${Math.random()}`,
-    created,
-    created,
-    opts.distilledAt ?? null,
-    opts.closedAt ?? null,
-  );
+  ).run(`test:${Math.random()}`, created, created, opts.distilledAt ?? null, opts.closedAt ?? null);
   const row = db.prepare("SELECT last_insert_rowid() AS id").get() as { id: number };
   return row.id;
 }

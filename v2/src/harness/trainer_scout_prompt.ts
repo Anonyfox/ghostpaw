@@ -36,9 +36,7 @@ export function buildScoutExecutePrompt(
   optionDescription: string,
   guidance?: string,
 ): string {
-  const extra = guidance?.trim()
-    ? `\n\nAdditional user guidance: ${guidance.trim()}`
-    : "";
+  const extra = guidance?.trim() ? `\n\nAdditional user guidance: ${guidance.trim()}` : "";
 
   return [
     `Create a new skill based on this scouted direction:`,
@@ -48,15 +46,14 @@ export function buildScoutExecutePrompt(
     extra,
     "",
     "Steps:",
-    "1. Read skills/skill-scout/SKILL.md for the creation template and guidelines.",
-    "2. Use recall to gather all relevant experience about this topic.",
-    "3. Use review_skills to confirm no existing skill already covers this.",
-    "4. Create the skill using create_skill with:",
+    "1. Use recall to gather all relevant experience about this topic.",
+    "2. Use review_skills to confirm no existing skill already covers this.",
+    "3. Create the skill using create_skill with:",
     "   - A clear kebab-case name",
     "   - A one-line description",
     "   - A procedure body that names specific tools, includes failure paths, and is testable",
-    "5. Run validate_skills to verify structural correctness.",
-    "6. Use checkpoint_skills to commit the new skill.",
+    "4. Run validate_skills to verify structural correctness.",
+    "5. Use checkpoint_skills to commit the new skill.",
     "",
     "CRITICAL: The skill MUST be checkpointed before you finish.",
     "A skill at rank 0 is unfinished. Checkpoint to establish rank 1.",

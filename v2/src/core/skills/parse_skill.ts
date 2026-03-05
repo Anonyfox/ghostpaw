@@ -8,7 +8,9 @@ const KNOWN_SUBDIRS = new Set(["scripts", "references", "assets"]);
 function listDir(dirPath: string): string[] {
   if (!existsSync(dirPath)) return [];
   try {
-    return readdirSync(dirPath).filter((f) => !f.startsWith(".")).sort();
+    return readdirSync(dirPath)
+      .filter((f) => !f.startsWith("."))
+      .sort();
   } catch {
     return [];
   }

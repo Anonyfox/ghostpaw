@@ -85,7 +85,7 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
       }
 
       const options = parseTrainerOptions(
-        (body as Record<string, unknown>)._rawContent as string ?? "",
+        ((body as Record<string, unknown>)._rawContent as string) ?? "",
       );
       const selected = options.find((o) => o.id === String(optionId));
       const title = selected?.title ?? String(guidance ?? "Create new skill");
@@ -159,10 +159,7 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
         return;
       }
 
-      const { sessionId, skillName, optionId, guidance } = (body ?? {}) as Record<
-        string,
-        unknown
-      >;
+      const { sessionId, skillName, optionId, guidance } = (body ?? {}) as Record<string, unknown>;
       if (typeof sessionId !== "number") {
         json(ctx, 400, { error: "Missing or invalid 'sessionId'." });
         return;
@@ -174,7 +171,7 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
 
       const name = skillName.trim();
       const options = parseTrainerOptions(
-        (body as Record<string, unknown>)._rawContent as string ?? "",
+        ((body as Record<string, unknown>)._rawContent as string) ?? "",
       );
       const selected = options.find((o) => o.id === String(optionId));
       const title = selected?.title ?? String(guidance ?? "Improve skill");

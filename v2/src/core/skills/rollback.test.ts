@@ -1,12 +1,12 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
 import { strictEqual } from "node:assert";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { rollback } from "./rollback.ts";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { checkpoint } from "./checkpoint.ts";
-import { skillHistory } from "./skill_history.ts";
 import { resetGitAvailableCache } from "./git.ts";
+import { rollback } from "./rollback.ts";
+import { skillHistory } from "./skill_history.ts";
 
 let workspace: string;
 
@@ -31,7 +31,10 @@ describe("rollback", () => {
     makeSkill("deploy", "Version 1");
     checkpoint(workspace, ["deploy"], "v1");
 
-    writeFileSync(join(workspace, "skills", "deploy", "SKILL.md"), "---\nname: deploy\ndescription: test\n---\nVersion 2");
+    writeFileSync(
+      join(workspace, "skills", "deploy", "SKILL.md"),
+      "---\nname: deploy\ndescription: test\n---\nVersion 2",
+    );
     checkpoint(workspace, ["deploy"], "v2");
 
     const history = skillHistory(workspace, "deploy");
@@ -56,7 +59,10 @@ describe("rollback", () => {
     makeSkill("deploy", "Version 1");
     checkpoint(workspace, ["deploy"], "v1");
 
-    writeFileSync(join(workspace, "skills", "deploy", "SKILL.md"), "---\nname: deploy\ndescription: test\n---\nVersion 2");
+    writeFileSync(
+      join(workspace, "skills", "deploy", "SKILL.md"),
+      "---\nname: deploy\ndescription: test\n---\nVersion 2",
+    );
     checkpoint(workspace, ["deploy"], "v2");
 
     const history = skillHistory(workspace, "deploy");

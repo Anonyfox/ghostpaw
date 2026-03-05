@@ -34,12 +34,7 @@ describe("TrainerResponse", () => {
 
   it("renders close button", () => {
     const html = render(
-      <TrainerResponse
-        content="done"
-        succeeded={true}
-        cost={{ totalUsd: 0 }}
-        onClose={() => {}}
-      />,
+      <TrainerResponse content="done" succeeded={true} cost={{ totalUsd: 0 }} onClose={() => {}} />,
     );
     ok(html.includes("Close"));
   });

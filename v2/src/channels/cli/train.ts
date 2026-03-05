@@ -65,10 +65,7 @@ export default defineCommand({
       });
 
       if (!proposal.succeeded) {
-        console.error(
-          style.boldRed("error".padStart(10)),
-          ` Analysis failed: ${proposal.content}`,
-        );
+        console.error(style.boldRed("error".padStart(10)), ` Analysis failed: ${proposal.content}`);
         process.exitCode = 1;
         return;
       }
@@ -87,8 +84,8 @@ export default defineCommand({
       }
 
       const selected = options.find((o) => o.id === choice.optionId);
-      const title = selected?.title ?? (choice.guidance ?? "Improve skill");
-      const desc = selected?.description ?? (choice.guidance ?? "");
+      const title = selected?.title ?? choice.guidance ?? "Improve skill";
+      const desc = selected?.description ?? choice.guidance ?? "";
 
       console.log(style.dim(`Improving: ${title}...`));
 
@@ -98,10 +95,7 @@ export default defineCommand({
       });
 
       if (!result.succeeded) {
-        console.error(
-          style.boldRed("error".padStart(10)),
-          ` Training failed: ${result.content}`,
-        );
+        console.error(style.boldRed("error".padStart(10)), ` Training failed: ${result.content}`);
         process.exitCode = 1;
         return;
       }

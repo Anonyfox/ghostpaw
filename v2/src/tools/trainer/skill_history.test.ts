@@ -27,20 +27,20 @@ describe("skill_history tool", () => {
   });
 
   it("returns empty history when no git repo", async () => {
-    const result = (await tool.execute({ args: { name: "deploy" }, id: "1" })) as Record<
-      string,
-      unknown
-    >;
+    const result = (await tool.execute({
+      args: { name: "deploy" },
+      ctx: { model: "test", provider: "openai" },
+    })) as Record<string, unknown>;
     strictEqual(result.name, "deploy");
     deepStrictEqual(result.entries, []);
     ok(result.message);
   });
 
   it("rejects empty name", async () => {
-    const result = (await tool.execute({ args: { name: "" }, id: "1" })) as Record<
-      string,
-      unknown
-    >;
+    const result = (await tool.execute({
+      args: { name: "" },
+      ctx: { model: "test", provider: "openai" },
+    })) as Record<string, unknown>;
     ok(result.error);
   });
 });

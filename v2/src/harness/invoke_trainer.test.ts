@@ -1,10 +1,6 @@
-import { describe, it } from "node:test";
 import { strictEqual } from "node:assert";
-import {
-  invokeTrainer,
-  invokeTrainerExecute,
-  invokeTrainerPropose,
-} from "./invoke_trainer.ts";
+import { describe, it } from "node:test";
+import { invokeTrainer, invokeTrainerExecute, invokeTrainerPropose } from "./invoke_trainer.ts";
 
 describe("invoke_trainer exports", () => {
   it("exports invokeTrainer as a function", () => {

@@ -27,7 +27,10 @@ describe("validate_skills tool", () => {
   });
 
   it("validates a well-formed skill", async () => {
-    const result = (await tool.execute({ args: {}, id: "1" })) as Record<string, unknown>;
+    const result = (await tool.execute({
+      args: {},
+      ctx: { model: "test", provider: "openai" },
+    })) as Record<string, unknown>;
     strictEqual(result.total, 1);
     strictEqual(result.valid, 1);
     strictEqual(result.invalid, 0);
@@ -36,7 +39,10 @@ describe("validate_skills tool", () => {
   it("detects invalid skill (missing SKILL.md)", async () => {
     mkdirSync(join(workspace, "skills", "broken"), { recursive: true });
     writeFileSync(join(workspace, "skills", "broken", "notes.txt"), "not a skill");
-    const result = (await tool.execute({ args: {}, id: "1" })) as Record<string, unknown>;
+    const result = (await tool.execute({
+      args: {},
+      ctx: { model: "test", provider: "openai" },
+    })) as Record<string, unknown>;
     strictEqual(result.total, 2);
     ok((result.invalid as number) > 0);
   });

@@ -96,7 +96,10 @@ export function SessionTranscript({ messages, sessionModel }: Props) {
                 {showModel && <span class="me-2">{msg.model}</span>}
               </span>
             </div>
-            <div class="rendered-markdown small" dangerouslySetInnerHTML={{ __html: msg.content }} />
+            <div
+              class="rendered-markdown small"
+              dangerouslySetInnerHTML={{ __html: msg.content }}
+            />
           </div>
         );
       })}

@@ -1,9 +1,6 @@
 import { defaultChatFactory } from "../../../../harness/chat_factory.ts";
 import { distillPending } from "../../../../harness/distill_pending.ts";
-import {
-  ELIGIBLE_PURPOSES,
-  STALE_THRESHOLD_MS,
-} from "../../../../harness/distill_types.ts";
+import { ELIGIBLE_PURPOSES, STALE_THRESHOLD_MS } from "../../../../harness/distill_types.ts";
 import { resolveModel } from "../../../../harness/model.ts";
 import { distillSession } from "../../../../harness/oneshots/distill_session.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";

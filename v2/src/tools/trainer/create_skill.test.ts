@@ -25,7 +25,7 @@ describe("create_skill tool", () => {
   it("creates a skill folder", async () => {
     const result = (await tool.execute({
       args: { name: "deploy", description: "Deploy workflow" },
-      id: "1",
+      ctx: { model: "test", provider: "openai" },
     })) as Record<string, unknown>;
     strictEqual(result.created, true);
     strictEqual(result.name, "deploy");
@@ -35,7 +35,7 @@ describe("create_skill tool", () => {
   it("creates a skill with body", async () => {
     const result = (await tool.execute({
       args: { name: "testing", description: "Test runner", body: "# Testing\n\nRun tests." },
-      id: "1",
+      ctx: { model: "test", provider: "openai" },
     })) as Record<string, unknown>;
     strictEqual(result.created, true);
   });
@@ -43,7 +43,7 @@ describe("create_skill tool", () => {
   it("rejects invalid name", async () => {
     const result = (await tool.execute({
       args: { name: "Bad Name", description: "test" },
-      id: "1",
+      ctx: { model: "test", provider: "openai" },
     })) as Record<string, unknown>;
     ok(result.error);
   });
@@ -51,7 +51,7 @@ describe("create_skill tool", () => {
   it("rejects empty description", async () => {
     const result = (await tool.execute({
       args: { name: "valid", description: "" },
-      id: "1",
+      ctx: { model: "test", provider: "openai" },
     })) as Record<string, unknown>;
     ok(result.error);
   });
@@ -60,7 +60,7 @@ describe("create_skill tool", () => {
     mkdirSync(join(workspace, "skills", "existing"), { recursive: true });
     const result = (await tool.execute({
       args: { name: "existing", description: "test" },
-      id: "1",
+      ctx: { model: "test", provider: "openai" },
     })) as Record<string, unknown>;
     ok(result.error);
   });

@@ -52,8 +52,8 @@ describe("deleteSoul", () => {
   it("throws when archiving a mandatory soul", () => {
     throws(() => deleteSoul(db, MANDATORY_SOUL_IDS.ghostpaw), /mandatory/i);
     throws(() => deleteSoul(db, MANDATORY_SOUL_IDS["js-engineer"]), /mandatory/i);
-    throws(() => deleteSoul(db, MANDATORY_SOUL_IDS["prompt-engineer"]), /mandatory/i);
     throws(() => deleteSoul(db, MANDATORY_SOUL_IDS.mentor), /mandatory/i);
+    throws(() => deleteSoul(db, MANDATORY_SOUL_IDS.trainer), /mandatory/i);
   });
 
   it("throws when soul does not exist", () => {

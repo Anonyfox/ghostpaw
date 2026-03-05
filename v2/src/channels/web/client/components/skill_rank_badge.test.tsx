@@ -1,4 +1,4 @@
-import { ok, strictEqual } from "node:assert/strict";
+import { ok } from "node:assert/strict";
 import { describe, it } from "node:test";
 import { render } from "preact-render-to-string";
 import { SkillRankBadge } from "./skill_rank_badge.tsx";

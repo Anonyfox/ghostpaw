@@ -5,11 +5,7 @@ import { initHistory } from "./init_history.ts";
 import { assertSafeSkillName } from "./safe_name.ts";
 import type { CheckpointResult } from "./types.ts";
 
-export function checkpoint(
-  workspace: string,
-  skills: string[],
-  message: string,
-): CheckpointResult {
+export function checkpoint(workspace: string, skills: string[], message: string): CheckpointResult {
   if (skills.length === 0) {
     return { committed: false, skills: [], message };
   }

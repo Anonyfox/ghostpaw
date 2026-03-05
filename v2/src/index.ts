@@ -142,7 +142,9 @@ const main = defineCommand({
     deleteOldDistilled(db);
 
     let httpServer: import("node:http").Server | undefined;
-    let telegramChannel: { start(): Promise<{ username: string }>; stop(): Promise<void> } | undefined;
+    let telegramChannel:
+      | { start(): Promise<{ username: string }>; stop(): Promise<void> }
+      | undefined;
 
     const { prepareWeb } = await import("./channels/cli/prepare_web.ts");
     const webConfig = await prepareWeb(db, VERSION);

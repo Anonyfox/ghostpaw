@@ -176,12 +176,7 @@ describe("handlePostSession", () => {
       ],
     ]);
     closeSession(db, session.id as number);
-    const result = handlePostSession(
-      db,
-      session.id as number,
-      "test-model",
-      failFactory(),
-    );
+    const result = handlePostSession(db, session.id as number, "test-model", failFactory());
     ok(result !== null);
     await result;
   });

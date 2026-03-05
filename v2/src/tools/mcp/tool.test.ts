@@ -169,9 +169,7 @@ describe("mcp tool", () => {
     const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
     shutdownFn = shutdown;
 
-    const result = await tool.execute(
-      execArgs({ action: "call", server: `node ${serverPath}` }),
-    );
+    const result = await tool.execute(execArgs({ action: "call", server: `node ${serverPath}` }));
     const err = result as Record<string, unknown>;
     ok(String(err.error).includes("tool is required"));
   });
@@ -257,9 +255,7 @@ describe("mcp tool", () => {
     shutdownFn = shutdown;
 
     const server = `node ${serverPath}`;
-    const result = await tool.execute(
-      execArgs({ action: "call", server, tool: "ping" }),
-    );
+    const result = await tool.execute(execArgs({ action: "call", server, tool: "ping" }));
     strictEqual(result, "pong: ");
   });
 

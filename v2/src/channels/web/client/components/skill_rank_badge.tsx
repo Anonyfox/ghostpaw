@@ -15,11 +15,7 @@ export function SkillRankBadge({ rank, variant = "compact" }: SkillRankBadgeProp
   const { label, colorClass } = rankTier(rank);
 
   if (variant === "compact") {
-    return (
-      <span class={`small fw-semibold ${colorClass}`}>
-        Rank {rank}
-      </span>
-    );
+    return <span class={`small fw-semibold ${colorClass}`}>Rank {rank}</span>;
   }
 
   return (

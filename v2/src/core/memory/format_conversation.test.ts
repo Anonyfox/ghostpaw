@@ -3,7 +3,9 @@ import { describe, it } from "node:test";
 import type { ChatMessage } from "../chat/types.ts";
 import { formatConversation } from "./format_conversation.ts";
 
-function msg(overrides: Partial<ChatMessage> & { role: ChatMessage["role"]; content: string }): ChatMessage {
+function msg(
+  overrides: Partial<ChatMessage> & { role: ChatMessage["role"]; content: string },
+): ChatMessage {
   return {
     id: 1,
     sessionId: 1,
@@ -71,7 +73,7 @@ describe("formatConversation", () => {
     const result = formatConversation([msg({ role: "user", content: long })]);
     ok(result.includes("[...]"));
     ok(result.length < 3000);
-    ok(result.startsWith("User: " + "x".repeat(2000)));
+    ok(result.startsWith(`User: ${"x".repeat(2000)}`));
   });
 
   it("caps total output at 40000 chars", () => {

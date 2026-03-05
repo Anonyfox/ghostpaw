@@ -145,10 +145,7 @@ describe("sessions_api", () => {
 
   it("prune removes empty open sessions older than 1 hour", () => {
     const s = createSession(db, "web:chat:1");
-    db.prepare("UPDATE sessions SET created_at = ? WHERE id = ?").run(
-      Date.now() - 7200000,
-      s.id,
-    );
+    db.prepare("UPDATE sessions SET created_at = ? WHERE id = ?").run(Date.now() - 7200000, s.id);
 
     const handlers = createSessionsApiHandlers(db);
     const { ctx, json } = mockCtx();

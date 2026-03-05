@@ -1,11 +1,11 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
 import { strictEqual } from "node:assert";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { listSkills } from "./list_skills.ts";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { checkpoint } from "./checkpoint.ts";
 import { resetGitAvailableCache } from "./git.ts";
+import { listSkills } from "./list_skills.ts";
 
 let workspace: string;
 
@@ -51,7 +51,10 @@ describe("listSkills", () => {
   it("shows correct rank after checkpoints", () => {
     makeSkill("deploy");
     checkpoint(workspace, ["deploy"], "first");
-    writeFileSync(join(workspace, "skills", "deploy", "SKILL.md"), "---\nname: deploy\ndescription: updated\n---\nUpdated.");
+    writeFileSync(
+      join(workspace, "skills", "deploy", "SKILL.md"),
+      "---\nname: deploy\ndescription: updated\n---\nUpdated.",
+    );
     checkpoint(workspace, ["deploy"], "second");
 
     const list = listSkills(workspace);
@@ -61,7 +64,10 @@ describe("listSkills", () => {
   it("flags skills with pending changes", () => {
     makeSkill("deploy");
     checkpoint(workspace, ["deploy"], "init");
-    writeFileSync(join(workspace, "skills", "deploy", "SKILL.md"), "---\nname: deploy\ndescription: changed\n---\nChanged.");
+    writeFileSync(
+      join(workspace, "skills", "deploy", "SKILL.md"),
+      "---\nname: deploy\ndescription: changed\n---\nChanged.",
+    );
 
     const list = listSkills(workspace);
     strictEqual(list[0].hasPendingChanges, true);

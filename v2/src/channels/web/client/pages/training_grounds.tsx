@@ -46,7 +46,9 @@ export function TrainingGroundsPage() {
         <h3 class="mb-0">Training Grounds</h3>
         {status && (
           <div class="d-flex gap-3 text-muted small">
-            <span>{status.skillCount} Skill{status.skillCount !== 1 ? "s" : ""}</span>
+            <span>
+              {status.skillCount} Skill{status.skillCount !== 1 ? "s" : ""}
+            </span>
             <span>{status.totalRanks} Total Ranks</span>
             {status.pendingChanges > 0 && (
               <span class="text-warning">{status.pendingChanges} Pending</span>

@@ -1,8 +1,14 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { addMessage, closeSession, createSession, getHistory, initChatTables } from "../core/chat/index.ts";
-import { createRun, initRunsTable } from "../core/runs/index.ts";
+import {
+  addMessage,
+  closeSession,
+  createSession,
+  getHistory,
+  initChatTables,
+} from "../core/chat/index.ts";
 import type { DelegationRun } from "../core/runs/index.ts";
+import { createRun, initRunsTable } from "../core/runs/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
 import type { ChannelNotifyFn } from "./notify_background_complete.ts";
@@ -95,8 +101,9 @@ describe("notifyBackgroundComplete", () => {
     notifyBackgroundComplete(db, run, channelNotify);
 
     ok(calledWith);
-    strictEqual(calledWith!.parentSessionId, session.id as number);
-    strictEqual(calledWith!.run.id, run.id);
+    const cw = calledWith as { parentSessionId: number; run: DelegationRun };
+    strictEqual(cw.parentSessionId, session.id as number);
+    strictEqual(cw.run.id, run.id);
   });
 
   it("does not throw when channelNotify is undefined", () => {

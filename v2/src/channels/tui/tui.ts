@@ -1,10 +1,10 @@
 import { emitKeypressEvents } from "node:readline";
 import type { TurnResult } from "../../core/chat/index.ts";
 import { closeSession, createSession } from "../../core/chat/index.ts";
+import { defaultChatFactory } from "../../harness/chat_factory.ts";
 import type { Entity } from "../../harness/index.ts";
 import { resolveModel } from "../../harness/index.ts";
 import { handlePostSession } from "../../harness/post_session.ts";
-import { defaultChatFactory } from "../../harness/chat_factory.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { ansi } from "./ansi.ts";

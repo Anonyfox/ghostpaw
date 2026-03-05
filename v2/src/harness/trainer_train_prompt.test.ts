@@ -1,9 +1,6 @@
-import { describe, it } from "node:test";
 import { strictEqual } from "node:assert";
-import {
-  buildTrainExecutePrompt,
-  buildTrainProposePrompt,
-} from "./trainer_train_prompt.ts";
+import { describe, it } from "node:test";
+import { buildTrainExecutePrompt, buildTrainProposePrompt } from "./trainer_train_prompt.ts";
 
 describe("buildTrainProposePrompt", () => {
   it("includes skill name and content in the prompt", () => {

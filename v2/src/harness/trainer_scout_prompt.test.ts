@@ -1,9 +1,6 @@
-import { describe, it } from "node:test";
 import { strictEqual } from "node:assert";
-import {
-  buildScoutExecutePrompt,
-  buildScoutProposePrompt,
-} from "./trainer_scout_prompt.ts";
+import { describe, it } from "node:test";
+import { buildScoutExecutePrompt, buildScoutProposePrompt } from "./trainer_scout_prompt.ts";
 
 describe("buildScoutProposePrompt", () => {
   it("builds a directionless prompt for friction mining", () => {

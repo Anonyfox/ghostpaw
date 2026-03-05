@@ -1,5 +1,5 @@
-import { defineCommand } from "citty";
 import { resolve } from "node:path";
+import { defineCommand } from "citty";
 import {
   installService,
   resolveServiceConfig,
@@ -14,7 +14,9 @@ const install = defineCommand({
   async run() {
     const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
     const config = resolveServiceConfig(workspace);
-    log.info(`init system: ${config.nodeFlags.length > 0 ? `${style.dim("(legacy flags)")} ` : ""}${style.cyan(serviceStatus(workspace).initSystem)}`);
+    log.info(
+      `init system: ${config.nodeFlags.length > 0 ? `${style.dim("(legacy flags)")} ` : ""}${style.cyan(serviceStatus(workspace).initSystem)}`,
+    );
 
     const result = installService(config);
     if (result.success) {

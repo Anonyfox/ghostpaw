@@ -25,7 +25,7 @@ export async function compactHistory(
   chat.system(COMPACT_SYSTEM_PROMPT);
   chat.user(formatHistoryForCompaction(history));
 
-  const summary = await chat.generate();
+  const summary = await chat.generate({ cache: true });
   const lastMsg = history[history.length - 1];
   const lr = chat.lastResult;
 

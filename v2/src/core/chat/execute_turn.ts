@@ -48,6 +48,7 @@ export async function executeTurn(input: TurnInput, ctx: TurnContext): Promise<T
     let succeeded = true;
     try {
       text = await chat.generate({
+        cache: true,
         maxIterations: input.maxIterations ?? DEFAULT_MAX_ITERATIONS,
         onToolError: "respond",
         toolTimeout: input.toolTimeout ?? DEFAULT_TOOL_TIMEOUT,

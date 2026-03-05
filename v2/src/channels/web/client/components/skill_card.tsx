@@ -14,12 +14,10 @@ export function SkillCard({ skill, onClick }: SkillCardProps) {
       : "border-secondary";
 
   return (
-    <div
-      class={`card bg-body-tertiary ${borderClass} h-100`}
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
+      class={`card bg-body-tertiary ${borderClass} h-100 border text-start w-100 p-0`}
       onClick={onClick}
-      onKeyDown={(e) => e.key === "Enter" && onClick()}
       style="cursor: pointer;"
     >
       <div class="card-body d-flex flex-column">
@@ -44,6 +42,6 @@ export function SkillCard({ skill, onClick }: SkillCardProps) {
           )}
         </div>
       </div>
-    </div>
+    </button>
   );
 }

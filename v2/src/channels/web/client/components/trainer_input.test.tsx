@@ -12,8 +12,22 @@ describe("TrainerInput", () => {
 
   it("train mode with skills renders a select", () => {
     const skills = [
-      { name: "deploy", description: "Deploy", rank: 3, hasPendingChanges: false, fileCount: 2, bodyLines: 20 },
-      { name: "testing", description: "Test", rank: 1, hasPendingChanges: false, fileCount: 1, bodyLines: 10 },
+      {
+        name: "deploy",
+        description: "Deploy",
+        rank: 3,
+        hasPendingChanges: false,
+        fileCount: 2,
+        bodyLines: 20,
+      },
+      {
+        name: "testing",
+        description: "Test",
+        rank: 1,
+        hasPendingChanges: false,
+        fileCount: 1,
+        bodyLines: 10,
+      },
     ];
     const html = render(
       <TrainerInput mode="train" skills={skills} onSubmit={() => {}} onCancel={() => {}} />,

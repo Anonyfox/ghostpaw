@@ -62,10 +62,7 @@ export async function connectMcpServer(
   const negotiatedVersion = initResult.protocolVersion;
   const toolNames = new Set(tools.map((t) => t.name));
 
-  async function callTool(
-    name: string,
-    args: Record<string, unknown>,
-  ): Promise<McpToolResult> {
+  async function callTool(name: string, args: Record<string, unknown>): Promise<McpToolResult> {
     if (!transport.isConnected()) {
       throw new Error(`MCP server "${serverName}" is disconnected`);
     }

@@ -1,22 +1,22 @@
-import { describe, it } from "node:test";
 import { deepStrictEqual, strictEqual } from "node:assert";
-import { VALIDATION_SEVERITIES } from "./types.ts";
+import { describe, it } from "node:test";
 import type {
-  Skill,
-  SkillFrontmatter,
-  SkillSummary,
-  SkillIndexEntry,
   CheckpointResult,
-  SkillPendingChanges,
+  CreateSkillInput,
+  GitResult,
+  HistoryEntry,
   PendingChangesResult,
-  ValidationIssue,
-  ValidationResult,
   RepairAction,
   RepairResult,
-  HistoryEntry,
-  GitResult,
-  CreateSkillInput,
+  Skill,
+  SkillFrontmatter,
+  SkillIndexEntry,
+  SkillPendingChanges,
+  SkillSummary,
+  ValidationIssue,
+  ValidationResult,
 } from "./types.ts";
+import { VALIDATION_SEVERITIES } from "./types.ts";
 
 describe("types", () => {
   it("exports VALIDATION_SEVERITIES as a readonly tuple", () => {
@@ -87,7 +87,11 @@ describe("types", () => {
     };
     strictEqual(vr.valid, false);
 
-    const ra: RepairAction = { code: "create-skill-md", description: "Created SKILL.md", applied: true };
+    const ra: RepairAction = {
+      code: "create-skill-md",
+      description: "Created SKILL.md",
+      applied: true,
+    };
     strictEqual(ra.applied, true);
 
     const rr: RepairResult = { name: "test", actions: [ra], remainingIssues: [] };

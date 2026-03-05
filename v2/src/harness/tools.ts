@@ -1,5 +1,6 @@
 import type { Tool } from "chatoyant";
 import type { ChatFactory } from "../core/chat/index.ts";
+import type { DelegationRun } from "../core/runs/index.ts";
 import { getSecret } from "../core/secrets/index.ts";
 import { listSouls, MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
@@ -38,8 +39,6 @@ import { createWebFetchTool } from "../tools/web_fetch.ts";
 import { createWebSearchTool } from "../tools/web_search/index.ts";
 import { createWriteTool } from "../tools/write.ts";
 import { createDelegateHandler } from "./delegate.ts";
-
-import type { DelegationRun } from "../core/runs/index.ts";
 
 export interface EntityToolsConfig {
   db: DatabaseHandle;

@@ -27,19 +27,19 @@ describe("skill_diff tool", () => {
   });
 
   it("returns no changes message when no git history", async () => {
-    const result = (await tool.execute({ args: { name: "deploy" }, id: "1" })) as Record<
-      string,
-      unknown
-    >;
+    const result = (await tool.execute({
+      args: { name: "deploy" },
+      ctx: { model: "test", provider: "openai" },
+    })) as Record<string, unknown>;
     strictEqual(result.name, "deploy");
     ok(typeof result.diff === "string");
   });
 
   it("rejects empty name", async () => {
-    const result = (await tool.execute({ args: { name: "" }, id: "1" })) as Record<
-      string,
-      unknown
-    >;
+    const result = (await tool.execute({
+      args: { name: "" },
+      ctx: { model: "test", provider: "openai" },
+    })) as Record<string, unknown>;
     ok(result.error);
   });
 });

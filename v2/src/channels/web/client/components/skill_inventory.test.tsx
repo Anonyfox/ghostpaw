@@ -12,8 +12,22 @@ describe("SkillInventory", () => {
 
   it("renders skill cards for each skill", () => {
     const skills: SkillSummaryInfo[] = [
-      { name: "deploy", description: "Deploy", rank: 3, hasPendingChanges: false, fileCount: 2, bodyLines: 20 },
-      { name: "testing", description: "Test", rank: 1, hasPendingChanges: true, fileCount: 1, bodyLines: 10 },
+      {
+        name: "deploy",
+        description: "Deploy",
+        rank: 3,
+        hasPendingChanges: false,
+        fileCount: 2,
+        bodyLines: 20,
+      },
+      {
+        name: "testing",
+        description: "Test",
+        rank: 1,
+        hasPendingChanges: true,
+        fileCount: 1,
+        bodyLines: 10,
+      },
     ];
     const html = render(<SkillInventory skills={skills} onSelectSkill={() => {}} />);
     ok(html.includes("deploy"));
@@ -23,7 +37,14 @@ describe("SkillInventory", () => {
 
   it("renders in a responsive grid", () => {
     const skills: SkillSummaryInfo[] = [
-      { name: "deploy", description: "Deploy", rank: 3, hasPendingChanges: false, fileCount: 2, bodyLines: 20 },
+      {
+        name: "deploy",
+        description: "Deploy",
+        rank: 3,
+        hasPendingChanges: false,
+        fileCount: 2,
+        bodyLines: 20,
+      },
     ];
     const html = render(<SkillInventory skills={skills} onSelectSkill={() => {}} />);
     ok(html.includes("col-md-6"));

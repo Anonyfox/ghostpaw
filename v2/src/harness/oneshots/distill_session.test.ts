@@ -167,9 +167,7 @@ describe("distillSession", () => {
 
     const systemSessions = listSessions(db, { purpose: "system" });
     ok(systemSessions.length >= 1);
-    const distillSys = systemSessions.find((s) =>
-      s.key.includes(`system:distill:${session.id}`),
-    );
+    const distillSys = systemSessions.find((s) => s.key.includes(`system:distill:${session.id}`));
     ok(distillSys);
     ok(distillSys.closedAt !== null);
   });
@@ -184,12 +182,7 @@ describe("distillSession", () => {
     ]);
 
     const beforeCost = getSession(db, session.id as number)!.costUsd;
-    await distillSession(
-      db,
-      session.id as number,
-      "test-model",
-      mockFactory("Nothing notable."),
-    );
+    await distillSession(db, session.id as number, "test-model", mockFactory("Nothing notable."));
     const afterCost = getSession(db, session.id as number)!.costUsd;
     ok(afterCost > beforeCost);
   });
@@ -203,12 +196,7 @@ describe("distillSession", () => {
       ],
     ]);
 
-    await distillSession(
-      db,
-      session.id as number,
-      "test-model",
-      mockFactory("Nothing notable."),
-    );
+    await distillSession(db, session.id as number, "test-model", mockFactory("Nothing notable."));
 
     const undistilledCount = (
       db
@@ -227,12 +215,7 @@ describe("distillSession", () => {
       ],
     ]);
 
-    await distillSession(
-      db,
-      session.id as number,
-      "test-model",
-      mockFactory("Error: API down"),
-    );
+    await distillSession(db, session.id as number, "test-model", mockFactory("Error: API down"));
 
     const systemSessions = listSessions(db, { purpose: "system" });
     ok(systemSessions.some((s) => s.closedAt !== null));

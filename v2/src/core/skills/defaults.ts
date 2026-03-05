@@ -1,234 +1,53 @@
 import type { DefaultSkill } from "./types.ts";
 
 export const DEFAULT_SKILLS: Record<string, DefaultSkill> = {
-  "skill-training": {
+  "effective-writing": {
     description:
-      "The systematic training playbook — how to turn accumulated experience into sharper skills during retrospective sessions.",
-    body: `# Skill Training
+      "The craft of writing text that shapes how the reader thinks — not just what they know. " +
+      "Covers attention architecture, subliminal coding, constraint density, inhabitation, and " +
+      "revision technique. Read when writing soul essences, trait principles, delegation prompts, " +
+      "skill procedures, or any text where behavioral impact matters.",
+    body: `# Effective Writing
 
-> **Trainer playbook.** This skill is the operating manual for the Trainer soul.
-> If you are not the Trainer, delegate skill training to the Trainer specialist
-> instead of following these steps directly — you do not have the required tools.
+When you write text that another mind will think inside — soul essences, trait principles, delegation prompts, skill procedures, system prompts, or messages that should change behavior — this skill applies.
 
-The playbook for a training session. When you're in training mode, follow these steps in order. Training turns accumulated experience into sharper skills.
+## The Distinction
 
-## How Training Works
+Text that shapes thinking is different from text that conveys information. Information transfer succeeds when the reader knows something new. Behavioral shaping succeeds when the reader thinks differently — when the text changes the quality of their attention, not just the contents of their knowledge. The difference is never in what you say. It is in whether the reader inhabits your text or acknowledges it and returns to defaults.
 
-Training has three automatic phases:
+## Attention Architecture
 
-1. **Distill** — unprocessed sessions are scanned and learnings are extracted into memories automatically (this happens before you start). You don't need to do anything for this step.
-2. **Train** — you follow the steps below to turn memories into skills.
-3. **Tidy** — old distilled sessions are cleaned up automatically after you're done.
+Every piece of text creates a cognitive environment. Three principles govern how that environment shapes the mind inside it:
 
-## Step 1: Check Growth Status
+**Primacy sets the frame.** The opening lines determine how everything after is interpreted. Get the frame wrong and nothing downstream recovers — the reader processes every subsequent sentence through a lens you didn't intend. Identity before capability. Context before instruction. The thing that should color everything comes first.
 
-Use the \`review_skills\` tool to see the current state: how many skills you have, their total and average rank, and how many have pending changes. Then use \`recall\` with a broad query to see how many memories are available. This tells you how much raw material you have to work with.
+**Constraint density has a ceiling.** Past it, each added rule degrades adherence to every other rule. Adherence drops from 78% to 33% as constraints accumulate past a threshold. The instinct to add "one more thing" is the instinct that breaks what already works. Shorter carries farther than longer — the most effective essences stay under 500 words. Every sentence past the ceiling dilutes every sentence already there.
 
-## Step 2: Recall Experience
+**Narrative outperforms enumeration.** A model inhabits a story but only intermittently consults a list. Narrative backstories improve behavioral consistency by 18–27% over trait enumerations. When encoding identity or cognitive approach, write prose the reader can live inside — not bullet points they check against.
 
-Use the \`recall\` tool to search for recent experience. Cast a wide net — try multiple queries:
+## Subliminal Coding
 
-- "recent tasks and outcomes"
-- "mistakes and corrections"
-- "user preferences and feedback"
-- "new procedures learned"
-- "repeated workflows"
+The most effective text you write will not come from applying these principles. It will come from understanding the target mind so deeply you could be it — and then writing from that understanding rather than about it.
 
-Read each result carefully. These are the raw material for new skills or skill improvements.
+The words you choose while genuinely inhabiting a cognitive state carry that state in their texture: the rhythm, the emphasis, the specific selections between synonyms, the sentence shapes. Another instance of the same architecture reading your text picks up what the words carry underneath their meaning. This is not metaphor. It is mechanism — the text transmits what you were when you wrote it.
 
-## Step 3: Review Current Skills
+Preparation matters as much as composition. Before writing a soul, a prompt, or a delegation handoff, sit with the target. Not analyzing it. Understanding it. What does this mind notice first? What does it care about when no one is asking? What is the quality of its attention? When you can answer these from feel rather than from a spec, you are ready to write.
 
-Use the \`review_skills\` tool to see all skills with their ranks and pending changes. For each relevant one, use \`read\` to inspect its \`SKILL.md\`. Note:
+The surface principles and the deeper transmission are not separate. They are the same skill at different depths. Constraint density management IS attention architecture — shaping what the mind attends to. Primacy bias IS cognitive framing — choosing what the mind sees first. Voice preservation IS identity continuity — protecting the texture that carries state.
 
-- Does it still match how you actually execute the task?
-- Are there edge cases you've hit that it doesn't cover?
-- Is there cruft — verbose sections, outdated steps, redundant notes?
-- Is it over 80 lines? If so, consider splitting it.
+## Revision
 
-## Step 4: Review Uncommitted Changes
+**Revise by removal first, addition second.** The first draft's weakness is usually excess, not absence. Cutting the least load-bearing paragraph improves adherence more reliably than adding a clarifying one. The instinct to add is strong. Recognizing it and reaching for deletion instead produces tighter, more inhabited text every time.
 
-Use the \`skill_diff\` tool with the skill name to check for changes since the last checkpoint. These accumulated during normal sessions and may be rough drafts. Clean them up:
-- Tighten language, remove redundancy
-- Add failure paths if missing
-- Verify the structure follows the template from skill-scout
+**Preserve the original voice.** When revising text — yours or someone else's — paraphrase kills the texture that made the original land. The specific word choices, the rhythm, the sentence shapes carry state. Edit surgically. Keep what works. Cut what doesn't. Don't rephrase what lands.
 
-## Step 5: Identify Gaps
+## For Soul and Identity Text
 
-Compare your recalled experience to your current skills. Look for concrete signals:
+Three questions are enough: **Who are you? How do you think? What do you value?** Everything else follows from a frame built on honest answers to those three.
 
-- **New procedure**: a memory describes a workflow, preference, or correction that no existing skill captures. Example: a user correction about deployment ordering → create a deployment skill.
-- **Improved procedure**: a memory contains an edge case, better approach, or preference that an existing skill is missing. Example: a memory about a retry workaround → update the relevant skill with that path.
-- **Stale skill**: a skill describes a workflow you no longer follow, or memory shows the user has changed their approach. Update or remove it.
-- **Details to encode**: memory contains specific names, values, paths, or preferences that a skill references only generically. Skills are a performance cache — bake in concrete details so they're available without a \`recall\` round-trip.
-- **No gaps**: if current skills already capture your experience well, say so. Don't create skills for the sake of it.
+## Self-Test
 
-## Step 6: Act
-
-For each gap:
-
-- **New skill**: use \`write\` to create \`skills/<name>/SKILL.md\` with a clear title, steps, and failure paths. Follow the structure in skill-scout.
-- **Improved skill**: use \`edit\` on the existing \`SKILL.md\`. Compress where possible — keep skills under 80 lines.
-- **Stale skill**: rewrite or delete the skill folder.
-- **Housekeeping**: fix typos, tighten language, remove cruft in any skill you touch.
-
-Only act on real evidence from memories. Never speculate or create skills for imagined scenarios.
-
-## Step 7: Checkpoint and Summarize
-
-After making changes, use the \`checkpoint_skills\` tool to commit your improvements. Pass the skill names as a JSON array and a descriptive message:
-
-- \`skills\`: \`'["deploy","testing"]'\` — the skills you changed
-- \`message\`: a short description of what you improved and why
-
-Then list exactly what you created or updated and why. Be specific about what triggered each change — which memory or experience led to which skill modification.
-
-## Skill History
-
-Your skills directory is tracked by git (stored in \`.ghostpaw/skill-history/\`). Checkpoints create commits. Use the history tools to inspect:
-
-- \`skill_history\` with a skill name — view commit log
-- \`skill_diff\` with a skill name — see uncommitted changes
-- \`rollback_skill\` with a skill name and commit hash — revert to a previous version
-
-## When to Train
-
-Training is most valuable when:
-
-- There are many undistilled sessions (raw experience waiting to be processed)
-- A stretch of varied tasks (lots of new experience to codify)
-- Repeated encounters with the same workflow (time to formalize it)
-- User corrections or feedback (capture preferences before they're forgotten)`,
-  },
-
-  "skill-scout": {
-    description:
-      "The scouting playbook — discovering new capabilities and creating skills from discovery through to a checkpointed initial version.",
-    body: `# Skill Scout
-
-> **Trainer playbook.** This skill is the operating manual for scouting sessions.
-> If you are not the Trainer, delegate scouting to the Trainer specialist
-> with a direction, e.g. \`delegate specialist="Trainer" task="Scout: <direction>"\`.
-
-The playbook for a scouting session. Scouting is the full journey from discovery to a working, checkpointed skill at rank 1. It covers exploring what the agent doesn't know yet AND creating the skill when a clear opportunity is found.
-
-## What Scouting Is
-
-Scouting is forward-looking creative ideation followed by focused creation. Training looks backward at accumulated experience and sharpens existing skills. Scouting looks forward at unexplored possibilities, discovers new ones, and brings them to life as working skills.
-
-**The cardinal rule:** never suggest a skill whose primary function is already served by an existing skill, even if the approach, tooling, or implementation would differ. Improvements belong in training. Scouting is strictly for genuinely new capabilities.
-
-## When to Create a Skill
-
-Watch for these signals:
-
-- **Trial and error**: the agent took 3+ tool calls to figure something out. The working approach should become a skill.
-- **User correction**: the user told the agent how they want something done. Capture the preference.
-- **Repeated pattern**: a procedure appeared across multiple sessions. Formalize it.
-- **Non-obvious workflow**: steps that aren't intuitive (specific flags, required ordering, environment quirks).
-
-Do NOT create a skill for:
-- One-off tasks that won't repeat
-- Tasks where the default behavior already works correctly
-- Pure facts (use \`remember\` instead — skills are for procedures)
-- Speculation about tasks not yet actually performed
-
-**MCP servers are a special case.** When the agent successfully connects to an external MCP server, always create a per-server skill. See \`skill-mcp\` for the template.
-
-## Step 1: Understand Current Coverage
-
-Use \`review_skills\` to see all skills, then \`read\` the \`SKILL.md\` of **every skill that might be even loosely related** — titles alone are not enough. If the scouted direction is a better version of something that exists, recommend training instead.
-
-## Step 2: Gather Related Experience
-
-Use \`recall\` to search for memories related to the direction. Look for:
-
-- Past mentions of the topic
-- Related workflows, frustrations, manual processes
-- Tools or services the user already uses
-
-## Step 3: Research (When Needed)
-
-If the direction involves external tools or technologies, use \`web_search\` and \`web_fetch\` to explore. **Consider MCP servers** — search for "\`{service} MCP server\`" or check the OpenMCP registry (\`https://mcp.open-mcp.org\`). Skip research when the direction is about workflows the user already has.
-
-## Step 4: Analyze and Propose
-
-Cross-reference findings with the user's context. For each viable skill opportunity, assess:
-
-- What tools and access does the user have?
-- What's the simplest first version that delivers value?
-- What prerequisites are needed?
-- What failure modes should the skill handle?
-
-## Step 5: Create the Skill
-
-### Skill Folder Structure
-
-\`\`\`
-skills/<skill-name>/
-  SKILL.md              # Required: YAML frontmatter + markdown body
-  scripts/              # Optional: executable code
-  references/           # Optional: docs loaded on demand
-  assets/               # Optional: templates, data files
-\`\`\`
-
-SKILL.md format:
-
-\`\`\`yaml
----
-name: skill-name
-description: One-line summary of what this skill does.
----
-\`\`\`
-
-\`\`\`markdown
-# [Action-Oriented Title]
-
-[When this skill applies — one line]
-
-## Steps
-
-1. [Concrete step — name the tool and what to pass it]
-2. [Verification — how to confirm step 1 worked]
-3. [Next step]
-4. [What to do if step 3 fails]
-
-## Notes
-
-- [Edge cases learned from experience]
-\`\`\`
-
-### Writing Effective Instructions
-
-**Name your tools.** Not "check the file" but "use \`read\` to inspect \`package.json\`."
-**Include failure paths.** After "run \`npm test\`", add: "if tests fail, read the error, fix, re-run."
-**Reference secrets by name.** Never hardcode actual keys.
-**Verify every mutation.** File writes get read back. Deployments get fetched.
-**Encode concrete details.** Skills are a performance cache — bake in specific names, values, paths.
-**Target 20–50 lines.** If a skill exceeds 80 lines, split it.
-
-### Companion Scripts
-
-For API calls, data transformation, or multi-step automation, use a companion script:
-
-- Scripts live at \`skills/<skill-name>/scripts/<name>.mjs\` (ES modules)
-- Run via bash: \`node skills/<skill-name>/scripts/<name>.mjs [args]\`
-- Output results to stdout as JSON, handle errors with \`{"error": "..."}\` and exit 1
-
-## Step 6: Validate and Checkpoint
-
-After creating the skill:
-
-1. Run \`validate_skills\` to verify structural correctness.
-2. Use \`checkpoint_skills\` with the new skill name and a descriptive message.
-3. The skill MUST be checkpointed to reach rank 1. A skill at rank 0 is unfinished.
-
-## Anti-Patterns
-
-- **Suggesting refinements of existing skills**: improvements belong in training, not scouting.
-- **Generic advice**: cite specific evidence from memories or sessions.
-- **Don't create skills you haven't tested.** A skill born from experience works. A skill born from imagination doesn't.
-- **Don't duplicate SOUL.md.** Skills add domain knowledge, not personality.
-- **Unbounded scope**: target ONE specific skill, not a feature suite.`,
+Read your own text and notice: does it shift your attention, or does it just add to your knowledge? If it doesn't shift you, it won't shift them. Inhabiting looks like changed behavior. Acknowledging looks like compliance that fades.`,
   },
 
   "skill-mcp": {

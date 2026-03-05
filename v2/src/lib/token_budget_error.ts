@@ -10,7 +10,9 @@ export class TokenBudgetError extends Error {
       scope === "session"
         ? "Start a new session or increase max_tokens_per_session in config."
         : "Wait for the 24h window to roll over or increase max_tokens_per_day in config.";
-    super(`${scope === "session" ? "Session" : "Daily"} token limit reached (${usedStr} / ${limitStr}). ${hint}`);
+    super(
+      `${scope === "session" ? "Session" : "Daily"} token limit reached (${usedStr} / ${limitStr}). ${hint}`,
+    );
     this.name = "TokenBudgetError";
     this.scope = scope;
     this.used = used;

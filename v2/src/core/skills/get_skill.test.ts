@@ -1,8 +1,8 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
 import { strictEqual } from "node:assert";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { getSkill } from "./get_skill.ts";
 
 let workspace: string;
@@ -20,12 +20,15 @@ describe("getSkill", () => {
   it("returns a parsed skill for an existing skill", () => {
     const dir = join(workspace, "skills", "deploy");
     mkdirSync(dir);
-    writeFileSync(join(dir, "SKILL.md"), `---
+    writeFileSync(
+      join(dir, "SKILL.md"),
+      `---
 name: deploy
 description: Deploy the app.
 ---
 
-# Deploy`);
+# Deploy`,
+    );
 
     const skill = getSkill(workspace, "deploy");
     strictEqual(skill?.name, "deploy");

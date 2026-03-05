@@ -60,8 +60,8 @@ export default defineCommand({
       }
 
       const selected = options.find((o) => o.id === choice.optionId);
-      const title = selected?.title ?? (choice.guidance ?? "Create new skill");
-      const desc = selected?.description ?? (choice.guidance ?? "");
+      const title = selected?.title ?? choice.guidance ?? "Create new skill";
+      const desc = selected?.description ?? choice.guidance ?? "";
 
       console.log(style.dim(`Creating skill: ${title}...`));
 

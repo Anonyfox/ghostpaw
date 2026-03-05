@@ -1,12 +1,12 @@
-import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
-import type { DatabaseHandle } from "../../lib/index.ts";
+import { createInterface } from "node:readline/promises";
 import { KNOWN_KEYS } from "../../core/secrets/known_keys.ts";
 import { listSecrets } from "../../core/secrets/list_secrets.ts";
-import { setSecret } from "../../core/secrets/set_secret.ts";
 import { loadSecretsIntoEnv } from "../../core/secrets/load_secrets_into_env.ts";
-import { blank, log, readSecret, style } from "../../lib/terminal/index.ts";
+import { setSecret } from "../../core/secrets/set_secret.ts";
 import type { KnownKey } from "../../core/secrets/types.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
+import { blank, log, readSecret, style } from "../../lib/terminal/index.ts";
 
 const LLM_KEYS = KNOWN_KEYS.filter((k) => k.category === "llm");
 const SEARCH_KEYS = KNOWN_KEYS.filter((k) => k.category === "search");
@@ -23,7 +23,11 @@ function hasAnyKey(db: DatabaseHandle, keys: KnownKey[]): boolean {
   return false;
 }
 
-async function askKeyFromList(db: DatabaseHandle, keys: KnownKey[], skip?: string): Promise<boolean> {
+async function askKeyFromList(
+  db: DatabaseHandle,
+  keys: KnownKey[],
+  skip?: string,
+): Promise<boolean> {
   for (let i = 0; i < keys.length; i++) {
     console.log(`  ${style.bold(String(i + 1))}  ${keys[i]!.label}`);
   }

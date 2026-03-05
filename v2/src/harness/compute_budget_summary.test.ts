@@ -35,13 +35,13 @@ describe("computeBudgetSummary", () => {
   });
 
   it("returns null when usage is below the warning threshold", () => {
-    setConfig(db, "max_tokens_per_session", 200_000, "test");
+    setConfig(db, "max_tokens_per_session", 200_000, "cli");
     const sid = insertSession(10_000, 5_000);
     strictEqual(computeBudgetSummary(db, sid), null);
   });
 
   it("returns a summary when session usage exceeds the warning threshold", () => {
-    setConfig(db, "max_tokens_per_session", 200_000, "test");
+    setConfig(db, "max_tokens_per_session", 200_000, "cli");
     const sid = insertSession(100_000, 65_000);
     const summary = computeBudgetSummary(db, sid);
     ok(summary !== null);
@@ -50,7 +50,7 @@ describe("computeBudgetSummary", () => {
   });
 
   it("returns a summary when day usage exceeds the warning threshold", () => {
-    setConfig(db, "max_tokens_per_day", 100_000, "test");
+    setConfig(db, "max_tokens_per_day", 100_000, "cli");
     const sid = insertSession(45_000, 40_000);
     const summary = computeBudgetSummary(db, sid);
     ok(summary !== null);
@@ -59,8 +59,8 @@ describe("computeBudgetSummary", () => {
   });
 
   it("respects custom warn_at_percentage", () => {
-    setConfig(db, "max_tokens_per_session", 200_000, "test");
-    setConfig(db, "warn_at_percentage", 50, "test");
+    setConfig(db, "max_tokens_per_session", 200_000, "cli");
+    setConfig(db, "warn_at_percentage", 50, "cli");
     const sid = insertSession(60_000, 45_000);
     const summary = computeBudgetSummary(db, sid);
     ok(summary !== null);
@@ -68,8 +68,8 @@ describe("computeBudgetSummary", () => {
   });
 
   it("includes both session and day lines when both are above threshold", () => {
-    setConfig(db, "max_tokens_per_session", 100_000, "test");
-    setConfig(db, "max_tokens_per_day", 100_000, "test");
+    setConfig(db, "max_tokens_per_session", 100_000, "cli");
+    setConfig(db, "max_tokens_per_day", 100_000, "cli");
     const sid = insertSession(45_000, 40_000);
     const summary = computeBudgetSummary(db, sid);
     ok(summary !== null);
@@ -78,8 +78,8 @@ describe("computeBudgetSummary", () => {
   });
 
   it("shows full budget picture when session warns even if day is fine", () => {
-    setConfig(db, "max_tokens_per_session", 100_000, "test");
-    setConfig(db, "max_tokens_per_day", 1_000_000, "test");
+    setConfig(db, "max_tokens_per_session", 100_000, "cli");
+    setConfig(db, "max_tokens_per_day", 1_000_000, "cli");
     const sid = insertSession(45_000, 40_000);
     const summary = computeBudgetSummary(db, sid);
     ok(summary !== null);

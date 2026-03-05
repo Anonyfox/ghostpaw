@@ -15,7 +15,7 @@ describe("serviceStatus", () => {
   });
 
   it("reports not installed for a nonexistent workspace", () => {
-    const status = serviceStatus("/tmp/nonexistent-ghostpaw-test-" + Date.now());
+    const status = serviceStatus(`/tmp/nonexistent-ghostpaw-test-${Date.now()}`);
     strictEqual(status.installed, false);
     strictEqual(status.running, false);
   });

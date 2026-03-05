@@ -33,13 +33,13 @@ describe("checkSpendLimit", () => {
   });
 
   it("does nothing when spend is below the limit", () => {
-    setConfig(db, "max_cost_per_day", 10, "test");
+    setConfig(db, "max_cost_per_day", 10, "cli");
     insertSession(3.0);
     doesNotThrow(() => checkSpendLimit(db));
   });
 
   it("throws SpendLimitError when spend reaches the limit", () => {
-    setConfig(db, "max_cost_per_day", 5, "test");
+    setConfig(db, "max_cost_per_day", 5, "cli");
     insertSession(5.0);
     throws(
       () => checkSpendLimit(db),
@@ -48,7 +48,7 @@ describe("checkSpendLimit", () => {
   });
 
   it("throws SpendLimitError when spend exceeds the limit", () => {
-    setConfig(db, "max_cost_per_day", 5, "test");
+    setConfig(db, "max_cost_per_day", 5, "cli");
     insertSession(8.0);
     throws(
       () => checkSpendLimit(db),
@@ -57,7 +57,7 @@ describe("checkSpendLimit", () => {
   });
 
   it("includes actionable message in the error", () => {
-    setConfig(db, "max_cost_per_day", 2, "test");
+    setConfig(db, "max_cost_per_day", 2, "cli");
     insertSession(3.0);
     try {
       checkSpendLimit(db);
@@ -70,7 +70,7 @@ describe("checkSpendLimit", () => {
   });
 
   it("does not block when limit is explicitly zero", () => {
-    setConfig(db, "max_cost_per_day", 0, "test");
+    setConfig(db, "max_cost_per_day", 0, "cli");
     insertSession(1000);
     doesNotThrow(() => checkSpendLimit(db));
   });

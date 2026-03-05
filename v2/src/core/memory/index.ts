@@ -1,7 +1,7 @@
 export { confirmMemory } from "./confirm_memory.ts";
-export { formatConversation } from "./format_conversation.ts";
 export { countMemories } from "./count_memories.ts";
 export { embedText } from "./embed_text.ts";
+export { formatConversation } from "./format_conversation.ts";
 export { ftsSearch } from "./fts_search.ts";
 export { getMemory } from "./get_memory.ts";
 export { listMemories } from "./list_memories.ts";

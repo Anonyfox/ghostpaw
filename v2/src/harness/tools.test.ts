@@ -29,7 +29,9 @@ afterEach(() => {
 
 const EXPECTED_BASE_TOOLS = [
   "bash",
+  "calc",
   "check_run",
+  "datetime",
   "delegate",
   "edit",
   "forget",

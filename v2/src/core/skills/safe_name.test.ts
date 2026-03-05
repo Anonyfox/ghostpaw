@@ -1,6 +1,6 @@
-import { describe, it } from "node:test";
 import { strictEqual, throws } from "node:assert";
-import { isSafeSkillName, assertSafeSkillName } from "./safe_name.ts";
+import { describe, it } from "node:test";
+import { assertSafeSkillName, isSafeSkillName } from "./safe_name.ts";
 
 describe("isSafeSkillName", () => {
   it("accepts normal lowercase-hyphen names", () => {

@@ -29,7 +29,7 @@ describe("rollback_skill tool", () => {
   it("rejects empty name", async () => {
     const result = (await tool.execute({
       args: { name: "", hash: "abc123" },
-      id: "1",
+      ctx: { model: "test", provider: "openai" },
     })) as Record<string, unknown>;
     ok(result.error);
   });
@@ -37,7 +37,7 @@ describe("rollback_skill tool", () => {
   it("rejects empty hash", async () => {
     const result = (await tool.execute({
       args: { name: "deploy", hash: "" },
-      id: "1",
+      ctx: { model: "test", provider: "openai" },
     })) as Record<string, unknown>;
     ok(result.error);
   });
@@ -45,7 +45,7 @@ describe("rollback_skill tool", () => {
   it("returns error for nonexistent hash", async () => {
     const result = (await tool.execute({
       args: { name: "deploy", hash: "deadbeef" },
-      id: "1",
+      ctx: { model: "test", provider: "openai" },
     })) as Record<string, unknown>;
     ok(result.error);
   });

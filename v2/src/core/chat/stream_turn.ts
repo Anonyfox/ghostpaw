@@ -48,6 +48,7 @@ export async function* streamTurn(
     let succeeded = true;
     try {
       for await (const chunk of chat.stream({
+        cache: true,
         maxIterations: input.maxIterations ?? DEFAULT_MAX_ITERATIONS,
         onToolError: "respond",
         toolTimeout: input.toolTimeout ?? DEFAULT_TOOL_TIMEOUT,

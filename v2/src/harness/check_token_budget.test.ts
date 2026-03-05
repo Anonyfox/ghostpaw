@@ -35,13 +35,13 @@ describe("checkTokenBudget", () => {
   });
 
   it("does nothing when session tokens are below a custom session limit", () => {
-    setConfig(db, "max_tokens_per_session", 300_000, "test");
+    setConfig(db, "max_tokens_per_session", 300_000, "cli");
     const sid = insertSession(50_000, 30_000);
     doesNotThrow(() => checkTokenBudget(db, sid));
   });
 
   it("throws TokenBudgetError with scope session when session limit reached", () => {
-    setConfig(db, "max_tokens_per_session", 100_000, "test");
+    setConfig(db, "max_tokens_per_session", 100_000, "cli");
     const sid = insertSession(60_000, 40_000);
     throws(
       () => checkTokenBudget(db, sid),
@@ -51,7 +51,7 @@ describe("checkTokenBudget", () => {
   });
 
   it("throws TokenBudgetError with scope session when session limit exceeded", () => {
-    setConfig(db, "max_tokens_per_session", 100_000, "test");
+    setConfig(db, "max_tokens_per_session", 100_000, "cli");
     const sid = insertSession(80_000, 40_000);
     throws(
       () => checkTokenBudget(db, sid),
@@ -60,13 +60,13 @@ describe("checkTokenBudget", () => {
   });
 
   it("does nothing when day tokens are below the day limit", () => {
-    setConfig(db, "max_tokens_per_day", 1_000_000, "test");
+    setConfig(db, "max_tokens_per_day", 1_000_000, "cli");
     const sid = insertSession(50_000, 30_000);
     doesNotThrow(() => checkTokenBudget(db, sid));
   });
 
   it("throws TokenBudgetError with scope day when day limit reached", () => {
-    setConfig(db, "max_tokens_per_day", 100_000, "test");
+    setConfig(db, "max_tokens_per_day", 100_000, "cli");
     const sid = insertSession(60_000, 40_000);
     throws(
       () => checkTokenBudget(db, sid),
@@ -76,8 +76,8 @@ describe("checkTokenBudget", () => {
   });
 
   it("checks session limit before day limit", () => {
-    setConfig(db, "max_tokens_per_session", 50_000, "test");
-    setConfig(db, "max_tokens_per_day", 50_000, "test");
+    setConfig(db, "max_tokens_per_session", 50_000, "cli");
+    setConfig(db, "max_tokens_per_day", 50_000, "cli");
     const sid = insertSession(30_000, 30_000);
     throws(
       () => checkTokenBudget(db, sid),
@@ -86,7 +86,7 @@ describe("checkTokenBudget", () => {
   });
 
   it("includes actionable hint in the error message", () => {
-    setConfig(db, "max_tokens_per_session", 1000, "test");
+    setConfig(db, "max_tokens_per_session", 1000, "cli");
     const sid = insertSession(800, 300);
     try {
       checkTokenBudget(db, sid);

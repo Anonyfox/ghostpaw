@@ -57,8 +57,8 @@ export default defineCommand({
 
         const raw = result.content.trim().replace(/^["']|["']$/g, "");
         if (raw && !raw.startsWith("Error:")) {
-          process.stdout.write(raw + "\n");
-          process.stderr.write(style.dim(`Cost: $${result.cost.estimatedUsd.toFixed(4)}`) + "\n");
+          process.stdout.write(`${raw}\n`);
+          process.stderr.write(`${style.dim(`Cost: $${result.cost.estimatedUsd.toFixed(4)}`)}\n`);
         } else {
           console.error(style.boldRed("error".padStart(10)), " Failed to generate suggestion.");
           process.exitCode = 1;

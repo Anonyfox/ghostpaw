@@ -10,7 +10,6 @@ import { createDashboardHandler } from "./routes/dashboard_api.ts";
 import { createDistillApiHandlers } from "./routes/distill_api.ts";
 import { createMemoryApiHandlers } from "./routes/memory_api.ts";
 import { createMentorApiHandlers } from "./routes/mentor_api.ts";
-import { createTrainerApiHandlers } from "./routes/trainer_api.ts";
 import { createModelsApiHandlers } from "./routes/models_api.ts";
 import { createSecretsApiHandlers } from "./routes/secrets_api.ts";
 import { createSessionsApiHandlers } from "./routes/sessions_api.ts";
@@ -19,6 +18,7 @@ import { createSoulGenerateHandlers } from "./routes/soul_generate.ts";
 import { createSoulTraitsApiHandlers } from "./routes/soul_traits_api.ts";
 import { createSoulsApiHandlers } from "./routes/souls_api.ts";
 import { createStaticHandlers } from "./routes/static.ts";
+import { createTrainerApiHandlers } from "./routes/trainer_api.ts";
 import type { Route, RouteHandler } from "./types.ts";
 
 interface BuildRoutesConfig {

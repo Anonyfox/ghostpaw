@@ -1,11 +1,11 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
 import { strictEqual } from "node:assert";
-import { mkdtempSync, rmSync, mkdirSync, existsSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execFileSync } from "node:child_process";
+import { afterEach, beforeEach, describe, it } from "node:test";
+import { gitDir, hasHistory, resetGitAvailableCache } from "./git.ts";
 import { initHistory } from "./init_history.ts";
-import { hasHistory, gitDir, resetGitAvailableCache } from "./git.ts";
 
 let workspace: string;
 

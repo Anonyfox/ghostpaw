@@ -1,8 +1,8 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
-import { strictEqual, deepStrictEqual } from "node:assert";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
+import { deepStrictEqual, strictEqual } from "node:assert";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { parseSkill } from "./parse_skill.ts";
 
 let workspace: string;
@@ -23,14 +23,17 @@ describe("parseSkill", () => {
     mkdirSync(join(dir, "scripts"));
     mkdirSync(join(dir, "references"));
     mkdirSync(join(dir, "assets"));
-    writeFileSync(join(dir, "SKILL.md"), `---
+    writeFileSync(
+      join(dir, "SKILL.md"),
+      `---
 name: deploy
 description: Deploy the app.
 ---
 
 # Deploy
 
-Steps here.`);
+Steps here.`,
+    );
     writeFileSync(join(dir, "scripts", "run.sh"), "#!/bin/bash\necho hi");
     writeFileSync(join(dir, "references", "setup.md"), "# Setup");
     writeFileSync(join(dir, "assets", "template.json"), "{}");
@@ -49,12 +52,15 @@ Steps here.`);
   it("parses a skill with only SKILL.md", () => {
     const dir = join(workspace, "skills", "simple");
     mkdirSync(dir);
-    writeFileSync(join(dir, "SKILL.md"), `---
+    writeFileSync(
+      join(dir, "SKILL.md"),
+      `---
 name: simple
 description: A simple skill.
 ---
 
-# Simple Skill`);
+# Simple Skill`,
+    );
 
     const skill = parseSkill(workspace, "simple");
     strictEqual(skill?.name, "simple");
@@ -98,12 +104,15 @@ description: A simple skill.
   it("classifies non-standard files as other", () => {
     const dir = join(workspace, "skills", "mixed");
     mkdirSync(dir);
-    writeFileSync(join(dir, "SKILL.md"), `---
+    writeFileSync(
+      join(dir, "SKILL.md"),
+      `---
 name: mixed
 description: Has extra files.
 ---
 
-Body.`);
+Body.`,
+    );
     writeFileSync(join(dir, "notes.txt"), "some notes");
     writeFileSync(join(dir, "helper.py"), "print('hi')");
 

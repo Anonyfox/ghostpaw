@@ -45,8 +45,7 @@ export function buildSkillIndex(workspace: string): SkillIndexEntry[] {
 
     const { frontmatter, body } = parseFrontmatter(content);
     const name = frontmatter?.name || dirName;
-    const description =
-      frontmatter?.description || extractHeadingTitle(body) || "(no description)";
+    const description = frontmatter?.description || extractHeadingTitle(body) || "(no description)";
 
     entries.push({ name, description });
   }

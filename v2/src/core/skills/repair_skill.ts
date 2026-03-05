@@ -1,8 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseFrontmatter } from "./parse_frontmatter.ts";
-import { validateSkill } from "./validate_skill.ts";
 import type { RepairAction, RepairResult, ValidationIssue } from "./types.ts";
+import { validateSkill } from "./validate_skill.ts";
 
 function buildMinimalSkillMd(name: string): string {
   return `---\nname: ${name}\ndescription: (no description)\n---\n\n# ${name}\n`;
@@ -30,9 +30,17 @@ export function repairSkill(workspace: string, name: string): RepairResult {
         try {
           mkdirSync(skillDir, { recursive: true });
           writeFileSync(skillMd, buildMinimalSkillMd(name), "utf-8");
-          actions.push({ code: "create-skill-md", description: `Created SKILL.md for ${name}`, applied: true });
+          actions.push({
+            code: "create-skill-md",
+            description: `Created SKILL.md for ${name}`,
+            applied: true,
+          });
         } catch {
-          actions.push({ code: "create-skill-md", description: `Failed to create SKILL.md`, applied: false });
+          actions.push({
+            code: "create-skill-md",
+            description: `Failed to create SKILL.md`,
+            applied: false,
+          });
         }
         break;
       }
@@ -41,9 +49,17 @@ export function repairSkill(workspace: string, name: string): RepairResult {
         try {
           const content = readFileSync(skillMd, "utf-8");
           writeFileSync(skillMd, addFrontmatterToContent(name, content), "utf-8");
-          actions.push({ code: "add-frontmatter", description: `Added frontmatter to SKILL.md`, applied: true });
+          actions.push({
+            code: "add-frontmatter",
+            description: `Added frontmatter to SKILL.md`,
+            applied: true,
+          });
         } catch {
-          actions.push({ code: "add-frontmatter", description: `Failed to add frontmatter`, applied: false });
+          actions.push({
+            code: "add-frontmatter",
+            description: `Failed to add frontmatter`,
+            applied: false,
+          });
         }
         break;
       }
@@ -76,10 +92,18 @@ export function repairSkill(workspace: string, name: string): RepairResult {
               .map(([k, v]) => `${k}: ${v}`)
               .join("\n");
             writeFileSync(skillMd, `---\n${newFm}\n---\n\n${body}`, "utf-8");
-            actions.push({ code: "fix-name", description: `Updated name to match directory "${name}"`, applied: true });
+            actions.push({
+              code: "fix-name",
+              description: `Updated name to match directory "${name}"`,
+              applied: true,
+            });
           }
         } catch {
-          actions.push({ code: "fix-name", description: `Failed to fix name mismatch`, applied: false });
+          actions.push({
+            code: "fix-name",
+            description: `Failed to fix name mismatch`,
+            applied: false,
+          });
         }
         break;
       }
@@ -88,9 +112,17 @@ export function repairSkill(workspace: string, name: string): RepairResult {
         try {
           const gitFile = join(skillDir, ".git");
           if (existsSync(gitFile)) unlinkSync(gitFile);
-          actions.push({ code: "remove-git-artifact", description: `Removed .git file`, applied: true });
+          actions.push({
+            code: "remove-git-artifact",
+            description: `Removed .git file`,
+            applied: true,
+          });
         } catch {
-          actions.push({ code: "remove-git-artifact", description: `Failed to remove .git`, applied: false });
+          actions.push({
+            code: "remove-git-artifact",
+            description: `Failed to remove .git`,
+            applied: false,
+          });
         }
         break;
       }

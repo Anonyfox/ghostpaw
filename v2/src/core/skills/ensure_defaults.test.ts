@@ -1,10 +1,10 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
 import { strictEqual } from "node:assert";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ensureDefaults } from "./ensure_defaults.ts";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { DEFAULT_SKILLS } from "./defaults.ts";
+import { ensureDefaults } from "./ensure_defaults.ts";
 
 let workspace: string;
 
@@ -27,7 +27,7 @@ describe("ensureDefaults", () => {
   });
 
   it("does not overwrite existing skills", () => {
-    const dir = join(workspace, "skills", "skill-training");
+    const dir = join(workspace, "skills", "effective-writing");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "SKILL.md"), "custom content");
 
@@ -38,12 +38,12 @@ describe("ensureDefaults", () => {
   });
 
   it("creates only missing defaults when some exist", () => {
-    const dir = join(workspace, "skills", "skill-training");
+    const dir = join(workspace, "skills", "effective-writing");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "SKILL.md"), "existing");
 
     const created = ensureDefaults(workspace);
-    strictEqual(created.includes("skill-training"), false);
+    strictEqual(created.includes("effective-writing"), false);
     strictEqual(created.length, Object.keys(DEFAULT_SKILLS).length - 1);
   });
 
@@ -55,9 +55,9 @@ describe("ensureDefaults", () => {
 
   it("writes valid SKILL.md with frontmatter", () => {
     ensureDefaults(workspace);
-    const content = readFileSync(join(workspace, "skills", "skill-scout", "SKILL.md"), "utf-8");
+    const content = readFileSync(join(workspace, "skills", "skill-mcp", "SKILL.md"), "utf-8");
     strictEqual(content.startsWith("---"), true);
-    strictEqual(content.includes("name: skill-scout"), true);
+    strictEqual(content.includes("name: skill-mcp"), true);
     strictEqual(content.includes("description:"), true);
   });
 });

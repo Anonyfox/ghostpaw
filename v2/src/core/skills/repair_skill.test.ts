@@ -1,9 +1,9 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
 import { strictEqual } from "node:assert";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { repairSkill, repairFlatFile } from "./repair_skill.ts";
+import { afterEach, beforeEach, describe, it } from "node:test";
+import { repairFlatFile, repairSkill } from "./repair_skill.ts";
 
 let workspace: string;
 
@@ -20,7 +20,10 @@ describe("repairSkill", () => {
   it("creates SKILL.md when missing", () => {
     mkdirSync(join(workspace, "skills", "empty"), { recursive: true });
     const result = repairSkill(workspace, "empty");
-    strictEqual(result.actions.some((a) => a.code === "create-skill-md" && a.applied), true);
+    strictEqual(
+      result.actions.some((a) => a.code === "create-skill-md" && a.applied),
+      true,
+    );
     strictEqual(existsSync(join(workspace, "skills", "empty", "SKILL.md")), true);
   });
 
@@ -29,7 +32,10 @@ describe("repairSkill", () => {
     mkdirSync(dir);
     writeFileSync(join(dir, "SKILL.md"), "# My Legacy Skill\n\nSome instructions.");
     const result = repairSkill(workspace, "legacy");
-    strictEqual(result.actions.some((a) => a.code === "add-frontmatter" && a.applied), true);
+    strictEqual(
+      result.actions.some((a) => a.code === "add-frontmatter" && a.applied),
+      true,
+    );
 
     const content = readFileSync(join(dir, "SKILL.md"), "utf-8");
     strictEqual(content.startsWith("---"), true);
@@ -41,7 +47,10 @@ describe("repairSkill", () => {
     mkdirSync(dir);
     writeFileSync(join(dir, "SKILL.md"), "---\ndescription: A skill.\n---\n\n# Body");
     const result = repairSkill(workspace, "myskill");
-    strictEqual(result.actions.some((a) => a.code === "fix-name" && a.applied), true);
+    strictEqual(
+      result.actions.some((a) => a.code === "fix-name" && a.applied),
+      true,
+    );
 
     const content = readFileSync(join(dir, "SKILL.md"), "utf-8");
     strictEqual(content.includes("name: myskill"), true);
@@ -52,7 +61,10 @@ describe("repairSkill", () => {
     mkdirSync(dir);
     writeFileSync(join(dir, "SKILL.md"), "---\nname: wrong-name\ndescription: test\n---\n\n# Body");
     const result = repairSkill(workspace, "correct-name");
-    strictEqual(result.actions.some((a) => a.code === "fix-name" && a.applied), true);
+    strictEqual(
+      result.actions.some((a) => a.code === "fix-name" && a.applied),
+      true,
+    );
 
     const content = readFileSync(join(dir, "SKILL.md"), "utf-8");
     strictEqual(content.includes("name: correct-name"), true);
@@ -64,7 +76,10 @@ describe("repairSkill", () => {
     writeFileSync(join(dir, "SKILL.md"), "---\nname: git-issue\ndescription: test\n---\n\n# Body");
     writeFileSync(join(dir, ".git"), "gitdir: /somewhere");
     const result = repairSkill(workspace, "git-issue");
-    strictEqual(result.actions.some((a) => a.code === "remove-git-artifact" && a.applied), true);
+    strictEqual(
+      result.actions.some((a) => a.code === "remove-git-artifact" && a.applied),
+      true,
+    );
     strictEqual(existsSync(join(dir, ".git")), false);
   });
 
@@ -85,18 +100,21 @@ describe("repairSkill", () => {
     mkdirSync(dir);
     writeFileSync(join(dir, "SKILL.md"), "---\nname: partial\n---\n\n# Body");
     const result = repairSkill(workspace, "partial");
-    strictEqual(result.remainingIssues.some((i) => i.code === "missing-description"), true);
+    strictEqual(
+      result.remainingIssues.some((i) => i.code === "missing-description"),
+      true,
+    );
   });
 });
 
 describe("repairFlatFile", () => {
   it("migrates a flat .md file to a skill directory", () => {
-    writeFileSync(
-      join(workspace, "skills", "legacy.md"),
-      "# Legacy Skill\n\nSome instructions.",
-    );
+    writeFileSync(join(workspace, "skills", "legacy.md"), "# Legacy Skill\n\nSome instructions.");
     const result = repairFlatFile(workspace, "legacy.md");
-    strictEqual(result.actions.some((a) => a.code === "migrate-flat-file" && a.applied), true);
+    strictEqual(
+      result.actions.some((a) => a.code === "migrate-flat-file" && a.applied),
+      true,
+    );
     strictEqual(existsSync(join(workspace, "skills", "legacy", "SKILL.md")), true);
     strictEqual(existsSync(join(workspace, "skills", "legacy.md")), false);
 
@@ -109,7 +127,10 @@ describe("repairFlatFile", () => {
     writeFileSync(join(workspace, "skills", "deploy.md"), "# Deploy");
     mkdirSync(join(workspace, "skills", "deploy"));
     const result = repairFlatFile(workspace, "deploy.md");
-    strictEqual(result.actions.some((a) => !a.applied), true);
+    strictEqual(
+      result.actions.some((a) => !a.applied),
+      true,
+    );
   });
 
   it("preserves existing frontmatter during migration", () => {

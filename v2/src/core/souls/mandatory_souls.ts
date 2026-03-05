@@ -1,9 +1,8 @@
 export const MANDATORY_SOUL_IDS = {
   ghostpaw: 1,
   "js-engineer": 2,
-  "prompt-engineer": 3,
-  mentor: 4,
-  trainer: 5,
+  mentor: 3,
+  trainer: 4,
 } as const;
 
 export type MandatorySoulName = keyof typeof MANDATORY_SOUL_IDS;

@@ -1,3 +1,4 @@
+import type { ChatFactory } from "../../core/chat/chat_instance.ts";
 import {
   accumulateUsage,
   closeSession,
@@ -7,7 +8,6 @@ import {
   getSession,
   markDistilled,
 } from "../../core/chat/index.ts";
-import type { ChatFactory } from "../../core/chat/chat_instance.ts";
 import { formatConversation } from "../../core/memory/format_conversation.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import {

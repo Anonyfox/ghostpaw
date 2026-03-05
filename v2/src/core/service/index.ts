@@ -6,5 +6,5 @@ export { installService } from "./install_service.ts";
 export { resolveServiceConfig } from "./resolve_config.ts";
 export { serviceLogs } from "./service_logs.ts";
 export { serviceStatus } from "./service_status.ts";
-export { uninstallService } from "./uninstall_service.ts";
 export type { InitSystem, ServiceConfig, ServiceResult, ServiceStatus } from "./types.ts";
+export { uninstallService } from "./uninstall_service.ts";

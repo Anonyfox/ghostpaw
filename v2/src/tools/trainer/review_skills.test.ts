@@ -27,7 +27,10 @@ describe("review_skills tool", () => {
   });
 
   it("returns skill overview", async () => {
-    const result = (await tool.execute({ args: {}, id: "1" })) as Record<string, unknown>;
+    const result = (await tool.execute({
+      args: {},
+      ctx: { model: "test", provider: "openai" },
+    })) as Record<string, unknown>;
     strictEqual(result.skillCount, 1);
     ok(Array.isArray(result.skills));
     const skills = result.skills as Array<Record<string, unknown>>;
@@ -38,7 +41,10 @@ describe("review_skills tool", () => {
   it("returns empty when no skills", async () => {
     rmSync(join(workspace, "skills"), { recursive: true, force: true });
     mkdirSync(join(workspace, "skills"), { recursive: true });
-    const result = (await tool.execute({ args: {}, id: "1" })) as Record<string, unknown>;
+    const result = (await tool.execute({
+      args: {},
+      ctx: { model: "test", provider: "openai" },
+    })) as Record<string, unknown>;
     strictEqual(result.skillCount, 0);
     deepStrictEqual(result.skills, []);
   });

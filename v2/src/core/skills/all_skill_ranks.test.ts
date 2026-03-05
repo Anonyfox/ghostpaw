@@ -1,8 +1,8 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
-import { strictEqual, deepStrictEqual } from "node:assert";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
+import { deepStrictEqual, strictEqual } from "node:assert";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { allSkillRanks } from "./all_skill_ranks.ts";
 import { checkpoint } from "./checkpoint.ts";
 import { resetGitAvailableCache } from "./git.ts";

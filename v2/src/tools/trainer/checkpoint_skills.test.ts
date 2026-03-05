@@ -31,7 +31,7 @@ describe("checkpoint_skills tool", () => {
   it("checkpoints a skill", async () => {
     const result = (await tool.execute({
       args: { skills: '["deploy"]', message: "Initial deploy skill" },
-      id: "1",
+      ctx: { model: "test", provider: "openai" },
     })) as Record<string, unknown>;
     ok(!result.error, `Unexpected error: ${result.error}`);
   });
@@ -39,7 +39,7 @@ describe("checkpoint_skills tool", () => {
   it("rejects missing skills param", async () => {
     const result = (await tool.execute({
       args: { message: "test" },
-      id: "1",
+      ctx: { model: "test", provider: "openai" },
     })) as Record<string, unknown>;
     ok(result.error);
   });
@@ -47,7 +47,7 @@ describe("checkpoint_skills tool", () => {
   it("rejects missing message", async () => {
     const result = (await tool.execute({
       args: { skills: '["deploy"]' },
-      id: "1",
+      ctx: { model: "test", provider: "openai" },
     })) as Record<string, unknown>;
     ok(result.error);
   });
@@ -55,7 +55,7 @@ describe("checkpoint_skills tool", () => {
   it("rejects invalid JSON", async () => {
     const result = (await tool.execute({
       args: { skills: "not json", message: "test" },
-      id: "1",
+      ctx: { model: "test", provider: "openai" },
     })) as Record<string, unknown>;
     ok(result.error);
   });
@@ -63,7 +63,7 @@ describe("checkpoint_skills tool", () => {
   it("rejects non-array JSON", async () => {
     const result = (await tool.execute({
       args: { skills: '{"a":1}', message: "test" },
-      id: "1",
+      ctx: { model: "test", provider: "openai" },
     })) as Record<string, unknown>;
     ok(result.error);
   });

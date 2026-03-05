@@ -1,12 +1,12 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
-import { strictEqual, deepStrictEqual } from "node:assert";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, unlinkSync } from "node:fs";
+import { deepStrictEqual, strictEqual } from "node:assert";
+import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pendingChanges, skillPendingChanges } from "./pending_changes.ts";
-import { initHistory } from "./init_history.ts";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { checkpoint } from "./checkpoint.ts";
 import { resetGitAvailableCache } from "./git.ts";
+import { initHistory } from "./init_history.ts";
+import { pendingChanges, skillPendingChanges } from "./pending_changes.ts";
 
 let workspace: string;
 
@@ -51,7 +51,10 @@ describe("pendingChanges", () => {
     initHistory(workspace);
     checkpoint(workspace, ["deploy"], "init");
 
-    writeFileSync(join(workspace, "skills", "deploy", "SKILL.md"), "---\nname: deploy\ndescription: updated\n---\nNew body.");
+    writeFileSync(
+      join(workspace, "skills", "deploy", "SKILL.md"),
+      "---\nname: deploy\ndescription: updated\n---\nNew body.",
+    );
     const result = pendingChanges(workspace);
     strictEqual(result.skills[0].modified.includes("SKILL.md"), true);
   });

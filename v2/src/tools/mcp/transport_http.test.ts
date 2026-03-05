@@ -231,10 +231,7 @@ describe("HttpTransport", () => {
       await transport.send({ jsonrpc: "2.0", id: 1, method: "slow" });
       ok(false, "should have thrown");
     } catch (err) {
-      ok(
-        (err as Error).message.includes("timed out") ||
-          (err as Error).message.includes("abort"),
-      );
+      ok((err as Error).message.includes("timed out") || (err as Error).message.includes("abort"));
     }
   });
 

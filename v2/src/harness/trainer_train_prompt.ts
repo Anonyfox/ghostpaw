@@ -1,7 +1,4 @@
-export function buildTrainProposePrompt(
-  skillName: string,
-  skillContent: string,
-): string {
+export function buildTrainProposePrompt(skillName: string, skillContent: string): string {
   return [
     `Review and analyze improvements for skill: ${skillName}`,
     "",
@@ -38,9 +35,7 @@ export function buildTrainExecutePrompt(
   optionDescription: string,
   guidance?: string,
 ): string {
-  const extra = guidance?.trim()
-    ? `\n\nAdditional user guidance: ${guidance.trim()}`
-    : "";
+  const extra = guidance?.trim() ? `\n\nAdditional user guidance: ${guidance.trim()}` : "";
 
   return [
     `Improve skill "${skillName}" with this specific improvement:`,
@@ -50,16 +45,15 @@ export function buildTrainExecutePrompt(
     extra,
     "",
     "Steps:",
-    "1. Read the current skill file at skills/" + skillName + "/SKILL.md.",
-    "2. Read skills/skill-training/SKILL.md for training guidelines.",
-    "3. Use recall to gather evidence supporting this improvement.",
-    "4. Apply the improvement using edit. Be additive and specific:",
+    `1. Read the current skill file at skills/${skillName}/SKILL.md.`,
+    "2. Use recall to gather evidence supporting this improvement.",
+    "3. Apply the improvement using edit. Be additive and specific:",
     "   - Do not remove existing working content without good reason",
     "   - Add failure paths if missing",
     "   - Compress verbose sections where possible",
     "   - Keep skills under 80 lines; split if needed",
-    "5. Run validate_skills to verify structural correctness.",
-    "6. Use checkpoint_skills to commit the improvement.",
+    "4. Run validate_skills to verify structural correctness.",
+    "5. Use checkpoint_skills to commit the improvement.",
     "",
     "CRITICAL: The improvement MUST be checkpointed before you finish.",
     "Only checkpoint if the change genuinely improves reliability in practice.",

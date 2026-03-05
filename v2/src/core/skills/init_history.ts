@@ -37,7 +37,7 @@ export function initHistory(workspace: string): boolean {
   try {
     const infoDir = join(dir, "info");
     mkdirSync(infoDir, { recursive: true });
-    writeFileSync(join(infoDir, "exclude"), EXCLUDE_PATTERNS.join("\n") + "\n", "utf-8");
+    writeFileSync(join(infoDir, "exclude"), `${EXCLUDE_PATTERNS.join("\n")}\n`, "utf-8");
   } catch {
     // non-critical
   }

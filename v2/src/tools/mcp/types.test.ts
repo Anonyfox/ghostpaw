@@ -1,6 +1,5 @@
 import { ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import { CLIENT_INFO, PROTOCOL_VERSION } from "./types.ts";
 import type {
   JsonRpcErrorResponse,
   JsonRpcNotification,
@@ -13,6 +12,7 @@ import type {
   McpToolSchema,
   McpTransport,
 } from "./types.ts";
+import { CLIENT_INFO, PROTOCOL_VERSION } from "./types.ts";
 
 describe("types", () => {
   it("exports protocol constants", () => {

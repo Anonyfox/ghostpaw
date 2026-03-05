@@ -1,10 +1,17 @@
-import { describe, it, beforeEach, afterEach } from "node:test";
 import { strictEqual } from "node:assert";
-import { mkdtempSync, rmSync, mkdirSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execFileSync } from "node:child_process";
-import { isGitAvailable, resetGitAvailableCache, gitDir, workTree, hasHistory, git } from "./git.ts";
+import { afterEach, beforeEach, describe, it } from "node:test";
+import {
+  git,
+  gitDir,
+  hasHistory,
+  isGitAvailable,
+  resetGitAvailableCache,
+  workTree,
+} from "./git.ts";
 
 let workspace: string;
 

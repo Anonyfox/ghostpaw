@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { ChatFactory } from "../../core/chat/index.ts";
 import {
   accumulateUsage,
@@ -5,7 +7,6 @@ import {
   createSession,
   executeTurn,
 } from "../../core/chat/index.ts";
-import { MANDATORY_SOUL_IDS, renderSoul } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 const SYSTEM_PROMPT = [
@@ -76,15 +77,26 @@ function buildPrompt(input: RewriteEssenceInput): string {
   return sections.join("\n");
 }
 
+function readWritingSkill(workspace: string): string | null {
+  const skillPath = join(workspace, "skills", "effective-writing", "SKILL.md");
+  if (!existsSync(skillPath)) return null;
+  try {
+    return readFileSync(skillPath, "utf-8");
+  } catch {
+    return null;
+  }
+}
+
 export async function rewriteEssence(
   db: DatabaseHandle,
+  workspace: string,
   parentSessionId: number,
   input: RewriteEssenceInput,
   model: string,
   createChat: ChatFactory,
 ): Promise<string> {
-  const soulContext = renderSoul(db, MANDATORY_SOUL_IDS["prompt-engineer"]);
-  const systemPrompt = soulContext ? `${soulContext}\n\n${SYSTEM_PROMPT}` : SYSTEM_PROMPT;
+  const skillContent = readWritingSkill(workspace);
+  const systemPrompt = skillContent ? `${skillContent}\n\n${SYSTEM_PROMPT}` : SYSTEM_PROMPT;
 
   const session = createSession(db, `system:essence-rewrite:${input.soulId}:${Date.now()}`, {
     purpose: "system",

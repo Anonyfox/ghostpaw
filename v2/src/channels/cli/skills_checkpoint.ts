@@ -11,7 +11,10 @@ export default defineCommand({
   },
   async run({ args }) {
     const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
-    const names = (args.skills as string).split(",").map((s) => s.trim()).filter(Boolean);
+    const names = (args.skills as string)
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
 
     if (names.length === 0) {
       console.log(style.dim("No skill names provided."));

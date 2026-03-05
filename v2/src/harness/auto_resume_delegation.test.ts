@@ -56,14 +56,42 @@ function fakeEntity(opts?: { throws?: Error }): { entity: Entity; calls: TurnCal
     workspace: "/tmp/test",
     async *streamTurn() {
       yield "";
-      return { content: "", succeeded: true, usage: { inputTokens: 0, outputTokens: 0, reasoningTokens: 0, cachedTokens: 0 }, cost: { estimatedUsd: 0 } };
+      return {
+        content: "",
+        succeeded: true,
+        messageId: 0,
+        model: "test",
+        iterations: 1,
+        usage: {
+          inputTokens: 0,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          cachedTokens: 0,
+          totalTokens: 0,
+        },
+        cost: { estimatedUsd: 0 },
+      };
     },
     async executeTurn(sessionId: number, content: string) {
       calls.push({ sessionId, content });
       if (opts?.throws) throw opts.throws;
       addMessage(db, { sessionId, role: "user", content });
       addMessage(db, { sessionId, role: "assistant", content: "Here is the summary." });
-      return { content: "Here is the summary.", succeeded: true, usage: { inputTokens: 10, outputTokens: 10, reasoningTokens: 0, cachedTokens: 0 }, cost: { estimatedUsd: 0.001 } };
+      return {
+        content: "Here is the summary.",
+        succeeded: true,
+        messageId: 0,
+        model: "test",
+        iterations: 1,
+        usage: {
+          inputTokens: 10,
+          outputTokens: 10,
+          reasoningTokens: 0,
+          cachedTokens: 0,
+          totalTokens: 20,
+        },
+        cost: { estimatedUsd: 0.001 },
+      };
     },
     async flush() {},
   };
@@ -100,8 +128,9 @@ describe("autoResumeDelegation", () => {
     await autoResumeDelegation(db, entity, run, notify);
 
     ok(notifiedWith);
-    strictEqual(notifiedWith!.pid, session.id as number);
-    strictEqual(notifiedWith!.run.id, run.id);
+    const nw = notifiedWith as { pid: number; run: DelegationRun };
+    strictEqual(nw.pid, session.id as number);
+    strictEqual(nw.run.id, run.id);
   });
 
   it("falls back to static message when executeTurn throws", async () => {

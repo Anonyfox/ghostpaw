@@ -210,7 +210,7 @@ describe("distillPending", () => {
   });
 
   it("continues processing after individual session errors", async () => {
-    let callCount = 0;
+    let _callCount = 0;
     const alternatingFactory = (_model: string): ChatInstance => ({
       system() {
         return this;
@@ -228,7 +228,7 @@ describe("distillPending", () => {
         return [];
       },
       async generate() {
-        callCount++;
+        _callCount++;
         return "Nothing notable.";
       },
       async *stream() {
@@ -236,7 +236,13 @@ describe("distillPending", () => {
       },
       get lastResult() {
         return {
-          usage: { inputTokens: 10, outputTokens: 5, reasoningTokens: 0, totalTokens: 15, cachedTokens: 0 },
+          usage: {
+            inputTokens: 10,
+            outputTokens: 5,
+            reasoningTokens: 0,
+            totalTokens: 15,
+            cachedTokens: 0,
+          },
           cost: { estimatedUsd: 0.0001 },
           model: "test-model",
           iterations: 1,

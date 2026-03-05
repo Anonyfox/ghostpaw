@@ -1,8 +1,5 @@
 import { useCallback, useState } from "preact/hooks";
-import type {
-  DistillStatusResponse,
-  DistillSweepResponse,
-} from "../../shared/distill_types.ts";
+import type { DistillStatusResponse, DistillSweepResponse } from "../../shared/distill_types.ts";
 import { apiPost } from "../api_post.ts";
 
 type Phase = "idle" | "distilling" | "result" | "error";

@@ -1,5 +1,5 @@
-import { describe, it } from "node:test";
 import { strictEqual } from "node:assert";
+import { describe, it } from "node:test";
 import { promptChoice, promptSkillPick } from "./prompt_choice.ts";
 
 describe("prompt_choice exports", () => {

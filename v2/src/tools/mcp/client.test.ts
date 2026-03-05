@@ -14,9 +14,7 @@ function createMockTransport(
 ): McpTransport {
   let connected = true;
   return {
-    async send(
-      msg: JsonRpcRequest | JsonRpcNotification,
-    ): Promise<JsonRpcResponse | null> {
+    async send(msg: JsonRpcRequest | JsonRpcNotification): Promise<JsonRpcResponse | null> {
       if (!("id" in msg) || msg.id === undefined) return null;
       const req = msg as JsonRpcRequest;
       const handler = responses[req.method];
@@ -110,10 +108,7 @@ describe("connectMcpServer", () => {
 
     const client = await connectMcpServer("test", transport);
 
-    await rejects(
-      () => client.callTool("nonexistent", {}),
-      /no tool named "nonexistent"/,
-    );
+    await rejects(() => client.callTool("nonexistent", {}), /no tool named "nonexistent"/);
 
     await client.disconnect();
   });
@@ -139,10 +134,7 @@ describe("connectMcpServer", () => {
       initialize: () => ({ broken: true }),
     });
 
-    await rejects(
-      () => connectMcpServer("bad", transport),
-      /invalid initialize result/,
-    );
+    await rejects(() => connectMcpServer("bad", transport), /invalid initialize result/);
   });
 
   it("handles server with no tools", async () => {
@@ -180,10 +172,7 @@ describe("connectMcpServer", () => {
       isConnected: () => true,
     };
 
-    await rejects(
-      () => connectMcpServer("slow", transport, { timeoutMs: 200 }),
-      /timed out/,
-    );
+    await rejects(() => connectMcpServer("slow", transport, { timeoutMs: 200 }), /timed out/);
   });
 
   it("rejects callTool on disconnected transport", async () => {
@@ -196,9 +185,6 @@ describe("connectMcpServer", () => {
     const client = await connectMcpServer("test", transport);
     await client.disconnect();
 
-    await rejects(
-      () => client.callTool("echo", { msg: "test" }),
-      /disconnected/,
-    );
+    await rejects(() => client.callTool("echo", { msg: "test" }), /disconnected/);
   });
 });
