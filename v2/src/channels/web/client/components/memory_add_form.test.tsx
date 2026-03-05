@@ -8,7 +8,7 @@ describe("MemoryAddForm", () => {
     const html = render(<MemoryAddForm onCreated={() => {}} onCancel={() => {}} />);
     ok(html.includes("Direct statement"));
     ok(html.includes("Observed behavior"));
-    ok(html.includes("Picked up in conversation"));
+    ok(html.includes("Distilled from conversation"));
     ok(html.includes("Inferred"));
   });
 

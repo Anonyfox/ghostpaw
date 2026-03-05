@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { initChatTables } from "../../core/chat/index.ts";
 import { initConfigTable } from "../../core/config/index.ts";
 import { initMemoryTable } from "../../core/memory/index.ts";
+import { initPackTables } from "../../core/pack/index.ts";
 import { initRunsTable, recoverOrphanedRuns } from "../../core/runs/index.ts";
 import {
   initSecretsTable,
@@ -21,6 +22,7 @@ export async function withRunDb<T>(fn: (db: DatabaseHandle) => T | Promise<T>): 
   initMemoryTable(db);
   initSoulsTables(db);
   initRunsTable(db);
+  initPackTables(db);
   recoverOrphanedRuns(db);
   ensureMandatorySouls(db);
   loadSecretsIntoEnv(db);

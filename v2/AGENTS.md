@@ -15,7 +15,7 @@ If you are working on a specific system, also read its spec:
 | Secrets | `docs/SECRETS.md` | **Implemented** | Secret storage, provider keys, isolation, scrubbing |
 | Config | `docs/CONFIG.md` | **Implemented** | Runtime configuration, validation, changelog |
 | Haunting | `docs/HAUNT.md` | **Spec only** | Autonomous inner life, journal, undirected processing |
-| Pack | `docs/PACK.md` | **Spec only** | Social bonds, Theory of Mind, relational identity |
+| Pack | `docs/PACK.md` | **Implemented** | Social bonds, Theory of Mind, relational identity |
 | Pawprints | `docs/PAWPRINT.md` | **Spec only** | Situated experiential knowledge, discovery by presence |
 
 Specs marked "Implemented" have full code in `src/`. Specs marked "Spec only" are design documents with zero implementation — no code, no tables, no tools. Don't reference unimplemented systems as if they exist.
@@ -81,7 +81,7 @@ Filesystem (read, write, edit, find_and_replace, ls, grep, bash), web (web_searc
 These systems have detailed design specs but zero implementation:
 
 - **Haunting** — No haunt loop, no journal, no autonomous cycling, no adaptive sleep, no proactive messaging.
-- **Pack** — No bond narratives, no pack tables, no social context, no Theory of Mind.
+- **Pack** — Core module implemented (`core/pack/`): schema, meet/get/list/count members, update bond, note interaction, sense member/pack, render bond. Not yet wired into context assembly or tools.
 - **Pawprints** — No discovery-by-presence tooling, no territory map. The convention (`.pawprint.md` files) is defined but no code supports it.
 - **Fitness evaluation** — No automated evidence-based fitness signals for soul refinement. Refinement is CLI-triggered.
 - **Cross-soul pattern detection** — No migration between soul islands.

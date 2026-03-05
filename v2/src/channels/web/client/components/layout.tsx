@@ -55,6 +55,7 @@ export function Layout({ children }: LayoutProps) {
               <NavItem href="/souls" label="Souls" />
               <NavItem href="/training-grounds" label="Skills" />
               <NavItem href="/memories" label="Memories" />
+              <NavItem href="/pack" label="Pack" />
               <NavItem href="/costs" label="Costs" />
               <NavItem href="/sessions" label="Sessions" />
               <NavItem href="/chat" label="Chat" />

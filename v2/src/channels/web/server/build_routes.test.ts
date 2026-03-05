@@ -3,6 +3,7 @@ import { beforeEach, describe, it } from "node:test";
 import { initChatTables } from "../../../core/chat/index.ts";
 import { initConfigTable } from "../../../core/config/index.ts";
 import { initMemoryTable } from "../../../core/memory/index.ts";
+import { initPackTables } from "../../../core/pack/index.ts";
 import { initRunsTable } from "../../../core/runs/index.ts";
 import { initSecretsTable } from "../../../core/secrets/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../../../core/souls/index.ts";
@@ -21,6 +22,7 @@ describe("buildRoutes", () => {
     initMemoryTable(db);
     initSoulsTables(db);
     initRunsTable(db);
+    initPackTables(db);
     ensureMandatorySouls(db);
   });
 
@@ -53,6 +55,6 @@ describe("buildRoutes", () => {
       spaHandler: () => {},
     });
 
-    strictEqual(result.routes.length, 62);
+    strictEqual(result.routes.length, 69);
   });
 });

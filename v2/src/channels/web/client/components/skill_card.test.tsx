@@ -54,9 +54,9 @@ describe("SkillCard", () => {
     ok(html.includes("border-secondary"));
   });
 
-  it("is clickable with role button", () => {
+  it("is clickable as a button element", () => {
     const html = render(<SkillCard skill={base} onClick={() => {}} />);
-    ok(html.includes('role="button"'));
+    ok(html.includes("<button"));
     ok(html.includes("cursor: pointer"));
   });
 });

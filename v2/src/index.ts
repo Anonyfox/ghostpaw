@@ -3,6 +3,7 @@ import { defineCommand, runMain } from "citty";
 import { deleteOldDistilled, initChatTables } from "./core/chat/index.ts";
 import { initConfigTable } from "./core/config/index.ts";
 import { initMemoryTable } from "./core/memory/index.ts";
+import { initPackTables } from "./core/pack/index.ts";
 import { initRunsTable, recoverOrphanedRuns } from "./core/runs/index.ts";
 import { initSecretsTable, loadSecretsIntoEnv, syncProviderKeys } from "./core/secrets/index.ts";
 import {
@@ -26,6 +27,7 @@ const subCommands = {
   config: () => import("./channels/cli/config.ts").then((m) => m.default),
   souls: () => import("./channels/cli/souls.ts").then((m) => m.default),
   memory: () => import("./channels/cli/memory.ts").then((m) => m.default),
+  pack: () => import("./channels/cli/pack.ts").then((m) => m.default),
   sessions: () => import("./channels/cli/sessions.ts").then((m) => m.default),
   skills: () => import("./channels/cli/skills.ts").then((m) => m.default),
   costs: () => import("./channels/cli/costs.ts").then((m) => m.default),
@@ -72,6 +74,7 @@ const main = defineCommand({
     initMemoryTable(db);
     initSoulsTables(db);
     initRunsTable(db);
+    initPackTables(db);
     recoverOrphanedRuns(db);
     ensureMandatorySouls(db);
     loadSecretsIntoEnv(db);

@@ -27,6 +27,7 @@ import {
   createReviseTool,
 } from "../tools/memory/index.ts";
 import { createMentorTools } from "../tools/mentor/index.ts";
+import { createPackTools } from "../tools/pack/index.ts";
 import { createReadTool } from "../tools/read.ts";
 import {
   createListSecretsTool,
@@ -89,6 +90,7 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     createCalcTool(),
     createDatetimeTool(),
     createSenseTool(),
+    ...createPackTools(db),
   ];
 
   const mentorOnly = createMentorTools(db);

@@ -127,29 +127,29 @@ Two tables capture the pack's full state.
 
 | Column | Type | Purpose |
 |---|---|---|
-| id | TEXT (ULID) | Unique identifier |
-| name | TEXT | How the ghost refers to this being |
-| kind | TEXT | human, ghostpaw, agent, service, other |
-| bond | TEXT | The bond narrative — the relationship, both sides |
-| trust | REAL | 0–1, earned through interaction |
-| status | TEXT | active, dormant, lost |
-| first_contact | INTEGER | Unix ms — when the relationship began |
-| last_contact | INTEGER | Unix ms — most recent interaction |
-| metadata | TEXT | JSON — dates, channels, preferences, connections |
-| created_at | INTEGER | Unix ms |
-| updated_at | INTEGER | Unix ms |
+| id | INTEGER PRIMARY KEY | Auto-incrementing, sortable by insertion order |
+| name | TEXT NOT NULL | How the ghost refers to this being |
+| kind | TEXT NOT NULL | human, ghostpaw, agent, service, other |
+| bond | TEXT NOT NULL DEFAULT '' | The bond narrative — the relationship, both sides |
+| trust | REAL NOT NULL DEFAULT 0.5 | 0–1, earned through interaction |
+| status | TEXT NOT NULL DEFAULT 'active' | active, dormant, lost |
+| first_contact | INTEGER NOT NULL | Unix ms — when the relationship began |
+| last_contact | INTEGER NOT NULL | Unix ms — most recent interaction |
+| metadata | TEXT NOT NULL DEFAULT '{}' | JSON — dates, channels, preferences, connections |
+| created_at | INTEGER NOT NULL | Unix ms |
+| updated_at | INTEGER NOT NULL | Unix ms |
 
 **`pack_interactions`** — One row per meaningful event. The evidence that bonds are built from.
 
 | Column | Type | Purpose |
 |---|---|---|
-| id | TEXT (ULID) | Unique identifier |
-| member_id | TEXT | FK to pack_members |
-| kind | TEXT | conversation, correction, conflict, gift, milestone, observation |
-| summary | TEXT | What happened and why it mattered |
-| significance | REAL | 0–1, how much this changed the bond |
-| session_id | TEXT | Optional link to the session |
-| created_at | INTEGER | Unix ms |
+| id | INTEGER PRIMARY KEY | Auto-incrementing, sortable by insertion order |
+| member_id | INTEGER NOT NULL | FK to pack_members(id) |
+| kind | TEXT NOT NULL | conversation, correction, conflict, gift, milestone, observation |
+| summary | TEXT NOT NULL | What happened and why it mattered |
+| significance | REAL NOT NULL DEFAULT 0.5 | 0–1, how much this changed the bond |
+| session_id | INTEGER | Optional link to the sessions table |
+| created_at | INTEGER NOT NULL | Unix ms |
 
 No files on disk. No separate store. The database is canonical. Bond narratives and interaction histories are queryable, attributable, and preserved.
 

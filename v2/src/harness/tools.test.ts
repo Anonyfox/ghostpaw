@@ -5,6 +5,7 @@ import { initConfigTable } from "../core/config/index.ts";
 import { initMemoryTable } from "../core/memory/index.ts";
 import { initRunsTable } from "../core/runs/index.ts";
 import { initSecretsTable } from "../core/secrets/index.ts";
+import { initPackTables } from "../core/pack/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
@@ -20,6 +21,7 @@ beforeEach(async () => {
   initMemoryTable(db);
   initSecretsTable(db);
   initRunsTable(db);
+  initPackTables(db);
   ensureMandatorySouls(db);
 });
 
@@ -41,6 +43,10 @@ const EXPECTED_BASE_TOOLS = [
   "list_secrets",
   "ls",
   "mcp",
+  "pack_bond",
+  "pack_meet",
+  "pack_note",
+  "pack_sense",
   "read",
   "recall",
   "remember",

@@ -11,6 +11,7 @@ import { createDistillApiHandlers } from "./routes/distill_api.ts";
 import { createMemoryApiHandlers } from "./routes/memory_api.ts";
 import { createMentorApiHandlers } from "./routes/mentor_api.ts";
 import { createModelsApiHandlers } from "./routes/models_api.ts";
+import { createPackApiHandlers } from "./routes/pack_api.ts";
 import { createSecretsApiHandlers } from "./routes/secrets_api.ts";
 import { createSessionsApiHandlers } from "./routes/sessions_api.ts";
 import { createSkillsApiHandlers } from "./routes/skills_api.ts";
@@ -57,6 +58,7 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
   const soulGenerate = createSoulGenerateHandlers(config.db);
   const soulTraits = createSoulTraitsApiHandlers(config.db);
   const memories = createMemoryApiHandlers(config.db);
+  const pack = createPackApiHandlers(config.db);
   const costs = createCostsApiHandlers(config.db);
   const sessions = createSessionsApiHandlers(config.db);
   const distill = createDistillApiHandlers(config.db);
@@ -123,6 +125,13 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("POST", "/api/memories/:id/confirm", memories.confirm, true),
       createRoute("POST", "/api/memories/:id/forget", memories.forget, true),
       createRoute("PATCH", "/api/memories/:id", memories.correct, true),
+      createRoute("GET", "/api/pack", pack.list, true),
+      createRoute("GET", "/api/pack/stats", pack.stats, true),
+      createRoute("POST", "/api/pack", pack.meet, true),
+      createRoute("GET", "/api/pack/:id", pack.detail, true),
+      createRoute("PATCH", "/api/pack/:id", pack.bond, true),
+      createRoute("POST", "/api/pack/:id/note", pack.note, true),
+      createRoute("GET", "/api/pack/:id/interactions", pack.interactions, true),
       createRoute("GET", "/api/costs", costs.get, true),
       createRoute("POST", "/api/costs/limit", costs.setLimit, true),
       createRoute("GET", "/api/sessions", sessions.list, true),

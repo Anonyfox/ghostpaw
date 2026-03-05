@@ -5,6 +5,8 @@ import { CostsPage } from "./pages/costs.tsx";
 import { DashboardPage } from "./pages/dashboard.tsx";
 import { LoginPage } from "./pages/login.tsx";
 import { MemoriesPage } from "./pages/memories.tsx";
+import { PackPage } from "./pages/pack.tsx";
+import { PackDetailPage } from "./pages/pack_detail.tsx";
 import { SessionsPage } from "./pages/sessions.tsx";
 import { SettingsPage } from "./pages/settings.tsx";
 import { SoulDetailPage } from "./pages/soul_detail.tsx";
@@ -17,6 +19,8 @@ function AuthenticatedRoutes() {
       <Switch>
         <Route path="/dashboard" component={DashboardPage} />
         <Route path="/memories" component={MemoriesPage} />
+        <Route path="/pack" component={PackPage} />
+        <Route path="/pack/:id" component={PackDetailPage} />
         <Route path="/costs" component={CostsPage} />
         <Route path="/sessions" component={SessionsPage} />
         <Route path="/souls" component={SoulsPage} />
