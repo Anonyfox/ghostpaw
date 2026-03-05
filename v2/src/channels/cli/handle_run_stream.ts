@@ -1,24 +1,18 @@
-import type { TurnContext } from "../../core/chat/index.ts";
-import { closeSession, createSession, streamTurn } from "../../core/chat/index.ts";
-import type { DatabaseHandle } from "../../lib/index.ts";
-import { resolveModel } from "./resolve_model.ts";
+import { closeSession, createSession } from "../../core/chat/index.ts";
+import { defaultChatFactory } from "../../harness/chat_factory.ts";
+import type { Entity } from "../../harness/index.ts";
+import { resolveModel } from "../../harness/model.ts";
+import { handlePostSession } from "../../harness/post_session.ts";
 import type { RunInput, RunResult } from "./run_types.ts";
-import { DEFAULT_SYSTEM_PROMPT } from "./run_types.ts";
 import { toRunResult } from "./to_run_result.ts";
 
 export async function* handleRunStream(
-  db: DatabaseHandle,
+  entity: Entity,
   input: RunInput,
 ): AsyncGenerator<string, RunResult> {
-  const model = resolveModel(db, input.model);
-  const systemPrompt = input.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
-  const session = createSession(db, `cli:run:${Date.now()}`, { purpose: "chat" });
-  const ctx: TurnContext = { db, tools: [], createChat: input.createChat };
-
-  const gen = streamTurn(
-    { sessionId: session.id, content: input.prompt, systemPrompt, model },
-    ctx,
-  );
+  const session = createSession(entity.db, `cli:run:${Date.now()}`, { purpose: "chat" });
+  const sessionId = session.id as number;
+  const gen = entity.streamTurn(sessionId, input.prompt, { model: input.model });
 
   try {
     for (;;) {
@@ -29,7 +23,11 @@ export async function* handleRunStream(
       yield next.value;
     }
   } finally {
-    closeSession(db, session.id);
+    await entity.flush();
+    closeSession(entity.db, sessionId);
+    const model = resolveModel(entity.db, input.model);
+    const p = handlePostSession(entity.db, sessionId, model, defaultChatFactory);
+    if (p) await p;
     await gen.return(undefined as never);
   }
 }

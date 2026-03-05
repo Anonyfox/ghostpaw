@@ -94,7 +94,7 @@ export function SoulTraitRow({ trait, soulId, isArchived, onUpdated }: SoulTrait
           <span class={`badge ${statusColors[trait.status] ?? "bg-secondary"}`}>
             {trait.status}
           </span>
-          <span class="badge bg-dark">Gen {trait.generation}</span>
+          <span class="text-body-tertiary small">Gen {trait.generation}</span>
         </div>
       </div>
       {!isArchived && !editing && (

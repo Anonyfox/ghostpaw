@@ -28,7 +28,7 @@ function firstUserMessage(db: DatabaseHandle, sessionId: number): string {
 export function createChatSessionsApiHandlers(db: DatabaseHandle) {
   return {
     list(routeCtx: RouteContext): void {
-      const sessions = listSessions(db, { purpose: "chat", absorbed: false });
+      const sessions = listSessions(db, { purpose: "chat", distilled: false });
       const limited = sessions.slice(0, LIST_LIMIT);
 
       const summaries: ChatSessionSummary[] = limited.map((s) => {

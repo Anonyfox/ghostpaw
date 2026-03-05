@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
-import { Chat } from "chatoyant";
+import { resolve } from "node:path";
 import { defineCommand } from "citty";
+import { createEntity } from "../../harness/index.ts";
 import { formatTokens, label, style } from "../../lib/terminal/index.ts";
 import { handleRun } from "./handle_run.ts";
 import { handleRunStream } from "./handle_run_stream.ts";
@@ -41,12 +42,6 @@ export default defineCommand({
       description: "Model override (default: from config)",
       required: false,
     },
-    system: {
-      type: "string",
-      alias: "s",
-      description: "Custom system prompt",
-      required: false,
-    },
     "no-stream": {
       type: "boolean",
       description: "Disable streaming (wait for full response)",
@@ -58,19 +53,15 @@ export default defineCommand({
     const prompt = resolvePrompt(args.prompt as string | undefined, args._ ?? [], stdinContent);
 
     const modelOverride = args.model as string | undefined;
-    const systemPrompt = args.system as string | undefined;
     const shouldStream = !args["no-stream"] && process.stdout.isTTY === true;
-    const createChat = (model: string) => new Chat({ model });
 
     try {
       await withRunDb(async (db) => {
+        const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
+        const entity = createEntity({ db, workspace });
+
         if (shouldStream) {
-          const gen = handleRunStream(db, {
-            prompt,
-            model: modelOverride,
-            systemPrompt,
-            createChat,
-          });
+          const gen = handleRunStream(entity, { prompt, model: modelOverride });
 
           let hasOutput = false;
           for (;;) {
@@ -90,12 +81,7 @@ export default defineCommand({
             hasOutput = true;
           }
         } else {
-          const result = await handleRun(db, {
-            prompt,
-            model: modelOverride,
-            systemPrompt,
-            createChat,
-          });
+          const result = await handleRun(entity, { prompt, model: modelOverride });
 
           if (result.content.startsWith("Error: ")) {
             writeError(result.content.slice(7));

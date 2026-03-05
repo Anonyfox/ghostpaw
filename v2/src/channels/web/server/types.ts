@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { Entity } from "../../../harness/index.ts";
 import type { DatabaseHandle } from "../../../lib/index.ts";
 
 export interface RouteContext {
@@ -23,6 +24,7 @@ export interface WebServerConfig {
   clientJs: string;
   bootstrapCss: string;
   db: DatabaseHandle;
+  entity?: Entity;
   customCss?: string;
   secure?: boolean;
   version?: string;

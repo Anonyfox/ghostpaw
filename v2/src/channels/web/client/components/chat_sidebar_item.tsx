@@ -60,7 +60,7 @@ export function ChatSidebarItem({ session, active, onSelect, onRenamed }: ChatSi
   return (
     <button
       type="button"
-      class={`d-block w-100 text-start border-0 px-3 py-2 border-bottom ${active ? "bg-white fw-semibold" : "bg-light"}`}
+      class={`d-block w-100 text-start border-0 px-3 py-2 border-bottom text-body ${active ? "bg-body-tertiary fw-semibold" : "bg-body-secondary"}`}
       style="cursor: pointer;"
       onClick={() => onSelect(session.sessionId)}
       onMouseEnter={() => setHovered(true)}
@@ -94,7 +94,7 @@ export function ChatSidebarItem({ session, active, onSelect, onRenamed }: ChatSi
       )}
       <div class="d-flex align-items-center mt-1" style="font-size: 0.75rem;">
         <span class="text-muted me-2">{relativeTime(session.lastActiveAt)}</span>
-        <span class="badge bg-secondary bg-opacity-25 text-dark">{session.channel}</span>
+        <span class="text-body-tertiary">{session.channel}</span>
       </div>
     </button>
   );

@@ -48,6 +48,9 @@ function mockFactory(response: string) {
         cached: false,
       };
     },
+    get messages() {
+      return [];
+    },
   });
 }
 
@@ -74,6 +77,9 @@ function failFactory() {
     },
     get lastResult() {
       return null;
+    },
+    get messages() {
+      return [];
     },
   });
 }

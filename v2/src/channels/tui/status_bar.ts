@@ -18,10 +18,13 @@ export interface BottomBarState {
   tokens: number;
   width: number;
   scrolled?: boolean;
+  toolStatus?: string;
 }
 
 export function renderBottomBar(state: BottomBarState): string {
-  const left = state.tokens > 0 ? ` ${style.dim(formatTokens(state.tokens))}` : "";
+  const tokenPart = state.tokens > 0 ? ` ${style.dim(formatTokens(state.tokens))}` : "";
+  const toolPart = state.toolStatus ? `  ${style.dim(`running: ${state.toolStatus}`)}` : "";
+  const left = tokenPart + toolPart;
   const scrollHint = state.scrolled ? `${style.dim("[scrolled]")}  ` : "";
   const right = `${scrollHint}${style.dim("ctrl+c exit")} `;
   const padding = Math.max(0, state.width - stripAnsi(left).length - stripAnsi(right).length);

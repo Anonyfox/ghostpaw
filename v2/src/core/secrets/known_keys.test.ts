@@ -3,12 +3,14 @@ import { describe, it } from "node:test";
 import { KNOWN_KEYS } from "./known_keys.ts";
 
 describe("KNOWN_KEYS", () => {
-  it("contains exactly 3 LLM and 3 search providers", () => {
+  it("contains exactly 3 LLM, 3 search, and 1 telegram provider", () => {
     const llm = KNOWN_KEYS.filter((k) => k.category === "llm");
     const search = KNOWN_KEYS.filter((k) => k.category === "search");
+    const telegram = KNOWN_KEYS.filter((k) => k.category === "telegram");
     strictEqual(llm.length, 3);
     strictEqual(search.length, 3);
-    strictEqual(KNOWN_KEYS.length, 6);
+    strictEqual(telegram.length, 1);
+    strictEqual(KNOWN_KEYS.length, 7);
   });
 
   it("has Anthropic, OpenAI, and xAI as LLM providers", () => {

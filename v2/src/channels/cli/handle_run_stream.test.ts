@@ -4,16 +4,29 @@ import type { ChatInstance } from "../../core/chat/chat_instance.ts";
 import type { ChatFactory } from "../../core/chat/index.ts";
 import { initChatTables } from "../../core/chat/index.ts";
 import { initConfigTable } from "../../core/config/index.ts";
+import { initMemoryTable } from "../../core/memory/index.ts";
+import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
+import type { Entity } from "../../harness/index.ts";
+import { createEntity } from "../../harness/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { handleRunStream } from "./handle_run_stream.ts";
 
 let db: DatabaseHandle;
+let entity: Entity;
 
 beforeEach(async () => {
   db = await openTestDatabase();
   initConfigTable(db);
   initChatTables(db);
+  initMemoryTable(db);
+  initSoulsTables(db);
+  ensureMandatorySouls(db);
+  entity = createEntity({
+    db,
+    workspace: "/tmp",
+    chatFactory: mockFactory("Hello there!", ["Hello", " there", "!"]),
+  });
 });
 
 afterEach(() => {
@@ -33,6 +46,9 @@ function mockFactory(response: string, chunks?: string[]): ChatFactory {
     },
     addTool() {
       return this;
+    },
+    get messages() {
+      return [];
     },
     async generate() {
       return response;
@@ -65,11 +81,7 @@ function mockFactory(response: string, chunks?: string[]): ChatFactory {
 
 describe("handleRunStream", () => {
   it("yields chunks and returns RunResult", async () => {
-    const gen = handleRunStream(db, {
-      prompt: "hello",
-      model: "gpt-4o",
-      createChat: mockFactory("Hello there!", ["Hello", " there", "!"]),
-    });
+    const gen = handleRunStream(entity, { prompt: "hello", model: "gpt-4o" });
 
     const chunks: string[] = [];
     for (;;) {
@@ -88,26 +100,24 @@ describe("handleRunStream", () => {
   });
 
   it("closes the session after streaming completes", async () => {
-    const gen = handleRunStream(db, {
-      prompt: "hello",
-      model: "gpt-4o",
-      createChat: mockFactory("response"),
-    });
+    const gen = handleRunStream(entity, { prompt: "hello", model: "gpt-4o" });
     for (;;) {
       const next = await gen.next();
       if (next.done) break;
     }
     const rows = db.prepare("SELECT closed_at FROM sessions").all() as { closed_at: unknown }[];
-    strictEqual(rows.length, 1);
-    ok(rows[0]!.closed_at !== null);
+    ok(rows.length >= 1);
+    const closed = rows.find((r) => r.closed_at !== null);
+    ok(closed);
   });
 
   it("closes the session when consumer abandons the generator early", async () => {
-    const gen = handleRunStream(db, {
-      prompt: "hello",
-      model: "gpt-4o",
-      createChat: mockFactory("abc", ["a", "b", "c"]),
+    const e = createEntity({
+      db,
+      workspace: "/tmp",
+      chatFactory: mockFactory("abc", ["a", "b", "c"]),
     });
+    const gen = handleRunStream(e, { prompt: "hello", model: "gpt-4o" });
 
     const first = await gen.next();
     ok(!first.done);
@@ -116,7 +126,8 @@ describe("handleRunStream", () => {
     await gen.return(undefined as never);
 
     const rows = db.prepare("SELECT closed_at FROM sessions").all() as { closed_at: unknown }[];
-    strictEqual(rows.length, 1);
-    ok(rows[0]!.closed_at !== null);
+    ok(rows.length >= 1);
+    const closed = rows.find((r) => r.closed_at !== null);
+    ok(closed);
   });
 });

@@ -12,10 +12,10 @@ export function createResetConfigTool(db: DatabaseHandle) {
   return createTool({
     name: "reset_config",
     description:
-      "Reset a configuration key to its code default. " +
-      "For system keys, this removes the override and restores the built-in default. " +
-      "For custom keys, this removes the key entirely. " +
-      "Unlike undo_config, this discards the entire change history for the key.",
+      "Reset a configuration key to its built-in default. Removes any override, restoring " +
+      "the original code default. For custom keys, removes the key entirely. " +
+      "Unlike undo_config (which reverts one step), this discards the entire change " +
+      "history for the key.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new ResetConfigParams() as any,
     execute: async ({ args }) => {

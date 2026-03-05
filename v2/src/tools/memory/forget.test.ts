@@ -47,7 +47,7 @@ describe("forget tool", () => {
     const mem = storeMemory(db, "Old fact", embedText("Old fact"), { source: "explicit" });
     supersedeMemories(db, [mem.id]);
     const result = (await execute({ id: mem.id })) as { error: string };
-    ok(result.error.includes("already forgotten"));
+    ok(result.error.includes("already superseded"));
   });
 
   it("returns error for non-positive ID", async () => {

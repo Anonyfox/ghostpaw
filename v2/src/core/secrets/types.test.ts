@@ -15,9 +15,9 @@ describe("KnownKey", () => {
     ok(key.aliases.length > 0);
   });
 
-  it("category is a narrow union of llm or search", () => {
-    const categories: KnownKey["category"][] = ["llm", "search"];
-    strictEqual(categories.length, 2);
+  it("category is a narrow union of llm, search, or telegram", () => {
+    const categories: KnownKey["category"][] = ["llm", "search", "telegram"];
+    strictEqual(categories.length, 3);
   });
 });
 

@@ -13,9 +13,12 @@ function msg(content: string): ChatMessage {
     model: null,
     tokensIn: 0,
     tokensOut: 0,
+    reasoningTokens: 0,
+    cachedTokens: 0,
     costUsd: 0,
     createdAt: Date.now(),
     isCompaction: false,
+    toolData: null,
   };
 }
 

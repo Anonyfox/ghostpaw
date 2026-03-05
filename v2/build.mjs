@@ -41,6 +41,38 @@ const embeddedAssetPlugin = {
   },
 };
 
+/** @type {import('esbuild').Plugin} */
+const nativePolyfillPlugin = {
+  name: "native-polyfill",
+  setup(build) {
+    // Replace node-fetch with native fetch (Node 22+ has it built-in).
+    // grammY ships with node-fetch v2 + abort-controller polyfills that
+    // produce AbortSignal instances incompatible with each other when bundled.
+    build.onResolve({ filter: /^node-fetch$/ }, () => ({
+      path: "node-fetch",
+      namespace: "native-polyfill",
+    }));
+    build.onResolve({ filter: /^abort-controller$/ }, () => ({
+      path: "abort-controller",
+      namespace: "native-polyfill",
+    }));
+    build.onLoad({ filter: /^node-fetch$/, namespace: "native-polyfill" }, () => ({
+      contents: [
+        "const f = globalThis.fetch;",
+        "export default f;",
+        "export const Headers = globalThis.Headers;",
+        "export const Request = globalThis.Request;",
+        "export const Response = globalThis.Response;",
+      ].join("\n"),
+      loader: "js",
+    }));
+    build.onLoad({ filter: /^abort-controller$/, namespace: "native-polyfill" }, () => ({
+      contents: "export const AbortController = globalThis.AbortController;",
+      loader: "js",
+    }));
+  },
+};
+
 const BANNER = [
   "#!/usr/bin/env node",
   "import { createRequire as __createRequire } from 'node:module';",
@@ -56,7 +88,7 @@ const buildOptions = {
   target: "node24",
   outfile: "dist/ghostpaw.mjs",
   banner: { js: BANNER },
-  plugins: [embeddedAssetPlugin],
+  plugins: [nativePolyfillPlugin, embeddedAssetPlugin],
   define: { __VERSION__: JSON.stringify(pkg.version) },
   minify: false,
   sourcemap: false,

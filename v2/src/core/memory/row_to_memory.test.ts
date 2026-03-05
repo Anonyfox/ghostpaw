@@ -37,7 +37,7 @@ describe("rowToMemory", () => {
       evidence_count: 1,
       created_at: 1700000000000,
       verified_at: 1700000000000,
-      source: "absorbed",
+      source: "distilled",
       category: "fact",
       superseded_by: 99,
     };
@@ -62,7 +62,7 @@ describe("rowToMemory", () => {
   });
 
   it("preserves all source types correctly", () => {
-    for (const source of ["explicit", "observed", "absorbed", "inferred"]) {
+    for (const source of ["explicit", "observed", "distilled", "inferred"]) {
       const row = {
         id: 1,
         claim: "t",

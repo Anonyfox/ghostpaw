@@ -4,6 +4,14 @@ export { createSoul } from "./create_soul.ts";
 export { DEFAULT_SOULS } from "./defaults.ts";
 export { deleteSoul } from "./delete_soul.ts";
 export { ensureMandatorySouls } from "./ensure_mandatory_souls.ts";
+export { formatSoulEvidence } from "./format_evidence.ts";
+export type {
+  DelegationStats,
+  LevelSnapshot,
+  SoulEvidence,
+  TraitSnapshot,
+} from "./gather_evidence.ts";
+export { gatherSoulEvidence } from "./gather_evidence.ts";
 export { getActiveSoul } from "./get_active_soul.ts";
 export { getLevelHistory } from "./get_level_history.ts";
 export { getSoul } from "./get_soul.ts";
@@ -21,6 +29,7 @@ export {
 } from "./mandatory_souls.ts";
 export { reactivateTrait } from "./reactivate_trait.ts";
 export { renderSoul } from "./render_soul.ts";
+export { resolveSoul } from "./resolve_soul.ts";
 export { restoreSoul } from "./restore_soul.ts";
 export { revertLevelUp } from "./revert_level_up.ts";
 export { revertTrait } from "./revert_trait.ts";

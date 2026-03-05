@@ -3,12 +3,20 @@ import type { ChatMessageInfo } from "../../shared/chat_message_info.ts";
 import type { ChatSessionInfo } from "../../shared/chat_session_info.ts";
 import { apiGet } from "../api_get.ts";
 import { apiPost } from "../api_post.ts";
-import { connectChatSse } from "./connect_chat_sse.ts";
+import type { ChatWsConnection } from "./connect_chat_ws.ts";
+import { connectChatWs } from "./connect_chat_ws.ts";
+
+export interface ToolActivity {
+  tools: string[];
+  running: boolean;
+}
 
 export interface UseChatSessionResult {
   session: ChatSessionInfo | null;
   messages: ChatMessageInfo[];
   streamingContent: string;
+  waiting: boolean;
+  toolActivity: ToolActivity | null;
   loading: boolean;
   error: string;
   totalTokens: number;
@@ -34,21 +42,28 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
   const [error, setError] = useState("");
   const [totalTokens, setTotalTokens] = useState(0);
   const [model, setModel] = useState("");
+  const [waiting, setWaiting] = useState(false);
+  const [toolActivity, setToolActivity] = useState<ToolActivity | null>(null);
 
-  const esRef = useRef<EventSource | null>(null);
-  const sseReadyRef = useRef<Promise<void> | null>(null);
+  const wsRef = useRef<ChatWsConnection | null>(null);
   const sessionIdRef = useRef<number | null>(null);
   const creatingRef = useRef(false);
+  const preserveWsRef = useRef(false);
   const onTitleRef = useRef(onTitleGenerated);
   const onCreatedRef = useRef(onSessionCreated);
   onTitleRef.current = onTitleGenerated;
   onCreatedRef.current = onSessionCreated;
 
-  const openSse = useCallback((sid: number): Promise<void> => {
-    esRef.current?.close();
-    const conn = connectChatSse(sid, {
-      onChunk: setStreamingContent,
+  const openWs = useCallback((sid: number): Promise<void> => {
+    wsRef.current?.close();
+    const conn = connectChatWs(sid, {
+      onChunk: (accumulated) => {
+        setWaiting(false);
+        setStreamingContent(accumulated);
+      },
       onDone: (messageId, content, tokens) => {
+        setWaiting(false);
+        setToolActivity(null);
         setTotalTokens((prev) => prev + tokens);
         setMessages((prev) => [
           ...prev,
@@ -57,6 +72,8 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
         setStreamingContent("");
       },
       onError: (msg) => {
+        setWaiting(false);
+        setToolActivity(null);
         setError(msg);
         setStreamingContent("");
       },
@@ -64,20 +81,49 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
         setSession((prev) => (prev ? { ...prev, displayName: title } : prev));
         onTitleRef.current?.(id, title);
       },
+      onToolStart: (tools) => {
+        setWaiting(false);
+        setToolActivity((prev) => ({
+          tools: [...new Set([...(prev?.tools ?? []), ...tools])],
+          running: true,
+        }));
+      },
+      onToolEnd: () => {
+        setToolActivity((prev) => (prev ? { ...prev, running: false } : null));
+      },
+      onBackgroundComplete: () => {
+        const currentSid = sessionIdRef.current;
+        if (!currentSid) return;
+        apiGet<{ messages: ChatMessageInfo[] }>(`/api/chat/${currentSid}`)
+          .then((resp) => {
+            setMessages(resp.messages);
+          })
+          .catch(() => {});
+      },
     });
-    esRef.current = conn.eventSource;
-    sseReadyRef.current = conn.ready;
+    wsRef.current = conn;
     return conn.ready;
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    esRef.current?.close();
+
+    if (preserveWsRef.current) {
+      preserveWsRef.current = false;
+      return () => {
+        cancelled = true;
+        if (!preserveWsRef.current) wsRef.current?.close();
+      };
+    }
+
+    wsRef.current?.close();
     sessionIdRef.current = null;
     creatingRef.current = false;
     setSession(null);
     setMessages([]);
     setStreamingContent("");
+    setWaiting(false);
+    setToolActivity(null);
     setError("");
     setTotalTokens(0);
     setModel("");
@@ -94,7 +140,7 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
           setMessages(resp.messages);
           setTotalTokens(resp.session.totalTokens);
           sessionIdRef.current = resp.session.sessionId;
-          openSse(resp.session.sessionId);
+          openWs(resp.session.sessionId);
           setLoading(false);
         })
         .catch((err) => {
@@ -108,9 +154,9 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
 
     return () => {
       cancelled = true;
-      esRef.current?.close();
+      if (!preserveWsRef.current) wsRef.current?.close();
     };
-  }, [targetSessionId, openSse]);
+  }, [targetSessionId, openWs]);
 
   const sendMessage = useCallback(
     async (text: string, overrideModel?: string) => {
@@ -130,7 +176,8 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
           setModel(info.model);
           sessionIdRef.current = info.sessionId;
           sid = info.sessionId;
-          await openSse(info.sessionId);
+          await openWs(info.sessionId);
+          preserveWsRef.current = true;
           onCreatedRef.current?.(info.sessionId);
         } catch (err) {
           creatingRef.current = false;
@@ -140,16 +187,29 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
         creatingRef.current = false;
       }
 
-      if (sseReadyRef.current) await sseReadyRef.current;
+      const conn = wsRef.current;
+      if (!conn) {
+        setError("WebSocket not connected.");
+        return;
+      }
 
-      const body: Record<string, string> = { content: text };
-      if (overrideModel) body.model = overrideModel;
-      apiPost(`/api/chat/${sid}/send`, body).catch((err) => {
-        setError(err instanceof Error ? err.message : String(err));
-      });
+      await conn.ready;
+      setWaiting(true);
+      conn.send(text, overrideModel);
     },
-    [openSse],
+    [openWs],
   );
 
-  return { session, messages, streamingContent, loading, error, totalTokens, model, sendMessage };
+  return {
+    session,
+    messages,
+    streamingContent,
+    waiting,
+    toolActivity,
+    loading,
+    error,
+    totalTokens,
+    model,
+    sendMessage,
+  };
 }

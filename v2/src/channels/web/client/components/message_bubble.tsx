@@ -12,7 +12,7 @@ export function MessageBubble({ message, streaming }: MessageBubbleProps) {
   return (
     <div class={`d-flex mb-3 ${isUser ? "justify-content-end" : "justify-content-start"}`}>
       <div
-        class={`card ${isUser ? "bg-primary text-white" : "bg-light"}`}
+        class={`card ${isUser ? "bg-primary text-white" : "bg-body-secondary"}`}
         style="max-width: 80%; min-width: 60px;"
       >
         <div class="card-body py-2 px-3">

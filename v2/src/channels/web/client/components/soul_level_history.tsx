@@ -6,19 +6,10 @@ interface SoulLevelHistoryProps {
   levels: LevelInfo[];
   soulId: number;
   isArchived: boolean;
-  activeTraitCount: number;
-  traitLimit: number;
   onUpdated: () => void;
 }
 
-export function SoulLevelHistory({
-  levels,
-  soulId,
-  isArchived,
-  activeTraitCount,
-  traitLimit,
-  onUpdated,
-}: SoulLevelHistoryProps) {
+export function SoulLevelHistory({ levels, soulId, isArchived, onUpdated }: SoulLevelHistoryProps) {
   const [error, setError] = useState<string | null>(null);
   const sorted = [...levels].sort((a, b) => b.level - a.level);
   const latestLevel = sorted[0]?.level;
@@ -36,29 +27,7 @@ export function SoulLevelHistory({
 
   return (
     <div>
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0">Level History</h5>
-        {!isArchived &&
-          (activeTraitCount >= traitLimit ? (
-            <button
-              type="button"
-              class="btn btn-outline-warning btn-sm"
-              disabled
-              title="Level-up automation coming soon"
-            >
-              Level Up Ready!
-            </button>
-          ) : (
-            <button
-              type="button"
-              class="btn btn-outline-secondary btn-sm"
-              disabled
-              style="border-style: dashed;"
-            >
-              Level Up ({activeTraitCount}/{traitLimit})
-            </button>
-          ))}
-      </div>
+      <h5 class="mb-3">Level History</h5>
       {error && <div class="alert alert-danger py-1 px-2 small mb-2">{error}</div>}
       {sorted.length === 0 ? (
         <p class="text-muted small">No level-ups yet.</p>

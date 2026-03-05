@@ -13,14 +13,16 @@ import { formatMemoryForAgent } from "./format_memory.ts";
 class ReviseParams extends Schema {
   ids = Schema.String({
     description:
-      "Memory ID(s) to revise. Single ID for corrections or confirmations. " +
-      "Comma-separated IDs for merging (e.g., '3,7').",
+      "Memory ID(s) to revise. Single ID for corrections or confirmations " +
+      "(e.g. '5'). Comma-separated IDs for merging (e.g. '3,7'). " +
+      "Get memory IDs from recall results or from remember's similar list.",
   });
   claim = Schema.String({
     optional: true,
     description:
-      "New claim text. Required for corrections and merges. " +
-      "Omit to confirm a single memory (bumps confidence).",
+      "New claim text replacing the old one(s). Required for corrections and merges. " +
+      "Omit to confirm a single memory (bumps its confidence score). " +
+      "Example: 'The user prefers ESM over CJS for all projects.'",
   });
 }
 
@@ -46,10 +48,10 @@ export function createReviseTool(db: DatabaseHandle) {
     name: "revise",
     description:
       "Update understanding about a memory. Three modes: " +
-      "(1) Correct — one ID + new claim: replaces the old memory with a corrected version. " +
-      "(2) Merge — multiple IDs + new claim: combines related memories into one. " +
-      "(3) Confirm — one ID, no claim: reinforces confidence and resets freshness. " +
-      "Use this instead of forget + remember when correcting.",
+      "(A) Correct — one ID + new claim: supersedes the old memory with a corrected version. " +
+      "(B) Merge — multiple IDs + new claim: combines related memories into one, superseding originals. " +
+      "(C) Confirm — one ID, no claim: reinforces confidence and resets freshness decay. " +
+      "Use this instead of forget + remember when correcting — it preserves the supersession chain.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new ReviseParams() as any,
     execute: async ({ args }) => {
@@ -71,9 +73,11 @@ function correctOrMerge(db: DatabaseHandle, ids: number[], claim: string) {
   const oldClaims: { id: number; claim: string }[] = [];
   for (const id of ids) {
     const mem = getMemory(db, id);
-    if (!mem) return { error: `Memory #${id} not found.` };
+    if (!mem) return { error: `Memory #${id} not found. Use recall to search for memories.` };
     if (mem.supersededBy !== null) {
-      return { error: `Memory #${id} is already superseded.` };
+      return {
+        error: `Memory #${id} is already superseded — it was replaced. Use recall to find the current version.`,
+      };
     }
     oldClaims.push({ id, claim: mem.claim });
   }
@@ -103,9 +107,11 @@ function confirm(db: DatabaseHandle, ids: number[]) {
 
   const id = ids[0];
   const before = getMemory(db, id);
-  if (!before) return { error: `Memory #${id} not found.` };
+  if (!before) return { error: `Memory #${id} not found. Use recall to search for memories.` };
   if (before.supersededBy !== null) {
-    return { error: `Memory #${id} is already superseded.` };
+    return {
+      error: `Memory #${id} is already superseded — it was replaced. Use recall to find the current version.`,
+    };
   }
 
   let after: Memory;

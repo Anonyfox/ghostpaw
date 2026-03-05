@@ -40,11 +40,11 @@ describe("MessageBubble", () => {
     assert.ok(dom.container.textContent!.includes("Hello"));
   });
 
-  it("renders assistant message left-aligned with light bg", () => {
+  it("renders assistant message left-aligned with secondary bg", () => {
     render(<MessageBubble message={assistantMsg} />, dom.container);
     const outer = dom.container.querySelector(".justify-content-start");
     assert.ok(outer);
-    const card = dom.container.querySelector(".bg-light");
+    const card = dom.container.querySelector(".bg-body-secondary");
     assert.ok(card);
     assert.ok(dom.container.textContent!.includes("Hi there!"));
   });

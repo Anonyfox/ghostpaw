@@ -1,7 +1,7 @@
-export const SESSION_PURPOSES = ["chat", "delegate", "train", "scout", "refine", "system"] as const;
+export const SESSION_PURPOSES = ["chat", "delegate", "train", "scout", "system"] as const;
 export type SessionPurpose = (typeof SESSION_PURPOSES)[number];
 
-export const MESSAGE_ROLES = ["user", "assistant"] as const;
+export const MESSAGE_ROLES = ["user", "assistant", "tool_call", "tool_result"] as const;
 export type MessageRole = (typeof MESSAGE_ROLES)[number];
 
 export interface ChatSession {
@@ -14,10 +14,13 @@ export interface ChatSession {
   lastActiveAt: number;
   tokensIn: number;
   tokensOut: number;
+  reasoningTokens: number;
+  cachedTokens: number;
   costUsd: number;
   headMessageId: number | null;
   closedAt: number | null;
-  absorbedAt: number | null;
+  distilledAt: number | null;
+  parentSessionId: number | null;
 }
 
 export interface ChatMessage {
@@ -29,14 +32,18 @@ export interface ChatMessage {
   model: string | null;
   tokensIn: number;
   tokensOut: number;
+  reasoningTokens: number;
+  cachedTokens: number;
   costUsd: number;
   createdAt: number;
   isCompaction: boolean;
+  toolData: string | null;
 }
 
 export interface CreateSessionInput {
   purpose?: SessionPurpose;
   model?: string;
+  parentSessionId?: number;
 }
 
 export interface AddMessageInput {
@@ -47,14 +54,29 @@ export interface AddMessageInput {
   model?: string;
   tokensIn?: number;
   tokensOut?: number;
+  reasoningTokens?: number;
+  cachedTokens?: number;
   costUsd?: number;
   isCompaction?: boolean;
+  toolData?: string;
 }
 
 export interface ListSessionsFilter {
   purpose?: SessionPurpose;
   open?: boolean;
-  absorbed?: boolean;
+  distilled?: boolean;
+}
+
+export interface ToolCallInfo {
+  id: string;
+  name: string;
+  args: unknown;
+}
+
+export interface ToolResultInfo {
+  id: string;
+  success: boolean;
+  error?: string;
 }
 
 export interface TurnInput {
@@ -68,9 +90,13 @@ export interface TurnInput {
   maxTokens?: number;
   reasoning?: "off" | "low" | "medium" | "high";
   compactionThreshold?: number;
+  abortSignal?: AbortSignal;
+  onToolCallStart?: (calls: ToolCallInfo[]) => void;
+  onToolCallComplete?: (results: ToolResultInfo[]) => void;
 }
 
 export interface TurnResult {
+  succeeded: boolean;
   messageId: number;
   content: string;
   model: string;
@@ -78,6 +104,7 @@ export interface TurnResult {
     inputTokens: number;
     outputTokens: number;
     reasoningTokens: number;
+    cachedTokens: number;
     totalTokens: number;
   };
   cost: { estimatedUsd: number };

@@ -39,6 +39,9 @@ function createMockChat(): { instance: ChatInstance; calls: CallLog[]; tools: un
     get lastResult() {
       return null;
     },
+    get messages() {
+      return [];
+    },
   };
   return { instance, calls, tools };
 }
@@ -53,9 +56,12 @@ function msg(role: "user" | "assistant", content: string): ChatMessage {
     model: null,
     tokensIn: 0,
     tokensOut: 0,
+    reasoningTokens: 0,
+    cachedTokens: 0,
     costUsd: 0,
     createdAt: Date.now(),
     isCompaction: false,
+    toolData: null,
   };
 }
 

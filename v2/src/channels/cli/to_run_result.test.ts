@@ -6,6 +6,7 @@ import { toRunResult } from "./to_run_result.ts";
 describe("toRunResult", () => {
   it("maps TurnResult fields to RunResult", () => {
     const turn: TurnResult = {
+      succeeded: true,
       messageId: 1,
       content: "Hello!",
       model: "gpt-4o",
@@ -13,6 +14,7 @@ describe("toRunResult", () => {
         inputTokens: 100,
         outputTokens: 50,
         reasoningTokens: 10,
+        cachedTokens: 0,
         totalTokens: 150,
       },
       cost: { estimatedUsd: 0.005 },
@@ -28,10 +30,17 @@ describe("toRunResult", () => {
 
   it("excludes TurnResult-specific fields from output", () => {
     const turn: TurnResult = {
+      succeeded: true,
       messageId: 42,
       content: "test",
       model: "m",
-      usage: { inputTokens: 0, outputTokens: 0, reasoningTokens: 0, totalTokens: 0 },
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        reasoningTokens: 0,
+        cachedTokens: 0,
+        totalTokens: 0,
+      },
       cost: { estimatedUsd: 0 },
       iterations: 3,
     };

@@ -1,6 +1,6 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { describe, it } from "node:test";
-import { connectChatSse } from "./connect_chat_sse.ts";
+import { connectChatWs } from "./connect_chat_ws.ts";
 import type { UseChatSessionResult } from "./use_chat_session.ts";
 import { useChatSession } from "./use_chat_session.ts";
 
@@ -14,9 +14,9 @@ describe("useChatSession", () => {
   });
 });
 
-describe("connectChatSse", () => {
+describe("connectChatWs", () => {
   it("is a function", () => {
-    ok(typeof connectChatSse === "function");
+    ok(typeof connectChatWs === "function");
   });
 });
 
@@ -26,12 +26,14 @@ describe("UseChatSessionResult type", () => {
       "session",
       "messages",
       "streamingContent",
+      "waiting",
+      "toolActivity",
       "loading",
       "error",
       "totalTokens",
       "model",
       "sendMessage",
     ];
-    strictEqual(keys.length, 8);
+    strictEqual(keys.length, 10);
   });
 });

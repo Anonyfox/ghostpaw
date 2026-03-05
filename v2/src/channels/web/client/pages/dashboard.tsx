@@ -43,25 +43,25 @@ export function DashboardPage() {
       {stats && (
         <div class="row g-3">
           <div class="col-md-4">
-            <div class="card">
+            <div class="card border">
               <div class="card-body">
-                <h6 class="card-subtitle text-muted">Version</h6>
+                <h6 class="card-subtitle text-body-secondary">Version</h6>
                 <p class="card-text fs-4">{stats.version}</p>
               </div>
             </div>
           </div>
           <div class="col-md-4">
-            <div class="card">
+            <div class="card border">
               <div class="card-body">
-                <h6 class="card-subtitle text-muted">Uptime</h6>
+                <h6 class="card-subtitle text-body-secondary">Uptime</h6>
                 <p class="card-text fs-4">{formatUptime(stats.uptimeMs)}</p>
               </div>
             </div>
           </div>
           <div class="col-md-4">
-            <div class="card">
+            <div class="card border">
               <div class="card-body">
-                <h6 class="card-subtitle text-muted">Secrets</h6>
+                <h6 class="card-subtitle text-body-secondary">Secrets</h6>
                 <p class="card-text fs-4">{stats.secretsCount}</p>
               </div>
             </div>

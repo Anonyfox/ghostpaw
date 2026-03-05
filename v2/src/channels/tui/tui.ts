@@ -1,8 +1,10 @@
 import { emitKeypressEvents } from "node:readline";
-import { Chat } from "chatoyant";
-import type { ChatFactory, TurnContext, TurnResult } from "../../core/chat/index.ts";
-import { closeSession, createSession, streamTurn } from "../../core/chat/index.ts";
-import { getConfig } from "../../core/config/index.ts";
+import type { TurnResult } from "../../core/chat/index.ts";
+import { closeSession, createSession } from "../../core/chat/index.ts";
+import type { Entity } from "../../harness/index.ts";
+import { resolveModel } from "../../harness/index.ts";
+import { handlePostSession } from "../../harness/post_session.ts";
+import { defaultChatFactory } from "../../harness/chat_factory.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { ansi } from "./ansi.ts";
@@ -15,7 +17,8 @@ import { stripAnsi, wrapText } from "./wrap_text.ts";
 export interface TuiOptions {
   db: DatabaseHandle;
   version: string;
-  createChat?: ChatFactory;
+  entity: Entity;
+  model?: string;
 }
 
 interface ChatMessage {
@@ -24,9 +27,9 @@ interface ChatMessage {
 }
 
 export async function runTui(opts: TuiOptions): Promise<void> {
-  const { db, version } = opts;
-  const createChat: ChatFactory = opts.createChat ?? ((model: string) => new Chat({ model }));
-  const model = resolveModel(db);
+  const { db, version, entity } = opts;
+  let model = opts.model ?? resolveModel(db);
+  let toolStatus = "";
 
   const messages: ChatMessage[] = [];
   const inputState = createInputState();
@@ -40,10 +43,15 @@ export async function runTui(opts: TuiOptions): Promise<void> {
   const w = () => out.columns || 80;
   const h = () => out.rows || 24;
 
-  const session = createSession(db, `tui:${Date.now()}`, { purpose: "chat" });
-  const ctx: TurnContext = { db, tools: [], createChat };
-  const systemPrompt =
-    "You are a helpful AI assistant. Respond concisely, accurately, and directly.";
+  let sessionId: number | null = null;
+
+  function ensureSession(): number {
+    if (sessionId === null) {
+      const session = createSession(db, `tui:${Date.now()}`, { purpose: "chat" });
+      sessionId = session.id as number;
+    }
+    return sessionId;
+  }
 
   function allChatLines(width: number): string[] {
     const lines = renderChatMessages(messages, width);
@@ -94,7 +102,7 @@ export async function runTui(opts: TuiOptions): Promise<void> {
 
     buf += ansi.cursorTo(height, 1);
     buf += padLine(
-      renderBottomBar({ tokens: totalTokens, width, scrolled: scrollOffset > 0 }),
+      renderBottomBar({ tokens: totalTokens, width, scrolled: scrollOffset > 0, toolStatus }),
       width,
     );
 
@@ -138,14 +146,29 @@ export async function runTui(opts: TuiOptions): Promise<void> {
     messages.push({ role: "user", content: text });
     paint();
 
+    const sid = ensureSession();
     let fullText = "";
+    const activeTools = new Set<string>();
     try {
-      const gen = streamTurn({ sessionId: session.id, content: text, systemPrompt, model }, ctx);
+      const gen = entity.streamTurn(sid, text, {
+        model: opts.model,
+        onToolCallStart(calls) {
+          for (const c of calls) activeTools.add(c.name);
+          toolStatus = [...activeTools].join(", ");
+          paint();
+        },
+        onToolCallComplete() {
+          activeTools.clear();
+          toolStatus = "";
+          paint();
+        },
+      });
       for (;;) {
         const next = await gen.next();
         if (next.done) {
           const result: TurnResult = next.value;
           totalTokens += result.usage.totalTokens;
+          model = result.model;
           break;
         }
         fullText += next.value;
@@ -157,6 +180,7 @@ export async function runTui(opts: TuiOptions): Promise<void> {
       const msg = err instanceof Error ? err.message : String(err);
       fullText = fullText || `Error: ${msg}`;
     }
+    toolStatus = "";
 
     messages.push({ role: "assistant", content: fullText });
     streaming = false;
@@ -174,8 +198,11 @@ export async function runTui(opts: TuiOptions): Promise<void> {
 
   process.on("SIGINT", () => {
     cleanup();
-    closeSession(db, session.id);
-    process.exit(0);
+    if (sessionId !== null) {
+      closeSession(db, sessionId);
+      handlePostSession(db, sessionId, model, defaultChatFactory);
+    }
+    entity.flush().finally(() => process.exit(0));
   });
 
   out.on("resize", paint);
@@ -186,8 +213,11 @@ export async function runTui(opts: TuiOptions): Promise<void> {
 
       if (key?.ctrl && key?.name === "c") {
         cleanup();
-        closeSession(db, session.id);
-        resolve();
+        if (sessionId !== null) {
+          closeSession(db, sessionId);
+          handlePostSession(db, sessionId, model, defaultChatFactory);
+        }
+        entity.flush().finally(resolve);
         return;
       }
 
@@ -199,10 +229,18 @@ export async function runTui(opts: TuiOptions): Promise<void> {
       switch (event.type) {
         case "cancel":
           cleanup();
-          closeSession(db, session.id);
-          resolve();
+          if (sessionId !== null) {
+            closeSession(db, sessionId);
+            handlePostSession(db, sessionId, model, defaultChatFactory);
+          }
+          entity.flush().finally(resolve);
           break;
         case "clear":
+          if (sessionId !== null) {
+            closeSession(db, sessionId);
+            handlePostSession(db, sessionId, model, defaultChatFactory);
+            sessionId = null;
+          }
           messages.length = 0;
           totalTokens = 0;
           scrollOffset = 0;
@@ -228,9 +266,4 @@ function padLine(line: string, width: number): string {
   const visible = stripAnsi(line).length;
   if (visible >= width) return line;
   return `${line}${" ".repeat(width - visible)}`;
-}
-
-function resolveModel(db: DatabaseHandle): string {
-  const configured = getConfig(db, "default_model");
-  return typeof configured === "string" && configured ? configured : "claude-sonnet-4-6";
 }

@@ -4,9 +4,13 @@ import type { DatabaseHandle } from "../../lib/index.ts";
 
 class SetSecretParams extends Schema {
   key = Schema.String({
-    description: "Secret key name (e.g., ANTHROPIC_API_KEY or a custom name)",
+    description:
+      "Secret key name (e.g. 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', or a custom name). " +
+      "The name is automatically canonicalized (uppercased, aliased).",
   });
-  value = Schema.String({ description: "The secret value to store" });
+  value = Schema.String({
+    description: "The secret value to store. NEVER repeat this value in your response to the user.",
+  });
 }
 
 function isProtectedKey(key: string): boolean {

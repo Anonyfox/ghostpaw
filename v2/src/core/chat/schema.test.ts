@@ -27,12 +27,15 @@ describe("initChatTables", () => {
     ok(names.includes("last_active_at"));
     ok(names.includes("tokens_in"));
     ok(names.includes("tokens_out"));
+    ok(names.includes("reasoning_tokens"));
+    ok(names.includes("cached_tokens"));
     ok(names.includes("cost_usd"));
     ok(names.includes("head_message_id"));
     ok(names.includes("closed_at"));
-    ok(names.includes("absorbed_at"));
+    ok(names.includes("distilled_at"));
     ok(names.includes("display_name"));
-    strictEqual(names.length, 13);
+    ok(names.includes("parent_session_id"));
+    strictEqual(names.length, 16);
   });
 
   it("creates the messages table with expected columns", () => {
@@ -47,19 +50,23 @@ describe("initChatTables", () => {
     ok(names.includes("model"));
     ok(names.includes("tokens_in"));
     ok(names.includes("tokens_out"));
+    ok(names.includes("reasoning_tokens"));
+    ok(names.includes("cached_tokens"));
     ok(names.includes("cost_usd"));
     ok(names.includes("created_at"));
     ok(names.includes("is_compaction"));
-    strictEqual(names.length, 11);
+    ok(names.includes("tool_data"));
+    ok(names.includes("distilled"));
+    strictEqual(names.length, 15);
   });
 
   it("is idempotent", () => {
     initChatTables(db);
     initChatTables(db);
     const sessionCols = db.prepare("PRAGMA table_info(sessions)").all();
-    strictEqual(sessionCols.length, 13);
+    strictEqual(sessionCols.length, 16);
     const messageCols = db.prepare("PRAGMA table_info(messages)").all();
-    strictEqual(messageCols.length, 11);
+    strictEqual(messageCols.length, 15);
   });
 
   it("sessions id is an autoincrement integer primary key", () => {
@@ -128,7 +135,7 @@ describe("initChatTables", () => {
     );
   });
 
-  it("sessions allows null model, closed_at, absorbed_at, head_message_id, display_name", () => {
+  it("sessions allows null model, closed_at, distilled_at, head_message_id, display_name, parent_session_id", () => {
     initChatTables(db);
     const now = Date.now();
     db.prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)").run(
@@ -137,13 +144,16 @@ describe("initChatTables", () => {
       now,
     );
     const row = db
-      .prepare("SELECT model, closed_at, absorbed_at, head_message_id, display_name FROM sessions")
+      .prepare(
+        "SELECT model, closed_at, distilled_at, head_message_id, display_name, parent_session_id FROM sessions",
+      )
       .get();
     strictEqual(row!.model, null);
     strictEqual(row!.closed_at, null);
-    strictEqual(row!.absorbed_at, null);
+    strictEqual(row!.distilled_at, null);
     strictEqual(row!.head_message_id, null);
     strictEqual(row!.display_name, null);
+    strictEqual(row!.parent_session_id, null);
   });
 
   it("messages rejects invalid role", () => {
@@ -166,7 +176,7 @@ describe("initChatTables", () => {
     );
   });
 
-  it("messages accepts 'user' and 'assistant' roles", () => {
+  it("messages accepts all valid roles", () => {
     initChatTables(db);
     const now = Date.now();
     db.prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)").run(
@@ -175,16 +185,17 @@ describe("initChatTables", () => {
       now,
     );
     const sid = (db.prepare("SELECT id FROM sessions").get() as { id: number }).id;
-    db.prepare(
-      "INSERT INTO messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
-    ).run(sid, "user", "hello", now);
-    db.prepare(
-      "INSERT INTO messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
-    ).run(sid, "assistant", "hi", now);
+    for (const role of ["user", "assistant", "tool_call", "tool_result"]) {
+      db.prepare(
+        "INSERT INTO messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
+      ).run(sid, role, "text", now);
+    }
     const rows = db.prepare("SELECT role FROM messages ORDER BY id").all();
-    strictEqual(rows.length, 2);
+    strictEqual(rows.length, 4);
     strictEqual(rows[0]!.role, "user");
     strictEqual(rows[1]!.role, "assistant");
+    strictEqual(rows[2]!.role, "tool_call");
+    strictEqual(rows[3]!.role, "tool_result");
   });
 
   it("messages rejects null content", () => {

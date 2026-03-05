@@ -48,10 +48,7 @@ export function ChatSidebar({
   }, []);
 
   return (
-    <div
-      class="d-flex flex-column bg-light border-end h-100"
-      style="width: 260px; min-width: 260px;"
-    >
+    <div class="d-flex flex-column h-100">
       <div class="p-3 border-bottom">
         <button type="button" class="btn btn-primary btn-sm w-100" onClick={onNewChat}>
           + New Chat

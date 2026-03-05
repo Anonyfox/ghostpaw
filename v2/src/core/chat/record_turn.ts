@@ -1,4 +1,5 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
+import { accumulateUsage } from "./accumulate_usage.ts";
 import { addMessage } from "./add_message.ts";
 import { estimateTokens } from "./estimate_tokens.ts";
 import type { TurnResult } from "./types.ts";
@@ -8,6 +9,7 @@ interface LastResult {
     inputTokens: number;
     outputTokens: number;
     reasoningTokens: number;
+    cachedTokens: number;
     totalTokens: number;
   };
   cost: { estimatedUsd: number };
@@ -22,10 +24,12 @@ export function recordTurn(
   lastResult: LastResult | null,
   model: string,
   parentId: number | null,
+  succeeded = true,
 ): TurnResult {
   const tokensIn = lastResult?.usage.inputTokens ?? estimateTokens(content);
   const tokensOut = lastResult?.usage.outputTokens ?? estimateTokens(content);
   const reasoningTokens = lastResult?.usage.reasoningTokens ?? 0;
+  const cachedTokens = lastResult?.usage.cachedTokens ?? 0;
   const costUsd = lastResult?.cost.estimatedUsd ?? 0;
   const realModel = lastResult?.model ?? model;
   const iterations = lastResult?.iterations ?? 1;
@@ -38,18 +42,21 @@ export function recordTurn(
     model: realModel,
     tokensIn,
     tokensOut,
+    reasoningTokens,
+    cachedTokens,
     costUsd,
   });
 
-  db.prepare(
-    `UPDATE sessions
-     SET tokens_in = tokens_in + ?,
-         tokens_out = tokens_out + ?,
-         cost_usd = cost_usd + ?
-     WHERE id = ?`,
-  ).run(tokensIn, tokensOut, costUsd, sessionId);
+  accumulateUsage(db, sessionId, {
+    tokensIn,
+    tokensOut,
+    reasoningTokens,
+    cachedTokens,
+    costUsd,
+  });
 
   return {
+    succeeded,
     messageId: message.id,
     content,
     model: realModel,
@@ -57,6 +64,7 @@ export function recordTurn(
       inputTokens: tokensIn,
       outputTokens: tokensOut,
       reasoningTokens,
+      cachedTokens,
       totalTokens: tokensIn + tokensOut,
     },
     cost: { estimatedUsd: costUsd },

@@ -26,6 +26,9 @@ describe("ChatInstance", () => {
       get lastResult() {
         return null;
       },
+      get messages() {
+        return [];
+      },
     };
     ok(mock);
     strictEqual(mock.lastResult, null);
@@ -53,6 +56,9 @@ describe("ChatInstance", () => {
       },
       get lastResult() {
         return null;
+      },
+      get messages() {
+        return [];
       },
     };
     const result = mock.system("sys").user("usr").assistant("ast");
@@ -83,6 +89,9 @@ describe("ChatFactory", () => {
       },
       get lastResult() {
         return null;
+      },
+      get messages() {
+        return [];
       },
     });
     const instance = factory("gpt-4o");

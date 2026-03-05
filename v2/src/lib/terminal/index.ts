@@ -3,4 +3,5 @@ export { blank } from "./blank.ts";
 export { formatTokens } from "./format_tokens.ts";
 export { label } from "./label.ts";
 export { log } from "./log.ts";
+export { readSecret } from "./read_secret.ts";
 export { style } from "./style.ts";

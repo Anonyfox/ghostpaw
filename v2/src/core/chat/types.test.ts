@@ -14,8 +14,8 @@ import type {
 import { MESSAGE_ROLES, SESSION_PURPOSES } from "./types.ts";
 
 describe("SESSION_PURPOSES", () => {
-  it("contains all six purpose values", () => {
-    deepStrictEqual(SESSION_PURPOSES, ["chat", "delegate", "train", "scout", "refine", "system"]);
+  it("contains all five purpose values", () => {
+    deepStrictEqual(SESSION_PURPOSES, ["chat", "delegate", "train", "scout", "system"]);
   });
 
   it("every element is unique", () => {
@@ -24,8 +24,8 @@ describe("SESSION_PURPOSES", () => {
 });
 
 describe("MESSAGE_ROLES", () => {
-  it("contains user and assistant", () => {
-    deepStrictEqual(MESSAGE_ROLES, ["user", "assistant"]);
+  it("contains all four role values", () => {
+    deepStrictEqual(MESSAGE_ROLES, ["user", "assistant", "tool_call", "tool_result"]);
   });
 
   it("every element is unique", () => {
@@ -55,14 +55,18 @@ describe("type compatibility", () => {
       lastActiveAt: Date.now(),
       tokensIn: 0,
       tokensOut: 0,
+      reasoningTokens: 0,
+      cachedTokens: 0,
       costUsd: 0,
       headMessageId: null,
       closedAt: null,
-      absorbedAt: null,
+      distilledAt: null,
+      parentSessionId: null,
     };
     strictEqual(session.key, "telegram:123");
     strictEqual(session.headMessageId, null);
     strictEqual(session.displayName, null);
+    strictEqual(session.parentSessionId, null);
   });
 
   it("ChatSession nullable fields accept numbers", () => {
@@ -76,15 +80,19 @@ describe("type compatibility", () => {
       lastActiveAt: Date.now(),
       tokensIn: 100,
       tokensOut: 50,
+      reasoningTokens: 0,
+      cachedTokens: 0,
       costUsd: 0.01,
       headMessageId: 5,
       closedAt: Date.now(),
-      absorbedAt: Date.now(),
+      distilledAt: Date.now(),
+      parentSessionId: 1,
     };
     ok(session.headMessageId !== null);
     ok(session.closedAt !== null);
-    ok(session.absorbedAt !== null);
+    ok(session.distilledAt !== null);
     strictEqual(session.displayName, "My Chat");
+    strictEqual(session.parentSessionId, 1);
   });
 
   it("ChatMessage has all required fields", () => {
@@ -97,9 +105,12 @@ describe("type compatibility", () => {
       model: null,
       tokensIn: 0,
       tokensOut: 0,
+      reasoningTokens: 0,
+      cachedTokens: 0,
       costUsd: 0,
       createdAt: Date.now(),
       isCompaction: false,
+      toolData: null,
     };
     strictEqual(msg.role, "user");
     strictEqual(msg.isCompaction, false);
@@ -115,9 +126,12 @@ describe("type compatibility", () => {
       model: "gpt-4o",
       tokensIn: 500,
       tokensOut: 200,
+      reasoningTokens: 0,
+      cachedTokens: 0,
       costUsd: 0.003,
       createdAt: Date.now(),
       isCompaction: true,
+      toolData: null,
     };
     strictEqual(msg.isCompaction, true);
     ok(msg.model !== null);
@@ -143,7 +157,7 @@ describe("type compatibility", () => {
     const empty: ListSessionsFilter = {};
     strictEqual(empty.purpose, undefined);
     strictEqual(empty.open, undefined);
-    strictEqual(empty.absorbed, undefined);
+    strictEqual(empty.distilled, undefined);
   });
 
   it("TurnInput requires sessionId, content, systemPrompt, and model", () => {
@@ -154,7 +168,6 @@ describe("type compatibility", () => {
       model: "claude-sonnet-4-20250514",
     };
     strictEqual(input.maxIterations, undefined);
-    strictEqual(input.compactionThreshold, undefined);
   });
 
   it("TurnInput accepts all optional generation parameters", () => {
@@ -168,14 +181,25 @@ describe("type compatibility", () => {
       temperature: 0.7,
       maxTokens: 4096,
       reasoning: "medium",
-      compactionThreshold: 100_000,
     };
     strictEqual(input.reasoning, "medium");
     strictEqual(input.temperature, 0.7);
   });
 
+  it("TurnInput accepts compactionThreshold", () => {
+    const input: TurnInput = {
+      sessionId: 1,
+      content: "hello",
+      systemPrompt: "system",
+      model: "gpt-4o",
+      compactionThreshold: 50_000,
+    };
+    strictEqual(input.compactionThreshold, 50_000);
+  });
+
   it("TurnResult has all required fields", () => {
     const result: TurnResult = {
+      succeeded: true,
       messageId: 42,
       content: "response text",
       model: "claude-sonnet-4-20250514",
@@ -183,6 +207,7 @@ describe("type compatibility", () => {
         inputTokens: 1000,
         outputTokens: 500,
         reasoningTokens: 0,
+        cachedTokens: 0,
         totalTokens: 1500,
       },
       cost: { estimatedUsd: 0.015 },

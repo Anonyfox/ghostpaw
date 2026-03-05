@@ -81,7 +81,7 @@ function ConfigRowHeader({
           <span class="fw-medium">{config.label ?? config.key}</span>
           <span class="badge bg-secondary ms-2">{config.type}</span>
           {config.isDefault ? (
-            <span class="badge bg-light text-muted ms-1">default</span>
+            <span class="badge bg-body-secondary text-body-tertiary ms-1">default</span>
           ) : (
             <span class="badge bg-info ms-1">overridden</span>
           )}

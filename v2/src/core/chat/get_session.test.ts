@@ -40,12 +40,12 @@ describe("getSession", () => {
     ok(found.closedAt !== null);
   });
 
-  it("returns the session even when absorbed", () => {
+  it("returns the session even when distilled", () => {
     const created = createSession(db, "k");
-    db.prepare("UPDATE sessions SET absorbed_at = ? WHERE id = ?").run(Date.now(), created.id);
+    db.prepare("UPDATE sessions SET distilled_at = ? WHERE id = ?").run(Date.now(), created.id);
     const found = getSession(db, created.id);
     ok(found);
-    ok(found.absorbedAt !== null);
+    ok(found.distilledAt !== null);
   });
 
   it("reflects updated token counts", () => {

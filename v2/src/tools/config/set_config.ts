@@ -10,11 +10,17 @@ import {
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class SetConfigParams extends Schema {
-  key = Schema.String({ description: "Configuration key name" });
+  key = Schema.String({
+    description:
+      "Configuration key name (e.g. 'default_model', 'temperature'). " +
+      "Use list_config to discover available keys.",
+  });
   value = Schema.String({
     description:
-      "Value as a string. Type is inferred: '0.7' → number, 'true' → boolean, '42' → integer, " +
-      "anything else → string. Known system keys always use their defined type.",
+      "Value as a string. Type is inferred: '0.7' → number, 'true'/'false' → boolean, " +
+      "'42' → integer, anything else → string. Known system keys always use their defined type. " +
+      "Examples: '0.7' for temperature, 'claude-sonnet-4-20250514' for default_model, " +
+      "'5.00' for max_cost_per_day.",
   });
 }
 

@@ -8,16 +8,21 @@ import {
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class UndoConfigParams extends Schema {
-  key = Schema.String({ description: "Configuration key to undo the last change for" });
+  key = Schema.String({
+    description:
+      "Configuration key to undo the last change for (e.g. 'temperature'). " +
+      "Reverts to the previous value set by set_config.",
+  });
 }
 
 export function createUndoConfigTool(db: DatabaseHandle) {
   return createTool({
     name: "undo_config",
     description:
-      "Undo the last change to a configuration key, restoring the previous value. " +
-      "If this was the only override, the key reverts to its code default. " +
-      "Only works if the key has been explicitly set at least once.",
+      "Revert the most recent set_config call for a key, restoring its previous value. " +
+      "If this was the only override, the key reverts to its built-in default. " +
+      "Only works if the key has been explicitly set at least once. " +
+      "For a full reset discarding all history, use reset_config instead.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new UndoConfigParams() as any,
     execute: async ({ args }) => {

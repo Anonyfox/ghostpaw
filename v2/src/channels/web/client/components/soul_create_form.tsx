@@ -35,11 +35,11 @@ export function SoulCreateForm({ onCreated }: SoulCreateFormProps) {
     return (
       <button
         type="button"
-        class="card h-100 border-dashed d-flex align-items-center justify-content-center btn p-0"
-        style="cursor: pointer; border-style: dashed; min-height: 160px;"
+        class="card h-100 d-flex align-items-center justify-content-center btn border-secondary p-0"
+        style="cursor: pointer; border-style: dashed !important; min-height: 160px;"
         onClick={() => setOpen(true)}
       >
-        <div class="text-center text-muted">
+        <div class="text-center text-body-secondary">
           <div style="font-size: 2rem;">+</div>
           <small>Create New Soul</small>
         </div>

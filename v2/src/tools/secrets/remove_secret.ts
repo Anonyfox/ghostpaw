@@ -3,7 +3,11 @@ import { canonicalKeyName, deleteSecret } from "../../core/secrets/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class RemoveSecretParams extends Schema {
-  key = Schema.String({ description: "The secret key name to remove" });
+  key = Schema.String({
+    description:
+      "The secret key name to remove (e.g. 'ANTHROPIC_API_KEY'). " +
+      "Use list_secrets to find the correct key name.",
+  });
 }
 
 function isProtectedKey(key: string): boolean {

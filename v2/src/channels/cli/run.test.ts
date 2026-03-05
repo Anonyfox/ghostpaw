@@ -27,12 +27,6 @@ describe("run command definition", () => {
     strictEqual(args.model.type, "string");
   });
 
-  it("defines the --system flag", () => {
-    const args = runCommand.args as Record<string, { type: string }>;
-    ok(args.system);
-    strictEqual(args.system.type, "string");
-  });
-
   it("defines the --no-stream flag", () => {
     const args = runCommand.args as Record<string, { type: string; default?: boolean }>;
     ok(args["no-stream"]);

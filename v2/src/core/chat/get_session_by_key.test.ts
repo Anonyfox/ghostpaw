@@ -54,9 +54,9 @@ describe("getSessionByKey", () => {
     strictEqual(found.id, open.id);
   });
 
-  it("does not skip absorbed sessions (absorbed but not closed is still active)", () => {
+  it("does not skip distilled sessions (distilled but not closed is still active)", () => {
     const session = createSession(db, "k");
-    db.prepare("UPDATE sessions SET absorbed_at = ? WHERE id = ?").run(Date.now(), session.id);
+    db.prepare("UPDATE sessions SET distilled_at = ? WHERE id = ?").run(Date.now(), session.id);
     const found = getSessionByKey(db, "k");
     ok(found);
     strictEqual(found.id, session.id);

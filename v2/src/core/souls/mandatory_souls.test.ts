@@ -20,18 +20,23 @@ describe("MANDATORY_SOUL_IDS", () => {
     strictEqual(MANDATORY_SOUL_IDS.mentor, 4);
   });
 
-  it("has exactly four entries", () => {
-    strictEqual(Object.keys(MANDATORY_SOUL_IDS).length, 4);
+  it("assigns trainer ID 5", () => {
+    strictEqual(MANDATORY_SOUL_IDS.trainer, 5);
+  });
+
+  it("has exactly five entries", () => {
+    strictEqual(Object.keys(MANDATORY_SOUL_IDS).length, 5);
   });
 });
 
 describe("MANDATORY_SOUL_NAMES", () => {
-  it("contains all four mandatory soul names", () => {
+  it("contains all five mandatory soul names", () => {
     ok(MANDATORY_SOUL_NAMES.includes("ghostpaw"));
     ok(MANDATORY_SOUL_NAMES.includes("js-engineer"));
     ok(MANDATORY_SOUL_NAMES.includes("prompt-engineer"));
     ok(MANDATORY_SOUL_NAMES.includes("mentor"));
-    strictEqual(MANDATORY_SOUL_NAMES.length, 4);
+    ok(MANDATORY_SOUL_NAMES.includes("trainer"));
+    strictEqual(MANDATORY_SOUL_NAMES.length, 5);
   });
 
   it("matches the keys of DEFAULT_SOULS exactly", () => {
@@ -49,9 +54,13 @@ describe("isMandatorySoulId", () => {
     ok(isMandatorySoulId(4));
   });
 
+  it("returns true for trainer ID", () => {
+    ok(isMandatorySoulId(5));
+  });
+
   it("returns false for non-mandatory IDs", () => {
     ok(!isMandatorySoulId(0));
-    ok(!isMandatorySoulId(5));
+    ok(!isMandatorySoulId(6));
     ok(!isMandatorySoulId(100));
     ok(!isMandatorySoulId(-1));
   });

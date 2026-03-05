@@ -28,7 +28,7 @@ describe("createSession", () => {
     strictEqual(session.costUsd, 0);
     strictEqual(session.headMessageId, null);
     strictEqual(session.closedAt, null);
-    strictEqual(session.absorbedAt, null);
+    strictEqual(session.distilledAt, null);
   });
 
   it("accepts a custom purpose", () => {
@@ -72,10 +72,25 @@ describe("createSession", () => {
   });
 
   it("accepts all valid purpose values", () => {
-    const purposes = ["chat", "delegate", "train", "scout", "refine", "system"] as const;
+    const purposes = ["chat", "delegate", "train", "scout", "system"] as const;
     for (const purpose of purposes) {
       const session = createSession(db, `key-${purpose}`, { purpose });
       strictEqual(session.purpose, purpose);
     }
+  });
+
+  it("defaults parentSessionId to null", () => {
+    const session = createSession(db, "k");
+    strictEqual(session.parentSessionId, null);
+    const row = db.prepare("SELECT parent_session_id FROM sessions WHERE id = ?").get(session.id);
+    strictEqual(row!.parent_session_id, null);
+  });
+
+  it("stores and returns parentSessionId when provided", () => {
+    const parent = createSession(db, "parent");
+    const child = createSession(db, "child", { parentSessionId: parent.id as number });
+    strictEqual(child.parentSessionId, parent.id);
+    const row = db.prepare("SELECT parent_session_id FROM sessions WHERE id = ?").get(child.id);
+    strictEqual(row!.parent_session_id, parent.id);
   });
 });

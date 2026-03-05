@@ -36,9 +36,9 @@ export function LoginPage() {
 
   return (
     <div class="d-flex align-items-center justify-content-center vh-100">
-      <div class="card" style="width: 360px;">
+      <div class="card border shadow" style="width: 360px;">
         <div class="card-body">
-          <h4 class="card-title mb-3">Ghostpaw</h4>
+          <h4 class="card-title mb-3 text-info">Ghostpaw</h4>
           <p class="text-muted mb-4">Enter your password to continue.</p>
           {error && <div class="alert alert-danger">{error}</div>}
           <form onSubmit={handleSubmit}>

@@ -53,12 +53,14 @@ describe("soul shared types", () => {
       essence: "Full essence.",
       description: "The coordinator soul.",
       level: 2,
+      traitLimit: 10,
       isMandatory: true,
       deletedAt: null,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       traits: [],
       levels: [],
+      mentorAvailable: true,
     };
     ok(detail.id > 0);
   });

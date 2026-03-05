@@ -134,4 +134,13 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
       "Active traits per soul before level-up is unlocked. Research suggests 5\u201310 depending on model capability. Raise for reasoning models, lower for cheaper ones.",
     validate: (v) => typeof v === "number" && Number.isInteger(v) && v >= 1,
   },
+  {
+    key: "telegram_allowed_chat_ids",
+    type: "string",
+    defaultValue: "",
+    category: "telegram",
+    label: "Allowed Chat IDs",
+    description:
+      "Comma-separated Telegram chat IDs allowed to use the bot. Empty means all chats are allowed.",
+  },
 ];

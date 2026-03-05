@@ -77,4 +77,29 @@ describe("SoulXpBar", () => {
     assert.equal(bar.style.width, "0%");
     assert.ok(dom.container.textContent?.includes("0/10"));
   });
+
+  it("renders contextMessage when provided", () => {
+    render(
+      <SoulXpBar activeTraits={5} traitLimit={10} contextMessage="5 more traits until evolution" />,
+      dom.container,
+    );
+    assert.ok(dom.container.textContent?.includes("5 more traits until evolution"));
+  });
+
+  it("does not render contextMessage when not provided", () => {
+    render(<SoulXpBar activeTraits={5} traitLimit={10} />, dom.container);
+    assert.ok(!dom.container.textContent?.includes("until evolution"));
+  });
+
+  it("applies warning color to contextMessage when ready", () => {
+    render(
+      <SoulXpBar
+        activeTraits={10}
+        traitLimit={10}
+        contextMessage="Trait capacity reached — evolution ready"
+      />,
+      dom.container,
+    );
+    assert.ok(dom.container.textContent?.includes("evolution ready"));
+  });
 });

@@ -12,4 +12,10 @@ export const KNOWN_KEYS: KnownKey[] = [
   { canonical: "BRAVE_API_KEY", aliases: [], label: "Brave Search", category: "search" },
   { canonical: "TAVILY_API_KEY", aliases: [], label: "Tavily", category: "search" },
   { canonical: "SERPER_API_KEY", aliases: [], label: "Serper", category: "search" },
+  {
+    canonical: "TELEGRAM_BOT_TOKEN",
+    aliases: [],
+    label: "Telegram Bot",
+    category: "telegram",
+  },
 ];

@@ -3,6 +3,7 @@ export const MANDATORY_SOUL_IDS = {
   "js-engineer": 2,
   "prompt-engineer": 3,
   mentor: 4,
+  trainer: 5,
 } as const;
 
 export type MandatorySoulName = keyof typeof MANDATORY_SOUL_IDS;

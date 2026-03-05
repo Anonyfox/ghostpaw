@@ -105,7 +105,7 @@ describe("chat sessions API", () => {
       strictEqual(data[0].channel, "tui");
     });
 
-    it("excludes system and absorbed sessions", () => {
+    it("excludes system and distilled sessions", () => {
       createSession(db, "web:chat:1", { purpose: "chat" });
       createSession(db, "system:title:1", { purpose: "system" });
 

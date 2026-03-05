@@ -1,6 +1,9 @@
 import { ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import { buildDescriptionPrompt, buildNamePrompt } from "./soul_generate.ts";
+import {
+  buildDescriptionPrompt,
+  buildNamePrompt,
+} from "../../../../harness/oneshots/generate_soul_text.ts";
 
 describe("buildDescriptionPrompt", () => {
   it("includes soul name", () => {

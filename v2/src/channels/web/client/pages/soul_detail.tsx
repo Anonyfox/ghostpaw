@@ -5,6 +5,7 @@ import { apiDelete } from "../api_delete.ts";
 import { apiGet } from "../api_get.ts";
 import { apiPatch } from "../api_patch.ts";
 import { apiPost } from "../api_post.ts";
+import { MentorChamber } from "../components/mentor_chamber.tsx";
 import { SoulAddTraitForm } from "../components/soul_add_trait_form.tsx";
 import { SoulLevelHistory } from "../components/soul_level_history.tsx";
 import { SoulTraitList } from "../components/soul_trait_list.tsx";
@@ -26,15 +27,17 @@ export function SoulDetailPage() {
   const [suggestingName, setSuggestingName] = useState(false);
   const [suggestingDesc, setSuggestingDesc] = useState(false);
 
-  const load = async () => {
+  const load = async (): Promise<SoulDetailResponse> => {
     try {
       const data = await apiGet<SoulDetailResponse>(`/api/souls/${id}`);
       setSoul(data);
       setNameValue(data.name);
       setDescriptionValue(data.description);
       setEssenceValue(data.essence);
+      return data;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load soul.");
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -138,6 +141,12 @@ export function SoulDetailPage() {
 
   const isArchived = soul.deletedAt != null;
   const activeTraitCount = soul.traits.filter((t) => t.status === "active").length;
+  const remaining = soul.traitLimit - activeTraitCount;
+  const xpMessage = isArchived
+    ? undefined
+    : remaining <= 0
+      ? "Trait capacity reached — evolution ready"
+      : `${remaining} more trait${remaining !== 1 ? "s" : ""} until evolution`;
   const statusCounts: Record<string, number> = {};
   for (const t of soul.traits) statusCounts[t.status] = (statusCounts[t.status] ?? 0) + 1;
 
@@ -223,7 +232,53 @@ export function SoulDetailPage() {
             traitLimit={soul.traitLimit}
             variant="full"
             isArchived={isArchived}
+            contextMessage={xpMessage}
           />
+        </div>
+      </div>
+
+      {!isArchived && <MentorChamber soul={soul} onUpdated={load} />}
+
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <h5 class="card-title">Essence</h5>
+            {!isArchived && !editingEssence && (
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-info"
+                onClick={() => setEditingEssence(true)}
+              >
+                Edit
+              </button>
+            )}
+          </div>
+          {editingEssence && !isArchived ? (
+            <div>
+              <textarea
+                class="form-control mb-2"
+                rows={6}
+                value={essenceValue}
+                onInput={(e) => setEssenceValue((e.target as HTMLTextAreaElement).value)}
+              />
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-info" onClick={saveEssence}>
+                  Save
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  onClick={() => setEditingEssence(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div class="mt-2" style="white-space: pre-wrap;">
+              {soul.essence || <em class="text-muted">No essence yet.</em>}
+            </div>
+          )}
         </div>
       </div>
 
@@ -280,49 +335,6 @@ export function SoulDetailPage() {
         </div>
       </div>
 
-      <div class="card mb-4">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start">
-            <h5 class="card-title">Essence</h5>
-            {!isArchived && !editingEssence && (
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-info"
-                onClick={() => setEditingEssence(true)}
-              >
-                Edit
-              </button>
-            )}
-          </div>
-          {editingEssence && !isArchived ? (
-            <div>
-              <textarea
-                class="form-control mb-2"
-                rows={6}
-                value={essenceValue}
-                onInput={(e) => setEssenceValue((e.target as HTMLTextAreaElement).value)}
-              />
-              <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-info" onClick={saveEssence}>
-                  Save
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-secondary"
-                  onClick={() => setEditingEssence(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div class="mt-2" style="white-space: pre-wrap;">
-              {soul.essence || <em class="text-muted">No essence yet.</em>}
-            </div>
-          )}
-        </div>
-      </div>
-
       <div class="d-flex gap-3 mb-4 text-muted small">
         <span>Active: {statusCounts.active ?? 0}</span>
         <span>Consolidated: {statusCounts.consolidated ?? 0}</span>
@@ -346,8 +358,6 @@ export function SoulDetailPage() {
         levels={soul.levels}
         soulId={soul.id}
         isArchived={isArchived}
-        activeTraitCount={activeTraitCount}
-        traitLimit={soul.traitLimit}
         onUpdated={load}
       />
     </div>

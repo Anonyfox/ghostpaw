@@ -11,9 +11,12 @@ function rowToMessage(row: Record<string, unknown>): ChatMessage {
     model: (row.model as string) ?? null,
     tokensIn: (row.tokens_in as number) ?? 0,
     tokensOut: (row.tokens_out as number) ?? 0,
+    reasoningTokens: (row.reasoning_tokens as number) ?? 0,
+    cachedTokens: (row.cached_tokens as number) ?? 0,
     costUsd: (row.cost_usd as number) ?? 0,
     createdAt: row.created_at as number,
     isCompaction: row.is_compaction === 1,
+    toolData: (row.tool_data as string) ?? null,
   };
 }
 

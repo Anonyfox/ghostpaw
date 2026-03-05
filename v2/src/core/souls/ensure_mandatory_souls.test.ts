@@ -21,7 +21,7 @@ describe("ensureMandatorySouls", () => {
     initSoulsTables(db);
   });
 
-  it("creates all four mandatory souls with hardcoded IDs", () => {
+  it("creates all mandatory souls with hardcoded IDs", () => {
     ensureMandatorySouls(db);
     for (const key of MANDATORY_SOUL_NAMES) {
       const id = MANDATORY_SOUL_IDS[key];
@@ -154,9 +154,7 @@ describe("ensureMandatorySouls", () => {
   it("seeds traits as active at generation 0", () => {
     ensureMandatorySouls(db);
     const rows = db
-      .prepare(
-        "SELECT status, generation FROM soul_traits WHERE soul_id = ?",
-      )
+      .prepare("SELECT status, generation FROM soul_traits WHERE soul_id = ?")
       .all(MANDATORY_SOUL_IDS.ghostpaw) as { status: string; generation: number }[];
     ok(rows.length > 0);
     for (const row of rows) {

@@ -1,8 +1,14 @@
 import { Chat } from "chatoyant";
 import type { TurnContext } from "../../../../core/chat/index.ts";
 import { closeSession, createSession, executeTurn } from "../../../../core/chat/index.ts";
-import { getConfig } from "../../../../core/config/index.ts";
 import { getSoul, listTraits } from "../../../../core/souls/index.ts";
+import { resolveModel } from "../../../../harness/model.ts";
+import {
+  buildDescriptionPrompt,
+  buildNamePrompt,
+  DESC_SYSTEM_PROMPT,
+  NAME_SYSTEM_PROMPT,
+} from "../../../../harness/oneshots/generate_soul_text.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";
 
@@ -11,48 +17,7 @@ function json(ctx: RouteContext, status: number, data: unknown): void {
   ctx.res.end(JSON.stringify(data));
 }
 
-function resolveModel(db: DatabaseHandle): string {
-  const configured = getConfig(db, "default_model");
-  return typeof configured === "string" && configured ? configured : "claude-sonnet-4-6";
-}
-
-const DESC_SYSTEM_PROMPT =
-  "You generate concise soul descriptions. Output ONLY the description, nothing else. Max 2 sentences.";
-
-const NAME_SYSTEM_PROMPT =
-  "You suggest concise soul names. Output ONLY the name. Max 4 words, no explanation.";
-
-export function buildDescriptionPrompt(
-  name: string,
-  essence: string,
-  traitPrinciples: string[],
-): string {
-  const truncatedEssence = essence.length > 300 ? essence.slice(0, 300) : essence;
-  let prompt = `Given this soul named "${name}"`;
-  if (truncatedEssence) {
-    prompt += ` with essence: ${truncatedEssence}`;
-  }
-  if (traitPrinciples.length > 0) {
-    const top = traitPrinciples.slice(0, 5).join("; ");
-    prompt += ` and ${traitPrinciples.length} active traits including: ${top}`;
-  }
-  prompt += "... Write a concise 1-2 sentence description that captures what this soul represents.";
-  return prompt;
-}
-
-export function buildNamePrompt(currentName: string, description: string, essence: string): string {
-  const truncatedEssence = essence.length > 200 ? essence.slice(0, 200) : essence;
-  let prompt = `Given this soul currently named "${currentName}"`;
-  if (description) {
-    prompt += ` with description: ${description}`;
-  }
-  if (truncatedEssence) {
-    prompt += ` and essence excerpt: ${truncatedEssence}`;
-  }
-  prompt +=
-    "... Suggest a short, descriptive human-readable name (like 'Ghost Analyst' or 'Code Reviewer'). Max 4 words.";
-  return prompt;
-}
+export { buildDescriptionPrompt, buildNamePrompt };
 
 export function createSoulGenerateHandlers(db: DatabaseHandle) {
   return {

@@ -22,8 +22,8 @@ export function SoulCard({
   const cardClass = [
     "card",
     "h-100",
-    isHero ? "bg-dark text-light border-info" : "",
-    isGraveyard ? "bg-secondary bg-opacity-10 border-secondary" : "",
+    isHero ? "border-info border-2" : "",
+    isGraveyard ? "border-secondary opacity-75" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -47,13 +47,19 @@ export function SoulCard({
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-start mb-2">
           <h5 class="card-title mb-0">
-            <Link href={`/souls/${soul.id}`} class={isHero ? "text-info" : "text-decoration-none"}>
+            <Link
+              href={`/souls/${soul.id}`}
+              class={isHero ? "text-info text-decoration-none" : "text-info text-decoration-none"}
+            >
               {soul.name}
             </Link>
           </h5>
           <span class={`badge ${isHero ? "bg-info" : "bg-secondary"}`}>Lv. {soul.level}</span>
+          {!isGraveyard && soul.activeTraitCount >= traitLimit && traitLimit > 0 && (
+            <span class="badge bg-warning text-dark">Ready</span>
+          )}
         </div>
-        <p class={`card-text small ${isHero ? "text-light" : "text-muted"} mb-2`}>
+        <p class="card-text small text-body-secondary mb-2">
           {soul.description || soul.essencePreview || <em>No description yet.</em>}
         </p>
         <div class="mb-2">

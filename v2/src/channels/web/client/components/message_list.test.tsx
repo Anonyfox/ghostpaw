@@ -46,4 +46,27 @@ describe("MessageList", () => {
     render(<MessageList messages={[]} streamingContent="Thinking..." />, dom.container);
     assert.ok(!dom.container.textContent!.includes("Start a conversation"));
   });
+
+  it("shows thinking indicator when waiting", () => {
+    const msgs: ChatMessageInfo[] = [
+      { id: 1, role: "user", content: "Hello", createdAt: Date.now() },
+    ];
+    render(<MessageList messages={msgs} streamingContent="" waiting />, dom.container);
+    const spinners = dom.container.querySelectorAll(".spinner-grow");
+    assert.ok(spinners.length >= 3);
+  });
+
+  it("hides thinking indicator once streaming starts", () => {
+    const msgs: ChatMessageInfo[] = [
+      { id: 1, role: "user", content: "Hello", createdAt: Date.now() },
+    ];
+    render(<MessageList messages={msgs} streamingContent="Hi" waiting />, dom.container);
+    const indicators = dom.container.querySelectorAll(".streaming-indicator");
+    assert.equal(indicators.length, 1);
+  });
+
+  it("hides empty state when waiting", () => {
+    render(<MessageList messages={[]} streamingContent="" waiting />, dom.container);
+    assert.ok(!dom.container.textContent!.includes("Start a conversation"));
+  });
 });

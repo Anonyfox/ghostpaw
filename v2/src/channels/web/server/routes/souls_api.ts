@@ -27,7 +27,7 @@ function essencePreview(essence: string, maxLen = 120): string {
   return `${essence.slice(0, maxLen)}...`;
 }
 
-export function createSoulsApiHandlers(db: DatabaseHandle) {
+export function createSoulsApiHandlers(db: DatabaseHandle, entityAvailable: boolean) {
   return {
     list(ctx: RouteContext): void {
       const summaries = listSouls(db);
@@ -126,6 +126,7 @@ export function createSoulsApiHandlers(db: DatabaseHandle) {
           traitsMerged: l.traitsMerged,
           createdAt: l.createdAt,
         })),
+        mentorAvailable: entityAvailable,
       };
       json(ctx, 200, detail);
     },

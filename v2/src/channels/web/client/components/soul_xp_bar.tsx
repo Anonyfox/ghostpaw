@@ -4,6 +4,7 @@ interface SoulXpBarProps {
   variant?: "compact" | "full";
   isHero?: boolean;
   isArchived?: boolean;
+  contextMessage?: string;
 }
 
 export function SoulXpBar({
@@ -12,6 +13,7 @@ export function SoulXpBar({
   variant = "compact",
   isHero = false,
   isArchived = false,
+  contextMessage,
 }: SoulXpBarProps) {
   if (traitLimit <= 0) return null;
 
@@ -55,6 +57,9 @@ export function SoulXpBar({
         <div class={barClass} style={`width: ${percent}%;`} />
       </div>
       <div class={`${labelClass} ${textColor} mt-1`}>{label}</div>
+      {contextMessage && (
+        <div class={`small ${isReady ? "text-warning" : "text-muted"}`}>{contextMessage}</div>
+      )}
     </div>
   );
 }

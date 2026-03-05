@@ -28,7 +28,13 @@ describe("recordTurn", () => {
       session.id,
       "Hi there!",
       {
-        usage: { inputTokens: 100, outputTokens: 50, reasoningTokens: 10, totalTokens: 150 },
+        usage: {
+          inputTokens: 100,
+          outputTokens: 50,
+          reasoningTokens: 10,
+          cachedTokens: 0,
+          totalTokens: 150,
+        },
         cost: { estimatedUsd: 0.005 },
         model: "gpt-4o",
         iterations: 2,
@@ -54,7 +60,13 @@ describe("recordTurn", () => {
       session.id,
       "response",
       {
-        usage: { inputTokens: 200, outputTokens: 100, reasoningTokens: 0, totalTokens: 300 },
+        usage: {
+          inputTokens: 200,
+          outputTokens: 100,
+          reasoningTokens: 0,
+          cachedTokens: 0,
+          totalTokens: 300,
+        },
         cost: { estimatedUsd: 0.01 },
         model: "gpt-4o",
         iterations: 1,
@@ -72,7 +84,13 @@ describe("recordTurn", () => {
   it("accumulates tokens across multiple turns", () => {
     const session = createSession(db, "k");
     const lastResult = {
-      usage: { inputTokens: 100, outputTokens: 50, reasoningTokens: 0, totalTokens: 150 },
+      usage: {
+        inputTokens: 100,
+        outputTokens: 50,
+        reasoningTokens: 0,
+        cachedTokens: 0,
+        totalTokens: 150,
+      },
       cost: { estimatedUsd: 0.005 },
       model: "gpt-4o",
       iterations: 1,
@@ -93,7 +111,13 @@ describe("recordTurn", () => {
       session.id,
       "response",
       {
-        usage: { inputTokens: 10, outputTokens: 5, reasoningTokens: 0, totalTokens: 15 },
+        usage: {
+          inputTokens: 10,
+          outputTokens: 5,
+          reasoningTokens: 0,
+          cachedTokens: 0,
+          totalTokens: 15,
+        },
         cost: { estimatedUsd: 0 },
         model: "claude-sonnet-4-20250514",
         iterations: 1,

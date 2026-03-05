@@ -34,10 +34,10 @@ describe("storeMemory", () => {
     strictEqual(mem.confidence, 0.8);
   });
 
-  it("assigns source-weighted default confidence for absorbed", () => {
+  it("assigns source-weighted default confidence for distilled", () => {
     const mem = storeMemory(db, "learned it", embedText("t"));
     strictEqual(mem.confidence, 0.6);
-    strictEqual(mem.source, "absorbed");
+    strictEqual(mem.source, "distilled");
   });
 
   it("assigns source-weighted default confidence for inferred", () => {

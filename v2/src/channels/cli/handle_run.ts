@@ -1,24 +1,23 @@
-import type { TurnContext } from "../../core/chat/index.ts";
-import { closeSession, createSession, executeTurn } from "../../core/chat/index.ts";
-import type { DatabaseHandle } from "../../lib/index.ts";
-import { resolveModel } from "./resolve_model.ts";
+import { closeSession, createSession } from "../../core/chat/index.ts";
+import { defaultChatFactory } from "../../harness/chat_factory.ts";
+import type { Entity } from "../../harness/index.ts";
+import { resolveModel } from "../../harness/model.ts";
+import { handlePostSession } from "../../harness/post_session.ts";
 import type { RunInput, RunResult } from "./run_types.ts";
-import { DEFAULT_SYSTEM_PROMPT } from "./run_types.ts";
 import { toRunResult } from "./to_run_result.ts";
 
-export async function handleRun(db: DatabaseHandle, input: RunInput): Promise<RunResult> {
-  const model = resolveModel(db, input.model);
-  const systemPrompt = input.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
-  const session = createSession(db, `cli:run:${Date.now()}`, { purpose: "chat" });
-  const ctx: TurnContext = { db, tools: [], createChat: input.createChat };
+export async function handleRun(entity: Entity, input: RunInput): Promise<RunResult> {
+  const session = createSession(entity.db, `cli:run:${Date.now()}`, { purpose: "chat" });
+  const sessionId = session.id as number;
 
   try {
-    const result = await executeTurn(
-      { sessionId: session.id, content: input.prompt, systemPrompt, model },
-      ctx,
-    );
+    const result = await entity.executeTurn(sessionId, input.prompt, { model: input.model });
     return toRunResult(result);
   } finally {
-    closeSession(db, session.id);
+    await entity.flush();
+    closeSession(entity.db, sessionId);
+    const model = resolveModel(entity.db, input.model);
+    const p = handlePostSession(entity.db, sessionId, model, defaultChatFactory);
+    if (p) await p;
   }
 }

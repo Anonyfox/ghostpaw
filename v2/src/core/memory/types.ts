@@ -1,4 +1,4 @@
-export const MEMORY_SOURCES = ["explicit", "observed", "absorbed", "inferred"] as const;
+export const MEMORY_SOURCES = ["explicit", "observed", "distilled", "inferred"] as const;
 export type MemorySource = (typeof MEMORY_SOURCES)[number];
 
 export const MEMORY_CATEGORIES = [

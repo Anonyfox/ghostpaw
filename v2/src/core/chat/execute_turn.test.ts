@@ -2,12 +2,14 @@ import { ok, rejects, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
-import type { ChatInstance, TurnContext } from "./chat_instance.ts";
+import { addMessage } from "./add_message.ts";
+import type { ChatInstance, CompactFn, TurnContext } from "./chat_instance.ts";
 import { createSession } from "./create_session.ts";
 import { executeTurn } from "./execute_turn.ts";
 import { getHistory } from "./get_history.ts";
 import { getSession } from "./get_session.ts";
 import { initChatTables } from "./schema.ts";
+import type { ChatMessage } from "./types.ts";
 
 let db: DatabaseHandle;
 
@@ -59,6 +61,9 @@ function createMockFactory(response: string, opts?: { shouldThrow?: boolean }) {
         provider: "openai" as const,
         cached: false,
       };
+    },
+    get messages() {
+      return [];
     },
   });
 }
@@ -177,32 +182,6 @@ describe("executeTurn", () => {
     strictEqual(history[3]!.content, "response 2");
   });
 
-  it("triggers compaction when threshold is exceeded", async () => {
-    const session = createSession(db, "k");
-    await executeTurn(
-      {
-        sessionId: session.id,
-        content: "a".repeat(4000),
-        systemPrompt: "sys",
-        model: "gpt-4o",
-      },
-      makeCtx("b".repeat(4000)),
-    );
-    const result = await executeTurn(
-      {
-        sessionId: session.id,
-        content: "new message",
-        systemPrompt: "sys",
-        model: "gpt-4o",
-        compactionThreshold: 10,
-      },
-      makeCtx("response after compaction"),
-    );
-    const history = getHistory(db, session.id);
-    ok(history.some((m) => m.isCompaction));
-    strictEqual(result.content, "response after compaction");
-  });
-
   it("works on an empty session (first message)", async () => {
     const session = createSession(db, "k");
     const result = await executeTurn(
@@ -212,5 +191,124 @@ describe("executeTurn", () => {
     strictEqual(result.content, "welcome");
     const history = getHistory(db, session.id);
     strictEqual(history.length, 2);
+  });
+
+  it("triggers compaction when threshold exceeded and compactFn provided", async () => {
+    const session = createSession(db, "compact-test");
+    const longContent = "x".repeat(500);
+    for (let i = 0; i < 6; i++) {
+      addMessage(db, { sessionId: session.id, role: "user", content: longContent });
+      addMessage(db, { sessionId: session.id, role: "assistant", content: longContent });
+    }
+
+    let compactCalled = false;
+    const mockCompactFn: CompactFn = async (
+      compactDb: DatabaseHandle,
+      sid: number,
+      _history: ChatMessage[],
+      _model: string,
+    ) => {
+      compactCalled = true;
+      return addMessage(compactDb, {
+        sessionId: sid,
+        role: "assistant",
+        content: "compacted summary",
+        isCompaction: true,
+      });
+    };
+
+    const ctx: TurnContext = {
+      ...makeCtx("after compaction"),
+      compactFn: mockCompactFn,
+    };
+
+    await executeTurn(
+      {
+        sessionId: session.id,
+        content: "new message",
+        systemPrompt: "sys",
+        model: "gpt-4o",
+        compactionThreshold: 1,
+      },
+      ctx,
+    );
+
+    strictEqual(compactCalled, true);
+  });
+
+  it("places user message after compaction summary in the chain", async () => {
+    const session = createSession(db, "compact-order");
+    const longContent = "x".repeat(500);
+    for (let i = 0; i < 4; i++) {
+      addMessage(db, { sessionId: session.id, role: "user", content: longContent });
+      addMessage(db, { sessionId: session.id, role: "assistant", content: longContent });
+    }
+
+    let receivedHistory: ChatMessage[] = [];
+    const mockCompactFn: CompactFn = async (
+      compactDb: DatabaseHandle,
+      sid: number,
+      hist: ChatMessage[],
+      _model: string,
+    ) => {
+      receivedHistory = hist;
+      const last = hist[hist.length - 1];
+      return addMessage(compactDb, {
+        sessionId: sid,
+        role: "assistant",
+        content: "compacted summary",
+        parentId: last?.id,
+        isCompaction: true,
+      });
+    };
+
+    const ctx: TurnContext = {
+      ...makeCtx("after compaction"),
+      compactFn: mockCompactFn,
+    };
+
+    await executeTurn(
+      {
+        sessionId: session.id,
+        content: "new user input",
+        systemPrompt: "sys",
+        model: "gpt-4o",
+        compactionThreshold: 1,
+      },
+      ctx,
+    );
+
+    // compactFn should receive old history WITHOUT the new user message
+    const hasNewMsg = receivedHistory.some((m) => m.content === "new user input");
+    strictEqual(hasNewMsg, false, "compactFn should not receive the new user message");
+
+    // After the turn, history should be: [compaction, user, assistant]
+    const history = getHistory(db, session.id);
+    strictEqual(history.length, 3);
+    strictEqual(history[0]!.role, "assistant");
+    strictEqual(history[0]!.isCompaction, true);
+    strictEqual(history[1]!.role, "user");
+    strictEqual(history[1]!.content, "new user input");
+    strictEqual(history[2]!.role, "assistant");
+    strictEqual(history[2]!.content, "after compaction");
+  });
+
+  it("does not compact when no compactFn provided", async () => {
+    const session = createSession(db, "no-compact");
+    addMessage(db, { sessionId: session.id, role: "user", content: "x".repeat(500) });
+    addMessage(db, { sessionId: session.id, role: "assistant", content: "x".repeat(500) });
+
+    const result = await executeTurn(
+      {
+        sessionId: session.id,
+        content: "hello",
+        systemPrompt: "sys",
+        model: "gpt-4o",
+        compactionThreshold: 1,
+      },
+      makeCtx("response"),
+    );
+
+    strictEqual(result.content, "response");
   });
 });

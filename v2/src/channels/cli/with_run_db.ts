@@ -1,6 +1,8 @@
 import { resolve } from "node:path";
 import { initChatTables } from "../../core/chat/index.ts";
 import { initConfigTable } from "../../core/config/index.ts";
+import { initMemoryTable } from "../../core/memory/index.ts";
+import { initRunsTable, recoverOrphanedRuns } from "../../core/runs/index.ts";
 import {
   initSecretsTable,
   loadSecretsIntoEnv,
@@ -16,7 +18,10 @@ export async function withRunDb<T>(fn: (db: DatabaseHandle) => T | Promise<T>): 
   initSecretsTable(db);
   initConfigTable(db);
   initChatTables(db);
+  initMemoryTable(db);
   initSoulsTables(db);
+  initRunsTable(db);
+  recoverOrphanedRuns(db);
   ensureMandatorySouls(db);
   loadSecretsIntoEnv(db);
   syncProviderKeys(db);

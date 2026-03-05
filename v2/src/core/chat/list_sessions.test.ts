@@ -64,18 +64,18 @@ describe("listSessions", () => {
     strictEqual(closedOnly[0]!.id, s2.id);
   });
 
-  it("filters by absorbed status", () => {
+  it("filters by distilled status", () => {
     const s1 = createSession(db, "k1");
     const s2 = createSession(db, "k2");
-    db.prepare("UPDATE sessions SET absorbed_at = ? WHERE id = ?").run(Date.now(), s2.id);
+    db.prepare("UPDATE sessions SET distilled_at = ? WHERE id = ?").run(Date.now(), s2.id);
 
-    const notAbsorbed = listSessions(db, { absorbed: false });
-    strictEqual(notAbsorbed.length, 1);
-    strictEqual(notAbsorbed[0]!.id, s1.id);
+    const notDistilled = listSessions(db, { distilled: false });
+    strictEqual(notDistilled.length, 1);
+    strictEqual(notDistilled[0]!.id, s1.id);
 
-    const absorbed = listSessions(db, { absorbed: true });
-    strictEqual(absorbed.length, 1);
-    strictEqual(absorbed[0]!.id, s2.id);
+    const distilled = listSessions(db, { distilled: true });
+    strictEqual(distilled.length, 1);
+    strictEqual(distilled[0]!.id, s2.id);
   });
 
   it("combines multiple filters", () => {

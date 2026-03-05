@@ -6,7 +6,7 @@ import { vectorToBuffer } from "./vector_to_buffer.ts";
 const SOURCE_CONFIDENCE: Record<MemorySource, number> = {
   explicit: 0.9,
   observed: 0.8,
-  absorbed: 0.6,
+  distilled: 0.6,
   inferred: 0.5,
 };
 
@@ -20,7 +20,7 @@ export function storeMemory(
   if (trimmed.length === 0) {
     throw new Error("Memory claim must not be empty");
   }
-  const source = options?.source ?? "absorbed";
+  const source = options?.source ?? "distilled";
   const category = options?.category ?? "custom";
   const raw = options?.confidence ?? SOURCE_CONFIDENCE[source];
   const confidence = Math.max(0, Math.min(1, raw));

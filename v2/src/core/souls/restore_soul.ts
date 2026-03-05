@@ -35,6 +35,6 @@ export function restoreSoul(db: DatabaseHandle, id: number, newName?: string): S
 
   db.prepare(`UPDATE souls SET ${sets.join(", ")} WHERE id = ?`).run(...params);
 
-  const row = db.prepare("SELECT * FROM souls WHERE id = ?").get(id);
-  return rowToSoul(row as Record<string, unknown>);
+  const updated = db.prepare("SELECT * FROM souls WHERE id = ?").get(id);
+  return rowToSoul(updated as Record<string, unknown>);
 }

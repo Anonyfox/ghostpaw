@@ -7,7 +7,9 @@ export function shouldCompact(history: ChatMessage[], threshold: number): boolea
 
   let total = 0;
   for (const msg of history) {
-    total += estimateTokens(msg.content);
+    if (msg.role === "user" || msg.role === "assistant") {
+      total += estimateTokens(msg.content);
+    }
   }
   return total > threshold;
 }

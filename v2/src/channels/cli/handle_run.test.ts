@@ -4,16 +4,25 @@ import type { ChatInstance } from "../../core/chat/chat_instance.ts";
 import type { ChatFactory } from "../../core/chat/index.ts";
 import { initChatTables } from "../../core/chat/index.ts";
 import { initConfigTable, setConfig } from "../../core/config/index.ts";
+import { initMemoryTable } from "../../core/memory/index.ts";
+import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
+import type { Entity } from "../../harness/index.ts";
+import { createEntity } from "../../harness/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { handleRun } from "./handle_run.ts";
 
 let db: DatabaseHandle;
+let entity: Entity;
 
 beforeEach(async () => {
   db = await openTestDatabase();
   initConfigTable(db);
   initChatTables(db);
+  initMemoryTable(db);
+  initSoulsTables(db);
+  ensureMandatorySouls(db);
+  entity = createEntity({ db, workspace: "/tmp", chatFactory: mockFactory("Hi there!") });
 });
 
 afterEach(() => {
@@ -33,6 +42,9 @@ function mockFactory(response: string): ChatFactory {
     },
     addTool() {
       return this;
+    },
+    get messages() {
+      return [];
     },
     async generate() {
       return response;
@@ -63,11 +75,7 @@ function mockFactory(response: string): ChatFactory {
 
 describe("handleRun", () => {
   it("returns a RunResult with the response content", async () => {
-    const result = await handleRun(db, {
-      prompt: "hello",
-      model: "gpt-4o",
-      createChat: mockFactory("Hi there!"),
-    });
+    const result = await handleRun(entity, { prompt: "hello", model: "gpt-4o" });
     strictEqual(result.content, "Hi there!");
     strictEqual(result.model, "gpt-4o");
     strictEqual(result.tokensIn, 100);
@@ -82,7 +90,8 @@ describe("handleRun", () => {
       usedModel = model;
       return mockFactory("ok")(model);
     };
-    await handleRun(db, { prompt: "test", createChat: factory });
+    const e = createEntity({ db, workspace: "/tmp", chatFactory: factory });
+    await handleRun(e, { prompt: "test" });
     strictEqual(usedModel, "custom-model");
   });
 
@@ -93,26 +102,24 @@ describe("handleRun", () => {
       usedModel = model;
       return mockFactory("ok")(model);
     };
-    await handleRun(db, { prompt: "test", model: "explicit-model", createChat: factory });
+    const e = createEntity({ db, workspace: "/tmp", chatFactory: factory });
+    await handleRun(e, { prompt: "test", model: "explicit-model" });
     strictEqual(usedModel, "explicit-model");
   });
 
   it("closes the session after execution", async () => {
-    await handleRun(db, {
-      prompt: "hello",
-      model: "gpt-4o",
-      createChat: mockFactory("response"),
-    });
+    await handleRun(entity, { prompt: "hello", model: "gpt-4o" });
     const rows = db.prepare("SELECT closed_at FROM sessions").all() as { closed_at: unknown }[];
-    strictEqual(rows.length, 1);
-    ok(rows[0]!.closed_at !== null);
+    ok(rows.length >= 1);
+    const runSession = rows.find((r) => r.closed_at !== null);
+    ok(runSession);
   });
 
-  it("passes the system prompt to the turn", async () => {
-    let receivedSystem = "";
+  it("system prompt includes the soul identity", async () => {
+    const systemCalls: string[] = [];
     const factory: ChatFactory = (_model: string): ChatInstance => ({
       system(content: string) {
-        receivedSystem = content;
+        systemCalls.push(content);
         return this;
       },
       user() {
@@ -124,6 +131,9 @@ describe("handleRun", () => {
       addTool() {
         return this;
       },
+      get messages() {
+        return [];
+      },
       async generate() {
         return "ok";
       },
@@ -131,15 +141,26 @@ describe("handleRun", () => {
         yield "ok";
       },
       get lastResult() {
-        return null;
+        return {
+          usage: {
+            inputTokens: 10,
+            outputTokens: 5,
+            reasoningTokens: 0,
+            totalTokens: 15,
+            cachedTokens: 0,
+          },
+          cost: { estimatedUsd: 0.001 },
+          model: "gpt-4o",
+          iterations: 1,
+          content: "ok",
+          timing: { latencyMs: 100 },
+          provider: "openai" as const,
+          cached: false,
+        };
       },
     });
-    await handleRun(db, {
-      prompt: "test",
-      model: "gpt-4o",
-      systemPrompt: "Custom system prompt",
-      createChat: factory,
-    });
-    strictEqual(receivedSystem, "Custom system prompt");
+    const e = createEntity({ db, workspace: "/tmp", chatFactory: factory });
+    await handleRun(e, { prompt: "test", model: "gpt-4o" });
+    ok(systemCalls.some((s) => s.includes("Ghostpaw")));
   });
 });

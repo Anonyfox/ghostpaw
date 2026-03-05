@@ -29,8 +29,10 @@
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
-    "chatoyant": "^0.5.0",
+    "chatoyant": "^0.6.0",
     "citty": "^0.2.1",
+    "grammy": "^1.41.1",
+    "magpie-html": "^0.2.3",
     "preact": "^10.28.4",
     "preact-render-to-string": "^6.6.6",
     "wouter-preact": "^3.9.0"

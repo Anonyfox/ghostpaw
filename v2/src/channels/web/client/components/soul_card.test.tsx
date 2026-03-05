@@ -78,7 +78,33 @@ describe("SoulCard", () => {
   it("applies hero styling", () => {
     render(<SoulCard soul={mandatorySoul} traitLimit={10} variant="hero" />, dom.container);
     const card = dom.container.querySelector(".card");
-    assert.ok(card?.className.includes("bg-dark"));
     assert.ok(card?.className.includes("border-info"));
+    assert.ok(card?.className.includes("border-2"));
+  });
+
+  it("shows Ready badge when activeTraitCount reaches traitLimit", () => {
+    const readySoul: SoulOverviewInfo = { ...mockSoul, activeTraitCount: 10 };
+    render(<SoulCard soul={readySoul} traitLimit={10} />, dom.container);
+    const badges = dom.container.querySelectorAll(".badge.bg-warning");
+    const readyBadge = Array.from(badges).find((b) => b.textContent?.includes("Ready"));
+    assert.ok(readyBadge);
+  });
+
+  it("does not show Ready badge when below trait capacity", () => {
+    render(<SoulCard soul={mockSoul} traitLimit={10} />, dom.container);
+    const badges = dom.container.querySelectorAll(".badge.bg-warning");
+    const readyBadge = Array.from(badges).find((b) => b.textContent?.includes("Ready"));
+    assert.equal(readyBadge, undefined);
+  });
+
+  it("does not show Ready badge in graveyard variant", () => {
+    const readySoul: SoulOverviewInfo = { ...mockSoul, activeTraitCount: 10 };
+    render(
+      <SoulCard soul={readySoul} traitLimit={10} variant="graveyard" onRestore={() => {}} />,
+      dom.container,
+    );
+    const badges = dom.container.querySelectorAll(".badge.bg-warning");
+    const readyBadge = Array.from(badges).find((b) => b.textContent?.includes("Ready"));
+    assert.equal(readyBadge, undefined);
   });
 });

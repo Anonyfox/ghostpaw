@@ -1,48 +1,22 @@
-import { ok, strictEqual } from "node:assert";
+import { strictEqual } from "node:assert";
 import { describe, it } from "node:test";
 import type { RunInput, RunResult } from "./run_types.ts";
-import { DEFAULT_SYSTEM_PROMPT } from "./run_types.ts";
 
 describe("run_types", () => {
-  it("DEFAULT_SYSTEM_PROMPT is a non-empty string", () => {
-    strictEqual(typeof DEFAULT_SYSTEM_PROMPT, "string");
-    ok(DEFAULT_SYSTEM_PROMPT.length > 0);
-  });
-
-  it("RunInput is satisfiable with required fields", () => {
-    const input: RunInput = {
-      prompt: "hello",
-      createChat: () => ({
-        system() {
-          return this;
-        },
-        user() {
-          return this;
-        },
-        assistant() {
-          return this;
-        },
-        addTool() {
-          return this;
-        },
-        async generate() {
-          return "";
-        },
-        async *stream() {
-          yield "";
-        },
-        get lastResult() {
-          return null;
-        },
-      }),
-    };
+  it("RunInput is satisfiable with required fields only", () => {
+    const input: RunInput = { prompt: "hello" };
     strictEqual(input.prompt, "hello");
     strictEqual(input.model, undefined);
-    strictEqual(input.systemPrompt, undefined);
+  });
+
+  it("RunInput accepts optional model", () => {
+    const input: RunInput = { prompt: "test", model: "gpt-4o" };
+    strictEqual(input.model, "gpt-4o");
   });
 
   it("RunResult is satisfiable", () => {
     const result: RunResult = {
+      succeeded: true,
       content: "hi",
       model: "gpt-4o",
       tokensIn: 100,

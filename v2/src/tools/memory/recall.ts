@@ -4,7 +4,12 @@ import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatMemoryForAgent } from "./format_memory.ts";
 
 class RecallParams extends Schema {
-  query = Schema.String({ description: "What to search for in memory" });
+  query = Schema.String({
+    description:
+      "Natural language query describing what to look for. Be specific — " +
+      "'user\\'s preferred code style' works better than 'preferences'. " +
+      "Returns memory IDs you can pass to revise or forget.",
+  });
 }
 
 export function createRecallTool(db: DatabaseHandle) {
@@ -12,14 +17,20 @@ export function createRecallTool(db: DatabaseHandle) {
     name: "recall",
     description:
       "Search memories for relevant beliefs. Returns top matches ranked by relevance, " +
-      "confidence, and freshness. Most memory retrieval happens automatically before " +
+      "confidence, and freshness, each with an ID, claim text, confidence score, " +
+      "source, and category. Most memory retrieval happens automatically before " +
       "you respond — only use this for targeted follow-up searches when you need " +
-      "something specific.",
+      "something specific. Use the returned memory IDs with revise (to update) " +
+      "or forget (to invalidate).",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new RecallParams() as any,
     execute: async ({ args }) => {
       const { query } = args as { query: string };
-      if (!query || !query.trim()) return { error: "Query must not be empty." };
+      if (!query || !query.trim()) {
+        return {
+          error: "Query must not be empty. Describe what you're looking for in natural language.",
+        };
+      }
 
       const results = recallMemories(db, query.trim());
 

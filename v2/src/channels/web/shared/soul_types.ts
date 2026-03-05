@@ -50,4 +50,5 @@ export interface SoulDetailResponse {
   updatedAt: number;
   traits: TraitInfo[];
   levels: LevelInfo[];
+  mentorAvailable: boolean;
 }

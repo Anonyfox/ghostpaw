@@ -1,12 +1,20 @@
+import type { Entity } from "../../../harness/index.ts";
 import type { DatabaseHandle } from "../../../lib/index.ts";
 import { createRoute } from "./create_route.ts";
 import { createAuthHandlers } from "./routes/auth.ts";
 import { createChatApiHandlers } from "./routes/chat_api.ts";
 import { createChatSessionsApiHandlers } from "./routes/chat_sessions_api.ts";
 import { createConfigApiHandlers } from "./routes/config_api.ts";
+import { createCostsApiHandlers } from "./routes/costs_api.ts";
 import { createDashboardHandler } from "./routes/dashboard_api.ts";
+import { createDistillApiHandlers } from "./routes/distill_api.ts";
+import { createMemoryApiHandlers } from "./routes/memory_api.ts";
+import { createMentorApiHandlers } from "./routes/mentor_api.ts";
+import { createTrainerApiHandlers } from "./routes/trainer_api.ts";
 import { createModelsApiHandlers } from "./routes/models_api.ts";
 import { createSecretsApiHandlers } from "./routes/secrets_api.ts";
+import { createSessionsApiHandlers } from "./routes/sessions_api.ts";
+import { createSkillsApiHandlers } from "./routes/skills_api.ts";
 import { createSoulGenerateHandlers } from "./routes/soul_generate.ts";
 import { createSoulTraitsApiHandlers } from "./routes/soul_traits_api.ts";
 import { createSoulsApiHandlers } from "./routes/souls_api.ts";
@@ -22,6 +30,7 @@ interface BuildRoutesConfig {
   bootId: string;
   version: string;
   db: DatabaseHandle;
+  entity?: Entity;
   spaHandler: RouteHandler;
 }
 
@@ -44,9 +53,16 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
   const models = createModelsApiHandlers(config.db);
   const chat = createChatApiHandlers(config.db);
   const chatSessions = createChatSessionsApiHandlers(config.db);
-  const souls = createSoulsApiHandlers(config.db);
+  const souls = createSoulsApiHandlers(config.db, config.entity != null);
   const soulGenerate = createSoulGenerateHandlers(config.db);
   const soulTraits = createSoulTraitsApiHandlers(config.db);
+  const memories = createMemoryApiHandlers(config.db);
+  const costs = createCostsApiHandlers(config.db);
+  const sessions = createSessionsApiHandlers(config.db);
+  const distill = createDistillApiHandlers(config.db);
+  const mentor = createMentorApiHandlers(config.db, config.entity);
+  const trainer = createTrainerApiHandlers(config.db, config.entity);
+  const skills = createSkillsApiHandlers();
 
   return {
     checkSession: auth.checkSession,
@@ -67,8 +83,6 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("PATCH", "/api/chat/:id", chatSessions.rename, true),
       createRoute("POST", "/api/chat", chat.create, true),
       createRoute("GET", "/api/chat/:id", chat.history, true),
-      createRoute("GET", "/api/chat/:id/stream", chat.stream, true),
-      createRoute("POST", "/api/chat/:id/send", chat.send, true),
       createRoute("GET", "/api/souls", souls.list, true),
       createRoute("GET", "/api/souls/deleted", souls.listDeleted, true),
       createRoute("POST", "/api/souls", souls.create, true),
@@ -89,6 +103,35 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("PATCH", "/api/souls/:id/traits/:tid", soulTraits.revise, true),
       createRoute("POST", "/api/souls/:id/traits/:tid/revert", soulTraits.revert, true),
       createRoute("POST", "/api/souls/:id/traits/:tid/reactivate", soulTraits.reactivate, true),
+      createRoute("POST", "/api/souls/:id/review", mentor.review, true),
+      createRoute("POST", "/api/souls/:id/refine", mentor.refine, true),
+      createRoute("POST", "/api/souls/:id/level-up", mentor.levelUp, true),
+      createRoute("GET", "/api/trainer/status", trainer.status, true),
+      createRoute("POST", "/api/trainer/scout/propose", trainer.scoutPropose, true),
+      createRoute("POST", "/api/trainer/scout/execute", trainer.scoutExecute, true),
+      createRoute("POST", "/api/trainer/train/propose", trainer.trainPropose, true),
+      createRoute("POST", "/api/trainer/train/execute", trainer.trainExecute, true),
+      createRoute("GET", "/api/skills", skills.list, true),
+      createRoute("GET", "/api/skills/:name", skills.detail, true),
+      createRoute("POST", "/api/skills/:name/validate", skills.validate, true),
+      createRoute("GET", "/api/memories", memories.list, true),
+      createRoute("GET", "/api/memories/stats", memories.stats, true),
+      createRoute("GET", "/api/memories/search", memories.search, true),
+      createRoute("POST", "/api/memories", memories.store, true),
+      createRoute("POST", "/api/memories/merge", memories.merge, true),
+      createRoute("GET", "/api/memories/:id", memories.detail, true),
+      createRoute("POST", "/api/memories/:id/confirm", memories.confirm, true),
+      createRoute("POST", "/api/memories/:id/forget", memories.forget, true),
+      createRoute("PATCH", "/api/memories/:id", memories.correct, true),
+      createRoute("GET", "/api/costs", costs.get, true),
+      createRoute("POST", "/api/costs/limit", costs.setLimit, true),
+      createRoute("GET", "/api/sessions", sessions.list, true),
+      createRoute("GET", "/api/sessions/stats", sessions.stats, true),
+      createRoute("GET", "/api/sessions/:id", sessions.detail, true),
+      createRoute("POST", "/api/sessions/prune", sessions.prune, true),
+      createRoute("GET", "/api/distill/status", distill.status, true),
+      createRoute("POST", "/api/distill", distill.sweep, true),
+      createRoute("POST", "/api/distill/:id", distill.single, true),
       createRoute("GET", "/assets/app.js", statics.serveAppJs, false),
       createRoute("GET", "/assets/style.css", statics.serveStyleCss, false),
     ],

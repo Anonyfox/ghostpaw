@@ -36,29 +36,41 @@ describe("Layout", () => {
     assert.equal(child!.textContent, "Hello");
   });
 
-  it("contains the sidebar navigation", () => {
+  it("contains a sticky-top navbar", () => {
     renderLayout(dom.container);
 
     const nav = dom.container.querySelector("nav");
     assert.ok(nav, "nav element exists");
-    assert.ok(nav!.className.includes("bg-dark"), "sidebar has dark background");
+    assert.ok(nav!.className.includes("navbar"), "nav has navbar class");
+    assert.ok(nav!.className.includes("bg-body-secondary"), "navbar has secondary background");
+    assert.ok(nav!.className.includes("sticky-top"), "navbar is sticky-top");
   });
 
-  it("contains a Ghostpaw heading", () => {
+  it("contains a Ghostpaw brand link to dashboard", () => {
     renderLayout(dom.container);
 
-    const heading = dom.container.querySelector("h5");
-    assert.ok(heading, "heading exists");
-    assert.equal(heading!.textContent, "Ghostpaw");
+    const brand = dom.container.querySelector(".navbar-brand");
+    assert.ok(brand, "brand link exists");
+    assert.equal(brand!.textContent, "Ghostpaw");
+    assert.equal(brand!.getAttribute("href"), "/dashboard");
   });
 
-  it("contains a Dashboard link", () => {
+  it("contains nav links for all pages", () => {
     renderLayout(dom.container);
 
     const links = dom.container.querySelectorAll("a");
-    const dashboard = Array.from(links).find((a) => a.textContent?.trim() === "Dashboard");
-    assert.ok(dashboard, "Dashboard link exists");
-    assert.equal(dashboard!.getAttribute("href"), "/dashboard");
+    const labels = Array.from(links).map((a) => a.textContent?.trim());
+    assert.ok(labels.includes("Souls"), "Souls link exists");
+    assert.ok(labels.includes("Skills"), "Skills link exists");
+    assert.ok(labels.includes("Chat"), "Chat link exists");
+    assert.ok(labels.includes("Settings"), "Settings link exists");
+  });
+
+  it("contains a hamburger toggle button", () => {
+    renderLayout(dom.container);
+
+    const toggler = dom.container.querySelector(".navbar-toggler");
+    assert.ok(toggler, "navbar toggler exists");
   });
 
   it("contains a Logout button", () => {

@@ -1,13 +1,20 @@
 import { randomBytes } from "node:crypto";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { createServer } from "node:http";
+import type { Duplex } from "node:stream";
+import { upgradeToWebSocket } from "../../../lib/ws.ts";
 import { buildRoutes } from "./build_routes.ts";
 import { matchRoute } from "./match_route.ts";
+import { parseCookies } from "./parse_cookies.ts";
 import { createRateLimiter } from "./rate_limiter.ts";
+import { handleChatWs } from "./routes/chat_ws.ts";
 import { createSpaHandler } from "./routes/spa.ts";
 import { applySecurityHeaders } from "./security_headers.ts";
 import { renderShell } from "./shell.tsx";
 import type { WebServerConfig } from "./types.ts";
+import { verifySessionToken } from "./verify_session_token.ts";
+
+const WS_CHAT_PATTERN = /^\/ws\/chat\/(\d+)$/;
 
 export function createWebServer(config: WebServerConfig): Server {
   if (!config.passwordHash) {
@@ -32,7 +39,7 @@ export function createWebServer(config: WebServerConfig): Server {
   }, 5 * 60_000);
   cleanupTimer.unref();
 
-  return createServer(async (req: IncomingMessage, res: ServerResponse) => {
+  const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     try {
       await handleRequest(req, res, {
         routes,
@@ -46,6 +53,38 @@ export function createWebServer(config: WebServerConfig): Server {
       jsonError(res, 500, "Internal server error.");
     }
   });
+
+  server.on("upgrade", (req: IncomingMessage, socket: Duplex, head: Buffer) => {
+    const url = req.url ?? "";
+    const match = WS_CHAT_PATTERN.exec(url);
+    if (!match) {
+      socket.end("HTTP/1.1 404 Not Found\r\n\r\n");
+      return;
+    }
+
+    const cookies = parseCookies(req.headers.cookie);
+    const token = cookies.ghostpaw_session;
+    if (!token || !verifySessionToken(token, config.passwordHash)) {
+      socket.end("HTTP/1.1 401 Unauthorized\r\n\r\n");
+      return;
+    }
+
+    if (!config.entity) {
+      socket.end("HTTP/1.1 503 Service Unavailable\r\n\r\n");
+      return;
+    }
+
+    const sessionId = Number(match[1]);
+    const ws = upgradeToWebSocket(req, socket, head);
+    if (!ws) {
+      socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
+      return;
+    }
+
+    handleChatWs(sessionId, ws, config.entity);
+  });
+
+  return server;
 }
 
 function handleRequest(

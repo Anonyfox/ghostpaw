@@ -95,6 +95,18 @@ describe("addMessage", () => {
     strictEqual(row!.is_compaction, 1);
   });
 
+  it("resets distilled_at when adding a message to a distilled session", () => {
+    const session = createSession(db, "k");
+    db.prepare("UPDATE sessions SET distilled_at = ? WHERE id = ?").run(Date.now(), session.id);
+    const before = getSession(db, session.id);
+    ok(before);
+    ok(before.distilledAt !== null);
+    addMessage(db, { sessionId: session.id, role: "user", content: "continued chat" });
+    const after = getSession(db, session.id);
+    ok(after);
+    strictEqual(after.distilledAt, null);
+  });
+
   it("rejects messages for non-existent sessions", () => {
     throws(
       () => addMessage(db, { sessionId: 99999, role: "user", content: "orphan" }),

@@ -11,7 +11,7 @@ import {
 
 describe("MEMORY_SOURCES", () => {
   it("contains all four source types in order", () => {
-    deepStrictEqual([...MEMORY_SOURCES], ["explicit", "observed", "absorbed", "inferred"]);
+    deepStrictEqual([...MEMORY_SOURCES], ["explicit", "observed", "distilled", "inferred"]);
   });
 
   it("is a readonly tuple that supports type narrowing", () => {
@@ -59,7 +59,7 @@ describe("Memory interface", () => {
       evidenceCount: 1,
       createdAt: 1700000000000,
       verifiedAt: 1700000000000,
-      source: "absorbed",
+      source: "distilled",
       category: "fact",
       supersededBy: 5,
     };

@@ -29,9 +29,9 @@ export function ProviderCard({
   const sourceBadge = () => {
     if (!provider.hasKey) return null;
     if (provider.modelsSource === "live") {
-      return <span class="badge bg-light text-muted">live from API</span>;
+      return <span class="text-body-tertiary small">live from API</span>;
     }
-    return <span class="badge bg-light text-muted">known models</span>;
+    return <span class="text-body-tertiary small">known models</span>;
   };
 
   const handleActivate = () => {

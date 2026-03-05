@@ -10,7 +10,7 @@ export function initMemoryTable(db: DatabaseHandle): void {
       evidence_count INTEGER NOT NULL DEFAULT 1,
       created_at     INTEGER NOT NULL,
       verified_at    INTEGER NOT NULL,
-      source         TEXT    NOT NULL DEFAULT 'absorbed',
+      source         TEXT    NOT NULL DEFAULT 'distilled',
       category       TEXT    NOT NULL DEFAULT 'custom',
       superseded_by  INTEGER REFERENCES memories(id)
     )

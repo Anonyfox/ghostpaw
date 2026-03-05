@@ -31,4 +31,11 @@ describe("getSoulByName", () => {
     db.prepare("UPDATE souls SET deleted_at = ? WHERE id = ?").run(Date.now(), created.id);
     strictEqual(getSoulByName(db, "Deleted"), null);
   });
+
+  it("matches names case-insensitively", () => {
+    createSoul(db, { name: "JS Engineer", essence: "e" });
+    ok(getSoulByName(db, "js engineer"));
+    ok(getSoulByName(db, "JS ENGINEER"));
+    ok(getSoulByName(db, "Js Engineer"));
+  });
 });
