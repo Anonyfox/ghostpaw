@@ -1,0 +1,168 @@
+import type { DatabaseHandle } from "../../lib/index.ts";
+
+const QUEST_STATUS_CHECK =
+  "CHECK(status IN ('offered','pending','active','blocked','done','failed','cancelled'))";
+const QUEST_PRIORITY_CHECK =
+  "CHECK(priority IN ('low','normal','high','urgent'))";
+const QUEST_LOG_STATUS_CHECK =
+  "CHECK(status IN ('active','completed','archived'))";
+
+export function initQuestTables(db: DatabaseHandle): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS quest_logs (
+      id            INTEGER PRIMARY KEY,
+      title         TEXT    NOT NULL,
+      description   TEXT,
+      status        TEXT    NOT NULL DEFAULT 'active'
+                    ${QUEST_LOG_STATUS_CHECK},
+      created_at    INTEGER NOT NULL,
+      created_by    TEXT    NOT NULL DEFAULT 'human',
+      updated_at    INTEGER NOT NULL,
+      completed_at  INTEGER,
+      due_at        INTEGER
+    )
+  `);
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_quest_logs_status ON quest_logs(status)",
+  );
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS quests (
+      id            INTEGER PRIMARY KEY,
+      title         TEXT    NOT NULL,
+      description   TEXT,
+      status        TEXT    NOT NULL DEFAULT 'pending'
+                    ${QUEST_STATUS_CHECK},
+      priority      TEXT    NOT NULL DEFAULT 'normal'
+                    ${QUEST_PRIORITY_CHECK},
+      quest_log_id  INTEGER REFERENCES quest_logs(id),
+      tags          TEXT,
+      created_at    INTEGER NOT NULL,
+      created_by    TEXT    NOT NULL DEFAULT 'human',
+      updated_at    INTEGER NOT NULL,
+      starts_at     INTEGER,
+      ends_at       INTEGER,
+      due_at        INTEGER,
+      remind_at     INTEGER,
+      reminded_at   INTEGER,
+      completed_at  INTEGER,
+      rrule         TEXT
+    )
+  `);
+
+  migrateQuestsCheckIfNeeded(db);
+
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_quests_status ON quests(status)",
+  );
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_quests_quest_log_id ON quests(quest_log_id)",
+  );
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_quests_due_at ON quests(due_at) WHERE due_at IS NOT NULL",
+  );
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_quests_remind_at ON quests(remind_at) WHERE remind_at IS NOT NULL",
+  );
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_quests_starts_at ON quests(starts_at) WHERE starts_at IS NOT NULL",
+  );
+
+  createFts(db);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS quest_occurrences (
+      id            INTEGER PRIMARY KEY,
+      quest_id      INTEGER NOT NULL REFERENCES quests(id),
+      occurrence_at INTEGER NOT NULL,
+      status        TEXT    NOT NULL DEFAULT 'done'
+                    CHECK(status IN ('done','skipped')),
+      completed_at  INTEGER NOT NULL,
+      UNIQUE(quest_id, occurrence_at)
+    )
+  `);
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_quest_occurrences_quest ON quest_occurrences(quest_id, occurrence_at)",
+  );
+}
+
+function migrateQuestsCheckIfNeeded(db: DatabaseHandle): void {
+  try {
+    const now = Date.now();
+    db.prepare(
+      "INSERT INTO quests (title, status, created_at, created_by, updated_at) VALUES (?, 'offered', ?, 'human', ?)",
+    ).run("__migration_test", now, now);
+    db.prepare("DELETE FROM quests WHERE title = '__migration_test'").run();
+  } catch {
+    db.exec("PRAGMA foreign_keys = OFF");
+    db.exec("BEGIN");
+    try {
+      db.exec(`
+        CREATE TABLE quests_new (
+          id            INTEGER PRIMARY KEY,
+          title         TEXT    NOT NULL,
+          description   TEXT,
+          status        TEXT    NOT NULL DEFAULT 'pending'
+                        ${QUEST_STATUS_CHECK},
+          priority      TEXT    NOT NULL DEFAULT 'normal'
+                        ${QUEST_PRIORITY_CHECK},
+          quest_log_id  INTEGER REFERENCES quest_logs(id),
+          tags          TEXT,
+          created_at    INTEGER NOT NULL,
+          created_by    TEXT    NOT NULL DEFAULT 'human',
+          updated_at    INTEGER NOT NULL,
+          starts_at     INTEGER,
+          ends_at       INTEGER,
+          due_at        INTEGER,
+          remind_at     INTEGER,
+          reminded_at   INTEGER,
+          completed_at  INTEGER,
+          rrule         TEXT
+        )
+      `);
+      db.exec("INSERT INTO quests_new SELECT * FROM quests");
+      db.exec("DROP TABLE quests");
+      db.exec("ALTER TABLE quests_new RENAME TO quests");
+      db.exec("COMMIT");
+    } catch (err) {
+      db.exec("ROLLBACK");
+      throw err;
+    } finally {
+      db.exec("PRAGMA foreign_keys = ON");
+    }
+  }
+}
+
+function createFts(db: DatabaseHandle): void {
+  db.exec(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS quests_fts USING fts5(
+      title,
+      description,
+      content=quests,
+      content_rowid=id
+    )
+  `);
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS quests_fts_insert
+    AFTER INSERT ON quests BEGIN
+      INSERT INTO quests_fts(rowid, title, description)
+      VALUES (new.id, new.title, COALESCE(new.description, ''));
+    END
+  `);
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS quests_fts_delete
+    AFTER DELETE ON quests BEGIN
+      INSERT INTO quests_fts(quests_fts, rowid, title, description)
+      VALUES ('delete', old.id, old.title, COALESCE(old.description, ''));
+    END
+  `);
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS quests_fts_update
+    AFTER UPDATE OF title, description ON quests BEGIN
+      INSERT INTO quests_fts(quests_fts, rowid, title, description)
+      VALUES ('delete', old.id, old.title, COALESCE(old.description, ''));
+      INSERT INTO quests_fts(rowid, title, description)
+      VALUES (new.id, new.title, COALESCE(new.description, ''));
+    END
+  `);
+}

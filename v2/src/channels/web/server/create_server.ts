@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { createServer } from "node:http";
 import type { Duplex } from "node:stream";
+import { registerChannel, unregisterChannel } from "../../../lib/channel_registry.ts";
 import { upgradeToWebSocket } from "../../../lib/ws.ts";
 import { buildRoutes } from "./build_routes.ts";
 import { matchRoute } from "./match_route.ts";
@@ -13,6 +14,8 @@ import { applySecurityHeaders } from "./security_headers.ts";
 import { renderShell } from "./shell.tsx";
 import type { WebServerConfig } from "./types.ts";
 import { verifySessionToken } from "./verify_session_token.ts";
+
+const WEB_CHANNEL_ID = "web";
 
 const WS_CHAT_PATTERN = /^\/ws\/chat\/(\d+)$/;
 
@@ -82,6 +85,19 @@ export function createWebServer(config: WebServerConfig): Server {
     }
 
     handleChatWs(sessionId, ws, config.entity);
+  });
+
+  registerChannel(WEB_CHANNEL_ID, {
+    type: "web",
+    isConnected: () => server.listening,
+    send: async () => {
+      // Web delivery is passive — howls are fetched via polling /api/howls/pending.
+      // No active push needed; the channel registration ensures howls are attributed to "web".
+    },
+  });
+
+  server.on("close", () => {
+    unregisterChannel(WEB_CHANNEL_ID);
   });
 
   return server;

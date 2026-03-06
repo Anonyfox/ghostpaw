@@ -269,4 +269,71 @@ describe("mcp tool", () => {
     const err = result as Record<string, unknown>;
     ok(String(err.error).includes("Unknown action"));
   });
+
+  it("strips surrounding double quotes from tool name", async () => {
+    const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
+    shutdownFn = shutdown;
+
+    const server = `node ${serverPath}`;
+    const result = await tool.execute(
+      execArgs({ action: "call", server, tool: '"ping"', input: '{"msg":"quoted"}' }),
+    );
+    strictEqual(result, "pong: quoted");
+  });
+
+  it("strips surrounding single quotes from tool name", async () => {
+    const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
+    shutdownFn = shutdown;
+
+    const server = `node ${serverPath}`;
+    const result = await tool.execute(
+      execArgs({ action: "call", server, tool: "'echo'", input: '{"text":"hi"}' }),
+    );
+    strictEqual(result, "hi");
+  });
+
+  it("strips surrounding backticks from tool name", async () => {
+    const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
+    shutdownFn = shutdown;
+
+    const server = `node ${serverPath}`;
+    const result = await tool.execute(
+      execArgs({ action: "call", server, tool: "`ping`", input: '{"msg":"bt"}' }),
+    );
+    strictEqual(result, "pong: bt");
+  });
+
+  it("handles double-encoded JSON input", async () => {
+    const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
+    shutdownFn = shutdown;
+
+    const server = `node ${serverPath}`;
+    const doubleEncoded = JSON.stringify(JSON.stringify({ msg: "double" }));
+    const result = await tool.execute(
+      execArgs({ action: "call", server, tool: "ping", input: doubleEncoded }),
+    );
+    strictEqual(result, "pong: double");
+  });
+
+  it("handles input passed as object instead of string", async () => {
+    const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
+    shutdownFn = shutdown;
+
+    const server = `node ${serverPath}`;
+    const result = await tool.execute(
+      execArgs({ action: "call", server, tool: "ping", input: { msg: "obj" } as unknown as string }),
+    );
+    strictEqual(result, "pong: obj");
+  });
+
+  it("rejects non-object JSON input (array)", async () => {
+    const { tool, shutdown } = createMcpTool({ resolveSecret: () => null });
+    shutdownFn = shutdown;
+
+    const result = await tool.execute(
+      execArgs({ action: "call", server: `node ${serverPath}`, tool: "ping", input: "[1,2,3]" }),
+    );
+    const err = result as Record<string, unknown>;
+    ok(String(err.error).includes("input must be a JSON object"));
+  });
 });

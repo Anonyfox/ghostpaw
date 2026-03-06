@@ -8,6 +8,7 @@ import { createConfigApiHandlers } from "./routes/config_api.ts";
 import { createCostsApiHandlers } from "./routes/costs_api.ts";
 import { createDashboardHandler } from "./routes/dashboard_api.ts";
 import { createDistillApiHandlers } from "./routes/distill_api.ts";
+import { createHowlsApiHandlers } from "./routes/howls_api.ts";
 import { createMemoryApiHandlers } from "./routes/memory_api.ts";
 import { createMentorApiHandlers } from "./routes/mentor_api.ts";
 import { createModelsApiHandlers } from "./routes/models_api.ts";
@@ -19,6 +20,7 @@ import { createSoulGenerateHandlers } from "./routes/soul_generate.ts";
 import { createSoulTraitsApiHandlers } from "./routes/soul_traits_api.ts";
 import { createSoulsApiHandlers } from "./routes/souls_api.ts";
 import { createStaticHandlers } from "./routes/static.ts";
+import { createQuestsApiHandlers } from "./routes/quests_api.ts";
 import { createTrainerApiHandlers } from "./routes/trainer_api.ts";
 import type { Route, RouteHandler } from "./types.ts";
 
@@ -62,8 +64,10 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
   const costs = createCostsApiHandlers(config.db);
   const sessions = createSessionsApiHandlers(config.db);
   const distill = createDistillApiHandlers(config.db);
+  const howls = createHowlsApiHandlers(config.db, config.entity);
   const mentor = createMentorApiHandlers(config.db, config.entity);
   const trainer = createTrainerApiHandlers(config.db, config.entity);
+  const quests = createQuestsApiHandlers(config.db);
   const skills = createSkillsApiHandlers();
 
   return {
@@ -132,6 +136,20 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("PATCH", "/api/pack/:id", pack.bond, true),
       createRoute("POST", "/api/pack/:id/note", pack.note, true),
       createRoute("GET", "/api/pack/:id/interactions", pack.interactions, true),
+      createRoute("GET", "/api/quests", quests.list, true),
+      createRoute("GET", "/api/quests/context", quests.context, true),
+      createRoute("POST", "/api/quests", quests.create, true),
+      createRoute("GET", "/api/quests/:id", quests.detail, true),
+      createRoute("PATCH", "/api/quests/:id", quests.update, true),
+      createRoute("POST", "/api/quests/:id/done", quests.done, true),
+      createRoute("POST", "/api/quests/:id/accept", quests.accept, true),
+      createRoute("POST", "/api/quests/:id/dismiss", quests.dismiss, true),
+      createRoute("POST", "/api/quests/:id/occurrence", quests.occurrence, true),
+      createRoute("GET", "/api/quest-logs", quests.logList, true),
+      createRoute("POST", "/api/quest-logs", quests.logCreate, true),
+      createRoute("GET", "/api/quest-logs/:id", quests.logDetail, true),
+      createRoute("PATCH", "/api/quest-logs/:id", quests.logUpdate, true),
+      createRoute("POST", "/api/quest-logs/:id/done", quests.logDone, true),
       createRoute("GET", "/api/costs", costs.get, true),
       createRoute("POST", "/api/costs/limit", costs.setLimit, true),
       createRoute("GET", "/api/sessions", sessions.list, true),
@@ -141,6 +159,12 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("GET", "/api/distill/status", distill.status, true),
       createRoute("POST", "/api/distill", distill.sweep, true),
       createRoute("POST", "/api/distill/:id", distill.single, true),
+      createRoute("GET", "/api/howls/pending", howls.pending, true),
+      createRoute("GET", "/api/howls", howls.list, true),
+      createRoute("GET", "/api/howls/:id", howls.detail, true),
+      createRoute("GET", "/api/howls/:id/history", howls.history, true),
+      createRoute("POST", "/api/howls/:id/reply", howls.reply, true),
+      createRoute("POST", "/api/howls/:id/dismiss", howls.dismiss, true),
       createRoute("GET", "/assets/app.js", statics.serveAppJs, false),
       createRoute("GET", "/assets/style.css", statics.serveStyleCss, false),
     ],

@@ -12,6 +12,10 @@ export interface EntityOptions {
 export interface EntityTurnOptions {
   model?: string;
   soulId?: number;
+  systemPrompt?: string;
+  maxIterations?: number;
+  temperature?: number;
+  reasoning?: "off" | "low" | "medium" | "high";
   onTitleGenerated?: (title: string) => void;
   onToolCallStart?: (calls: ToolCallInfo[]) => void;
   onToolCallComplete?: (results: ToolResultInfo[]) => void;

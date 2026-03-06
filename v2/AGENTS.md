@@ -15,6 +15,7 @@ If you are working on a specific system, also read its spec:
 | Secrets | `docs/SECRETS.md` | **Implemented** | Secret storage, provider keys, isolation, scrubbing |
 | Config | `docs/CONFIG.md` | **Implemented** | Runtime configuration, validation, changelog |
 | Haunting | `docs/HAUNT.md` | **Spec only** | Autonomous inner life, journal, undirected processing |
+| Quests | `docs/QUESTS.md` | **Implemented** | Unified task/event/calendar system, temporal awareness, Quest Board |
 | Pack | `docs/PACK.md` | **Implemented** | Social bonds, Theory of Mind, relational identity |
 | Pawprints | `docs/PAWPRINT.md` | **Spec only** | Situated experiential knowledge, discovery by presence |
 

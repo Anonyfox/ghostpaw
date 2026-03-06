@@ -135,6 +135,33 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
     validate: (v) => typeof v === "number" && Number.isInteger(v) && v >= 1,
   },
   {
+    key: "haunt_consolidation_model",
+    type: "string",
+    defaultValue: "",
+    category: "model",
+    label: "Haunt Consolidation Model",
+    description:
+      "Model for haunt post-processing (summary + memory extraction). Empty uses the haunt session model.",
+  },
+  {
+    key: "max_howls_per_day",
+    type: "integer",
+    defaultValue: 3,
+    category: "behavior",
+    label: "Max Howls Per Day",
+    description: "Maximum proactive messages (howls) the ghost can send per day.",
+    validate: (v) => typeof v === "number" && Number.isInteger(v) && v >= 0,
+  },
+  {
+    key: "howl_cooldown_minutes",
+    type: "integer",
+    defaultValue: 60,
+    category: "behavior",
+    label: "Howl Cooldown (minutes)",
+    description: "Minimum minutes between howls. High-urgency howls bypass this but not the daily cap.",
+    validate: (v) => typeof v === "number" && Number.isInteger(v) && v >= 0,
+  },
+  {
     key: "telegram_allowed_chat_ids",
     type: "string",
     defaultValue: "",

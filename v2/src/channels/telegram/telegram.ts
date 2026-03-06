@@ -1,5 +1,6 @@
 import { Bot } from "grammy";
 import { getOrCreateSession } from "../../core/chat/index.ts";
+import { registerChannel, unregisterChannel } from "../../lib/channel_registry.ts";
 import type { HandleMessageDeps } from "./handle_message.ts";
 import { handleMessage } from "./handle_message.ts";
 import { handleReset } from "./handle_reset.ts";
@@ -7,6 +8,7 @@ import { sessionKeyForChat } from "./session_key.ts";
 import type { ReactionEmoji, TelegramChannel, TelegramChannelConfig } from "./types.ts";
 
 const CONNECTION_TIMEOUT_MS = 10_000;
+const TELEGRAM_CHANNEL_ID = "telegram";
 
 export function createTelegramChannel(config: TelegramChannelConfig): TelegramChannel {
   const { token, db, entity, allowedChatIds } = config;
@@ -14,6 +16,7 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
   const bot = config.bot ?? new Bot(token);
   let running = false;
   let connectedUsername: string | null = null;
+  let lastActiveChatId: number | null = allowedChatIds?.[0] ?? null;
 
   const sendMessage =
     config.sendMessage ??
@@ -66,6 +69,7 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
     const chatId = ctx.chat.id;
     const messageId = ctx.message.message_id;
     const text = ctx.message.text;
+    lastActiveChatId = chatId;
     if (text.startsWith("/")) return;
     await handleMessage(deps, chatId, messageId, text);
   });
@@ -87,6 +91,15 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
             onStart: (info) => {
               clearTimeout(timeout);
               connectedUsername = info.username;
+              registerChannel(TELEGRAM_CHANNEL_ID, {
+                type: "telegram",
+                isConnected: () => running,
+                send: async (message: string) => {
+                  const chatId = lastActiveChatId;
+                  if (!chatId) throw new Error("No active Telegram chat");
+                  await sendMessage(chatId, message);
+                },
+              });
               resolve({ username: info.username });
             },
             allowed_updates: ["message"],
@@ -104,6 +117,7 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
     async stop(): Promise<void> {
       if (!running) return;
       running = false;
+      unregisterChannel(TELEGRAM_CHANNEL_ID);
       await bot.stop();
       await entity.flush();
     },

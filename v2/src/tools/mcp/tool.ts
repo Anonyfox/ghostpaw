@@ -52,8 +52,8 @@ export function createMcpTool(config: McpToolConfig) {
 
       const action = raw.action;
       const server = raw.server ? cleanServerString(raw.server) : "";
-      const toolName = raw.tool?.trim();
-      const input = raw.input;
+      const toolName = raw.tool ? cleanServerString(raw.tool) : undefined;
+      const inputRaw: unknown = raw.input;
       const auth = raw.auth?.trim();
 
       if (!server) return { error: "server is required" };
@@ -71,14 +71,9 @@ export function createMcpTool(config: McpToolConfig) {
         if (action === "call") {
           if (!toolName) return { error: "tool is required for action: call" };
 
-          let parsedInput: Record<string, unknown> = {};
-          if (input) {
-            try {
-              parsedInput = JSON.parse(input);
-            } catch {
-              return { error: `Invalid JSON in input: ${input.slice(0, 200)}` };
-            }
-          }
+          const inputResult = parseToolInput(inputRaw);
+          if (!inputResult.ok) return { error: inputResult.error };
+          const parsedInput = inputResult.value;
 
           const client = await pool.getOrConnect(server, auth, config.resolveSecret);
           const result = await client.callTool(toolName, parsedInput);
@@ -109,4 +104,38 @@ export function createMcpTool(config: McpToolConfig) {
   });
 
   return { tool, shutdown: () => pool.shutdown() };
+}
+
+type InputResult =
+  | { ok: true; value: Record<string, unknown> }
+  | { ok: false; error: string };
+
+/**
+ * Normalize LLM-provided input into a plain object.
+ * Handles: missing/empty → {}, already an object, JSON string,
+ * double-encoded JSON string (model wrapped object in extra quotes).
+ */
+function parseToolInput(raw: unknown): InputResult {
+  if (raw == null || raw === "") return { ok: true, value: {} };
+
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return { ok: true, value: raw as Record<string, unknown> };
+  }
+
+  try {
+    let parsed: unknown = JSON.parse(String(raw));
+    if (typeof parsed === "string") {
+      try {
+        parsed = JSON.parse(parsed);
+      } catch {
+        // inner string isn't JSON — fall through to the type check
+      }
+    }
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      return { ok: true, value: parsed as Record<string, unknown> };
+    }
+    return { ok: false, error: `input must be a JSON object, got: ${String(raw).slice(0, 200)}` };
+  } catch {
+    return { ok: false, error: `Invalid JSON in input: ${String(raw).slice(0, 200)}` };
+  }
 }

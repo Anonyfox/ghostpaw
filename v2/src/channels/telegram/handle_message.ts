@@ -1,4 +1,5 @@
 import type { TurnResult } from "../../core/chat/index.ts";
+import { getPendingHowl, replyToHowl } from "../../core/howl/index.ts";
 import type { Entity } from "../../harness/index.ts";
 import { TokenBudgetError } from "../../lib/index.ts";
 import { rotateSession } from "./rotate_session.ts";
@@ -34,7 +35,17 @@ export async function handleMessage(
   }, TYPING_INTERVAL_MS);
 
   try {
-    const result = await executeTurnWithRotation(deps, chatId, text);
+    const pendingHowl = getPendingHowl(deps.entity.db);
+    let result: TurnResult;
+
+    if (pendingHowl) {
+      const reply = await replyToHowl(deps.entity.db, deps.entity, pendingHowl.id, text, {
+        replyChannel: "telegram",
+      });
+      result = reply.turn;
+    } else {
+      result = await executeTurnWithRotation(deps, chatId, text);
+    }
 
     clearInterval(typingInterval);
     await deps.setReaction(chatId, messageId, "\u{1F44D}");

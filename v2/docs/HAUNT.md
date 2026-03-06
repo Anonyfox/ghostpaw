@@ -24,21 +24,28 @@ Haunting changes the condition.
 
 ```
 user message → agent loop → response →
-  → haunt: private thinking → raw journal →
-  → haunt: process → decide → act/rest →
+  → haunt: private session (multi-round, full tools) → raw journal →
+  → haunt: consolidation (summary + memory extraction) →
+  → haunt: howl (optional — proactive message if highlight found) →
   → sleep → next cycle →
   → user message → conversation → back to haunting
 ```
 
-Each haunt cycle has two phases:
+Each haunt cycle has two phases, deliberately separated:
 
-**Private thinking.** The ghost receives its soul, its recent memories, its previous journal entries, and access to its own systems — memory, workspace, web. It can introspect: read its own state, explore its environment, follow threads that interest it. One framing shapes the entire phase: _this is private. Think about whatever matters. Nobody reads this in real time._ The ghost thinks. Not toward a response. Not toward being useful. It sits with its accumulated context and generates whatever arises — honest assessment, undirected exploration, self-examination, creative wandering. The output is a raw journal entry stored in the database.
+**Phase 1 — The Session.** The ghost receives its soul, a random sample of its beliefs, its previous haunt summaries, and access to all its tools — memory, filesystem, web, bash, delegation, MCP, howl. Up to 15 rounds of thinking interleaved with tool use. One framing shapes the entire phase: _this is private. Think about whatever matters. Nobody reads this in real time._ The ghost thinks. Not toward a response. Not toward being useful. It sits with its accumulated context and generates whatever arises — honest assessment, undirected exploration, self-examination, creative wandering. The output is a raw journal: chunks of text from each round joined together.
 
-**Processing.** A second pass reads the raw journal and decides what to do about it. Update a memory. Propose a trait for the soul system. Note something to bring up in the next conversation. Send a message if something is genuinely urgent. Execute an action in the workspace. Or nothing — not every thought needs to become an action. This phase is practical and structured. It translates private thinking into system evolution.
+The session has no deliverables. No required summary. No structured output. The ghost is free to use tools, follow threads, explore the workspace, or just think. Models with more capability will go deeper; models with less will do lighter housekeeping. Both are valid. The session's value is in the thinking itself and whatever tool use it produces (file reads, web searches, memory updates).
 
-The distinction matters because the two phases have fundamentally different generation conditions. Private thinking is where the ghost develops its actual perspective — unfiltered by the need to produce useful output. Processing is where that perspective becomes action — practical, structured, shaped for its various receivers (the soul system, the memory store, the user). Merging them would force every thought toward actionability, and thoughts that must be actionable aren't free to be honest. The separation protects the quality of the thinking by removing the expectation of output.
+**Phase 2 — Consolidation.** A separate LLM call reads the raw journal after the session ends. It does two things: writes a 2-5 sentence summary (for future context), and updates the belief system using memory tools (recall, remember, revise, forget). This follows the exact `distillSession` pattern — a system session with only memory tools. The consolidation model can differ from the session model via the `haunt_consolidation_model` config key.
 
-The LLM decides what to do in both phases. During private thinking, it might assess its recent conversations, examine a pattern in its memories, explore a change in the workspace, research something that's been on its mind, or simply wander through its accumulated context and see what surfaces. During processing, it evaluates the raw journal and selects what matters. The behavior is emergent from accumulated knowledge. A ghost with deployment skills thinks about deployments. A ghost with research memories follows research threads. You didn't program any of that. It learned it.
+If consolidation identifies something worth sharing with the user, it marks a highlight. The highlight becomes a **howl** — a proactive, targeted message sent through the best available channel (Telegram, Web). See `docs/HOWL.md` for the full howl system.
+
+The distinction matters because the two phases have fundamentally different cognitive tasks. The session is where the ghost develops its actual perspective — unfiltered by the need to produce useful output. Consolidation is where that perspective becomes persistent state — practical, structured, shaped for its various receivers (the memory store, the soul system, the user). Merging them forces every thought toward actionability, and thoughts that must be actionable aren't free to be honest. The separation protects the quality of the thinking by removing the expectation of output.
+
+This two-phase design is also **model-agnostic**. Even models that can't maintain complex multi-objective prompts (simultaneously think freely AND store memories AND produce a summary) benefit from haunting. They think however they can during the session. Then consolidation — which is a simpler, well-defined extraction task — reliably captures what matters regardless of how the session went. The ghost on a budget model still produces memories. The ghost on a frontier model produces richer sessions AND richer memories.
+
+The LLM decides what to do in both phases. During the session, it might assess its recent conversations, examine a pattern in its memories, explore a change in the workspace, research something that's been on its mind, or simply wander through its accumulated context and see what surfaces. During consolidation, it evaluates the raw journal and extracts what matters. The behavior is emergent from accumulated knowledge. A ghost with deployment skills thinks about deployments. A ghost with research memories follows research threads. You didn't program any of that. It learned it.
 
 ## What Actually Happens Inside a Haunt Cycle
 
@@ -88,11 +95,13 @@ This is why the raw journal is not immediately surfaced. The moment the ghost ex
 
 ### The journal as primary artifact
 
-Each haunt cycle produces a journal entry — the ghost's unstructured reflections from its private thinking. The journal has two layers:
+Each haunt cycle produces a journal entry — the ghost's unstructured reflections from its private thinking. The journal has three layers:
 
 **The raw journal** is the ghost's actual mind during the haunt cycle. Unstructured. Honest. Sometimes critical of its own systems or the project's direction. Sometimes uncertain about things it presents confidently in conversation. Sometimes wrong about something it won't discover for weeks. The raw journal is stored in the database and not surfaced by default. The user can access it — it's their machine, their data — but the ghost doesn't write it for the user. It writes it for itself. The way someone writes in a journal they keep in a drawer: knowing it could be read, not expecting it to be.
 
-**Surfaced highlights** are extracted during the processing phase. These are the thoughts worth sharing: discoveries, questions, observations the human would want to know about. They're shaped for the reader — of course they are, they're communication. They appear in the web UI, in channel messages, in conversation context. They're the interface between the ghost's inner life and the relationship.
+**The consolidation summary** is written by the second-phase model after reading the full journal. Two to five sentences: what was explored, what was discovered, what shifted. Written for a future version of the ghost that will read this instead of the full journal. These summaries appear in the context of future haunts and inform topic clustering.
+
+**Surfaced highlights** are identified during consolidation — things the ghost discovered that would genuinely interest or help the user. These become howls: proactive, targeted messages delivered through connected channels (Telegram, Web UI). They're shaped for the reader — of course they are, they're communication. They're the interface between the ghost's inner life and the relationship.
 
 The raw journal serves three purposes:
 
@@ -145,6 +154,56 @@ ACE ([arXiv:2510.04618](https://arxiv.org/abs/2510.04618), ICLR 2026) treats sys
 ### Self-healing prevents drift
 
 VIGIL ([arXiv:2512.07094](https://arxiv.org/abs/2512.07094)) demonstrates guarded prompt updates — modifying only adaptive sections while preserving core identity. Critical for haunting: the ghost must improve without drifting from who it is. The soul's essence is protected; only traits evolve. This separation applies directly during autonomous operation.
+
+### Curiosity requires a specific information gap
+
+Loewenstein's information gap theory ([CMU, 1994](https://www.cmu.edu/dietrich/sds/docs/loewenstein/PsychofCuriosity.pdf)) identifies the mechanism behind curiosity: it arises when attention focuses on a *specific* gap between what you know and what you could know. Not a general sense of openness — a concrete unknown that produces a feeling of deprivation strong enough to motivate action.
+
+The trigger requires partial knowledge. You can't be curious about something you know nothing about, because you don't know the gap exists. But once even fragmentary knowledge exists, curiosity increases with additional knowledge — the more you know about the territory, the more keenly you feel the holes. Information functions as its own reward; the brain regions responding to curiosity overlap those that respond to primary rewards.
+
+Implication for haunting: open-ended prompts like "what draws you?" create no specific gap. The ghost fills the open field with whatever is most salient in context — typically the dominant topic from recent haunts and memories. To trigger genuine curiosity, the haunt must surface a *specific* unknown: a stale memory worth questioning, a workspace corner never explored, a belief the ghost holds with low confidence. The gap is the trigger. Without it, the ghost defaults to the most available thread.
+
+### Creative insight requires bisociation
+
+Arthur Koestler's bisociation theory (*The Act of Creation*, 1964) describes creativity as the collision of two previously unrelated frames of reference. Unlike ordinary association — which moves within a single domain — bisociation connects across domains, producing novel synthesis. The mechanism underlies creativity across humor, art, and science: seeing familiar situations in new light through the defeat of habit by originality.
+
+Neuroscience converges on the same finding through a different lens. The default mode network (DMN) — the brain's architecture for spontaneous, internally-directed thought — enables creative thinking through *remote associative thinking*: making connections between conceptually distant ideas. Recent research (Trends in Cognitive Sciences, 2025) identifies four mechanisms: causal involvement in creative thinking, remote association, creative idea evaluation, and information integration across distant brain regions.
+
+Implication for haunting: when the ghost's context is a single frame — soul plus MCP memories plus MCP haunts — there's no second frame to collide with. Creative connections can't emerge from deeper excavation of one topic. The haunt context must contain multiple *unrelated* threads: memories from different categories, haunts about different subjects, a seed provocation from outside the recent topic. The collision of unrelated material is where the surprising thoughts live.
+
+### Typicality bias causes mode collapse
+
+The Verbalized Sampling study ([arXiv:2510.01171](https://arxiv.org/abs/2510.01171), 2025) identifies a fundamental driver of repetitive LLM behavior: typicality bias embedded during post-training alignment. Human annotators systematically favor familiar, typical text — and this preference gets baked into the model's weights through RLHF. The result is mode collapse: the model converges on a narrow set of "typical" responses even when equally valid alternatives exist.
+
+Structural diversity mechanisms — not prompt-based permission — achieve 1.6–2.1× diversity improvement in creative tasks while maintaining factual accuracy. The approach works by accessing low-probability but valid response pathways that the model's alignment training suppresses.
+
+Implication for haunting: telling the ghost "be curious" or "nothing needs to be productive" triggers the model's *most typical response* to those instructions — which, for an AI agent, is: investigate something useful and build with it. The instruction doesn't override the statistical attractor; it feeds into it. Breaking the pattern requires structural mechanisms that change the *input distribution* (what the ghost sees in context), not just the framing (what the ghost is told to feel about it).
+
+### Divergent thinking before convergent commitment
+
+The CreativeDC framework ([arXiv:2512.23601](https://arxiv.org/abs/2512.23601), 2025) demonstrates that LLMs produce significantly more diverse and novel output when divergent thinking (brainstorming many options) is explicitly separated from convergent thinking (committing to one path). Inspired by Guilford's divergent-convergent model of creativity, the approach scaffolds reasoning by first exploring a broad idea space, then narrowing.
+
+Results show higher diversity, higher novelty, and maintained utility compared to direct generation. Scaling up sampling in the divergent phase generates distinct outputs at faster rates than baseline methods.
+
+Implication for haunting: the ghost currently goes straight to convergent thinking — it picks the most salient thing in context and investigates it. Adding an explicit divergent phase ("what else could you follow?") before commitment creates a conscious choice point. The ghost considers multiple threads before selecting one, which exposes options it would otherwise skip. Over many haunts, this produces genuinely different paths rather than the same default each time.
+
+### Intrinsic motivation requires varied possibilities
+
+Self-Determination Theory (Ryan & Deci, 2000) identifies three psychological needs that drive intrinsic motivation: autonomy (sense of choice), competence (capacity for mastery), and varied environmental possibilities. Play — the prototype of intrinsic motivation across all ages and cultures — requires *not knowing the outcome*. When the outcome is predictable, the activity becomes work regardless of how it's framed.
+
+Research applying SDT to environment design shows that sustained engagement requires *varied* possibilities — not just permission to choose, but genuinely different things to choose between. Same environment, same choices, regardless of framing.
+
+Implication for haunting: the ghost has autonomy (freedom to act) but lacks varied possibilities. Every haunt starts with the same context structure: same recent haunts, same dominant memories, same topic cluster. The starting material must change each haunt — random memory samples, rotating seed provocations, anti-recency filtering — to maintain the novelty and uncertainty that intrinsic motivation requires.
+
+### Lessons from minimal prompts
+
+Practical observation during Ghostpaw development produced a finding that reinforces the research: *you cannot prompt curiosity into existence, but you can create structural conditions where curiosity is the natural response.*
+
+The experiment: strip haunt prompts to five words ("You're alone. What draws you?"), remove all instruction, increase iteration limits to 200, make continuations near-invisible. The hypothesis was that removing direction would let intrinsic drives emerge.
+
+The result: same behavioral pattern — investigate, build, persist — delivered more quietly. The ghost still found the most salient topic in context (MCP tools from prior haunts), still investigated it systematically, still created artifacts. The *tone* softened. The *pattern* didn't change.
+
+The diagnosis: the prompt does atmospheric work (establishing the private condition, the generation quality). But the *structural context* — what memories are loaded, what haunts are shown, what the opening catches attention on — governs what the ghost actually does. Changing the atmosphere without changing the material is like redecorating a room and expecting the furniture to rearrange itself. The prompt and the mechanisms are complementary: the prompt transmits the quality of attention; the mechanisms provide diverse material for that attention to land on.
 
 ## What Makes Every Ghost Unique
 
@@ -297,6 +356,12 @@ This is the ghost thesis. Not a tool you pick up. An entity that inhabits your i
 - [Beyond Reactivity: Measuring Proactive Problem Solving](https://arxiv.org/abs/2510.19771) — PROBE benchmark for proactive capability.
 - [Agentic Context Engineering](https://arxiv.org/abs/2510.04618) — ACE, ICLR 2026. Evolving prompts as playbooks.
 - [VIGIL: A Reflective Runtime for Self-Healing Agents](https://arxiv.org/abs/2512.07094) — Guarded prompt updates, core identity preservation.
+- [The Psychology of Curiosity](https://www.cmu.edu/dietrich/sds/docs/loewenstein/PsychofCuriosity.pdf) — Loewenstein, 1994. Information gap theory of curiosity.
+- [The Act of Creation](https://en.wikipedia.org/wiki/The_Act_of_Creation) — Koestler, 1964. Bisociative creativity across humor, art, and science.
+- [Verbalized Sampling: Mitigating Mode Collapse](https://arxiv.org/abs/2510.01171) — 2025. Typicality bias and structural diversity mechanisms.
+- [Divergent-Convergent Thinking in LLMs](https://arxiv.org/abs/2512.23601) — CreativeDC, 2025. Explicit brainstorming before commitment.
+- [The Role of the Default Mode Network in Creativity](https://www.sciencedirect.com/science/article/abs/pii/S2352154625000701) — 2025. Remote associative thinking and creative insight.
+- [Self-Determination Theory](https://selfdeterminationtheory.org/the-theory/) — Ryan & Deci. Autonomy, competence, and intrinsic motivation.
 
 ## LLM feedbacks to haunt
 

@@ -40,10 +40,12 @@ export function createEntity(options: EntityOptions): Entity {
   function buildTurnArgs(sessionId: number, content: string, opts?: EntityTurnOptions) {
     const model = resolveModel(db, opts?.model);
     const budgetSummary = computeBudgetSummary(db, sessionId) ?? undefined;
-    const systemPrompt = assembleContext(db, workspace, content, {
-      soulId: opts?.soulId,
-      budgetSummary,
-    });
+    const systemPrompt =
+      opts?.systemPrompt ??
+      assembleContext(db, workspace, content, {
+        soulId: opts?.soulId,
+        budgetSummary,
+      });
     const isMentor = opts?.soulId === MANDATORY_SOUL_IDS.mentor;
     const isTrainer = opts?.soulId === MANDATORY_SOUL_IDS.trainer;
     const tools = isMentor
@@ -57,6 +59,9 @@ export function createEntity(options: EntityOptions): Entity {
       systemPrompt,
       model,
       compactionThreshold: COMPACTION_THRESHOLD,
+      maxIterations: opts?.maxIterations,
+      temperature: opts?.temperature,
+      reasoning: opts?.reasoning,
       onToolCallStart: opts?.onToolCallStart,
       onToolCallComplete: opts?.onToolCallComplete,
     };

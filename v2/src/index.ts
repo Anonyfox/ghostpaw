@@ -2,6 +2,9 @@ import { resolve } from "node:path";
 import { defineCommand, runMain } from "citty";
 import { deleteOldDistilled, initChatTables } from "./core/chat/index.ts";
 import { initConfigTable } from "./core/config/index.ts";
+import { initHauntTables } from "./core/haunt/index.ts";
+import { initHowlTables } from "./core/howl/index.ts";
+import { initQuestTables } from "./core/quests/index.ts";
 import { initMemoryTable } from "./core/memory/index.ts";
 import { initPackTables } from "./core/pack/index.ts";
 import { initRunsTable, recoverOrphanedRuns } from "./core/runs/index.ts";
@@ -32,6 +35,9 @@ const subCommands = {
   skills: () => import("./channels/cli/skills.ts").then((m) => m.default),
   costs: () => import("./channels/cli/costs.ts").then((m) => m.default),
   distill: () => import("./channels/cli/distill.ts").then((m) => m.default),
+  haunt: () => import("./channels/cli/haunt.ts").then((m) => m.default),
+  howls: () => import("./channels/cli/howls.ts").then((m) => m.default),
+  quests: () => import("./channels/cli/quests.ts").then((m) => m.default),
   train: () => import("./channels/cli/train.ts").then((m) => m.default),
   scout: () => import("./channels/cli/scout.ts").then((m) => m.default),
   service: () => import("./channels/cli/service.ts").then((m) => m.default),
@@ -75,6 +81,9 @@ const main = defineCommand({
     initSoulsTables(db);
     initRunsTable(db);
     initPackTables(db);
+    initHauntTables(db);
+    initHowlTables(db);
+    initQuestTables(db);
     recoverOrphanedRuns(db);
     ensureMandatorySouls(db);
     loadSecretsIntoEnv(db);

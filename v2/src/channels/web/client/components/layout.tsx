@@ -1,5 +1,5 @@
 import type { ComponentChildren } from "preact";
-import { useEffect, useState } from "preact/hooks";
+import { useCallback, useEffect, useState } from "preact/hooks";
 import { Link, useLocation } from "wouter-preact";
 
 interface LayoutProps {
@@ -16,6 +16,45 @@ function NavItem({ href, label }: { href: string; label: string }) {
         class={`nav-link ${active ? "text-info fw-semibold" : "text-body-secondary"}`}
       >
         {label}
+      </Link>
+    </li>
+  );
+}
+
+const HOWL_POLL_MS = 30_000;
+
+function HowlsNavItem() {
+  const [location] = useLocation();
+  const active = location === "/howls" || location.startsWith("/howls/");
+  const [count, setCount] = useState(0);
+
+  const fetchCount = useCallback(() => {
+    fetch("/api/howls/pending", { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data && typeof data.count === "number") setCount(data.count);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchCount();
+    const id = setInterval(fetchCount, HOWL_POLL_MS);
+    return () => clearInterval(id);
+  }, [fetchCount]);
+
+  return (
+    <li class="nav-item">
+      <Link
+        href="/howls"
+        class={`nav-link ${active ? "text-info fw-semibold" : "text-body-secondary"} d-flex align-items-center gap-1`}
+      >
+        Howls
+        {count > 0 && (
+          <span class="badge bg-info rounded-pill" style="font-size: 0.65em;">
+            {count}
+          </span>
+        )}
       </Link>
     </li>
   );
@@ -56,6 +95,8 @@ export function Layout({ children }: LayoutProps) {
               <NavItem href="/training-grounds" label="Skills" />
               <NavItem href="/memories" label="Memories" />
               <NavItem href="/pack" label="Pack" />
+              <NavItem href="/quests" label="Quests" />
+              <HowlsNavItem />
               <NavItem href="/costs" label="Costs" />
               <NavItem href="/sessions" label="Sessions" />
               <NavItem href="/chat" label="Chat" />

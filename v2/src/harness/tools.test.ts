@@ -5,6 +5,8 @@ import { initConfigTable } from "../core/config/index.ts";
 import { initMemoryTable } from "../core/memory/index.ts";
 import { initRunsTable } from "../core/runs/index.ts";
 import { initSecretsTable } from "../core/secrets/index.ts";
+import { initHauntTables } from "../core/haunt/index.ts";
+import { initHowlTables } from "../core/howl/index.ts";
 import { initPackTables } from "../core/pack/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
@@ -22,6 +24,8 @@ beforeEach(async () => {
   initSecretsTable(db);
   initRunsTable(db);
   initPackTables(db);
+  initHauntTables(db);
+  initHowlTables(db);
   ensureMandatorySouls(db);
 });
 
@@ -39,6 +43,7 @@ const EXPECTED_BASE_TOOLS = [
   "forget",
   "get_config",
   "grep",
+  "howl",
   "list_config",
   "list_secrets",
   "ls",
@@ -49,6 +54,7 @@ const EXPECTED_BASE_TOOLS = [
   "pack_sense",
   "read",
   "recall",
+  "recall_haunts",
   "remember",
   "remove_secret",
   "reset_config",

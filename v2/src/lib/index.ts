@@ -1,3 +1,12 @@
+export type { ChannelHandle } from "./channel_registry.ts";
+export {
+  clearChannelRegistry,
+  getBestChannel,
+  getChannel,
+  getConnectedChannels,
+  registerChannel,
+  unregisterChannel,
+} from "./channel_registry.ts";
 export type { DatabaseHandle } from "./database_handle.ts";
 export { isEntrypoint } from "./is_entrypoint.ts";
 export { isInsideWorkspace } from "./is_inside_workspace.ts";

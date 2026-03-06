@@ -28,7 +28,10 @@ import {
 } from "../tools/memory/index.ts";
 import { createMentorTools } from "../tools/mentor/index.ts";
 import { createPackTools } from "../tools/pack/index.ts";
+import { createQuestTools } from "../tools/quests/index.ts";
 import { createReadTool } from "../tools/read.ts";
+import { createHowlTool } from "../tools/howl.ts";
+import { createRecallHauntsTool } from "../tools/recall_haunts.ts";
 import {
   createListSecretsTool,
   createRemoveSecretTool,
@@ -91,6 +94,9 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     createDatetimeTool(),
     createSenseTool(),
     ...createPackTools(db),
+    ...createQuestTools(db),
+    createRecallHauntsTool(db),
+    createHowlTool(db),
   ];
 
   const mentorOnly = createMentorTools(db);

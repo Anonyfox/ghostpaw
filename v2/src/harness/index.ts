@@ -6,6 +6,8 @@ export type {
   DistillToolCalls,
 } from "./distill_types.ts";
 export { createEntity } from "./entity.ts";
+export type { HauntResult, RunHauntOptions } from "./haunt/index.ts";
+export { runHaunt } from "./haunt/index.ts";
 export type { MentorResult } from "./invoke_mentor.ts";
 export { invokeMentor } from "./invoke_mentor.ts";
 export type { TrainerResult } from "./invoke_trainer.ts";

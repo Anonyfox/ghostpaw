@@ -1,4 +1,4 @@
-export const SESSION_PURPOSES = ["chat", "delegate", "train", "scout", "system"] as const;
+export const SESSION_PURPOSES = ["chat", "delegate", "train", "scout", "system", "haunt", "howl"] as const;
 export type SessionPurpose = (typeof SESSION_PURPOSES)[number];
 
 export const MESSAGE_ROLES = ["user", "assistant", "tool_call", "tool_result"] as const;
