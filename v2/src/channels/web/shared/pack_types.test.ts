@@ -1,6 +1,7 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { describe, it } from "node:test";
 import type {
+  PackContactInfo,
   PackInteractionInfo,
   PackListResponse,
   PackMemberDetailResponse,
@@ -37,7 +38,18 @@ describe("pack shared types", () => {
     ok(info.significance >= 0 && info.significance <= 1);
   });
 
-  it("PackMemberDetailResponse includes interactions", () => {
+  it("PackContactInfo is structurally valid", () => {
+    const info: PackContactInfo = {
+      id: 1,
+      type: "email",
+      value: "alice@example.com",
+      label: "work",
+    };
+    strictEqual(info.type, "email");
+    strictEqual(info.label, "work");
+  });
+
+  it("PackMemberDetailResponse includes contacts and interactions", () => {
     const detail: PackMemberDetailResponse = {
       id: 1,
       name: "Alice",
@@ -46,14 +58,18 @@ describe("pack shared types", () => {
       trust: 0.85,
       trustLevel: "deep",
       status: "active",
+      isUser: true,
       firstContact: Date.now() - 86400000,
       lastContact: Date.now(),
-      metadata: "{}",
       createdAt: Date.now() - 86400000,
       updatedAt: Date.now(),
+      contacts: [{ id: 1, type: "email", value: "alice@test.com", label: null }],
       interactions: [],
     };
     ok(Array.isArray(detail.interactions));
+    ok(Array.isArray(detail.contacts));
+    strictEqual(detail.isUser, true);
+    strictEqual(detail.contacts.length, 1);
   });
 
   it("PackListResponse wraps members with counts", () => {

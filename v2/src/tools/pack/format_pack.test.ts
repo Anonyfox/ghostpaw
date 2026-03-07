@@ -1,7 +1,8 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { PackInteraction, PackMember } from "../../core/pack/types.ts";
+import type { PackContact, PackInteraction, PackMember } from "../../core/pack/types.ts";
 import {
+  formatContact,
   formatInteraction,
   formatMemberDetail,
   formatMemberSummary,
@@ -19,9 +20,9 @@ function makeMember(overrides: Partial<PackMember> = {}): PackMember {
     bond: "A trusted partner.",
     trust: 0.75,
     status: "active",
+    isUser: false,
     firstContact: NOW - 86_400_000 * 42,
     lastContact: NOW - 7_200_000,
-    metadata: '{"timezone":"CET"}',
     createdAt: NOW - 86_400_000 * 42,
     updatedAt: NOW - 7_200_000,
     ...overrides,
@@ -37,6 +38,18 @@ function makeInteraction(overrides: Partial<PackInteraction> = {}): PackInteract
     significance: 0.7,
     sessionId: null,
     createdAt: NOW - 7_200_000,
+    ...overrides,
+  };
+}
+
+function makeContact(overrides: Partial<PackContact> = {}): PackContact {
+  return {
+    id: 1,
+    memberId: 1,
+    type: "email",
+    value: "alice@example.com",
+    label: "work",
+    createdAt: NOW - 86_400_000,
     ...overrides,
   };
 }
@@ -86,6 +99,20 @@ describe("formatMemberSummary", () => {
   });
 });
 
+describe("formatContact", () => {
+  it("produces correct shape", () => {
+    const f = formatContact(makeContact());
+    strictEqual(f.type, "email");
+    strictEqual(f.value, "alice@example.com");
+    strictEqual(f.label, "work");
+  });
+
+  it("handles null label", () => {
+    const f = formatContact(makeContact({ label: null }));
+    strictEqual(f.label, null);
+  });
+});
+
 describe("formatInteraction", () => {
   it("produces correct shape", () => {
     const f = formatInteraction(makeInteraction(), NOW);
@@ -97,18 +124,21 @@ describe("formatInteraction", () => {
 });
 
 describe("formatMemberDetail", () => {
-  it("includes all fields and interactions", () => {
-    const d = formatMemberDetail(makeMember(), [makeInteraction()], NOW);
+  it("includes all fields, contacts, and interactions", () => {
+    const contacts = [makeContact()];
+    const d = formatMemberDetail(makeMember(), [makeInteraction()], NOW, contacts);
     strictEqual(d.name, "Alice");
     strictEqual(d.trust_level, "solid");
+    strictEqual(d.is_user, false);
     strictEqual(d.bond, "A trusted partner.");
     ok(d.first_contact.includes("ago"));
     strictEqual(d.recent_interactions.length, 1);
-    strictEqual(d.metadata.timezone, "CET");
+    strictEqual(d.contacts.length, 1);
+    strictEqual(d.contacts[0].type, "email");
   });
 
-  it("handles invalid metadata JSON gracefully", () => {
-    const d = formatMemberDetail(makeMember({ metadata: "not-json" }), [], NOW);
-    strictEqual(Object.keys(d.metadata).length, 0);
+  it("defaults to empty contacts array", () => {
+    const d = formatMemberDetail(makeMember(), [], NOW);
+    strictEqual(d.contacts.length, 0);
   });
 });

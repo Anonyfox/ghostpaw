@@ -31,6 +31,7 @@ export function createRecallHauntsTool(db: DatabaseHandle) {
       "'search' to find haunts by keyword, or 'read' to get the full journal " +
       "of a specific haunt by ID. Summaries are brief — use 'read' to dive " +
       "deeper into a specific haunt's thinking.",
+    // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new RecallHauntsParams() as any,
     execute: async ({ args }) => {
       const { action, query, id, limit } = args as {

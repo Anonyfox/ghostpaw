@@ -1,21 +1,31 @@
 import type { IncomingMessage } from "node:http";
 import {
+  addContact,
   countMembers,
   getMember,
+  listContacts,
   listInteractions,
   listMembers,
+  lookupContact,
   meetMember,
+  mergeMember,
   noteInteraction,
+  removeContact,
   updateBond,
 } from "../../../../core/pack/index.ts";
 import type {
+  ContactType,
   InteractionKind,
   MemberKind,
   MemberStatus,
   PackMember,
 } from "../../../../core/pack/types.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
-import type { PackInteractionInfo, PackMemberInfo } from "../../shared/pack_types.ts";
+import type {
+  PackContactInfo,
+  PackInteractionInfo,
+  PackMemberInfo,
+} from "../../shared/pack_types.ts";
 import { bondExcerpt, trustLevel } from "../../shared/pack_types.ts";
 import { readJsonBody } from "../body_parser.ts";
 import type { RouteContext } from "../types.ts";
@@ -54,6 +64,15 @@ function toMemberInfo(m: PackMember, interactionCount: number): PackMemberInfo {
     lastContact: m.lastContact,
     interactionCount,
   };
+}
+
+function toContactInfo(c: {
+  id: number;
+  type: string;
+  value: string;
+  label: string | null;
+}): PackContactInfo {
+  return { id: c.id, type: c.type as ContactType, value: c.value, label: c.label };
 }
 
 export function createPackApiHandlers(db: DatabaseHandle) {
@@ -98,6 +117,7 @@ export function createPackApiHandlers(db: DatabaseHandle) {
         return;
       }
       const interactions = listInteractions(db, id, { limit: 50 });
+      const contacts = listContacts(db, id);
       const interactionInfos: PackInteractionInfo[] = interactions.map((i) => ({
         id: i.id,
         kind: i.kind,
@@ -114,11 +134,12 @@ export function createPackApiHandlers(db: DatabaseHandle) {
         trust: member.trust,
         trustLevel: trustLevel(member.trust),
         status: member.status,
+        isUser: member.isUser,
         firstContact: member.firstContact,
         lastContact: member.lastContact,
-        metadata: member.metadata,
         createdAt: member.createdAt,
         updatedAt: member.updatedAt,
+        contacts: contacts.map(toContactInfo),
         interactions: interactionInfos,
       });
     },
@@ -136,10 +157,10 @@ export function createPackApiHandlers(db: DatabaseHandle) {
       }
       const kind = typeof body.kind === "string" ? (body.kind as MemberKind) : "human";
       const bond = typeof body.bond === "string" ? body.bond : undefined;
-      const metadata = typeof body.metadata === "string" ? body.metadata : undefined;
+      const isUser = typeof body.isUser === "boolean" ? body.isUser : false;
 
       try {
-        const member = meetMember(db, { name, kind, bond, metadata });
+        const member = meetMember(db, { name, kind, bond, isUser });
         const count = listInteractions(db, member.id, { limit: 1 }).length;
         json(ctx, 201, toMemberInfo(member, count));
       } catch (err) {
@@ -164,11 +185,12 @@ export function createPackApiHandlers(db: DatabaseHandle) {
       if (typeof body.trust === "number") updates.trust = body.trust;
       if (typeof body.status === "string") updates.status = body.status;
       if (typeof body.name === "string") updates.name = body.name;
-      if (typeof body.metadata === "string") updates.metadata = body.metadata;
+      if (typeof body.isUser === "boolean") updates.isUser = body.isUser;
 
       try {
         const member = updateBond(db, id, updates as Parameters<typeof updateBond>[2]);
         const interactions = listInteractions(db, id, { limit: 50 });
+        const contacts = listContacts(db, id);
         const interactionInfos: PackInteractionInfo[] = interactions.map((i) => ({
           id: i.id,
           kind: i.kind,
@@ -185,11 +207,12 @@ export function createPackApiHandlers(db: DatabaseHandle) {
           trust: member.trust,
           trustLevel: trustLevel(member.trust),
           status: member.status,
+          isUser: member.isUser,
           firstContact: member.firstContact,
           lastContact: member.lastContact,
-          metadata: member.metadata,
           createdAt: member.createdAt,
           updatedAt: member.updatedAt,
+          contacts: contacts.map(toContactInfo),
           interactions: interactionInfos,
         });
       } catch (err) {
@@ -257,6 +280,109 @@ export function createPackApiHandlers(db: DatabaseHandle) {
         createdAt: i.createdAt,
       }));
       json(ctx, 200, { interactions: infos });
+    },
+
+    contacts(ctx: RouteContext): void {
+      const id = Number(ctx.params.id);
+      if (!Number.isFinite(id) || id < 1) {
+        json(ctx, 400, { error: "Invalid member ID." });
+        return;
+      }
+      const contacts = listContacts(db, id);
+      json(ctx, 200, { contacts: contacts.map(toContactInfo) });
+    },
+
+    async addContact(ctx: RouteContext): Promise<void> {
+      const id = Number(ctx.params.id);
+      if (!Number.isFinite(id) || id < 1) {
+        json(ctx, 400, { error: "Invalid member ID." });
+        return;
+      }
+      const body = await parseBody(ctx.req);
+      if (!body) {
+        json(ctx, 400, { error: "Invalid request body." });
+        return;
+      }
+
+      const type = typeof body.type === "string" ? (body.type as ContactType) : "";
+      const value = typeof body.value === "string" ? body.value.trim() : "";
+      if (!type || !value) {
+        json(ctx, 400, { error: "Type and value are required." });
+        return;
+      }
+      const label = typeof body.label === "string" ? body.label : undefined;
+
+      try {
+        const result = addContact(db, { memberId: id, type, value, label });
+        if (result.conflict) {
+          json(ctx, 409, {
+            conflict: true,
+            existingMemberId: result.conflict.existingMemberId,
+            message: `Contact ${type}:${value} already belongs to member #${result.conflict.existingMemberId}.`,
+          });
+          return;
+        }
+        json(ctx, 201, toContactInfo(result.contact));
+      } catch (err) {
+        json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+
+    removeContact(ctx: RouteContext): void {
+      const contactId = Number(ctx.params.contactId);
+      if (!Number.isFinite(contactId) || contactId < 1) {
+        json(ctx, 400, { error: "Invalid contact ID." });
+        return;
+      }
+      try {
+        removeContact(db, contactId);
+        json(ctx, 200, { removed: true });
+      } catch (err) {
+        json(ctx, 404, { error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+
+    lookupContact(ctx: RouteContext): void {
+      const type = ctx.params.type as ContactType;
+      const value = decodeURIComponent(ctx.params.value || "");
+      if (!type || !value) {
+        json(ctx, 400, { error: "Type and value are required." });
+        return;
+      }
+      try {
+        const member = lookupContact(db, type, value);
+        if (!member) {
+          json(ctx, 404, { found: false });
+          return;
+        }
+        json(ctx, 200, { found: true, member: toMemberInfo(member, 0) });
+      } catch (err) {
+        json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+
+    async merge(ctx: RouteContext): Promise<void> {
+      const body = await parseBody(ctx.req);
+      if (!body) {
+        json(ctx, 400, { error: "Invalid request body." });
+        return;
+      }
+      const keepId = typeof body.keepId === "number" ? body.keepId : 0;
+      const mergeId = typeof body.mergeId === "number" ? body.mergeId : 0;
+      if (keepId < 1 || mergeId < 1) {
+        json(ctx, 400, { error: "keepId and mergeId are required." });
+        return;
+      }
+      try {
+        const result = mergeMember(db, keepId, mergeId);
+        json(ctx, 200, {
+          merged: true,
+          kept: { id: result.id, name: result.name },
+          lost: { id: mergeId },
+        });
+      } catch (err) {
+        json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
+      }
     },
   };
 }

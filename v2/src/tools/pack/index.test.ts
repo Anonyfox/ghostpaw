@@ -1,9 +1,21 @@
-import { ok, strictEqual } from "node:assert/strict";
+import { deepStrictEqual, ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initPackTables } from "../../core/pack/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createPackTools } from "./index.ts";
+
+const EXPECTED_TOOL_NAMES = [
+  "contact_add",
+  "contact_list",
+  "contact_lookup",
+  "contact_remove",
+  "pack_bond",
+  "pack_meet",
+  "pack_merge",
+  "pack_note",
+  "pack_sense",
+];
 
 describe("createPackTools", () => {
   let db: DatabaseHandle;
@@ -15,18 +27,15 @@ describe("createPackTools", () => {
 
   afterEach(() => db.close());
 
-  it("returns 4 tools", () => {
+  it("returns 9 tools", () => {
     const tools = createPackTools(db);
-    strictEqual(tools.length, 4);
+    strictEqual(tools.length, 9);
   });
 
   it("returns the expected tool names", () => {
     const tools = createPackTools(db);
     const names = tools.map((t) => t.name).sort();
-    strictEqual(names[0], "pack_bond");
-    strictEqual(names[1], "pack_meet");
-    strictEqual(names[2], "pack_note");
-    strictEqual(names[3], "pack_sense");
+    deepStrictEqual(names, EXPECTED_TOOL_NAMES);
   });
 
   it("all tools have descriptions", () => {

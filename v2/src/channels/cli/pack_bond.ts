@@ -6,7 +6,7 @@ import { resolveMember } from "./resolve_member.ts";
 import { withRunDb } from "./with_run_db.ts";
 
 export default defineCommand({
-  meta: { name: "bond", description: "Update a pack member's bond, trust, status, or metadata" },
+  meta: { name: "bond", description: "Update a pack member's bond, trust, status, or user flag" },
   args: {
     member: {
       type: "positional",
@@ -29,9 +29,9 @@ export default defineCommand({
       type: "string",
       description: "Rename the member",
     },
-    metadata: {
-      type: "string",
-      description: "JSON metadata to merge",
+    "is-user": {
+      type: "boolean",
+      description: "Mark/unmark as the primary human user",
     },
   },
   async run({ args }) {
@@ -46,12 +46,12 @@ export default defineCommand({
     const hasTrust = args.trust !== undefined;
     const hasStatus = args.status !== undefined;
     const hasName = args.name !== undefined;
-    const hasMetadata = args.metadata !== undefined;
+    const hasIsUser = args["is-user"] !== undefined;
 
-    if (!hasBond && !hasTrust && !hasStatus && !hasName && !hasMetadata) {
+    if (!hasBond && !hasTrust && !hasStatus && !hasName && !hasIsUser) {
       console.error(
         style.boldRed("error".padStart(10)),
-        " At least one of --bond, --trust, --status, --name, or --metadata is required.",
+        " At least one of --bond, --trust, --status, --name, or --is-user is required.",
       );
       process.exitCode = 1;
       return;
@@ -71,7 +71,7 @@ export default defineCommand({
         if (hasTrust) input.trust = Number.parseFloat(args.trust as string);
         if (hasStatus) input.status = args.status as MemberStatus;
         if (hasName) input.name = args.name as string;
-        if (hasMetadata) input.metadata = args.metadata as string;
+        if (hasIsUser) input.isUser = args["is-user"] as boolean;
 
         const after = updateBond(db, before.id, input);
 
@@ -80,7 +80,7 @@ export default defineCommand({
         if (hasTrust) changes.push(`trust ${before.trust.toFixed(2)} -> ${after.trust.toFixed(2)}`);
         if (hasStatus) changes.push(`status ${before.status} -> ${after.status}`);
         if (hasName) changes.push(`name "${before.name}" -> "${after.name}"`);
-        if (hasMetadata) changes.push("metadata");
+        if (hasIsUser) changes.push(`is_user ${before.isUser} -> ${after.isUser}`);
 
         console.log(
           style.cyan("updated".padStart(10)),

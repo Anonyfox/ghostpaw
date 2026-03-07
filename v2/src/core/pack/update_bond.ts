@@ -45,15 +45,9 @@ export function updateBond(db: DatabaseHandle, id: number, input: UpdateBondInpu
     params.push(input.status);
   }
 
-  if (input.metadata !== undefined) {
-    let merged: Record<string, unknown>;
-    try {
-      merged = { ...JSON.parse(existing.metadata as string), ...JSON.parse(input.metadata) };
-    } catch {
-      throw new Error("Metadata must be a valid JSON string.");
-    }
-    sets.push("metadata = ?");
-    params.push(JSON.stringify(merged));
+  if (input.isUser !== undefined) {
+    sets.push("is_user = ?");
+    params.push(input.isUser ? 1 : 0);
   }
 
   if (sets.length === 0) {

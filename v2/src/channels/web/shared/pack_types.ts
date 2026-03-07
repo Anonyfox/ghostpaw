@@ -1,3 +1,5 @@
+import type { ContactType } from "../../../core/pack/types.ts";
+
 export type TrustLevel = "deep" | "solid" | "growing" | "shallow";
 
 export interface PackMemberInfo {
@@ -10,6 +12,13 @@ export interface PackMemberInfo {
   bondExcerpt: string;
   lastContact: number;
   interactionCount: number;
+}
+
+export interface PackContactInfo {
+  id: number;
+  type: ContactType;
+  value: string;
+  label: string | null;
 }
 
 export interface PackInteractionInfo {
@@ -28,11 +37,12 @@ export interface PackMemberDetailResponse {
   trust: number;
   trustLevel: TrustLevel;
   status: string;
+  isUser: boolean;
   firstContact: number;
   lastContact: number;
-  metadata: string;
   createdAt: number;
   updatedAt: number;
+  contacts: PackContactInfo[];
   interactions: PackInteractionInfo[];
 }
 

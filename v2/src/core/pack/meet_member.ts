@@ -13,24 +13,16 @@ export function meetMember(db: DatabaseHandle, input: MeetInput): PackMember {
     );
   }
 
-  if (input.metadata !== undefined) {
-    try {
-      JSON.parse(input.metadata);
-    } catch {
-      throw new Error("Metadata must be a valid JSON string.");
-    }
-  }
-
   const now = Date.now();
   const bond = input.bond?.trim() ?? "";
-  const metadata = input.metadata ?? "{}";
+  const isUser = input.isUser ? 1 : 0;
 
   const { lastInsertRowid } = db
     .prepare(
-      `INSERT INTO pack_members (name, kind, bond, trust, status, first_contact, last_contact, metadata, created_at, updated_at)
+      `INSERT INTO pack_members (name, kind, bond, trust, status, is_user, first_contact, last_contact, created_at, updated_at)
        VALUES (?, ?, ?, 0.5, 'active', ?, ?, ?, ?, ?)`,
     )
-    .run(name, input.kind, bond, now, now, metadata, now, now);
+    .run(name, input.kind, bond, isUser, now, now, now, now);
 
   const row = db.prepare("SELECT * FROM pack_members WHERE id = ?").get(lastInsertRowid);
   return rowToMember(row as Record<string, unknown>);

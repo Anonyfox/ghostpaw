@@ -1,6 +1,7 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { describe, it } from "node:test";
 import type {
+  FormattedContact,
   FormattedInteraction,
   FormattedMemberDetail,
   FormattedMemberSummary,
@@ -23,7 +24,7 @@ describe("pack tool types", () => {
     strictEqual(s.kind, "human");
   });
 
-  it("FormattedMemberDetail includes recent_interactions", () => {
+  it("FormattedMemberDetail includes contacts and interactions", () => {
     const d: FormattedMemberDetail = {
       id: 1,
       name: "Alice",
@@ -31,13 +32,26 @@ describe("pack tool types", () => {
       trust: 0.85,
       trust_level: "deep",
       status: "active",
+      is_user: true,
       bond: "Full bond narrative here.",
       first_contact: "42d ago",
       last_contact: "2h ago",
-      metadata: { timezone: "CET" },
+      contacts: [{ type: "email", value: "alice@test.com", label: "work" }],
       recent_interactions: [],
     };
     ok(Array.isArray(d.recent_interactions));
+    ok(Array.isArray(d.contacts));
+    strictEqual(d.is_user, true);
+  });
+
+  it("FormattedContact is structurally valid", () => {
+    const c: FormattedContact = {
+      type: "telegram",
+      value: "12345",
+      label: null,
+    };
+    strictEqual(c.type, "telegram");
+    strictEqual(c.label, null);
   });
 
   it("FormattedInteraction is structurally valid", () => {

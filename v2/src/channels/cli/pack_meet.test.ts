@@ -25,9 +25,9 @@ describe("pack meet", () => {
     strictEqual(args.bond?.type, "string");
   });
 
-  it("has optional metadata flag", () => {
+  it("has optional is-user flag", () => {
     const args = cmd.args as Record<string, { type: string }>;
-    strictEqual(args.metadata?.type, "string");
+    strictEqual(args["is-user"]?.type, "boolean");
   });
 
   it("has a run function", () => {

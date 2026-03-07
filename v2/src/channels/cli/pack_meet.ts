@@ -20,9 +20,9 @@ export default defineCommand({
       type: "string",
       description: "Initial bond narrative",
     },
-    metadata: {
-      type: "string",
-      description: "JSON metadata string",
+    "is-user": {
+      type: "boolean",
+      description: "Mark this member as the primary human user",
     },
   },
   async run({ args }) {
@@ -49,7 +49,7 @@ export default defineCommand({
           name: name.trim(),
           kind: (args.kind as MemberKind) ?? "human",
           bond: args.bond as string | undefined,
-          metadata: args.metadata as string | undefined,
+          isUser: (args["is-user"] as boolean | undefined) ?? false,
         });
 
         console.log(

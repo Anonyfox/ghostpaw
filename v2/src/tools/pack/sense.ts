@@ -19,7 +19,7 @@ export function createPackSenseTool(db: DatabaseHandle) {
     description:
       "Query the pack — your social world. Without arguments returns an overview of all " +
       "active and dormant members with trust levels and last contact. Pass a member name " +
-      "or ID to get their full profile and recent interactions.",
+      "or ID to get their full profile, contacts, and recent interactions.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new PackSenseParams() as any,
     execute: async ({ args }) => {
@@ -39,9 +39,9 @@ export function createPackSenseTool(db: DatabaseHandle) {
               bond: "",
               trust: s.trust,
               status: s.status,
+              isUser: false,
               firstContact: 0,
               lastContact: s.lastContact,
-              metadata: "{}",
               createdAt: 0,
               updatedAt: 0,
             },
@@ -76,7 +76,7 @@ export function createPackSenseTool(db: DatabaseHandle) {
       }
 
       const now = Date.now();
-      return formatMemberDetail(detail.member, detail.interactions, now);
+      return formatMemberDetail(detail.member, detail.interactions, now, detail.contacts);
     },
   });
 }

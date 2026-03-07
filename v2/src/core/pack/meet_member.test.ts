@@ -20,7 +20,7 @@ describe("meetMember", () => {
     strictEqual(member.bond, "");
     strictEqual(member.trust, 0.5);
     strictEqual(member.status, "active");
-    strictEqual(member.metadata, "{}");
+    strictEqual(member.isUser, false);
   });
 
   it("sets timestamps to approximately now", () => {
@@ -47,10 +47,9 @@ describe("meetMember", () => {
     strictEqual(member.bond, "padded");
   });
 
-  it("stores valid JSON metadata", () => {
-    const meta = '{"timezone":"CET"}';
-    const member = meetMember(db, { name: "Eve", kind: "human", metadata: meta });
-    strictEqual(member.metadata, meta);
+  it("creates a member with isUser flag", () => {
+    const member = meetMember(db, { name: "Owner", kind: "human", isUser: true });
+    strictEqual(member.isUser, true);
   });
 
   it("auto-increments IDs", () => {
@@ -72,10 +71,6 @@ describe("meetMember", () => {
     throws(() => meetMember(db, { name: "X", kind: "alien" as "human" }), /Invalid member kind/);
   });
 
-  it("throws on invalid JSON metadata", () => {
-    throws(() => meetMember(db, { name: "Y", kind: "human", metadata: "not json" }), /valid JSON/);
-  });
-
   it("throws on duplicate active name", () => {
     meetMember(db, { name: "Dupe", kind: "human" });
     throws(() => meetMember(db, { name: "Dupe", kind: "agent" }));
@@ -84,5 +79,10 @@ describe("meetMember", () => {
   it("trims the name before storing", () => {
     const member = meetMember(db, { name: "  Trimmed  ", kind: "human" });
     strictEqual(member.name, "Trimmed");
+  });
+
+  it("rejects second isUser member", () => {
+    meetMember(db, { name: "First", kind: "human", isUser: true });
+    throws(() => meetMember(db, { name: "Second", kind: "human", isUser: true }));
   });
 });

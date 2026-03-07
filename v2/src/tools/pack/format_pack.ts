@@ -1,5 +1,6 @@
-import type { PackInteraction, PackMember } from "../../core/pack/types.ts";
+import type { PackContact, PackInteraction, PackMember } from "../../core/pack/types.ts";
 import type {
+  FormattedContact,
   FormattedInteraction,
   FormattedMemberDetail,
   FormattedMemberSummary,
@@ -51,6 +52,14 @@ export function formatMemberSummary(
   };
 }
 
+export function formatContact(contact: PackContact): FormattedContact {
+  return {
+    type: contact.type,
+    value: contact.value,
+    label: contact.label,
+  };
+}
+
 export function formatInteraction(
   ix: PackInteraction,
   now: number = Date.now(),
@@ -68,14 +77,8 @@ export function formatMemberDetail(
   member: PackMember,
   interactions: PackInteraction[],
   now: number = Date.now(),
+  contacts: PackContact[] = [],
 ): FormattedMemberDetail {
-  let metadata: Record<string, unknown> = {};
-  try {
-    metadata = JSON.parse(member.metadata);
-  } catch {
-    metadata = {};
-  }
-
   return {
     id: member.id,
     name: member.name,
@@ -83,10 +86,11 @@ export function formatMemberDetail(
     trust: Math.round(member.trust * 100) / 100,
     trust_level: trustLabel(member.trust),
     status: member.status,
+    is_user: member.isUser,
     bond: member.bond,
     first_contact: relativeTime(member.firstContact, now),
     last_contact: relativeTime(member.lastContact, now),
-    metadata,
+    contacts: contacts.map(formatContact),
     recent_interactions: interactions.map((ix) => formatInteraction(ix, now)),
   };
 }

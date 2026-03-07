@@ -8,9 +8,9 @@ export function rowToMember(row: Record<string, unknown>): PackMember {
     bond: row.bond as string,
     trust: row.trust as number,
     status: row.status as MemberStatus,
+    isUser: (row.is_user as number) === 1,
     firstContact: row.first_contact as number,
     lastContact: row.last_contact as number,
-    metadata: row.metadata as string,
     createdAt: row.created_at as number,
     updatedAt: row.updated_at as number,
   };

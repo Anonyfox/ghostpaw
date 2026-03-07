@@ -1,4 +1,9 @@
-import type { InteractionKind, MemberKind, MemberStatus } from "../../core/pack/types.ts";
+import type {
+  ContactType,
+  InteractionKind,
+  MemberKind,
+  MemberStatus,
+} from "../../core/pack/types.ts";
 
 export interface FormattedMemberSummary {
   id: number;
@@ -12,6 +17,12 @@ export interface FormattedMemberSummary {
   interactions: number;
 }
 
+export interface FormattedContact {
+  type: ContactType;
+  value: string;
+  label: string | null;
+}
+
 export interface FormattedMemberDetail {
   id: number;
   name: string;
@@ -19,10 +30,11 @@ export interface FormattedMemberDetail {
   trust: number;
   trust_level: string;
   status: MemberStatus;
+  is_user: boolean;
   bond: string;
   first_contact: string;
   last_contact: string;
-  metadata: Record<string, unknown>;
+  contacts: FormattedContact[];
   recent_interactions: FormattedInteraction[];
 }
 

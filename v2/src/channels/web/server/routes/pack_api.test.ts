@@ -1,6 +1,11 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initPackTables, meetMember, noteInteraction } from "../../../../core/pack/index.ts";
+import {
+  addContact,
+  initPackTables,
+  meetMember,
+  noteInteraction,
+} from "../../../../core/pack/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { openTestDatabase } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";
@@ -83,13 +88,15 @@ describe("pack API", () => {
       strictEqual(res.status, 404);
     });
 
-    it("returns detail for existing member", () => {
+    it("returns detail with contacts for existing member", () => {
       const member = meetMember(db, { name: "Alice", kind: "human", bond: "A close ally." });
       noteInteraction(db, {
         memberId: member.id,
         kind: "conversation",
         summary: "Talked about plans",
       });
+      addContact(db, { memberId: member.id, type: "email", value: "alice@test.com" });
+
       const res = mockRes();
       const ctx = { req: {}, res, params: { id: String(member.id) } } as unknown as RouteContext;
       handlers.detail(ctx);
@@ -97,6 +104,9 @@ describe("pack API", () => {
       const data = JSON.parse(res.body);
       strictEqual(data.name, "Alice");
       strictEqual(data.interactions.length, 1);
+      strictEqual(data.contacts.length, 1);
+      strictEqual(data.contacts[0].type, "email");
+      strictEqual(data.isUser, false);
       ok(data.trustLevel);
     });
   });
@@ -115,6 +125,79 @@ describe("pack API", () => {
       strictEqual(res.status, 200);
       const data = JSON.parse(res.body);
       strictEqual(data.interactions.length, 1);
+    });
+  });
+
+  describe("contacts", () => {
+    it("returns contacts for a member", () => {
+      const member = meetMember(db, { name: "Carol", kind: "human" });
+      addContact(db, { memberId: member.id, type: "telegram", value: "12345" });
+      const res = mockRes();
+      const ctx = {
+        req: { url: `/api/pack/${member.id}/contacts` },
+        res,
+        params: { id: String(member.id) },
+      } as unknown as RouteContext;
+      handlers.contacts(ctx);
+      strictEqual(res.status, 200);
+      const data = JSON.parse(res.body);
+      strictEqual(data.contacts.length, 1);
+      strictEqual(data.contacts[0].type, "telegram");
+    });
+  });
+
+  describe("removeContact", () => {
+    it("removes an existing contact", () => {
+      const member = meetMember(db, { name: "Dave", kind: "human" });
+      const { contact } = addContact(db, { memberId: member.id, type: "email", value: "d@t.com" });
+      const res = mockRes();
+      const ctx = {
+        req: {},
+        res,
+        params: { contactId: String(contact.id) },
+      } as unknown as RouteContext;
+      handlers.removeContact(ctx);
+      strictEqual(res.status, 200);
+    });
+
+    it("returns 404 for nonexistent contact", () => {
+      const res = mockRes();
+      const ctx = {
+        req: {},
+        res,
+        params: { contactId: "999" },
+      } as unknown as RouteContext;
+      handlers.removeContact(ctx);
+      strictEqual(res.status, 404);
+    });
+  });
+
+  describe("lookupContact", () => {
+    it("finds member by contact", () => {
+      const member = meetMember(db, { name: "Find", kind: "human" });
+      addContact(db, { memberId: member.id, type: "github", value: "findme" });
+      const res = mockRes();
+      const ctx = {
+        req: {},
+        res,
+        params: { type: "github", value: "findme" },
+      } as unknown as RouteContext;
+      handlers.lookupContact(ctx);
+      strictEqual(res.status, 200);
+      const data = JSON.parse(res.body);
+      strictEqual(data.found, true);
+      strictEqual(data.member.name, "Find");
+    });
+
+    it("returns 404 when not found", () => {
+      const res = mockRes();
+      const ctx = {
+        req: {},
+        res,
+        params: { type: "email", value: "nobody@no.com" },
+      } as unknown as RouteContext;
+      handlers.lookupContact(ctx);
+      strictEqual(res.status, 404);
     });
   });
 });

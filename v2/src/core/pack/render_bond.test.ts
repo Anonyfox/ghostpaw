@@ -1,6 +1,7 @@
 import { ok, strictEqual } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
 import { type DatabaseHandle, openTestDatabase } from "../../lib/index.ts";
+import { addContact } from "./add_contact.ts";
 import { meetMember } from "./meet_member.ts";
 import { renderBond } from "./render_bond.ts";
 import { initPackTables } from "./schema.ts";
@@ -42,5 +43,24 @@ describe("renderBond", () => {
     const md = renderBond(db, m.id)!;
     ok(md.includes("Trust: 0.85"));
     ok(md.includes("Status: dormant"));
+  });
+
+  it("includes contacts when present", () => {
+    const m = meetMember(db, { name: "Dave", kind: "human" });
+    updateBond(db, m.id, { bond: "Good person." });
+    addContact(db, { memberId: m.id, type: "email", value: "dave@test.com", label: "work" });
+    addContact(db, { memberId: m.id, type: "telegram", value: "12345" });
+
+    const md = renderBond(db, m.id)!;
+    ok(md.includes("email:dave@test.com (work)"));
+    ok(md.includes("telegram:12345"));
+  });
+
+  it("omits contacts line when member has none", () => {
+    const m = meetMember(db, { name: "Eve", kind: "human" });
+    updateBond(db, m.id, { bond: "New bond." });
+
+    const md = renderBond(db, m.id)!;
+    ok(!md.includes("Contacts:"));
   });
 });

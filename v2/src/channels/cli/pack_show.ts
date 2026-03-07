@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { listInteractions } from "../../core/pack/index.ts";
+import { listContacts, listInteractions } from "../../core/pack/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { resolveMember } from "./resolve_member.ts";
 import { withRunDb } from "./with_run_db.ts";
@@ -62,6 +62,9 @@ export default defineCommand({
       }
 
       console.log(style.cyan(`Pack member #${member.id} — ${member.name} (${member.kind})`));
+      if (member.isUser) {
+        console.log(style.boldCyan("  [primary user]"));
+      }
       console.log();
 
       if (member.bond) {
@@ -78,12 +81,19 @@ export default defineCommand({
       console.log(
         `${style.dim("contact".padStart(12))}  first ${relativeAge(member.firstContact)} / last ${relativeAge(member.lastContact)}`,
       );
-      if (member.metadata !== "{}") {
-        console.log(`${style.dim("metadata".padStart(12))}  ${member.metadata}`);
-      }
       console.log(
         `${style.dim("created".padStart(12))}  ${formatDate(member.createdAt)} (${relativeAge(member.createdAt)})`,
       );
+
+      const contacts = listContacts(db, member.id);
+      if (contacts.length > 0) {
+        console.log();
+        console.log(style.dim(`── Contacts (${contacts.length}) ──`));
+        for (const c of contacts) {
+          const label = c.label ? ` ${style.dim(`(${c.label})`)}` : "";
+          console.log(`  ${style.dim(c.type.padEnd(12))} ${c.value}${label}`);
+        }
+      }
 
       const interactions = listInteractions(db, member.id, { limit: 10 });
       if (interactions.length > 0) {

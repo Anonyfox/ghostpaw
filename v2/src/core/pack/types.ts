@@ -14,6 +14,24 @@ export const INTERACTION_KINDS = [
 ] as const;
 export type InteractionKind = (typeof INTERACTION_KINDS)[number];
 
+export const CONTACT_TYPES = [
+  "email",
+  "phone",
+  "website",
+  "github",
+  "gitlab",
+  "twitter",
+  "bluesky",
+  "mastodon",
+  "linkedin",
+  "telegram",
+  "discord",
+  "slack",
+  "signal",
+  "other",
+] as const;
+export type ContactType = (typeof CONTACT_TYPES)[number];
+
 export interface PackMember {
   id: number;
   name: string;
@@ -21,11 +39,20 @@ export interface PackMember {
   bond: string;
   trust: number;
   status: MemberStatus;
+  isUser: boolean;
   firstContact: number;
   lastContact: number;
-  metadata: string;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface PackContact {
+  id: number;
+  memberId: number;
+  type: ContactType;
+  value: string;
+  label: string | null;
+  createdAt: number;
 }
 
 export interface PackInteraction {
@@ -52,15 +79,15 @@ export interface MeetInput {
   name: string;
   kind: MemberKind;
   bond?: string;
-  metadata?: string;
+  isUser?: boolean;
 }
 
 export interface UpdateBondInput {
   bond?: string;
   trust?: number;
   status?: MemberStatus;
-  metadata?: string;
   name?: string;
+  isUser?: boolean;
 }
 
 export interface NoteInput {
@@ -69,6 +96,13 @@ export interface NoteInput {
   summary: string;
   significance?: number;
   sessionId?: number;
+}
+
+export interface AddContactInput {
+  memberId: number;
+  type: ContactType;
+  value: string;
+  label?: string;
 }
 
 export interface ListMembersOptions {
@@ -82,4 +116,8 @@ export interface ListInteractionsOptions {
   kind?: InteractionKind;
   limit?: number;
   offset?: number;
+}
+
+export interface ListContactsOptions {
+  type?: ContactType;
 }

@@ -45,12 +45,13 @@ describe("updateBond", () => {
     strictEqual(updated.name, "New");
   });
 
-  it("merges metadata", () => {
-    const m = meetMember(db, { name: "E", kind: "human", metadata: '{"a":1}' });
-    const updated = updateBond(db, m.id, { metadata: '{"b":2}' });
-    const parsed = JSON.parse(updated.metadata);
-    strictEqual(parsed.a, 1);
-    strictEqual(parsed.b, 2);
+  it("toggles isUser flag", () => {
+    const m = meetMember(db, { name: "E", kind: "human" });
+    strictEqual(m.isUser, false);
+    const updated = updateBond(db, m.id, { isUser: true });
+    strictEqual(updated.isUser, true);
+    const cleared = updateBond(db, m.id, { isUser: false });
+    strictEqual(cleared.isUser, false);
   });
 
   it("bumps updated_at on any change", () => {
@@ -78,11 +79,6 @@ describe("updateBond", () => {
   it("throws on NaN trust", () => {
     const m = meetMember(db, { name: "I", kind: "human" });
     throws(() => updateBond(db, m.id, { trust: Number.NaN }), /number between/);
-  });
-
-  it("throws on invalid metadata JSON", () => {
-    const m = meetMember(db, { name: "J", kind: "human" });
-    throws(() => updateBond(db, m.id, { metadata: "not json" }), /valid JSON/);
   });
 
   it("throws on empty name", () => {

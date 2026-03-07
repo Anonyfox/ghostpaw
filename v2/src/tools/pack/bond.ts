@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { MEMBER_STATUSES, updateBond } from "../../core/pack/index.ts";
+import { listContacts, MEMBER_STATUSES, updateBond } from "../../core/pack/index.ts";
 import type { MemberStatus, UpdateBondInput } from "../../core/pack/types.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatMemberDetail } from "./format_pack.ts";
@@ -25,15 +25,20 @@ class PackBondParams extends Schema {
     optional: true,
     description: "Rename the member.",
   });
+  is_user = Schema.Boolean({
+    optional: true,
+    description:
+      "Mark this member as the primary human user. Only one active member can be the user.",
+  });
 }
 
 export function createPackBondTool(db: DatabaseHandle) {
   return createTool({
     name: "pack_bond",
     description:
-      "Update a pack member's bond narrative, trust level, status, or name. Pass the member " +
-      "by name or ID and at least one field to change. Returns the updated profile with a " +
-      "summary of what changed.",
+      "Update a pack member's bond narrative, trust level, status, name, or user flag. " +
+      "Pass the member by name or ID and at least one field to change. Returns the updated " +
+      "profile with a summary of what changed.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new PackBondParams() as any,
     execute: async ({ args }) => {
@@ -43,12 +48,14 @@ export function createPackBondTool(db: DatabaseHandle) {
         trust,
         status,
         name,
+        is_user: isUser,
       } = args as {
         member: string;
         bond?: string;
         trust?: number;
         status?: MemberStatus;
         name?: string;
+        is_user?: boolean;
       };
 
       if (!memberRef || !memberRef.trim()) {
@@ -65,9 +72,15 @@ export function createPackBondTool(db: DatabaseHandle) {
       }
 
       const hasChanges =
-        bond !== undefined || trust !== undefined || status !== undefined || name !== undefined;
+        bond !== undefined ||
+        trust !== undefined ||
+        status !== undefined ||
+        name !== undefined ||
+        isUser !== undefined;
       if (!hasChanges) {
-        return { error: "No changes provided. Pass at least one of: bond, trust, status, name." };
+        return {
+          error: "No changes provided. Pass at least one of: bond, trust, status, name, is_user.",
+        };
       }
 
       const changes: string[] = [];
@@ -90,6 +103,10 @@ export function createPackBondTool(db: DatabaseHandle) {
         input.name = name;
         changes.push(`name: ${resolved.name} -> ${name.trim()}`);
       }
+      if (isUser !== undefined) {
+        input.isUser = isUser;
+        changes.push(`is_user: ${resolved.isUser} -> ${isUser}`);
+      }
 
       try {
         const updated = updateBond(db, resolved.id, input);
@@ -101,10 +118,11 @@ export function createPackBondTool(db: DatabaseHandle) {
 
         const { rowToInteraction } = await import("../../core/pack/index.ts");
         const interactions = ixRows.map(rowToInteraction);
+        const contacts = listContacts(db, resolved.id);
         const now = Date.now();
 
         return {
-          member: formatMemberDetail(updated, interactions, now),
+          member: formatMemberDetail(updated, interactions, now, contacts),
           changes,
         };
       } catch (err) {
