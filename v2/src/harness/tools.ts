@@ -54,11 +54,25 @@ export interface EntityToolsConfig {
 
 export interface EntityToolSets {
   baseTools: Tool[];
+  wardenTools: Tool[];
   mentorTools: Tool[];
   trainerTools: Tool[];
   allToolsWithMentor: Tool[];
   allToolsWithTrainer: Tool[];
   shutdown(): Promise<void>;
+}
+
+export function createWardenTools(db: DatabaseHandle): Tool[] {
+  return [
+    createRecallTool(db),
+    createRememberTool(db),
+    createReviseTool(db),
+    createForgetTool(db),
+    ...createPackTools(db),
+    ...createQuestTools(db),
+    createDatetimeTool(),
+    createRecallHauntsTool(db),
+  ];
 }
 
 export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets {
@@ -68,7 +82,7 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     resolveSecret: (name) => getSecret(db, name) ?? process.env[name] ?? null,
   });
 
-  const coreTools: Tool[] = [
+  const sharedTools: Tool[] = [
     createReadTool(workspace),
     createWriteTool(workspace),
     createEditTool(workspace),
@@ -78,10 +92,6 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     createWebFetchTool(workspace),
     createWebSearchTool(),
     mcp.tool,
-    createRecallTool(db),
-    createRememberTool(db),
-    createReviseTool(db),
-    createForgetTool(db),
     createGetConfigTool(db),
     createListConfigTool(db),
     createSetConfigTool(db),
@@ -91,13 +101,11 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     createSetSecretTool(db),
     createRemoveSecretTool(db),
     createCalcTool(),
-    createDatetimeTool(),
     createSenseTool(),
-    ...createPackTools(db),
-    ...createQuestTools(db),
-    createRecallHauntsTool(db),
     createHowlTool(db),
   ];
+
+  const wardenOnlyTools = createWardenTools(db);
 
   const mentorOnly = createMentorTools(db);
   const trainerOnly = createTrainerTools(workspace);
@@ -106,15 +114,13 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     .filter((s) => s.id !== MANDATORY_SOUL_IDS.ghostpaw)
     .map((s) => s.name);
 
-  const allWithMentor = [...coreTools, ...mentorOnly];
-  const allWithTrainer = [...coreTools, ...trainerOnly];
-
   const delegateHandler = createDelegateHandler({
     db,
     workspace,
-    tools: coreTools,
+    tools: sharedTools,
     mentorTools: mentorOnly,
     trainerTools: trainerOnly,
+    wardenTools: wardenOnlyTools,
     chatFactory,
     getParentSessionId,
     onBackgroundComplete: config.onBackgroundComplete,
@@ -123,12 +129,13 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
   const delegateTool = createDelegateTool(delegateHandler, specialists);
   const checkRunTool = createCheckRunTool(db);
 
-  const baseTools = [...coreTools, delegateTool, checkRunTool];
-  const allToolsWithMentor = [...allWithMentor, delegateTool, checkRunTool];
-  const allToolsWithTrainer = [...allWithTrainer, delegateTool, checkRunTool];
+  const baseTools = [...sharedTools, delegateTool, checkRunTool];
+  const allToolsWithMentor = [...sharedTools, ...mentorOnly, delegateTool, checkRunTool];
+  const allToolsWithTrainer = [...sharedTools, ...trainerOnly, delegateTool, checkRunTool];
 
   return {
     baseTools,
+    wardenTools: wardenOnlyTools,
     mentorTools: mentorOnly,
     trainerTools: trainerOnly,
     allToolsWithMentor,

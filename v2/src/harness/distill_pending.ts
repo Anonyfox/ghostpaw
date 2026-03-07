@@ -25,7 +25,7 @@ export async function distillPending(
     eligiblePurposes: ELIGIBLE_PURPOSES,
   });
 
-  const totals: DistillToolCalls = { recall: 0, remember: 0, revise: 0, forget: 0 };
+  const totals: DistillToolCalls = {};
   let processed = 0;
   let skipped = 0;
 
@@ -36,10 +36,9 @@ export async function distillPending(
         skipped++;
       } else {
         processed++;
-        totals.recall += result.toolCalls.recall;
-        totals.remember += result.toolCalls.remember;
-        totals.revise += result.toolCalls.revise;
-        totals.forget += result.toolCalls.forget;
+        for (const [name, count] of Object.entries(result.toolCalls)) {
+          totals[name] = (totals[name] ?? 0) + count;
+        }
       }
     } catch {
       skipped++;

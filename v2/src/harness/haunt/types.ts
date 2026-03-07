@@ -34,7 +34,7 @@ export interface HauntResult {
 
 export interface ConsolidationResult {
   summary: string;
-  toolCalls: { recall: number; remember: number; revise: number; forget: number };
+  toolCalls: Record<string, number>;
   highlight: string | null;
   cost: { estimatedUsd: number };
 }

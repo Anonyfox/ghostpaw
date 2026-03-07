@@ -115,14 +115,14 @@ The warden always knows who the primary user is. The pack table has an `is_user`
 
 **Dual role.** The warden serves two functions in one soul. As an **active operator**, it handles persistence requests delegated by the coordinator during conversations — recall, remember, create quests, check pack bonds. As a **maintenance soul**, it runs data hygiene during haunt cycles and idle time — merging duplicate memories, flagging stale quests, refreshing dormant bonds, distilling undistilled sessions, checking cross-system consistency. Both roles exercise the same expertise and share the same tools. The evidence from both feeds into the warden's soul evolution.
 
-The warden's tool surface:
+The warden's tool surface (23 tools — DONE):
 
 | System | Tools |
 |---|---|
-| Memory | recall, remember, revise, forget, merge, confirm |
-| Pack | meet, bond, note, sense, contact_add, contact_remove, contact_list, contact_lookup, pack_merge |
-| Quests | quest_create, quest_update, quest_done, quest_list, quest_accept, quest_dismiss, questlog_create, questlog_list |
-| Utility | datetime (for temporal reasoning), recall_haunts (for continuity) |
+| Memory (4) | recall, remember, revise (handles confirm + merge via params), forget |
+| Pack (9) | pack_sense, pack_meet, pack_bond, pack_note, contact_add, contact_remove, contact_list, contact_lookup, pack_merge |
+| Quests (8) | quest_create, quest_update, quest_done, quest_list, quest_accept, quest_dismiss, questlog_create, questlog_list |
+| Utility (2) | datetime (for temporal reasoning), recall_haunts (for continuity) |
 
 No filesystem tools. No web tools. No bash. No delegation outward. The warden operates exclusively within the ghost's persistence layer.
 
@@ -702,8 +702,8 @@ Ghostpaw's background tasks benefit most from routing. [OpenClaw's heartbeat sys
 
 - **Automatic memory injection** — no more per-turn recall sprayed into the system prompt. Persistence access is explicit and targeted.
 - **Distillation as a user concept** — session consolidation (full persistence pass, not memory-only) becomes one of the warden's maintenance tasks. No "Distill Now" button in the UI. The warden handles it.
-- **Memory-only consolidation** — both session distillation and haunt consolidation previously extracted memories only. The warden consolidates across all three persistence systems: memory, pack, and quests.
-- **Flat tool surface** — the coordinator no longer has 30+ tools. Each soul gets only the tools relevant to its domain.
+- **Memory-only consolidation** — DONE. Both session distillation and haunt consolidation previously extracted memories only. The warden consolidates across all three persistence systems: memory, pack, and quests. `consolidateHaunt` and `distillSession` now invoke the warden soul with full warden tools (23 tools), replacing the hardcoded 4-tool memory-only setup. `ConsolidationResult.toolCalls` and `DistillToolCalls` widened to `Record<string, number>` for extensibility.
+- **Flat tool surface** — DONE (partial: warden complete, chamberlain pending). The coordinator's base tools reduced from 45 to 22 by moving all persistence tools (memory 4, pack 9, quests 8, datetime, recall_haunts) to the warden. Config (5), secrets (3), and calc remain on the coordinator until the chamberlain is introduced.
 - **The `haunts` table and `core/haunt/` module** — DONE. Haunting is orchestration, not core. Sessions with `purpose = 'haunt'` are the haunt records. The raw journal is the session's messages. The summary is stored as `display_name`. `core/haunt/` eliminated (12 files), data migration copies summaries, `seeded_memory_ids` tracking removed, all SQL boundary violations in `harness/haunt/` fixed.
 - **The `delegation_runs` table and `core/runs/` module** — DONE. Delegation runs are child sessions. `soul_id` and `error` columns added. 21 files deleted. `core/chat/` is the single storage layer for all interaction records. All consumers migrated.
 - **`core/models/` moved to `lib/`** — DONE. Stateless provider enumeration and model discovery. `listProviders` purified to accept `{ currentModel, configuredKeys }` instead of `DatabaseHandle`. All 7 files moved to `lib/models/`, single consumer (`models_api.ts`) updated.
@@ -712,14 +712,14 @@ Ghostpaw's background tasks benefit most from routing. [OpenClaw's heartbeat sys
 - **Pack `metadata` JSON blob** — DONE. The freeform JSON column on `pack_members` is eliminated. Contact information moves to the structured `pack_contacts` table with constrained types, validated values, and uniqueness enforcement. No more guessing key names or losing queryability to unstructured data.
 - **Token-based hard limits** — `max_tokens_per_session` and `max_tokens_per_day` are eliminated as hard blocks. The only hard limit is `max_cost_per_day` (dollars). `max_tokens_per_session` becomes the compaction threshold — an internal orchestration parameter, not a user-facing limit. Compaction fires automatically and transparently on every session.
 - **Howl as notification** — howl is no longer a notification inbox with duplicated message content. The howl table becomes pure lifecycle/routing metadata (`origin_session_id`, `origin_message_id`, `urgency`, `channel`, `status`). Content lives in the origin session as injected messages. Post-response warden consolidation makes howl a full learning cycle.
-- **Hard-coded one-shot prompts** — `CONSOLIDATION_PROMPT`, `DISTILL_SYSTEM_PROMPT`, and `rewrite_essence SYSTEM_PROMPT` are replaced by soul invocations (warden or mentor). The soul's evolved essence IS the prompt.
+- **Hard-coded one-shot prompts** — DONE (partial: warden prompts complete, mentor pending). `CONSOLIDATION_PROMPT` replaced by warden soul invocation with `assembleContext(db, "", "", { soulId: MANDATORY_SOUL_IDS.warden })` as system prompt and `CONSOLIDATION_INSTRUCTION` as user message. `DISTILL_SYSTEM_PROMPT` replaced the same way with `DISTILL_INSTRUCTION`. Sessions now record `soulId: MANDATORY_SOUL_IDS.warden`. The `rewrite_essence SYSTEM_PROMPT` (mentor scope) remains — it will be replaced when the mentor's direct invocation pattern is implemented.
 
 ### Introduces
 
-- **The warden as 5th mandatory soul** — persistence keeper with dual operator/maintenance role.
+- **The warden as 5th mandatory soul** — DONE. Persistence keeper with dual operator/maintenance role. `warden: 5` in `MANDATORY_SOUL_IDS`, full soul essence (~15 lines) and 2 baseline traits in `DEFAULT_SOULS`, `createWardenTools(db)` exported from `harness/tools.ts` (23 tools: memory 4, pack 9, quests 8, datetime, recall_haunts), warden delegation wired in `delegate.ts` (restricted tool set — no filesystem, web, bash, or delegation), `assembleContext` produces minimal prompt for warden (soul + environment + tool guidance only, no auto-injected memories/quests/skills), `buildTurnArgs` in `entity.ts` routes warden to `toolSets.wardenTools`. Consolidation and distillation invoke the warden soul directly.
 - **The chamberlain as 6th mandatory soul** — infrastructure governor with authority over config, secrets, budget, and scheduling.
-- **Delegation-first everything** — persistence goes through the warden, infrastructure through the chamberlain. The coordinator delegates to specialists, never operates on these systems directly.
-- **Per-soul tool surfaces** — each soul sees only its relevant tools (coordinator: 13, warden: 18, chamberlain: ~15, mentor: 7, trainer: 7), reducing cognitive overhead well below research-identified degradation thresholds.
+- **Delegation-first everything** — DONE (partial: persistence through warden complete, infrastructure through chamberlain pending). The coordinator no longer has any persistence tools. Memory, pack, and quest operations require delegation to the warden. Config, secrets, and calc still on coordinator until the chamberlain is introduced.
+- **Per-soul tool surfaces** — DONE (partial: warden complete, chamberlain pending). Coordinator: 22 tools (will drop to ~13 when chamberlain takes config/secrets/calc). Warden: 23 tools (restricted — no filesystem/web/delegation). Mentor: shared + 7 specialist. Trainer: shared + 7 specialist. Chamberlain: not yet.
 - **Per-soul model routing** — different souls can run on different model tiers.
 - **Secret isolation** — API keys and credentials exist only within the chamberlain's ephemeral context. No other soul can access or leak them.
 - **Scheduling system** — infrastructure for timed background tasks, managed by the chamberlain (planned, pre-release).
@@ -733,7 +733,7 @@ Ghostpaw's background tasks benefit most from routing. [OpenClaw's heartbeat sys
 ### Preserves
 
 - **The soul system** — all six mandatory souls participate in the same evolutionary mechanics. Traits, leveling, graveyard, mentor refinement. The warden and chamberlain are mentorable like every other soul.
-- **The delegation mechanics** — `delegate.ts` already supports soul-specific tool sets. Adding the warden and chamberlain extends the existing pattern.
+- **The delegation mechanics** — `delegate.ts` already supports soul-specific tool sets. The warden extends this with a new pattern: *restricted* tool sets (warden gets ONLY its own tools, not shared + specialist). The chamberlain will follow the same pattern.
 - **Play modes** — chat, haunt, howl as the three directions of play. Chat (user → ghost) is unchanged. Haunting simplifies: it's a background session with purpose "haunt", not a separate system. Howl refactors: the howl table drops content duplication, becomes pure lifecycle/routing metadata, and howl Q&A pairs inject back into origin sessions for complete records and warden consolidation. The difference across all modes is how they access persistence and infrastructure: delegation instead of direct tools.
 - **Everything in core/ (except haunt, runs, and cost)** — the persistence modules (memory, pack, quests) and config/secrets modules are unchanged. The warden and chamberlain use the same tools that previously lived on the coordinator. Three core modules get eliminated: `core/runs/` (DONE — redundant with sessions), `core/cost/` (DONE — query functions folded into `core/chat/`, pure computation moved to `lib/cost/`), and `core/haunt/` (DONE — redundant with sessions). `core/chat/` gains `soul_id`/`error` columns plus all cost query functions and becomes the universal interaction and cost record. The change is at the harness/orchestration level, not the core level.
 - **The haunt thesis** — the generation condition, the two-phase separation (thinking then consolidation), the seed diversity engine, the research foundation. All preserved. The simplification is structural (sessions replace a dedicated table), not conceptual.

@@ -35,14 +35,8 @@ const EXPECTED_BASE_TOOLS = [
   "bash",
   "calc",
   "check_run",
-  "contact_add",
-  "contact_list",
-  "contact_lookup",
-  "contact_remove",
-  "datetime",
   "delegate",
   "edit",
-  "forget",
   "get_config",
   "grep",
   "howl",
@@ -50,6 +44,25 @@ const EXPECTED_BASE_TOOLS = [
   "list_secrets",
   "ls",
   "mcp",
+  "read",
+  "remove_secret",
+  "reset_config",
+  "sense",
+  "set_config",
+  "set_secret",
+  "undo_config",
+  "web_fetch",
+  "web_search",
+  "write",
+];
+
+const EXPECTED_WARDEN_TOOLS = [
+  "contact_add",
+  "contact_list",
+  "contact_lookup",
+  "contact_remove",
+  "datetime",
+  "forget",
   "pack_bond",
   "pack_meet",
   "pack_merge",
@@ -63,20 +76,10 @@ const EXPECTED_BASE_TOOLS = [
   "quest_update",
   "questlog_create",
   "questlog_list",
-  "read",
   "recall",
   "recall_haunts",
   "remember",
-  "remove_secret",
-  "reset_config",
   "revise",
-  "sense",
-  "set_config",
-  "set_secret",
-  "undo_config",
-  "web_fetch",
-  "web_search",
-  "write",
 ];
 
 const MENTOR_TOOL_NAMES = [
@@ -213,6 +216,69 @@ describe("createEntityToolSets", () => {
     const names = sets.allToolsWithMentor.map((t) => t.name).sort();
     for (const trainerName of TRAINER_TOOL_NAMES) {
       ok(!names.includes(trainerName), `${trainerName} should not be in allToolsWithMentor`);
+    }
+  });
+
+  it("wardenTools has correct count", () => {
+    const sets = createEntityToolSets(mockConfig());
+    strictEqual(sets.wardenTools.length, EXPECTED_WARDEN_TOOLS.length);
+  });
+
+  it("wardenTools has correct names", () => {
+    const sets = createEntityToolSets(mockConfig());
+    const names = sets.wardenTools.map((t) => t.name).sort();
+    deepStrictEqual(names, [...EXPECTED_WARDEN_TOOLS].sort());
+  });
+
+  it("wardenTools excludes filesystem, web, and delegation tools", () => {
+    const sets = createEntityToolSets(mockConfig());
+    const names = new Set(sets.wardenTools.map((t) => t.name));
+    for (const excluded of [
+      "read",
+      "write",
+      "edit",
+      "ls",
+      "grep",
+      "bash",
+      "web_fetch",
+      "web_search",
+      "mcp",
+      "delegate",
+      "check_run",
+    ]) {
+      ok(!names.has(excluded), `${excluded} should not be in wardenTools`);
+    }
+  });
+
+  it("baseTools excludes persistence tools", () => {
+    const sets = createEntityToolSets(mockConfig());
+    const names = new Set(sets.baseTools.map((t) => t.name));
+    for (const excluded of [
+      "recall",
+      "remember",
+      "revise",
+      "forget",
+      "pack_sense",
+      "pack_meet",
+      "pack_bond",
+      "pack_note",
+      "pack_merge",
+      "contact_add",
+      "contact_remove",
+      "contact_list",
+      "contact_lookup",
+      "quest_create",
+      "quest_update",
+      "quest_done",
+      "quest_list",
+      "quest_accept",
+      "quest_dismiss",
+      "questlog_create",
+      "questlog_list",
+      "datetime",
+      "recall_haunts",
+    ]) {
+      ok(!names.has(excluded), `${excluded} should not be in baseTools`);
     }
   });
 });

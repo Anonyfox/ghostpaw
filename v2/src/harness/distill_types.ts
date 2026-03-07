@@ -1,9 +1,4 @@
-export interface DistillToolCalls {
-  recall: number;
-  remember: number;
-  revise: number;
-  forget: number;
-}
+export type DistillToolCalls = Record<string, number>;
 
 export interface DistillResult {
   skipped: boolean;

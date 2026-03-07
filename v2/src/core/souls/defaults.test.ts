@@ -37,8 +37,8 @@ describe("DEFAULT_SOULS", () => {
     }
   });
 
-  it("has exactly four entries", () => {
-    strictEqual(Object.keys(DEFAULT_SOULS).length, 4);
+  it("has exactly five entries", () => {
+    strictEqual(Object.keys(DEFAULT_SOULS).length, 5);
   });
 
   it("ghostpaw default addresses the coordinator role", () => {
@@ -51,6 +51,10 @@ describe("DEFAULT_SOULS", () => {
 
   it("mentor default addresses refinement", () => {
     ok(DEFAULT_SOULS.mentor.essence.includes("refinement"));
+  });
+
+  it("warden default addresses persistence", () => {
+    ok(DEFAULT_SOULS.warden.essence.includes("persistence"));
   });
 
   it("every entry has at least one default trait", () => {

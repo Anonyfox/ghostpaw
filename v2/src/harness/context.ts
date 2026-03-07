@@ -29,6 +29,10 @@ export function assembleContext(
     throw new Error(`Soul ${effectiveSoulId} not found. Run bootstrap before creating the entity.`);
   }
 
+  if (effectiveSoulId === MANDATORY_SOUL_IDS.warden) {
+    return [soul, formatEnvironment(), formatToolGuidance(effectiveSoulId)].join("\n\n");
+  }
+
   const sections: string[] = [soul];
   sections.push(formatEnvironment());
 
@@ -141,13 +145,27 @@ function formatElapsed(ms: number): string {
 }
 
 function formatToolGuidance(soulId: number): string {
+  if (soulId === MANDATORY_SOUL_IDS.warden) {
+    return [
+      "## Tools",
+      "",
+      "You are the persistence keeper. You have tools for memory (recall, remember, revise, forget),",
+      "pack bonds (pack_sense, pack_meet, pack_bond, pack_note, contacts, pack_merge),",
+      "quests (quest_create, quest_update, quest_done, quest_list, quest_accept, quest_dismiss, quest logs),",
+      "temporal reasoning (datetime), and haunt recall (recall_haunts).",
+      "Always recall before remembering. When asked about a person, check memory AND pack bond.",
+      "You cannot delegate or access the filesystem.",
+    ].join("\n");
+  }
+
   const base = [
     "## Tools",
     "",
-    "You have tools for managing memory, quests, pack, configuration, and API secrets.",
+    "You have tools for filesystem, web, configuration, and API secrets.",
     "The Known Context above was recalled automatically for this conversation.",
-    "Use the remember tool when you learn something new worth preserving.",
-    "Use quest tools to create, update, complete, or query tasks and events.",
+    "For persistence operations (memory, pack, quests), delegate to the Warden.",
+    "For soul development, delegate to the Mentor.",
+    "For skill development, delegate to the Trainer.",
   ];
 
   if (soulId === MANDATORY_SOUL_IDS.mentor) {

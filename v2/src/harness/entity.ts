@@ -46,13 +46,16 @@ export function createEntity(options: EntityOptions): Entity {
         soulId: opts?.soulId,
         budgetSummary,
       });
+    const isWarden = opts?.soulId === MANDATORY_SOUL_IDS.warden;
     const isMentor = opts?.soulId === MANDATORY_SOUL_IDS.mentor;
     const isTrainer = opts?.soulId === MANDATORY_SOUL_IDS.trainer;
-    const tools = isMentor
-      ? toolSets.allToolsWithMentor
-      : isTrainer
-        ? toolSets.allToolsWithTrainer
-        : toolSets.baseTools;
+    const tools = isWarden
+      ? toolSets.wardenTools
+      : isMentor
+        ? toolSets.allToolsWithMentor
+        : isTrainer
+          ? toolSets.allToolsWithTrainer
+          : toolSets.baseTools;
     const turnInput = {
       sessionId,
       content,

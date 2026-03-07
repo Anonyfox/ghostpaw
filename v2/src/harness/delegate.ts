@@ -34,6 +34,7 @@ export interface DelegateExecutorOptions {
   tools: Tool[];
   mentorTools?: Tool[];
   trainerTools?: Tool[];
+  wardenTools?: Tool[];
   chatFactory: ChatFactory;
   getParentSessionId: () => number | null;
   onBackgroundComplete?: (parentSessionId: number, outcome: DelegationOutcome) => void;
@@ -47,7 +48,8 @@ function withTimeout<T>(fn: (signal: AbortSignal) => Promise<T>, ms: number): Pr
 }
 
 export function createDelegateHandler(options: DelegateExecutorOptions): DelegateHandler {
-  const { db, tools, mentorTools, trainerTools, chatFactory, getParentSessionId } = options;
+  const { db, tools, mentorTools, trainerTools, wardenTools, chatFactory, getParentSessionId } =
+    options;
 
   return async (args: DelegateArgs) => {
     const parentSessionId = getParentSessionId();
@@ -85,14 +87,17 @@ export function createDelegateHandler(options: DelegateExecutorOptions): Delegat
 
     try {
       const systemPrompt = `${assembleContext(db, options.workspace, args.task, soulId)}\n\n${DELEGATE_PREAMBLE}`;
+      const isWarden = soulId === MANDATORY_SOUL_IDS.warden;
       const isMentor = soulId === MANDATORY_SOUL_IDS.mentor;
       const isTrainer = soulId === MANDATORY_SOUL_IDS.trainer;
       const effectiveTools =
-        isMentor && mentorTools
-          ? [...tools, ...mentorTools]
-          : isTrainer && trainerTools
-            ? [...tools, ...trainerTools]
-            : tools;
+        isWarden && wardenTools
+          ? wardenTools
+          : isMentor && mentorTools
+            ? [...tools, ...mentorTools]
+            : isTrainer && trainerTools
+              ? [...tools, ...trainerTools]
+              : tools;
 
       if (args.background) {
         const channelNotify: ChannelNotifyFn | undefined = options.onBackgroundComplete

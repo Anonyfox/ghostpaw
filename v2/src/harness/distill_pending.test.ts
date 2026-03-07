@@ -9,7 +9,11 @@ import {
   initChatTables,
   markDistilled,
 } from "../core/chat/index.ts";
+import { initHowlTables } from "../core/howl/index.ts";
 import { initMemoryTable } from "../core/memory/index.ts";
+import { initPackTables } from "../core/pack/index.ts";
+import { initQuestTables } from "../core/quests/index.ts";
+import { ensureMandatorySouls, initSoulsTables } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
 import { distillPending } from "./distill_pending.ts";
@@ -82,7 +86,12 @@ describe("distillPending", () => {
   beforeEach(async () => {
     db = await openTestDatabase();
     initChatTables(db);
+    initSoulsTables(db);
     initMemoryTable(db);
+    initPackTables(db);
+    initQuestTables(db);
+    initHowlTables(db);
+    ensureMandatorySouls(db);
   });
 
   afterEach(() => {
@@ -93,7 +102,7 @@ describe("distillPending", () => {
     const result = await distillPending(db, mockFactory("ok"), "test-model");
     strictEqual(result.sessionsProcessed, 0);
     strictEqual(result.sessionsSkipped, 0);
-    strictEqual(result.totalToolCalls.recall, 0);
+    strictEqual(Object.keys(result.totalToolCalls).length, 0);
   });
 
   it("processes closed undistilled sessions", async () => {

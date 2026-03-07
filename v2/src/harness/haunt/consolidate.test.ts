@@ -2,7 +2,11 @@ import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ChatInstance } from "../../core/chat/chat_instance.ts";
 import { createSession, initChatTables } from "../../core/chat/index.ts";
+import { initHowlTables } from "../../core/howl/index.ts";
 import { initMemoryTable } from "../../core/memory/index.ts";
+import { initPackTables } from "../../core/pack/index.ts";
+import { initQuestTables } from "../../core/quests/index.ts";
+import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { consolidateHaunt } from "./consolidate.ts";
@@ -56,7 +60,12 @@ let db: DatabaseHandle;
 beforeEach(async () => {
   db = await openTestDatabase();
   initChatTables(db);
+  initSoulsTables(db);
   initMemoryTable(db);
+  initPackTables(db);
+  initQuestTables(db);
+  initHowlTables(db);
+  ensureMandatorySouls(db);
 });
 
 afterEach(() => {
@@ -114,10 +123,7 @@ describe("consolidateHaunt", () => {
       factory,
     );
 
-    strictEqual(result.toolCalls.recall, 0);
-    strictEqual(result.toolCalls.remember, 0);
-    strictEqual(result.toolCalls.revise, 0);
-    strictEqual(result.toolCalls.forget, 0);
+    strictEqual(Object.keys(result.toolCalls).length, 0);
   });
 
   it("creates a system session for consolidation", async () => {

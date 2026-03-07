@@ -2,12 +2,7 @@ export interface DistillStatusResponse {
   undistilledCount: number;
 }
 
-export interface DistillToolCallsInfo {
-  recall: number;
-  remember: number;
-  revise: number;
-  forget: number;
-}
+export type DistillToolCallsInfo = Record<string, number>;
 
 export interface DistillSweepResponse {
   sessionsProcessed: number;

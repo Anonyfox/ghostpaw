@@ -7,31 +7,26 @@ import {
   getHistory,
 } from "../../core/chat/index.ts";
 import type { Memory } from "../../core/memory/index.ts";
+import { MANDATORY_SOUL_IDS } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
-import {
-  createForgetTool,
-  createRecallTool,
-  createRememberTool,
-  createReviseTool,
-} from "../../tools/memory/index.ts";
+import { assembleContext } from "../context.ts";
+import { createWardenTools } from "../tools.ts";
 import type { ConsolidationResult } from "./types.ts";
 
 const MAX_CONSOLIDATION_ITERATIONS = 15;
 
-const CONSOLIDATION_PROMPT = `You are reviewing a completed private thinking session. The session is over. Your job: extract what's worth keeping and clean up.
+const CONSOLIDATION_INSTRUCTION = `Here is a completed private thinking session. Extract what is worth preserving.
 
-First, write a summary (2-5 sentences). What was explored, what was discovered, what shifted. Write for a future version of yourself that will read this instead of the full journal.
+First, write a summary (2-5 sentences). What was explored, what was discovered, what shifted.
 
-Then, update beliefs using the tools. For each potential belief:
-1. Formulate a clear, self-contained claim
-2. Call recall to check if similar beliefs already exist
-3. Act: remember (new), revise with ID (correct/confirm), or skip
+Then, use your persistence tools:
+- **Memory**: For each potential belief, formulate a clear claim, recall to check for duplicates, then remember (new), revise (correct/confirm existing), or skip. Only genuine discoveries. Hypotheses get confidence 0.4-0.5 with source "inferred". Observed facts get 0.7-0.8 with source "observed".
+- **Pack**: If the session mentions interactions with people, update their pack bonds or notes.
+- **Quests**: If the session surfaced tasks or commitments, create or update quests accordingly.
 
-Quality: only genuine discoveries, corrections, or insights — not echoes of what's already known. Hypotheses get confidence 0.4-0.5 with source "inferred". Observed facts get 0.7-0.8 with source "observed".
+Maximum ~5 memories per session. Do nothing if the session was routine.
 
-Finally, if this session surfaced a genuine question you cannot resolve alone, or real curiosity about something fundamental you want to explore WITH the user — write it after "HIGHLIGHT:" on its own line, playfully, as their companion. Never a summary or report. Skip this unless it would make them want to reply.
-
-Maximum ~5 memories per session. Do nothing if the session was routine.`;
+If this session surfaced a genuine question for the user — real curiosity worth exploring together — write it after "HIGHLIGHT:" on its own line, playfully, as their companion. Skip this unless it would make them want to reply.`;
 
 function formatSeededMemoriesForConsolidation(memories: Memory[]): string {
   if (memories.length === 0) return "";
@@ -59,18 +54,16 @@ function extractHighlight(text: string): string | null {
 }
 
 function countToolCalls(db: DatabaseHandle, sessionId: number): ConsolidationResult["toolCalls"] {
-  const counts = { recall: 0, remember: 0, revise: 0, forget: 0 };
+  const counts: Record<string, number> = {};
   const messages = getHistory(db, sessionId);
 
   for (const msg of messages) {
     if (msg.role !== "tool_call" || !msg.toolData) continue;
     try {
       const data = JSON.parse(msg.toolData) as { name?: string };
-      const name = data.name;
-      if (name === "recall") counts.recall++;
-      else if (name === "remember") counts.remember++;
-      else if (name === "revise") counts.revise++;
-      else if (name === "forget") counts.forget++;
+      if (data.name) {
+        counts[data.name] = (counts[data.name] ?? 0) + 1;
+      }
     } catch {
       // malformed tool_data
     }
@@ -88,26 +81,26 @@ export async function consolidateHaunt(
 ): Promise<ConsolidationResult> {
   const systemSession = createSession(db, `system:consolidate:${hauntSessionId}`, {
     purpose: "system",
+    soulId: MANDATORY_SOUL_IDS.warden,
   });
   const systemSessionId = systemSession.id as number;
 
   try {
-    const tools = [
-      createRecallTool(db),
-      createRememberTool(db),
-      createReviseTool(db),
-      createForgetTool(db),
-    ];
+    const tools = createWardenTools(db);
 
     const content =
-      `Journal from private session:\n\n${rawJournal}` +
+      `${CONSOLIDATION_INSTRUCTION}\n\nJournal from private session:\n\n${rawJournal}` +
       formatSeededMemoriesForConsolidation(seededMemories);
+
+    const systemPrompt = assembleContext(db, "", "", {
+      soulId: MANDATORY_SOUL_IDS.warden,
+    });
 
     const result = await executeTurn(
       {
         sessionId: systemSessionId,
         content,
-        systemPrompt: CONSOLIDATION_PROMPT,
+        systemPrompt,
         model,
         maxIterations: MAX_CONSOLIDATION_ITERATIONS,
       },

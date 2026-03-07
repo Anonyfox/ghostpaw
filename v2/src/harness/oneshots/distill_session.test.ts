@@ -9,7 +9,11 @@ import {
   listSessions,
   markDistilled,
 } from "../../core/chat/index.ts";
+import { initHowlTables } from "../../core/howl/index.ts";
 import { initMemoryTable } from "../../core/memory/index.ts";
+import { initPackTables } from "../../core/pack/index.ts";
+import { initQuestTables } from "../../core/quests/index.ts";
+import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { distillSession } from "./distill_session.ts";
@@ -82,7 +86,12 @@ describe("distillSession", () => {
   beforeEach(async () => {
     db = await openTestDatabase();
     initChatTables(db);
+    initSoulsTables(db);
     initMemoryTable(db);
+    initPackTables(db);
+    initQuestTables(db);
+    initHowlTables(db);
+    ensureMandatorySouls(db);
   });
 
   afterEach(() => {

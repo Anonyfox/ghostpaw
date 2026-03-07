@@ -54,6 +54,7 @@ describe("deleteSoul", () => {
     throws(() => deleteSoul(db, MANDATORY_SOUL_IDS["js-engineer"]), /mandatory/i);
     throws(() => deleteSoul(db, MANDATORY_SOUL_IDS.mentor), /mandatory/i);
     throws(() => deleteSoul(db, MANDATORY_SOUL_IDS.trainer), /mandatory/i);
+    throws(() => deleteSoul(db, MANDATORY_SOUL_IDS.warden), /mandatory/i);
   });
 
   it("throws when soul does not exist", () => {

@@ -33,11 +33,11 @@ export default defineCommand({
       console.log(style.cyan("summary"), result.summary);
       if (result.consolidation) {
         const tc = result.consolidation.toolCalls;
-        const memOps = tc.remember + tc.revise + tc.forget;
+        const memOps = (tc.remember ?? 0) + (tc.revise ?? 0) + (tc.forget ?? 0);
         if (memOps > 0) {
           console.log(
             style.dim(
-              `  memories: +${tc.remember} new, ${tc.revise} revised, ${tc.forget} forgotten`,
+              `  memories: +${tc.remember ?? 0} new, ${tc.revise ?? 0} revised, ${tc.forget ?? 0} forgotten`,
             ),
           );
         }

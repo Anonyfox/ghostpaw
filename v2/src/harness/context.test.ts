@@ -5,7 +5,10 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initChatTables } from "../core/chat/index.ts";
 import { initConfigTable } from "../core/config/index.ts";
+import { initHowlTables } from "../core/howl/index.ts";
 import { embedText, initMemoryTable, storeMemory } from "../core/memory/index.ts";
+import { initPackTables } from "../core/pack/index.ts";
+import { initQuestTables } from "../core/quests/index.ts";
 import { ensureMandatorySouls, initSoulsTables, MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
@@ -20,6 +23,9 @@ beforeEach(async () => {
   initSoulsTables(db);
   initMemoryTable(db);
   initConfigTable(db);
+  initPackTables(db);
+  initQuestTables(db);
+  initHowlTables(db);
   ensureMandatorySouls(db);
   workspace = mkdtempSync(join(tmpdir(), "ghostpaw-ctx-"));
 });
@@ -112,7 +118,7 @@ describe("assembleContext", () => {
   it("includes tool guidance section", () => {
     const result = assembleContext(db, workspace, "hello");
     ok(result.includes("## Tools"));
-    ok(result.includes("remember tool"));
+    ok(result.includes("delegate to the Warden"));
   });
 
   it("sections are separated by double newlines", () => {
@@ -163,5 +169,31 @@ describe("assembleContext", () => {
     const result = assembleContext(db, workspace, "hello");
     ok(!result.includes("specialist tools for soul development"));
     ok(!result.includes("specialist tools for skill development"));
+  });
+
+  it("warden context includes soul, environment, and tool guidance", () => {
+    const result = assembleContext(db, workspace, "hello", MANDATORY_SOUL_IDS.warden);
+    ok(result.includes("# Warden"));
+    ok(result.includes("## Environment"));
+    ok(result.includes("## Tools"));
+    ok(result.includes("persistence keeper"));
+  });
+
+  it("warden context does NOT include Known Context, Quests, or Skills", () => {
+    const claim = "The user likes dogs";
+    const embedding = embedText(claim);
+    storeMemory(db, claim, embedding, { source: "explicit", category: "preference" });
+    makeSkill("deploy", "Deploy the app.");
+
+    const result = assembleContext(db, workspace, "dogs", MANDATORY_SOUL_IDS.warden);
+    ok(!result.includes("## Known Context"));
+    ok(!result.includes("## Quests"));
+    ok(!result.includes("## Skills"));
+    ok(!result.includes("## Budget"));
+  });
+
+  it("coordinator context mentions delegation to Warden", () => {
+    const result = assembleContext(db, workspace, "hello");
+    ok(result.includes("delegate to the Warden"));
   });
 });

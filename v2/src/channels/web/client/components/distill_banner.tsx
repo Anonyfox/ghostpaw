@@ -61,9 +61,9 @@ export function DistillBanner({ status, onComplete }: DistillBannerProps) {
   if (phase === "result" && result) {
     const tc = result.totalToolCalls;
     const parts: string[] = [];
-    if (tc.remember > 0) parts.push(`Remembered ${tc.remember}`);
-    if (tc.revise > 0) parts.push(`Confirmed/Revised ${tc.revise}`);
-    if (tc.forget > 0) parts.push(`Forgot ${tc.forget}`);
+    if ((tc.remember ?? 0) > 0) parts.push(`Remembered ${tc.remember}`);
+    if ((tc.revise ?? 0) > 0) parts.push(`Confirmed/Revised ${tc.revise}`);
+    if ((tc.forget ?? 0) > 0) parts.push(`Forgot ${tc.forget}`);
     const summary = parts.length > 0 ? parts.join(" · ") : "No new beliefs extracted.";
 
     return (

@@ -73,7 +73,7 @@ export default defineCommand({
       if (result.sessionsProcessed > 0) {
         console.log(
           style.dim(
-            `  recall=${tc.recall} remember=${tc.remember} revise=${tc.revise} forget=${tc.forget}`,
+            `  recall=${tc.recall ?? 0} remember=${tc.remember ?? 0} revise=${tc.revise ?? 0} forget=${tc.forget ?? 0}`,
           ),
         );
       }

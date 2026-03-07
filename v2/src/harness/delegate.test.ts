@@ -3,12 +3,16 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ChatInstance } from "../core/chat/index.ts";
 import { createSession, getSession, initChatTables, listSessions } from "../core/chat/index.ts";
 import { initConfigTable } from "../core/config/index.ts";
+import { initHowlTables } from "../core/howl/index.ts";
 import { initMemoryTable } from "../core/memory/index.ts";
+import { initPackTables } from "../core/pack/index.ts";
+import { initQuestTables } from "../core/quests/index.ts";
 import { initSecretsTable } from "../core/secrets/index.ts";
-import { ensureMandatorySouls, initSoulsTables } from "../core/souls/index.ts";
+import { ensureMandatorySouls, initSoulsTables, MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
 import { createDelegateHandler } from "./delegate.ts";
+import { createWardenTools } from "./tools.ts";
 
 let db: DatabaseHandle;
 let parentSessionId: number;
@@ -20,6 +24,9 @@ beforeEach(async () => {
   initMemoryTable(db);
   initConfigTable(db);
   initSecretsTable(db);
+  initPackTables(db);
+  initQuestTables(db);
+  initHowlTables(db);
   ensureMandatorySouls(db);
   const session = createSession(db, "test:parent", { purpose: "chat" });
   parentSessionId = session.id as number;
@@ -257,5 +264,83 @@ describe("createDelegateHandler", () => {
     const result = await handler({ task: "go" });
     ok(typeof result === "object");
     ok(((result as Record<string, unknown>).error as string).includes("outside"));
+  });
+
+  it("warden delegation uses warden tools only (no shared tools)", async () => {
+    capturedSystemPrompt = "";
+    let capturedToolCount = 0;
+    const wardenTools = createWardenTools(db);
+    const factory = (model: string): import("../core/chat/index.ts").ChatInstance => ({
+      system(content: string) {
+        capturedSystemPrompt = content;
+        return this;
+      },
+      user() {
+        return this;
+      },
+      assistant() {
+        return this;
+      },
+      addTool() {
+        capturedToolCount++;
+        return this;
+      },
+      get messages() {
+        return [];
+      },
+      async generate() {
+        return "warden done";
+      },
+      async *stream() {
+        yield "warden done";
+      },
+      get lastResult() {
+        return {
+          usage: {
+            inputTokens: 100,
+            outputTokens: 50,
+            reasoningTokens: 0,
+            totalTokens: 150,
+            cachedTokens: 0,
+          },
+          cost: { estimatedUsd: 0.005 },
+          model,
+          iterations: 1,
+          content: "warden done",
+          timing: { latencyMs: 50 },
+          provider: "openai" as const,
+          cached: false,
+        };
+      },
+    });
+
+    const handler = createDelegateHandler({
+      db,
+      workspace: "/tmp/test",
+      tools: [],
+      wardenTools,
+      chatFactory: factory,
+      getParentSessionId: () => parentSessionId,
+    });
+
+    const result = await handler({ task: "remember something", specialist: "Warden" });
+    ok(typeof result === "string");
+    ok((result as string).includes("Warden completed"));
+    strictEqual(capturedToolCount, wardenTools.length);
+    ok(capturedSystemPrompt.includes("Warden"));
+  });
+
+  it("warden delegation records soul_id = 5", async () => {
+    const handler = createDelegateHandler({
+      db,
+      workspace: "/tmp/test",
+      tools: [],
+      wardenTools: createWardenTools(db),
+      chatFactory: mockChatFactory("ok"),
+      getParentSessionId: () => parentSessionId,
+    });
+    await handler({ task: "recall something", specialist: "Warden" });
+    const children = getDelegateChildren(parentSessionId);
+    strictEqual(children[0]!.soulId, MANDATORY_SOUL_IDS.warden);
   });
 });
