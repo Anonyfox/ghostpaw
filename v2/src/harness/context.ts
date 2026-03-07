@@ -29,7 +29,10 @@ export function assembleContext(
     throw new Error(`Soul ${effectiveSoulId} not found. Run bootstrap before creating the entity.`);
   }
 
-  if (effectiveSoulId === MANDATORY_SOUL_IDS.warden) {
+  if (
+    effectiveSoulId === MANDATORY_SOUL_IDS.warden ||
+    effectiveSoulId === MANDATORY_SOUL_IDS.chamberlain
+  ) {
     return [soul, formatEnvironment(), formatToolGuidance(effectiveSoulId)].join("\n\n");
   }
 
@@ -158,12 +161,26 @@ function formatToolGuidance(soulId: number): string {
     ].join("\n");
   }
 
+  if (soulId === MANDATORY_SOUL_IDS.chamberlain) {
+    return [
+      "## Tools",
+      "",
+      "You are the infrastructure governor. You have tools for configuration (get_config,",
+      "list_config, set_config, undo_config, reset_config), secrets (list_secrets, set_secret,",
+      "remove_secret), and utilities (datetime, calc).",
+      "Validate config changes carefully — reject values outside known ranges.",
+      "Never expose secret values in your responses — only confirm existence or absence.",
+      "You cannot delegate or access the filesystem.",
+    ].join("\n");
+  }
+
   const base = [
     "## Tools",
     "",
-    "You have tools for filesystem, web, configuration, and API secrets.",
+    "You have tools for filesystem, web, and extensions.",
     "The Known Context above was recalled automatically for this conversation.",
     "For persistence operations (memory, pack, quests), delegate to the Warden.",
+    "For infrastructure (config, secrets, budget), delegate to the Chamberlain.",
     "For soul development, delegate to the Mentor.",
     "For skill development, delegate to the Trainer.",
   ];

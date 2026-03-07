@@ -38,7 +38,7 @@ The runtime is fully operational. It builds to `dist/ghostpaw.mjs`, opens `ghost
 | Module | What it does |
 |--------|-------------|
 | `chat/` | Turn execution pipeline — sessions, messages, streaming, compaction, locking |
-| `souls/` | 4 mandatory souls with evolutionary traits, level-up, graveyard, backfill |
+| `souls/` | 6 mandatory souls with evolutionary traits, level-up, graveyard, backfill |
 | `memory/` | Belief-based recall with confidence decay, trigram + FTS5 search |
 | `skills/` | Git-backed skill files, checkpoint/rollback, validation, repair |
 | `config/` | Flat key-value store with changelog, attribution, undo |
@@ -75,7 +75,7 @@ Filesystem (read, write, edit, find_and_replace, ls, grep, bash), web (web_searc
 
 - **Sense** (`lib/sense/`, `tools/sense.ts`) — Proprioceptive text quality measurement. Compression ratio, negation density, semantic distance, momentum, phase transitions. Detects premature convergence, highway drift, abandoned breakthroughs.
 - **Distillation** (`harness/distill_pending.ts`, `oneshots/distill_session.ts`) — Post-session memory extraction. Sweeps closed/stale sessions, extracts memories via LLM. Runs at startup.
-- **Default souls** — ghostpaw (coordinator), js-engineer (builder), mentor (soul refiner), trainer (skill builder). Each with essence + baseline traits.
+- **Default souls** — ghostpaw (coordinator), js-engineer (builder), mentor (soul refiner), trainer (skill builder), warden (persistence keeper), chamberlain (infrastructure governor). Each with essence + baseline traits.
 - **Default skills** — `effective-writing` (universal writing craft), `skill-mcp` (MCP server integration guide).
 
 ## What's NOT Built

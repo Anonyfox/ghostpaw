@@ -37,8 +37,8 @@ describe("DEFAULT_SOULS", () => {
     }
   });
 
-  it("has exactly five entries", () => {
-    strictEqual(Object.keys(DEFAULT_SOULS).length, 5);
+  it("has exactly six entries", () => {
+    strictEqual(Object.keys(DEFAULT_SOULS).length, 6);
   });
 
   it("ghostpaw default addresses the coordinator role", () => {
@@ -55,6 +55,10 @@ describe("DEFAULT_SOULS", () => {
 
   it("warden default addresses persistence", () => {
     ok(DEFAULT_SOULS.warden.essence.includes("persistence"));
+  });
+
+  it("chamberlain default addresses infrastructure", () => {
+    ok(DEFAULT_SOULS.chamberlain.essence.includes("infrastructure"));
   });
 
   it("every entry has at least one default trait", () => {

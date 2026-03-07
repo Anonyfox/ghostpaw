@@ -12,7 +12,7 @@ import { ensureMandatorySouls, initSoulsTables, MANDATORY_SOUL_IDS } from "../co
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
 import { createDelegateHandler } from "./delegate.ts";
-import { createWardenTools } from "./tools.ts";
+import { createChamberlainTools, createWardenTools } from "./tools.ts";
 
 let db: DatabaseHandle;
 let parentSessionId: number;
@@ -342,5 +342,83 @@ describe("createDelegateHandler", () => {
     await handler({ task: "recall something", specialist: "Warden" });
     const children = getDelegateChildren(parentSessionId);
     strictEqual(children[0]!.soulId, MANDATORY_SOUL_IDS.warden);
+  });
+
+  it("chamberlain delegation uses chamberlain tools only (no shared tools)", async () => {
+    capturedSystemPrompt = "";
+    let capturedToolCount = 0;
+    const chamberlainTools = createChamberlainTools(db);
+    const factory = (model: string): import("../core/chat/index.ts").ChatInstance => ({
+      system(content: string) {
+        capturedSystemPrompt = content;
+        return this;
+      },
+      user() {
+        return this;
+      },
+      assistant() {
+        return this;
+      },
+      addTool() {
+        capturedToolCount++;
+        return this;
+      },
+      get messages() {
+        return [];
+      },
+      async generate() {
+        return "chamberlain done";
+      },
+      async *stream() {
+        yield "chamberlain done";
+      },
+      get lastResult() {
+        return {
+          usage: {
+            inputTokens: 100,
+            outputTokens: 50,
+            reasoningTokens: 0,
+            totalTokens: 150,
+            cachedTokens: 0,
+          },
+          cost: { estimatedUsd: 0.005 },
+          model,
+          iterations: 1,
+          content: "chamberlain done",
+          timing: { latencyMs: 50 },
+          provider: "openai" as const,
+          cached: false,
+        };
+      },
+    });
+
+    const handler = createDelegateHandler({
+      db,
+      workspace: "/tmp/test",
+      tools: [],
+      chamberlainTools,
+      chatFactory: factory,
+      getParentSessionId: () => parentSessionId,
+    });
+
+    const result = await handler({ task: "check config", specialist: "Chamberlain" });
+    ok(typeof result === "string");
+    ok((result as string).includes("Chamberlain completed"));
+    strictEqual(capturedToolCount, chamberlainTools.length);
+    ok(capturedSystemPrompt.includes("Chamberlain"));
+  });
+
+  it("chamberlain delegation records soul_id = 6", async () => {
+    const handler = createDelegateHandler({
+      db,
+      workspace: "/tmp/test",
+      tools: [],
+      chamberlainTools: createChamberlainTools(db),
+      chatFactory: mockChatFactory("ok"),
+      getParentSessionId: () => parentSessionId,
+    });
+    await handler({ task: "list secrets", specialist: "Chamberlain" });
+    const children = getDelegateChildren(parentSessionId);
+    strictEqual(children[0]!.soulId, MANDATORY_SOUL_IDS.chamberlain);
   });
 });

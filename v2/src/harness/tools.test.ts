@@ -35,22 +35,15 @@ const EXPECTED_BASE_TOOLS = [
   "bash",
   "calc",
   "check_run",
+  "datetime",
   "delegate",
   "edit",
-  "get_config",
   "grep",
   "howl",
-  "list_config",
-  "list_secrets",
   "ls",
   "mcp",
   "read",
-  "remove_secret",
-  "reset_config",
   "sense",
-  "set_config",
-  "set_secret",
-  "undo_config",
   "web_fetch",
   "web_search",
   "write",
@@ -100,6 +93,19 @@ const TRAINER_TOOL_NAMES = [
   "skill_diff",
   "skill_history",
   "validate_skills",
+];
+
+const EXPECTED_CHAMBERLAIN_TOOLS = [
+  "calc",
+  "datetime",
+  "get_config",
+  "list_config",
+  "list_secrets",
+  "remove_secret",
+  "reset_config",
+  "set_config",
+  "set_secret",
+  "undo_config",
 ];
 
 function mockConfig() {
@@ -275,10 +281,57 @@ describe("createEntityToolSets", () => {
       "quest_dismiss",
       "questlog_create",
       "questlog_list",
-      "datetime",
       "recall_haunts",
     ]) {
       ok(!names.has(excluded), `${excluded} should not be in baseTools`);
+    }
+  });
+
+  it("baseTools excludes infrastructure tools", () => {
+    const sets = createEntityToolSets(mockConfig());
+    const names = new Set(sets.baseTools.map((t) => t.name));
+    for (const excluded of [
+      "get_config",
+      "list_config",
+      "set_config",
+      "undo_config",
+      "reset_config",
+      "list_secrets",
+      "set_secret",
+      "remove_secret",
+    ]) {
+      ok(!names.has(excluded), `${excluded} should not be in baseTools`);
+    }
+  });
+
+  it("chamberlainTools has correct count", () => {
+    const sets = createEntityToolSets(mockConfig());
+    strictEqual(sets.chamberlainTools.length, EXPECTED_CHAMBERLAIN_TOOLS.length);
+  });
+
+  it("chamberlainTools has correct names", () => {
+    const sets = createEntityToolSets(mockConfig());
+    const names = sets.chamberlainTools.map((t) => t.name).sort();
+    deepStrictEqual(names, [...EXPECTED_CHAMBERLAIN_TOOLS].sort());
+  });
+
+  it("chamberlainTools excludes filesystem, web, and delegation tools", () => {
+    const sets = createEntityToolSets(mockConfig());
+    const names = new Set(sets.chamberlainTools.map((t) => t.name));
+    for (const excluded of [
+      "read",
+      "write",
+      "edit",
+      "ls",
+      "grep",
+      "bash",
+      "web_fetch",
+      "web_search",
+      "mcp",
+      "delegate",
+      "check_run",
+    ]) {
+      ok(!names.has(excluded), `${excluded} should not be in chamberlainTools`);
     }
   });
 });

@@ -55,6 +55,7 @@ export interface EntityToolsConfig {
 export interface EntityToolSets {
   baseTools: Tool[];
   wardenTools: Tool[];
+  chamberlainTools: Tool[];
   mentorTools: Tool[];
   trainerTools: Tool[];
   allToolsWithMentor: Tool[];
@@ -75,6 +76,21 @@ export function createWardenTools(db: DatabaseHandle): Tool[] {
   ];
 }
 
+export function createChamberlainTools(db: DatabaseHandle): Tool[] {
+  return [
+    createGetConfigTool(db),
+    createListConfigTool(db),
+    createSetConfigTool(db),
+    createUndoConfigTool(db),
+    createResetConfigTool(db),
+    createListSecretsTool(db),
+    createSetSecretTool(db),
+    createRemoveSecretTool(db),
+    createCalcTool(),
+    createDatetimeTool(),
+  ];
+}
+
 export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets {
   const { db, workspace, chatFactory, getParentSessionId } = config;
 
@@ -92,20 +108,14 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     createWebFetchTool(workspace),
     createWebSearchTool(),
     mcp.tool,
-    createGetConfigTool(db),
-    createListConfigTool(db),
-    createSetConfigTool(db),
-    createUndoConfigTool(db),
-    createResetConfigTool(db),
-    createListSecretsTool(db),
-    createSetSecretTool(db),
-    createRemoveSecretTool(db),
     createCalcTool(),
+    createDatetimeTool(),
     createSenseTool(),
     createHowlTool(db),
   ];
 
   const wardenOnlyTools = createWardenTools(db);
+  const chamberlainOnlyTools = createChamberlainTools(db);
 
   const mentorOnly = createMentorTools(db);
   const trainerOnly = createTrainerTools(workspace);
@@ -121,6 +131,7 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     mentorTools: mentorOnly,
     trainerTools: trainerOnly,
     wardenTools: wardenOnlyTools,
+    chamberlainTools: chamberlainOnlyTools,
     chatFactory,
     getParentSessionId,
     onBackgroundComplete: config.onBackgroundComplete,
@@ -136,6 +147,7 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
   return {
     baseTools,
     wardenTools: wardenOnlyTools,
+    chamberlainTools: chamberlainOnlyTools,
     mentorTools: mentorOnly,
     trainerTools: trainerOnly,
     allToolsWithMentor,

@@ -196,4 +196,30 @@ describe("assembleContext", () => {
     const result = assembleContext(db, workspace, "hello");
     ok(result.includes("delegate to the Warden"));
   });
+
+  it("coordinator context mentions delegation to Chamberlain", () => {
+    const result = assembleContext(db, workspace, "hello");
+    ok(result.includes("delegate to the Chamberlain"));
+  });
+
+  it("chamberlain context includes soul, environment, and tool guidance", () => {
+    const result = assembleContext(db, workspace, "hello", MANDATORY_SOUL_IDS.chamberlain);
+    ok(result.includes("# Chamberlain"));
+    ok(result.includes("## Environment"));
+    ok(result.includes("## Tools"));
+    ok(result.includes("infrastructure governor"));
+  });
+
+  it("chamberlain context does NOT include Known Context, Quests, or Skills", () => {
+    const claim = "The user likes dogs";
+    const embedding = embedText(claim);
+    storeMemory(db, claim, embedding, { source: "explicit", category: "preference" });
+    makeSkill("deploy", "Deploy the app.");
+
+    const result = assembleContext(db, workspace, "dogs", MANDATORY_SOUL_IDS.chamberlain);
+    ok(!result.includes("## Known Context"));
+    ok(!result.includes("## Quests"));
+    ok(!result.includes("## Skills"));
+    ok(!result.includes("## Budget"));
+  });
 });
