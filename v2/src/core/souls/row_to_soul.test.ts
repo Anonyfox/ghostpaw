@@ -62,7 +62,7 @@ describe("rowToSoul", () => {
     const row = {
       id: 10,
       slug: null,
-      name: "Archived",
+      name: "Dormant",
       essence: "old",
       description: "",
       level: 2,

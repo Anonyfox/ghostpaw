@@ -1,7 +1,7 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
 import type { SoulSummary } from "./types.ts";
 
-export function listDeletedSouls(db: DatabaseHandle): SoulSummary[] {
+export function listDormantSouls(db: DatabaseHandle): SoulSummary[] {
   const rows = db
     .prepare(
       `SELECT s.id, s.name, s.description, s.level, s.updated_at,

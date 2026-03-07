@@ -117,36 +117,36 @@ export function SoulDetailPage() {
     }
   };
 
-  const handleArchive = async () => {
-    if (!confirm(`Archive soul "${soul?.name}"?`)) return;
+  const handleRetire = async () => {
+    if (!confirm(`Retire soul "${soul?.name}"?`)) return;
     try {
       await apiDelete(`/api/souls/${id}`);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to archive.");
+      setError(err instanceof Error ? err.message : "Failed to retire.");
     }
   };
 
-  const handleRestore = async () => {
+  const handleAwaken = async () => {
     try {
-      await apiPost(`/api/souls/${id}/restore`);
+      await apiPost(`/api/souls/${id}/awaken`);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to restore.");
+      setError(err instanceof Error ? err.message : "Failed to awaken.");
     }
   };
 
   if (loading) return <p class="text-muted">Loading...</p>;
   if (!soul) return <p class="text-danger">{error ?? "Soul not found."}</p>;
 
-  const isArchived = soul.deletedAt != null;
+  const isDormant = soul.deletedAt != null;
   const activeTraitCount = soul.traits.filter((t) => t.status === "active").length;
   const remaining = soul.traitLimit - activeTraitCount;
-  const xpMessage = isArchived
+  const xpMessage = isDormant
     ? undefined
     : remaining <= 0
-      ? "Trait capacity reached — evolution ready"
-      : `${remaining} more trait${remaining !== 1 ? "s" : ""} until evolution`;
+      ? "Trait capacity reached — ready to level up"
+      : `${remaining} more trait${remaining !== 1 ? "s" : ""} until level-up`;
   const statusCounts: Record<string, number> = {};
   for (const t of soul.traits) statusCounts[t.status] = (statusCounts[t.status] ?? 0) + 1;
 
@@ -156,11 +156,11 @@ export function SoulDetailPage() {
         &larr; Back to Souls
       </Link>
 
-      {isArchived && (
+      {isDormant && (
         <div class="alert alert-warning mt-3 d-flex justify-content-between align-items-center">
-          <span>This soul is archived.</span>
-          <button type="button" class="btn btn-sm btn-success" onClick={handleRestore}>
-            Restore
+          <span>This soul is dormant.</span>
+          <button type="button" class="btn btn-sm btn-success" onClick={handleAwaken}>
+            Awaken
           </button>
         </div>
       )}
@@ -169,7 +169,7 @@ export function SoulDetailPage() {
 
       <div class="d-flex justify-content-between align-items-start mt-3 mb-3">
         <div>
-          {editingName && !isArchived ? (
+          {editingName && !isDormant ? (
             <div class="d-flex gap-2 align-items-center">
               <input
                 type="text"
@@ -191,16 +191,16 @@ export function SoulDetailPage() {
           ) : (
             <div class="d-flex align-items-center gap-2">
               <h3
-                role={!isArchived ? "button" : undefined}
-                tabIndex={!isArchived ? 0 : undefined}
+                role={!isDormant ? "button" : undefined}
+                tabIndex={!isDormant ? 0 : undefined}
                 class="mb-0"
-                style={!isArchived ? "cursor: pointer;" : ""}
-                onClick={() => !isArchived && setEditingName(true)}
-                onKeyDown={(e) => e.key === "Enter" && !isArchived && setEditingName(true)}
+                style={!isDormant ? "cursor: pointer;" : ""}
+                onClick={() => !isDormant && setEditingName(true)}
+                onKeyDown={(e) => e.key === "Enter" && !isDormant && setEditingName(true)}
               >
                 {soul.name}
               </h3>
-              {!isArchived && (
+              {!isDormant && (
                 <button
                   type="button"
                   class="btn btn-outline-secondary btn-sm py-0 px-1"
@@ -216,10 +216,10 @@ export function SoulDetailPage() {
         </div>
         <div class="d-flex align-items-center gap-2">
           <span class="badge bg-info fs-6">Lv. {soul.level}</span>
-          {soul.isMandatory && <span class="badge bg-warning text-dark">Mandatory</span>}
-          {!soul.isMandatory && !isArchived && (
-            <button type="button" class="btn btn-outline-danger btn-sm" onClick={handleArchive}>
-              Archive
+          {soul.isMandatory && <span class="badge bg-warning text-dark">Core</span>}
+          {!soul.isMandatory && !isDormant && (
+            <button type="button" class="btn btn-outline-danger btn-sm" onClick={handleRetire}>
+              Retire
             </button>
           )}
         </div>
@@ -231,19 +231,19 @@ export function SoulDetailPage() {
             activeTraits={activeTraitCount}
             traitLimit={soul.traitLimit}
             variant="full"
-            isArchived={isArchived}
+            isDormant={isDormant}
             contextMessage={xpMessage}
           />
         </div>
       </div>
 
-      {!isArchived && <MentorChamber soul={soul} onUpdated={load} />}
+      {!isDormant && <MentorChamber soul={soul} onUpdated={load} />}
 
       <div class="card mb-4">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start">
             <h5 class="card-title">Essence</h5>
-            {!isArchived && !editingEssence && (
+            {!isDormant && !editingEssence && (
               <button
                 type="button"
                 class="btn btn-sm btn-outline-info"
@@ -253,7 +253,7 @@ export function SoulDetailPage() {
               </button>
             )}
           </div>
-          {editingEssence && !isArchived ? (
+          {editingEssence && !isDormant ? (
             <div>
               <textarea
                 class="form-control mb-2"
@@ -286,7 +286,7 @@ export function SoulDetailPage() {
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start">
             <h5 class="card-title">Description</h5>
-            {!isArchived && !editingDescription && (
+            {!isDormant && !editingDescription && (
               <div class="d-flex gap-1">
                 <button
                   type="button"
@@ -306,7 +306,7 @@ export function SoulDetailPage() {
               </div>
             )}
           </div>
-          {editingDescription && !isArchived ? (
+          {editingDescription && !isDormant ? (
             <div>
               <textarea
                 class="form-control mb-2"
@@ -342,14 +342,14 @@ export function SoulDetailPage() {
         <span>Reverted: {statusCounts.reverted ?? 0}</span>
       </div>
 
-      {!isArchived && <SoulAddTraitForm soulId={soul.id} onAdded={load} />}
+      {!isDormant && <SoulAddTraitForm soulId={soul.id} onAdded={load} />}
 
       <div class="mb-4">
         <h5 class="mb-3">Traits</h5>
         <SoulTraitList
           traits={soul.traits}
           soulId={soul.id}
-          isArchived={isArchived}
+          isDormant={isDormant}
           onUpdated={load}
         />
       </div>
@@ -357,7 +357,7 @@ export function SoulDetailPage() {
       <SoulLevelHistory
         levels={soul.levels}
         soulId={soul.id}
-        isArchived={isArchived}
+        isDormant={isDormant}
         onUpdated={load}
       />
     </div>

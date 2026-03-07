@@ -42,8 +42,8 @@ describe("SoulXpBar", () => {
     assert.ok(bar?.className.includes("bg-danger"));
   });
 
-  it("uses bg-secondary when archived", () => {
-    render(<SoulXpBar activeTraits={5} traitLimit={10} isArchived />, dom.container);
+  it("uses bg-secondary when dormant", () => {
+    render(<SoulXpBar activeTraits={5} traitLimit={10} isDormant />, dom.container);
     const bar = dom.container.querySelector(".progress-bar");
     assert.ok(bar?.className.includes("bg-secondary"));
   });
@@ -80,15 +80,15 @@ describe("SoulXpBar", () => {
 
   it("renders contextMessage when provided", () => {
     render(
-      <SoulXpBar activeTraits={5} traitLimit={10} contextMessage="5 more traits until evolution" />,
+      <SoulXpBar activeTraits={5} traitLimit={10} contextMessage="5 more traits until level-up" />,
       dom.container,
     );
-    assert.ok(dom.container.textContent?.includes("5 more traits until evolution"));
+    assert.ok(dom.container.textContent?.includes("5 more traits until level-up"));
   });
 
   it("does not render contextMessage when not provided", () => {
     render(<SoulXpBar activeTraits={5} traitLimit={10} />, dom.container);
-    assert.ok(!dom.container.textContent?.includes("until evolution"));
+    assert.ok(!dom.container.textContent?.includes("until level-up"));
   });
 
   it("applies warning color to contextMessage when ready", () => {
@@ -96,10 +96,10 @@ describe("SoulXpBar", () => {
       <SoulXpBar
         activeTraits={10}
         traitLimit={10}
-        contextMessage="Trait capacity reached — evolution ready"
+        contextMessage="Trait capacity reached — ready to level up"
       />,
       dom.container,
     );
-    assert.ok(dom.container.textContent?.includes("evolution ready"));
+    assert.ok(dom.container.textContent?.includes("ready to level up"));
   });
 });

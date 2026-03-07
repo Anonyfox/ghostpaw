@@ -79,9 +79,9 @@ This is the compound growth thesis. The ghost plays, remembers, and grows. Each 
 
 ---
 
-## The Mandatory Souls
+## The Core Souls
 
-Six souls are structural infrastructure. Each aspect has at least one dedicated soul. Every soul participates in the same evolutionary mechanics — traits, leveling, graveyard, mentor refinement.
+Six souls are structural infrastructure. Each aspect has at least one dedicated soul. Every soul participates in the same evolutionary mechanics — traits, leveling, dormancy, mentor refinement.
 
 | ID | Slug | Role | Aspect | Why mandatory |
 |---|---|---|---|---|
@@ -714,7 +714,7 @@ This is a USP. Most AI agents are passive receivers. Ghostpaw howls.
 
 ### Preserves
 
-- **The soul system** — all six mandatory souls participate in the same evolutionary mechanics. Traits, leveling, graveyard, mentor refinement. The warden and chamberlain are mentorable like every other soul.
+- **The soul system** — all six mandatory souls participate in the same evolutionary mechanics. Traits, leveling, dormancy, mentor refinement. The warden and chamberlain are mentorable like every other soul.
 - **The delegation mechanics** — `delegate.ts` supports soul-specific tool sets. The warden and chamberlain both use *restricted* tool sets (they get ONLY their own tools, not shared + specialist). Mentor and trainer get shared + specialist tools.
 - **Play modes** — chat, haunt, howl as the three directions of play. Chat (user → ghost) is unchanged. Haunting simplifies: it's a background session with purpose "haunt", not a separate system. Howl refactors: the dedicated howl session is eliminated, the table tracks origin coordinates (`origin_session_id`, `origin_message_id`) plus a delivery payload (`message`), and howl Q&A pairs inject back into origin sessions for complete records and warden consolidation. Reply/dismiss orchestration lives in `harness/howl/`, fixing the core→harness layer violation. The difference across all modes is how they access persistence and infrastructure: delegation instead of direct tools.
 - **Everything in core/ (except haunt, runs, and cost)** — the persistence modules (memory, pack, quests) and config/secrets modules are unchanged. The warden and chamberlain use the same tools that previously lived on the coordinator. Three core modules get eliminated: `core/runs/` (DONE — redundant with sessions), `core/cost/` (DONE — query functions folded into `core/chat/`, pure computation moved to `lib/cost/`), and `core/haunt/` (DONE — redundant with sessions). `core/chat/` gains `soul_id`/`error` columns plus all cost query functions and becomes the universal interaction and cost record. The change is at the harness/orchestration level, not the core level.

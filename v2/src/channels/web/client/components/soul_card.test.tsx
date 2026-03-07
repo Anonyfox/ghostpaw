@@ -52,27 +52,27 @@ describe("SoulCard", () => {
     assert.ok(dom.container.textContent?.includes("3/10"));
   });
 
-  it("shows archive button for non-mandatory souls", () => {
-    render(<SoulCard soul={mockSoul} traitLimit={10} onArchive={() => {}} />, dom.container);
+  it("shows retire button for non-mandatory souls", () => {
+    render(<SoulCard soul={mockSoul} traitLimit={10} onRetire={() => {}} />, dom.container);
     const btn = dom.container.querySelector(".btn-outline-danger");
     assert.ok(btn);
-    assert.ok(btn!.textContent?.includes("Archive"));
+    assert.ok(btn!.textContent?.includes("Retire"));
   });
 
-  it("hides archive button for mandatory souls", () => {
-    render(<SoulCard soul={mandatorySoul} traitLimit={10} onArchive={() => {}} />, dom.container);
+  it("hides retire button for mandatory souls", () => {
+    render(<SoulCard soul={mandatorySoul} traitLimit={10} onRetire={() => {}} />, dom.container);
     assert.equal(dom.container.querySelector(".btn-outline-danger"), null);
     assert.ok(dom.container.querySelector(".badge.bg-warning"));
   });
 
-  it("shows restore button for graveyard variant", () => {
+  it("shows awaken button for dormant variant", () => {
     render(
-      <SoulCard soul={mockSoul} traitLimit={10} variant="graveyard" onRestore={() => {}} />,
+      <SoulCard soul={mockSoul} traitLimit={10} variant="dormant" onAwaken={() => {}} />,
       dom.container,
     );
     const btn = dom.container.querySelector(".btn-outline-success");
     assert.ok(btn);
-    assert.ok(btn!.textContent?.includes("Restore"));
+    assert.ok(btn!.textContent?.includes("Awaken"));
   });
 
   it("applies hero styling", () => {
@@ -97,10 +97,10 @@ describe("SoulCard", () => {
     assert.equal(readyBadge, undefined);
   });
 
-  it("does not show Ready badge in graveyard variant", () => {
+  it("does not show Ready badge in dormant variant", () => {
     const readySoul: SoulOverviewInfo = { ...mockSoul, activeTraitCount: 10 };
     render(
-      <SoulCard soul={readySoul} traitLimit={10} variant="graveyard" onRestore={() => {}} />,
+      <SoulCard soul={readySoul} traitLimit={10} variant="dormant" onAwaken={() => {}} />,
       dom.container,
     );
     const badges = dom.container.querySelectorAll(".badge.bg-warning");

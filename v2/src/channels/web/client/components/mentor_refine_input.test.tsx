@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, mock } from "node:test";
 import { render } from "preact";
 import { createTestDOM } from "../create_test_dom.ts";
-import { MentorTrainInput } from "./mentor_train_input.tsx";
+import { MentorRefineInput } from "./mentor_refine_input.tsx";
 
-describe("MentorTrainInput", () => {
+describe("MentorRefineInput", () => {
   let dom: ReturnType<typeof createTestDOM>;
 
   beforeEach(() => {
@@ -17,7 +17,7 @@ describe("MentorTrainInput", () => {
   });
 
   it("renders textarea with placeholder", () => {
-    render(<MentorTrainInput onSubmit={() => {}} onCancel={() => {}} />, dom.container);
+    render(<MentorRefineInput onSubmit={() => {}} onCancel={() => {}} />, dom.container);
     const textarea = dom.container.querySelector("textarea") as HTMLTextAreaElement;
     assert.ok(textarea);
     assert.ok(textarea.placeholder.includes("learn or improve"));
@@ -25,7 +25,7 @@ describe("MentorTrainInput", () => {
 
   it("does not fire onSubmit when textarea is empty", () => {
     const fn = mock.fn();
-    render(<MentorTrainInput onSubmit={fn} onCancel={() => {}} />, dom.container);
+    render(<MentorRefineInput onSubmit={fn} onCancel={() => {}} />, dom.container);
     const submitBtn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
       b.textContent?.includes("Submit"),
     );
@@ -35,7 +35,7 @@ describe("MentorTrainInput", () => {
 
   it("fires onSubmit with trimmed text when textarea has content", () => {
     const fn = mock.fn();
-    render(<MentorTrainInput onSubmit={fn} onCancel={() => {}} />, dom.container);
+    render(<MentorRefineInput onSubmit={fn} onCancel={() => {}} />, dom.container);
     const textarea = dom.container.querySelector("textarea") as HTMLTextAreaElement;
     textarea.value = "  improve error handling  ";
     const submitBtn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
@@ -48,7 +48,7 @@ describe("MentorTrainInput", () => {
 
   it("fires onCancel when cancel is clicked", () => {
     const fn = mock.fn();
-    render(<MentorTrainInput onSubmit={() => {}} onCancel={fn} />, dom.container);
+    render(<MentorRefineInput onSubmit={() => {}} onCancel={fn} />, dom.container);
     const cancelBtn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
       b.textContent?.includes("Cancel"),
     );
@@ -57,7 +57,7 @@ describe("MentorTrainInput", () => {
   });
 
   it("disables both buttons when disabled prop is true", () => {
-    render(<MentorTrainInput onSubmit={() => {}} onCancel={() => {}} disabled />, dom.container);
+    render(<MentorRefineInput onSubmit={() => {}} onCancel={() => {}} disabled />, dom.container);
     const buttons = dom.container.querySelectorAll("button");
     for (const btn of buttons) {
       assert.ok((btn as HTMLButtonElement).disabled);
@@ -66,7 +66,7 @@ describe("MentorTrainInput", () => {
 
   it("does not fire onSubmit when disabled even with content", () => {
     const fn = mock.fn();
-    render(<MentorTrainInput onSubmit={fn} onCancel={() => {}} disabled />, dom.container);
+    render(<MentorRefineInput onSubmit={fn} onCancel={() => {}} disabled />, dom.container);
     const textarea = dom.container.querySelector("textarea") as HTMLTextAreaElement;
     textarea.value = "some feedback";
     const submitBtn = Array.from(dom.container.querySelectorAll("button")).find((b) =>

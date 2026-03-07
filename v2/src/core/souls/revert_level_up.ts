@@ -22,28 +22,34 @@ export function revertLevelUp(db: DatabaseHandle, soulId: number): Soul {
 
   db.exec("BEGIN");
   try {
-    for (const traitId of levelRecord.traitsConsolidated) {
+    if (levelRecord.traitsConsolidated.length > 0) {
+      const ph = levelRecord.traitsConsolidated.map(() => "?").join(", ");
       db.prepare(
         `UPDATE soul_traits SET status = 'active', merged_into = NULL, updated_at = ?
-         WHERE id = ? AND status = 'consolidated'`,
-      ).run(now, traitId);
+         WHERE id IN (${ph}) AND status = 'consolidated'`,
+      ).run(now, ...levelRecord.traitsConsolidated);
     }
 
-    for (const traitId of levelRecord.traitsPromoted) {
+    if (levelRecord.traitsPromoted.length > 0) {
+      const ph = levelRecord.traitsPromoted.map(() => "?").join(", ");
       db.prepare(
-        "UPDATE soul_traits SET status = 'active', updated_at = ? WHERE id = ? AND status = 'promoted'",
-      ).run(now, traitId);
+        `UPDATE soul_traits SET status = 'active', updated_at = ? WHERE id IN (${ph}) AND status = 'promoted'`,
+      ).run(now, ...levelRecord.traitsPromoted);
     }
 
-    for (const traitId of levelRecord.traitsCarried) {
+    if (levelRecord.traitsCarried.length > 0) {
+      const ph = levelRecord.traitsCarried.map(() => "?").join(", ");
       db.prepare(
-        "UPDATE soul_traits SET generation = generation - 1, updated_at = ? WHERE id = ? AND status = 'active'",
-      ).run(now, traitId);
+        `UPDATE soul_traits SET generation = generation - 1, updated_at = ? WHERE id IN (${ph}) AND status = 'active'`,
+      ).run(now, ...levelRecord.traitsCarried);
     }
 
-    for (const mergedId of levelRecord.traitsMerged) {
-      db.prepare("UPDATE soul_traits SET merged_into = NULL WHERE merged_into = ?").run(mergedId);
-      db.prepare("DELETE FROM soul_traits WHERE id = ?").run(mergedId);
+    if (levelRecord.traitsMerged.length > 0) {
+      const ph = levelRecord.traitsMerged.map(() => "?").join(", ");
+      db.prepare(`UPDATE soul_traits SET merged_into = NULL WHERE merged_into IN (${ph})`).run(
+        ...levelRecord.traitsMerged,
+      );
+      db.prepare(`DELETE FROM soul_traits WHERE id IN (${ph})`).run(...levelRecord.traitsMerged);
     }
 
     db.prepare("UPDATE souls SET essence = ?, level = level - 1, updated_at = ? WHERE id = ?").run(

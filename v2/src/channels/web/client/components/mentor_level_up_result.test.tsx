@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, it, mock } from "node:test";
 import { render } from "preact";
 import type { LevelInfo } from "../../shared/soul_types.ts";
 import { createTestDOM } from "../create_test_dom.ts";
-import { MentorEvolutionResult } from "./mentor_evolution_result.tsx";
+import { MentorLevelUpResult } from "./mentor_level_up_result.tsx";
 
 const mockLevel: LevelInfo = {
   id: 1,
@@ -17,7 +17,7 @@ const mockLevel: LevelInfo = {
   createdAt: Date.now(),
 };
 
-describe("MentorEvolutionResult", () => {
+describe("MentorLevelUpResult", () => {
   let dom: ReturnType<typeof createTestDOM>;
 
   beforeEach(() => {
@@ -31,8 +31,8 @@ describe("MentorEvolutionResult", () => {
 
   it("renders new level number in header", () => {
     render(
-      <MentorEvolutionResult
-        content="Evolution complete."
+      <MentorLevelUpResult
+        content="Level-up complete."
         succeeded={true}
         cost={{ totalUsd: 0.08 }}
         level={mockLevel}
@@ -46,7 +46,7 @@ describe("MentorEvolutionResult", () => {
 
   it("shows before and after essence from LevelInfo", () => {
     render(
-      <MentorEvolutionResult
+      <MentorLevelUpResult
         content="Done."
         succeeded={true}
         cost={{ totalUsd: 0 }}
@@ -62,7 +62,7 @@ describe("MentorEvolutionResult", () => {
 
   it("shows trait categorization counts", () => {
     render(
-      <MentorEvolutionResult
+      <MentorLevelUpResult
         content="Done."
         succeeded={true}
         cost={{ totalUsd: 0 }}
@@ -79,7 +79,7 @@ describe("MentorEvolutionResult", () => {
 
   it("shows mentor narration content", () => {
     render(
-      <MentorEvolutionResult
+      <MentorLevelUpResult
         content="The soul has grown significantly."
         succeeded={true}
         cost={{ totalUsd: 0.05 }}
@@ -94,7 +94,7 @@ describe("MentorEvolutionResult", () => {
 
   it("shows cost badge", () => {
     render(
-      <MentorEvolutionResult
+      <MentorLevelUpResult
         content="Done."
         succeeded={true}
         cost={{ totalUsd: 0.08 }}
@@ -110,7 +110,7 @@ describe("MentorEvolutionResult", () => {
   it("fires onClose when close button is clicked", () => {
     const fn = mock.fn();
     render(
-      <MentorEvolutionResult
+      <MentorLevelUpResult
         content="Done."
         succeeded={true}
         cost={{ totalUsd: 0 }}

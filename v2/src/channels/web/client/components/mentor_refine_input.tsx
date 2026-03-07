@@ -1,12 +1,12 @@
 import { useRef } from "preact/hooks";
 
-interface MentorTrainInputProps {
+interface MentorRefineInputProps {
   onSubmit: (feedback: string) => void;
   onCancel: () => void;
   disabled?: boolean;
 }
 
-export function MentorTrainInput({ onSubmit, onCancel, disabled = false }: MentorTrainInputProps) {
+export function MentorRefineInput({ onSubmit, onCancel, disabled = false }: MentorRefineInputProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = () => {

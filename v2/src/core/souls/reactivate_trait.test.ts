@@ -58,11 +58,11 @@ describe("reactivateTrait", () => {
     throws(() => reactivateTrait(db, 99999), /not found/i);
   });
 
-  it("throws when soul is archived", () => {
+  it("throws when soul is dormant", () => {
     const custom = createSoul(db, { name: "A", essence: "" });
     const t = addTrait(db, custom.id, { principle: "p", provenance: "e" });
     revertTrait(db, t.id);
     db.prepare("UPDATE souls SET deleted_at = ? WHERE id = ?").run(Date.now(), custom.id);
-    throws(() => reactivateTrait(db, t.id), /archived/i);
+    throws(() => reactivateTrait(db, t.id), /dormant/i);
   });
 });

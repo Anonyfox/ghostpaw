@@ -6,23 +6,23 @@ import { apiPost } from "../api_post.ts";
 import { SoulCard } from "../components/soul_card.tsx";
 import { SoulCreateForm } from "../components/soul_create_form.tsx";
 
-type Tab = "active" | "graveyard";
+type Tab = "active" | "dormant";
 
 export function SoulsPage() {
   const [tab, setTab] = useState<Tab>("active");
   const [souls, setSouls] = useState<SoulsListResponse["souls"]>([]);
-  const [deleted, setDeleted] = useState<SoulsListResponse["souls"]>([]);
+  const [dormant, setDormant] = useState<SoulsListResponse["souls"]>([]);
   const [traitLimit, setTraitLimit] = useState(10);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
-      const [activeRes, deletedRes] = await Promise.all([
+      const [activeRes, dormantRes] = await Promise.all([
         apiGet<SoulsListResponse>("/api/souls"),
-        apiGet<SoulsListResponse>("/api/souls/deleted"),
+        apiGet<SoulsListResponse>("/api/souls/dormant"),
       ]);
       setSouls(activeRes.souls);
-      setDeleted(deletedRes.souls);
+      setDormant(dormantRes.souls);
       setTraitLimit(activeRes.traitLimit);
     } catch {
       // handled gracefully
@@ -35,7 +35,7 @@ export function SoulsPage() {
     load();
   }, []);
 
-  const handleArchive = async (id: number) => {
+  const handleRetire = async (id: number) => {
     try {
       await apiDelete(`/api/souls/${id}`);
       load();
@@ -44,9 +44,9 @@ export function SoulsPage() {
     }
   };
 
-  const handleRestore = async (id: number) => {
+  const handleAwaken = async (id: number) => {
     try {
-      await apiPost(`/api/souls/${id}/restore`);
+      await apiPost(`/api/souls/${id}/awaken`);
       load();
     } catch {
       // handled gracefully
@@ -81,10 +81,10 @@ export function SoulsPage() {
           <li class="nav-item">
             <button
               type="button"
-              class={`nav-link ${tab === "graveyard" ? "active" : ""}`}
-              onClick={() => setTab("graveyard")}
+              class={`nav-link ${tab === "dormant" ? "active" : ""}`}
+              onClick={() => setTab("dormant")}
             >
-              Graveyard ({deleted.length})
+              Dormant ({dormant.length})
             </button>
           </li>
         </ul>
@@ -132,7 +132,7 @@ export function SoulsPage() {
                     soul={s}
                     traitLimit={traitLimit}
                     variant="custom"
-                    onArchive={handleArchive}
+                    onRetire={handleRetire}
                   />
                 </div>
               ))}
@@ -144,19 +144,19 @@ export function SoulsPage() {
         </div>
       )}
 
-      {tab === "graveyard" && (
+      {tab === "dormant" && (
         <div>
-          {deleted.length === 0 ? (
-            <p class="text-muted">No archived souls.</p>
+          {dormant.length === 0 ? (
+            <p class="text-muted">No dormant souls.</p>
           ) : (
             <div class="row g-3">
-              {deleted.map((s) => (
+              {dormant.map((s) => (
                 <div class="col-md-6 col-lg-4" key={s.id}>
                   <SoulCard
                     soul={s}
                     traitLimit={traitLimit}
-                    variant="graveyard"
-                    onRestore={handleRestore}
+                    variant="dormant"
+                    onAwaken={handleAwaken}
                   />
                 </div>
               ))}

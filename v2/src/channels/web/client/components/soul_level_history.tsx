@@ -5,11 +5,11 @@ import { apiPost } from "../api_post.ts";
 interface SoulLevelHistoryProps {
   levels: LevelInfo[];
   soulId: number;
-  isArchived: boolean;
+  isDormant: boolean;
   onUpdated: () => void;
 }
 
-export function SoulLevelHistory({ levels, soulId, isArchived, onUpdated }: SoulLevelHistoryProps) {
+export function SoulLevelHistory({ levels, soulId, isDormant, onUpdated }: SoulLevelHistoryProps) {
   const [error, setError] = useState<string | null>(null);
   const sorted = [...levels].sort((a, b) => b.level - a.level);
   const latestLevel = sorted[0]?.level;
@@ -63,7 +63,7 @@ export function SoulLevelHistory({ levels, soulId, isArchived, onUpdated }: Soul
                       <span>Promoted: {lvl.traitsPromoted.length}</span>
                       <span>Carried: {lvl.traitsCarried.length}</span>
                     </div>
-                    {isLatest && !isArchived && (
+                    {isLatest && !isDormant && (
                       <button
                         type="button"
                         class="btn btn-outline-danger btn-sm"

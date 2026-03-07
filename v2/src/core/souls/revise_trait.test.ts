@@ -56,11 +56,11 @@ describe("reviseTrait", () => {
     throws(() => reviseTrait(db, t.id, { principle: "x" }), /reverted.*cannot be revised/i);
   });
 
-  it("throws when soul is archived", () => {
-    const custom = createSoul(db, { name: "Archived", essence: "" });
+  it("throws when soul is dormant", () => {
+    const custom = createSoul(db, { name: "Dormant", essence: "" });
     const t = addTrait(db, custom.id, { principle: "p", provenance: "e" });
     db.prepare("UPDATE souls SET deleted_at = ? WHERE id = ?").run(Date.now(), custom.id);
-    throws(() => reviseTrait(db, t.id, { principle: "x" }), /archived/i);
+    throws(() => reviseTrait(db, t.id, { principle: "x" }), /dormant/i);
   });
 
   it("throws on empty principle", () => {

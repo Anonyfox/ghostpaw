@@ -30,6 +30,9 @@ export function initChatTables(db: DatabaseHandle): void {
   db.exec("CREATE INDEX IF NOT EXISTS idx_sessions_closed ON sessions(closed_at)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_sessions_distilled ON sessions(distilled_at)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_sessions_soul ON sessions(soul_id)");
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_sessions_delegate_soul ON sessions(purpose, soul_id, created_at)",
+  );
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS messages (

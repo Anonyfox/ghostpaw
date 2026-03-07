@@ -10,7 +10,7 @@ If you are working on a specific system, also read its spec:
 
 | System | Spec | Status | What it covers |
 |--------|------|--------|----------------|
-| Souls | `docs/SOULS.md` | **Implemented** | Evolutionary identity, traits, refinement, level-up |
+| Souls | `docs/features/SOULS.md` | **Implemented** | Evolutionary identity, traits, refinement, level-up |
 | Memory | `docs/MEMORY.md` | **Implemented** | Belief-based storage, recall, embeddings, confidence decay |
 | Secrets | `docs/SECRETS.md` | **Implemented** | Secret storage, provider keys, isolation, scrubbing |
 | Config | `docs/CONFIG.md` | **Implemented** | Runtime configuration, validation, changelog |
@@ -25,7 +25,6 @@ Additional docs not tied to a single module:
 
 | Doc | What it covers |
 |-----|----------------|
-| `docs/ORCHESTRATION.md` | Four aspects (evolution, persistence, play, infrastructure), mandatory souls, warden, delegation architecture |
 | `docs/USP.md` | Product positioning and value proposition |
 | `docs/research/PROPRIOCEPTIVE_SENSING.md` | Research paper behind the sense system in `lib/sense/` |
 
@@ -38,7 +37,7 @@ The runtime is fully operational. It builds to `dist/ghostpaw.mjs`, opens `ghost
 | Module | What it does |
 |--------|-------------|
 | `chat/` | Sessions, messages, streaming, compaction, locking, cost queries, spend tracking |
-| `souls/` | 6 mandatory souls with evolutionary traits, level-up, graveyard, backfill |
+| `souls/` | 6 mandatory souls with evolutionary traits, level-up, dormancy, backfill |
 | `memory/` | Belief-based recall with confidence decay, trigram + FTS5 search |
 | `pack/` | Social bonds, contacts, identity resolution, member merging, Theory of Mind |
 | `quests/` | Unified task/event/calendar system, temporal awareness, quest board, FTS5 |

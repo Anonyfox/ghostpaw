@@ -1,6 +1,6 @@
 import type { LevelInfo } from "../../shared/soul_types.ts";
 
-interface MentorEvolutionResultProps {
+interface MentorLevelUpResultProps {
   content: string;
   succeeded: boolean;
   cost: { totalUsd: number };
@@ -9,20 +9,20 @@ interface MentorEvolutionResultProps {
   onClose: () => void;
 }
 
-export function MentorEvolutionResult({
+export function MentorLevelUpResult({
   content,
   succeeded,
   cost,
   level,
   newLevel,
   onClose,
-}: MentorEvolutionResultProps) {
+}: MentorLevelUpResultProps) {
   const costStr = `$${cost.totalUsd.toFixed(2)}`;
 
   return (
     <div class="mt-3 p-3 border border-warning rounded bg-body-tertiary">
       <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="text-warning mb-0">Evolution Complete — Level {newLevel}</h6>
+        <h6 class="text-warning mb-0">Level Up Complete — Level {newLevel}</h6>
         <div class="d-flex align-items-center gap-2">
           <span class={`badge ${succeeded ? "bg-success" : "bg-danger"}`}>
             {succeeded ? "Success" : "Failed"}

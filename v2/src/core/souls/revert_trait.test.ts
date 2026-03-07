@@ -43,10 +43,10 @@ describe("revertTrait", () => {
     throws(() => revertTrait(db, t.id), /consolidated.*not active/i);
   });
 
-  it("throws when soul is archived", () => {
+  it("throws when soul is dormant", () => {
     const custom = createSoul(db, { name: "A", essence: "" });
     const t = addTrait(db, custom.id, { principle: "p", provenance: "e" });
     db.prepare("UPDATE souls SET deleted_at = ? WHERE id = ?").run(Date.now(), custom.id);
-    throws(() => revertTrait(db, t.id), /archived/i);
+    throws(() => revertTrait(db, t.id), /dormant/i);
   });
 });

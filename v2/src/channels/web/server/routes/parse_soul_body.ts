@@ -13,7 +13,7 @@ interface ParsedSoulUpdate {
   description?: string;
 }
 
-interface ParsedRestore {
+interface ParsedAwaken {
   newName?: string;
 }
 
@@ -72,7 +72,7 @@ export async function parseSoulUpdateBody(
   return result;
 }
 
-export async function parseRestoreBody(req: IncomingMessage): Promise<ParseResult<ParsedRestore>> {
+export async function parseAwakenBody(req: IncomingMessage): Promise<ParseResult<ParsedAwaken>> {
   let body: unknown;
   try {
     body = await readJsonBody(req);

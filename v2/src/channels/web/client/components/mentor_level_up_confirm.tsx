@@ -1,13 +1,13 @@
-interface MentorEvolveConfirmProps {
+interface MentorLevelUpConfirmProps {
   soulName: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-export function MentorEvolveConfirm({ soulName, onConfirm, onCancel }: MentorEvolveConfirmProps) {
+export function MentorLevelUpConfirm({ soulName, onConfirm, onCancel }: MentorLevelUpConfirmProps) {
   return (
     <div class="mt-3 p-3 border border-warning rounded bg-body-tertiary">
-      <h6 class="text-warning mb-2">Evolve {soulName}</h6>
+      <h6 class="text-warning mb-2">Level Up {soulName}</h6>
       <p class="text-body small mb-2">The Mentor will:</p>
       <ul class="text-muted small mb-2">
         <li>Consolidate related traits into stronger ones</li>
@@ -20,7 +20,7 @@ export function MentorEvolveConfirm({ soulName, onConfirm, onCancel }: MentorEvo
       </p>
       <div class="d-flex gap-2">
         <button type="button" class="btn btn-sm btn-warning" onClick={onConfirm}>
-          Evolve Now
+          Level Up Now
         </button>
         <button type="button" class="btn btn-sm btn-outline-secondary" onClick={onCancel}>
           Cancel

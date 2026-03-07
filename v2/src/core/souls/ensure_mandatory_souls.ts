@@ -19,24 +19,23 @@ export function ensureMandatorySouls(db: DatabaseHandle): void {
       | undefined;
     if (!row) continue;
 
+    const sets: string[] = [];
+    const params: unknown[] = [];
     if (row.deleted_at != null) {
-      db.prepare("UPDATE souls SET deleted_at = NULL, updated_at = ? WHERE id = ?").run(now, id);
+      sets.push("deleted_at = NULL");
     }
-
     if ((row.essence as string).trim().length === 0) {
-      db.prepare("UPDATE souls SET essence = ?, updated_at = ? WHERE id = ?").run(
-        defaults.essence,
-        now,
-        id,
-      );
+      sets.push("essence = ?");
+      params.push(defaults.essence);
     }
-
     if (!row.description || (row.description as string).trim().length === 0) {
-      db.prepare("UPDATE souls SET description = ?, updated_at = ? WHERE id = ?").run(
-        defaults.description,
-        now,
-        id,
-      );
+      sets.push("description = ?");
+      params.push(defaults.description);
+    }
+    if (sets.length > 0) {
+      sets.push("updated_at = ?");
+      params.push(now, id);
+      db.prepare(`UPDATE souls SET ${sets.join(", ")} WHERE id = ?`).run(...params);
     }
 
     if (defaults.traits.length > 0) {

@@ -179,7 +179,7 @@ describe("levelUp", () => {
     );
   });
 
-  it("throws when soul is archived", () => {
+  it("throws when soul is dormant", () => {
     const custom = createSoul(db, { name: "A", essence: "e" });
     db.prepare("UPDATE souls SET deleted_at = ? WHERE id = ?").run(Date.now(), custom.id);
     throws(
@@ -190,7 +190,7 @@ describe("levelUp", () => {
           promotedTraitIds: [],
           carriedTraitIds: [],
         }),
-      /archived/i,
+      /dormant/i,
     );
   });
 

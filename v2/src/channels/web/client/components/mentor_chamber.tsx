@@ -4,12 +4,12 @@ import type { MentorActionResponse } from "../../shared/mentor_types.ts";
 import type { LevelInfo, SoulDetailResponse } from "../../shared/soul_types.ts";
 import { apiPost } from "../api_post.ts";
 import { MentorActionCard } from "./mentor_action_card.tsx";
-import { MentorEvolutionResult } from "./mentor_evolution_result.tsx";
-import { MentorEvolveConfirm } from "./mentor_evolve_confirm.tsx";
+import { MentorLevelUpResult } from "./mentor_level_up_result.tsx";
+import { MentorLevelUpConfirm } from "./mentor_level_up_confirm.tsx";
 import { MentorResponse } from "./mentor_response.tsx";
-import { MentorTrainInput } from "./mentor_train_input.tsx";
+import { MentorRefineInput } from "./mentor_refine_input.tsx";
 
-type Action = "consult" | "train" | "evolve" | null;
+type Action = "review" | "refine" | "levelUp" | null;
 type Phase = "idle" | "input" | "confirm" | "loading" | "result";
 
 interface MentorChamberProps {
@@ -21,7 +21,7 @@ export function MentorChamber({ soul, onUpdated }: MentorChamberProps) {
   const [action, setAction] = useState<Action>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<MentorActionResponse | null>(null);
-  const [evolutionLevel, setEvolutionLevel] = useState<LevelInfo | null>(null);
+  const [levelUpInfo, setLevelUpInfo] = useState<LevelInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const activeTraitCount = soul.traits.filter((t) => t.status === "active").length;
@@ -32,13 +32,13 @@ export function MentorChamber({ soul, onUpdated }: MentorChamberProps) {
     setAction(null);
     setPhase("idle");
     setResult(null);
-    setEvolutionLevel(null);
+    setLevelUpInfo(null);
     setError(null);
   };
 
-  const handleConsult = async () => {
+  const handleReview = async () => {
     setError(null);
-    setAction("consult");
+    setAction("review");
     setPhase("loading");
     try {
       const res = await apiPost<MentorActionResponse>(`/api/souls/${soul.id}/review`);
@@ -51,7 +51,7 @@ export function MentorChamber({ soul, onUpdated }: MentorChamberProps) {
     }
   };
 
-  const handleTrainSubmit = async (feedback: string) => {
+  const handleRefineSubmit = async (feedback: string) => {
     setError(null);
     setPhase("loading");
     try {
@@ -68,7 +68,7 @@ export function MentorChamber({ soul, onUpdated }: MentorChamberProps) {
     }
   };
 
-  const handleEvolveConfirm = async () => {
+  const handleLevelUpConfirm = async () => {
     setError(null);
     const prevLevel = soul.level;
     setPhase("loading");
@@ -80,7 +80,7 @@ export function MentorChamber({ soul, onUpdated }: MentorChamberProps) {
         const newEntry = [...fresh.levels]
           .sort((a, b) => b.createdAt - a.createdAt)
           .find((l) => l.level > prevLevel);
-        setEvolutionLevel(newEntry ?? null);
+        setLevelUpInfo(newEntry ?? null);
       }
       setPhase("result");
     } catch (err) {
@@ -91,11 +91,11 @@ export function MentorChamber({ soul, onUpdated }: MentorChamberProps) {
   };
 
   const loadingText =
-    action === "consult"
-      ? "The Mentor is examining this soul..."
-      : action === "train"
-        ? "The Mentor is processing your guidance..."
-        : "The soul is evolving...";
+    action === "review"
+      ? "The Mentor is reviewing this soul..."
+      : action === "refine"
+        ? "The Mentor is refining this soul..."
+        : "The soul is leveling up...";
 
   const chamberBorder = isReady && soul.mentorAvailable ? "border-warning" : "border-info";
 
@@ -121,24 +121,24 @@ export function MentorChamber({ soul, onUpdated }: MentorChamberProps) {
         <div class="row g-3 mb-0">
           <div class="col-md-4">
             <MentorActionCard
-              title="Consult"
-              description="Assess the soul's current state and growth potential"
-              buttonLabel="Consult"
+              title="Review"
+              description="Review the soul's current state and growth potential"
+              buttonLabel="Review"
               disabled={!soul.mentorAvailable || busy}
-              active={action === "consult"}
-              onClick={handleConsult}
+              active={action === "review"}
+              onClick={handleReview}
             />
           </div>
           <div class="col-md-4">
             <MentorActionCard
-              title="Train"
-              description="Guide the soul's growth with your feedback"
-              buttonLabel="Train"
+              title="Refine"
+              description="Refine this soul based on your feedback"
+              buttonLabel="Refine"
               disabled={!soul.mentorAvailable || busy}
-              active={action === "train"}
+              active={action === "refine"}
               onClick={() => {
                 setError(null);
-                setAction("train");
+                setAction("refine");
                 setPhase("input");
                 setResult(null);
               }}
@@ -146,16 +146,16 @@ export function MentorChamber({ soul, onUpdated }: MentorChamberProps) {
           </div>
           <div class="col-md-4">
             <MentorActionCard
-              title="Evolve"
-              description="Ascend to the next level"
-              buttonLabel={isReady ? "Evolve Now" : "Evolve"}
+              title="Level Up"
+              description="Advance to the next level"
+              buttonLabel={isReady ? "Level Up Now" : "Level Up"}
               disabled={!soul.mentorAvailable || busy || !isReady}
-              active={action === "evolve"}
+              active={action === "levelUp"}
               variant={isReady && soul.mentorAvailable ? "ready" : "default"}
               statusText={`${activeTraitCount}/${soul.traitLimit}`}
               onClick={() => {
                 setError(null);
-                setAction("evolve");
+                setAction("levelUp");
                 setPhase("confirm");
                 setResult(null);
               }}
@@ -163,14 +163,14 @@ export function MentorChamber({ soul, onUpdated }: MentorChamberProps) {
           </div>
         </div>
 
-        {phase === "input" && action === "train" && (
-          <MentorTrainInput onSubmit={handleTrainSubmit} onCancel={reset} disabled={busy} />
+        {phase === "input" && action === "refine" && (
+          <MentorRefineInput onSubmit={handleRefineSubmit} onCancel={reset} disabled={busy} />
         )}
 
-        {phase === "confirm" && action === "evolve" && (
-          <MentorEvolveConfirm
+        {phase === "confirm" && action === "levelUp" && (
+          <MentorLevelUpConfirm
             soulName={soul.name}
-            onConfirm={handleEvolveConfirm}
+            onConfirm={handleLevelUpConfirm}
             onCancel={reset}
           />
         )}
@@ -184,13 +184,13 @@ export function MentorChamber({ soul, onUpdated }: MentorChamberProps) {
 
         {phase === "result" &&
           result &&
-          (action === "evolve" && evolutionLevel ? (
-            <MentorEvolutionResult
+          (action === "levelUp" && levelUpInfo ? (
+            <MentorLevelUpResult
               content={result.content}
               succeeded={result.succeeded}
               cost={result.cost}
-              level={evolutionLevel}
-              newLevel={evolutionLevel.level}
+              level={levelUpInfo}
+              newLevel={levelUpInfo.level}
               onClose={reset}
             />
           ) : (

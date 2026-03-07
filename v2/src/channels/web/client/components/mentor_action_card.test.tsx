@@ -19,7 +19,7 @@ describe("MentorActionCard", () => {
   it("renders title, description, and button label", () => {
     render(
       <MentorActionCard
-        title="Consult"
+        title="Review"
         description="Assess the soul"
         buttonLabel="Start"
         disabled={false}
@@ -28,7 +28,7 @@ describe("MentorActionCard", () => {
       />,
       dom.container,
     );
-    assert.ok(dom.container.textContent?.includes("Consult"));
+    assert.ok(dom.container.textContent?.includes("Review"));
     assert.ok(dom.container.textContent?.includes("Assess the soul"));
     const btn = dom.container.querySelector("button");
     assert.ok(btn);
@@ -39,9 +39,9 @@ describe("MentorActionCard", () => {
     const fn = mock.fn();
     render(
       <MentorActionCard
-        title="Train"
+        title="Refine"
         description="Guide growth"
-        buttonLabel="Train"
+        buttonLabel="Refine"
         disabled={false}
         active={false}
         onClick={fn}
@@ -56,9 +56,9 @@ describe("MentorActionCard", () => {
     const fn = mock.fn();
     render(
       <MentorActionCard
-        title="Evolve"
+        title="Level Up"
         description="Level up"
-        buttonLabel="Evolve"
+        buttonLabel="Level Up"
         disabled={true}
         active={false}
         onClick={fn}
@@ -72,7 +72,7 @@ describe("MentorActionCard", () => {
   it("applies border-info when active", () => {
     render(
       <MentorActionCard
-        title="Consult"
+        title="Review"
         description="d"
         buttonLabel="b"
         disabled={false}
@@ -88,7 +88,7 @@ describe("MentorActionCard", () => {
   it("applies border-warning when variant is ready", () => {
     render(
       <MentorActionCard
-        title="Evolve"
+        title="Level Up"
         description="d"
         buttonLabel="b"
         disabled={false}
@@ -105,7 +105,7 @@ describe("MentorActionCard", () => {
   it("renders statusText when provided", () => {
     render(
       <MentorActionCard
-        title="Evolve"
+        title="Level Up"
         description="d"
         buttonLabel="b"
         disabled={false}
@@ -121,7 +121,7 @@ describe("MentorActionCard", () => {
   it("reduces opacity when disabled and not active", () => {
     render(
       <MentorActionCard
-        title="Consult"
+        title="Review"
         description="d"
         buttonLabel="b"
         disabled={true}

@@ -1,21 +1,21 @@
 import {
+  awakenSoul,
   createSoul,
-  deleteSoul,
   getLevelHistory,
   getSoul,
   getTraitLimit,
   isMandatorySoulId,
-  listDeletedSouls,
+  listDormantSouls,
   listSouls,
   listTraits,
-  restoreSoul,
+  retireSoul,
   revertLevelUp,
   updateSoul,
 } from "../../../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { SoulDetailResponse, SoulOverviewInfo } from "../../shared/soul_types.ts";
 import type { RouteContext } from "../types.ts";
-import { parseRestoreBody, parseSoulCreateBody, parseSoulUpdateBody } from "./parse_soul_body.ts";
+import { parseAwakenBody, parseSoulCreateBody, parseSoulUpdateBody } from "./parse_soul_body.ts";
 
 function json(ctx: RouteContext, status: number, data: unknown): void {
   ctx.res.writeHead(status, { "Content-Type": "application/json" });
@@ -48,8 +48,8 @@ export function createSoulsApiHandlers(db: DatabaseHandle, entityAvailable: bool
       json(ctx, 200, { souls, traitLimit });
     },
 
-    listDeleted(ctx: RouteContext): void {
-      const summaries = listDeletedSouls(db);
+    listDormant(ctx: RouteContext): void {
+      const summaries = listDormantSouls(db);
       const traitLimit = getTraitLimit(db);
       const souls: SoulOverviewInfo[] = summaries.map((s) => {
         const full = getSoul(db, s.id);
@@ -150,30 +150,30 @@ export function createSoulsApiHandlers(db: DatabaseHandle, entityAvailable: bool
       }
     },
 
-    archive(ctx: RouteContext): void {
+    retire(ctx: RouteContext): void {
       const id = Number(ctx.params.id);
       if (!Number.isFinite(id) || id < 1) {
         json(ctx, 400, { error: "Invalid soul ID." });
         return;
       }
       try {
-        deleteSoul(db, id);
+        retireSoul(db, id);
         json(ctx, 200, { ok: true });
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
       }
     },
 
-    async restore(ctx: RouteContext): Promise<void> {
+    async awaken(ctx: RouteContext): Promise<void> {
       const id = Number(ctx.params.id);
       if (!Number.isFinite(id) || id < 1) {
         json(ctx, 400, { error: "Invalid soul ID." });
         return;
       }
-      const result = await parseRestoreBody(ctx.req);
+      const result = await parseAwakenBody(ctx.req);
       const newName = "newName" in result ? result.newName : undefined;
       try {
-        const soul = restoreSoul(db, id, newName);
+        const soul = awakenSoul(db, id, newName);
         json(ctx, 200, { soul });
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });

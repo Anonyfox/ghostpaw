@@ -6,7 +6,7 @@ import { apiPost } from "../api_post.ts";
 interface SoulTraitRowProps {
   trait: TraitInfo;
   soulId: number;
-  isArchived: boolean;
+  isDormant: boolean;
   onUpdated: () => void;
 }
 
@@ -17,7 +17,7 @@ const statusColors: Record<string, string> = {
   reverted: "bg-secondary",
 };
 
-export function SoulTraitRow({ trait, soulId, isArchived, onUpdated }: SoulTraitRowProps) {
+export function SoulTraitRow({ trait, soulId, isDormant, onUpdated }: SoulTraitRowProps) {
   const [editing, setEditing] = useState(false);
   const [principle, setPrinciple] = useState(trait.principle);
   const [provenance, setProvenance] = useState(trait.provenance);
@@ -97,7 +97,7 @@ export function SoulTraitRow({ trait, soulId, isArchived, onUpdated }: SoulTrait
           <span class="text-body-tertiary small">Gen {trait.generation}</span>
         </div>
       </div>
-      {!isArchived && !editing && (
+      {!isDormant && !editing && (
         <div class="mt-1 d-flex gap-1">
           {trait.status === "active" && (
             <>

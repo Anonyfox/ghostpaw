@@ -125,7 +125,7 @@ describe("revertLevelUp", () => {
     throws(() => revertLevelUp(db, fresh.id), /level 0/i);
   });
 
-  it("throws when soul is archived", () => {
+  it("throws when soul is dormant", () => {
     const custom = createSoul(db, { name: "A", essence: "e" });
     const t = addTrait(db, custom.id, { principle: "p", provenance: "e" });
     levelUp(db, custom.id, {
@@ -135,7 +135,7 @@ describe("revertLevelUp", () => {
       carriedTraitIds: [t.id],
     });
     db.prepare("UPDATE souls SET deleted_at = ? WHERE id = ?").run(Date.now(), custom.id);
-    throws(() => revertLevelUp(db, custom.id), /archived/i);
+    throws(() => revertLevelUp(db, custom.id), /dormant/i);
   });
 
   it("handles consecutive reverts (level 2 -> 1 -> 0)", () => {

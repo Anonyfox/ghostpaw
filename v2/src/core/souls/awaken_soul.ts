@@ -3,13 +3,13 @@ import { getSoul } from "./get_soul.ts";
 import { rowToSoul } from "./row_to_soul.ts";
 import type { Soul } from "./types.ts";
 
-export function restoreSoul(db: DatabaseHandle, id: number, newName?: string): Soul {
+export function awakenSoul(db: DatabaseHandle, id: number, newName?: string): Soul {
   const soul = getSoul(db, id);
   if (!soul) {
     throw new Error(`Soul with ID ${id} not found.`);
   }
   if (soul.deletedAt == null) {
-    throw new Error(`Soul "${soul.name}" (ID ${id}) is not archived.`);
+    throw new Error(`Soul "${soul.name}" (ID ${id}) is not dormant.`);
   }
 
   const targetName = newName != null ? newName.trim() : soul.name;
@@ -21,7 +21,7 @@ export function restoreSoul(db: DatabaseHandle, id: number, newName?: string): S
     .prepare("SELECT id FROM souls WHERE name = ? AND deleted_at IS NULL AND id != ?")
     .get(targetName, id);
   if (conflict) {
-    throw new Error(`Cannot restore: an active soul named "${targetName}" already exists.`);
+    throw new Error(`Cannot awaken: an active soul named "${targetName}" already exists.`);
   }
 
   const now = Date.now();

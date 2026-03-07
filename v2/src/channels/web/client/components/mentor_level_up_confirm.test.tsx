@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it, mock } from "node:test";
 import { render } from "preact";
 import { createTestDOM } from "../create_test_dom.ts";
-import { MentorEvolveConfirm } from "./mentor_evolve_confirm.tsx";
+import { MentorLevelUpConfirm } from "./mentor_level_up_confirm.tsx";
 
-describe("MentorEvolveConfirm", () => {
+describe("MentorLevelUpConfirm", () => {
   let dom: ReturnType<typeof createTestDOM>;
 
   beforeEach(() => {
@@ -18,15 +18,15 @@ describe("MentorEvolveConfirm", () => {
 
   it("renders soul name in heading", () => {
     render(
-      <MentorEvolveConfirm soulName="JS Engineer" onConfirm={() => {}} onCancel={() => {}} />,
+      <MentorLevelUpConfirm soulName="JS Engineer" onConfirm={() => {}} onCancel={() => {}} />,
       dom.container,
     );
     assert.ok(dom.container.textContent?.includes("JS Engineer"));
   });
 
-  it("renders explanation of what evolution does", () => {
+  it("renders explanation of what level-up does", () => {
     render(
-      <MentorEvolveConfirm soulName="Test" onConfirm={() => {}} onCancel={() => {}} />,
+      <MentorLevelUpConfirm soulName="Test" onConfirm={() => {}} onCancel={() => {}} />,
       dom.container,
     );
     assert.ok(dom.container.textContent?.includes("Consolidate"));
@@ -34,14 +34,14 @@ describe("MentorEvolveConfirm", () => {
     assert.ok(dom.container.textContent?.includes("essence"));
   });
 
-  it("fires onConfirm when Evolve Now is clicked", () => {
+  it("fires onConfirm when Level Up Now is clicked", () => {
     const fn = mock.fn();
     render(
-      <MentorEvolveConfirm soulName="Test" onConfirm={fn} onCancel={() => {}} />,
+      <MentorLevelUpConfirm soulName="Test" onConfirm={fn} onCancel={() => {}} />,
       dom.container,
     );
     const btn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("Evolve Now"),
+      b.textContent?.includes("Level Up Now"),
     );
     btn!.click();
     assert.strictEqual(fn.mock.callCount(), 1);
@@ -50,7 +50,7 @@ describe("MentorEvolveConfirm", () => {
   it("fires onCancel when Cancel is clicked", () => {
     const fn = mock.fn();
     render(
-      <MentorEvolveConfirm soulName="Test" onConfirm={() => {}} onCancel={fn} />,
+      <MentorLevelUpConfirm soulName="Test" onConfirm={() => {}} onCancel={fn} />,
       dom.container,
     );
     const btn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
@@ -62,7 +62,7 @@ describe("MentorEvolveConfirm", () => {
 
   it("shows irreversibility warning", () => {
     render(
-      <MentorEvolveConfirm soulName="Test" onConfirm={() => {}} onCancel={() => {}} />,
+      <MentorLevelUpConfirm soulName="Test" onConfirm={() => {}} onCancel={() => {}} />,
       dom.container,
     );
     assert.ok(dom.container.textContent?.includes("cannot be undone"));

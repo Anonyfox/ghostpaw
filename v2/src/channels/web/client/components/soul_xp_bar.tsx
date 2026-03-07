@@ -3,7 +3,7 @@ interface SoulXpBarProps {
   traitLimit: number;
   variant?: "compact" | "full";
   isHero?: boolean;
-  isArchived?: boolean;
+  isDormant?: boolean;
   contextMessage?: string;
 }
 
@@ -12,7 +12,7 @@ export function SoulXpBar({
   traitLimit,
   variant = "compact",
   isHero = false,
-  isArchived = false,
+  isDormant = false,
   contextMessage,
 }: SoulXpBarProps) {
   if (traitLimit <= 0) return null;
@@ -23,7 +23,7 @@ export function SoulXpBar({
   const isOverflow = clamped > traitLimit;
 
   let barClass = "progress-bar";
-  if (isArchived) {
+  if (isDormant) {
     barClass += " bg-secondary";
   } else if (isOverflow) {
     barClass += " bg-danger progress-bar-striped progress-bar-animated";
@@ -43,7 +43,7 @@ export function SoulXpBar({
       : `${clamped}/${traitLimit}`;
 
   const labelClass = variant === "full" ? "small fw-semibold" : "small";
-  const textColor = isArchived
+  const textColor = isDormant
     ? "text-muted"
     : isReady
       ? "text-warning"

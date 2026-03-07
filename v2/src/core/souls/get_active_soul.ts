@@ -8,7 +8,7 @@ export function getActiveSoul(db: DatabaseHandle, id: number): Soul {
     throw new Error(`Soul with ID ${id} not found.`);
   }
   if (soul.deletedAt != null) {
-    throw new Error(`Soul "${soul.name}" (ID ${id}) is archived and cannot be modified.`);
+    throw new Error(`Soul "${soul.name}" (ID ${id}) is dormant and cannot be modified.`);
   }
   return soul;
 }

@@ -5,13 +5,13 @@ import { SoulTraitRow } from "./soul_trait_row.tsx";
 interface SoulTraitListProps {
   traits: TraitInfo[];
   soulId: number;
-  isArchived: boolean;
+  isDormant: boolean;
   onUpdated: () => void;
 }
 
 const TABS = ["all", "active", "consolidated", "promoted", "reverted"] as const;
 
-export function SoulTraitList({ traits, soulId, isArchived, onUpdated }: SoulTraitListProps) {
+export function SoulTraitList({ traits, soulId, isDormant, onUpdated }: SoulTraitListProps) {
   const [filter, setFilter] = useState<string>("all");
 
   const counts: Record<string, number> = { all: traits.length };
@@ -43,7 +43,7 @@ export function SoulTraitList({ traits, soulId, isArchived, onUpdated }: SoulTra
               key={t.id}
               trait={t}
               soulId={soulId}
-              isArchived={isArchived}
+              isDormant={isDormant}
               onUpdated={onUpdated}
             />
           ))}

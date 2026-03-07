@@ -53,9 +53,9 @@ describe("updateSoul", () => {
     throws(() => updateSoul(db, 999, { essence: "x" }), /not found/i);
   });
 
-  it("throws when soul is archived", () => {
+  it("throws when soul is dormant", () => {
     db.prepare("UPDATE souls SET deleted_at = ? WHERE id = ?").run(Date.now(), soulId);
-    throws(() => updateSoul(db, soulId, { essence: "x" }), /archived/i);
+    throws(() => updateSoul(db, soulId, { essence: "x" }), /dormant/i);
   });
 
   it("updates description only", () => {

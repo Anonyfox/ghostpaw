@@ -25,9 +25,9 @@ describe("getActiveSoul", () => {
     throws(() => getActiveSoul(db, 999), /not found/i);
   });
 
-  it("throws when soul is archived", () => {
-    const created = createSoul(db, { name: "Archived", essence: "" });
+  it("throws when soul is dormant", () => {
+    const created = createSoul(db, { name: "Dormant", essence: "" });
     db.prepare("UPDATE souls SET deleted_at = ? WHERE id = ?").run(Date.now(), created.id);
-    throws(() => getActiveSoul(db, created.id), /archived/i);
+    throws(() => getActiveSoul(db, created.id), /dormant/i);
   });
 });

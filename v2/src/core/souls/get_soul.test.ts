@@ -30,8 +30,8 @@ describe("getSoul", () => {
     strictEqual(getSoul(db, 999), null);
   });
 
-  it("returns soft-deleted souls (neutral primitive)", () => {
-    const created = createSoul(db, { name: "Archived", essence: "" });
+  it("returns dormant souls (neutral primitive)", () => {
+    const created = createSoul(db, { name: "Dormant", essence: "" });
     db.prepare("UPDATE souls SET deleted_at = ? WHERE id = ?").run(Date.now(), created.id);
     const soul = getSoul(db, created.id);
     ok(soul);

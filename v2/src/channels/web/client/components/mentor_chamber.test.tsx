@@ -75,9 +75,9 @@ describe("MentorChamber", () => {
   it("shows three action cards when mentorAvailable is true", () => {
     const soul = makeSoul();
     render(<MentorChamber soul={soul} onUpdated={async () => soul} />, dom.container);
-    assert.ok(dom.container.textContent?.includes("Consult"));
-    assert.ok(dom.container.textContent?.includes("Train"));
-    assert.ok(dom.container.textContent?.includes("Evolve"));
+    assert.ok(dom.container.textContent?.includes("Review"));
+    assert.ok(dom.container.textContent?.includes("Refine"));
+    assert.ok(dom.container.textContent?.includes("Level Up"));
     assert.ok(dom.container.textContent?.includes("Mentor's Chamber"));
   });
 
@@ -97,26 +97,26 @@ describe("MentorChamber", () => {
     }
   });
 
-  it("consult: triggers review API and shows result", async () => {
+  it("review: triggers review API and shows result", async () => {
     mockFetchOk(mentorResponse);
     const soul = makeSoul();
     render(<MentorChamber soul={soul} onUpdated={async () => soul} />, dom.container);
-    const consultBtn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("Consult"),
+    const reviewBtn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Review"),
     );
-    consultBtn!.click();
+    reviewBtn!.click();
     await waitFor(() => dom.container.textContent?.includes("performing well") === true);
     assert.ok(dom.container.textContent?.includes("$0.03"));
     assert.ok(dom.container.textContent?.includes("Success"));
   });
 
-  it("train: shows input on click then submits feedback", async () => {
+  it("refine: shows input on click then submits feedback", async () => {
     const soul = makeSoul();
     render(<MentorChamber soul={soul} onUpdated={async () => soul} />, dom.container);
-    const trainBtn = Array.from(dom.container.querySelectorAll("button")).find(
-      (b) => b.textContent === "Train",
+    const refineBtn = Array.from(dom.container.querySelectorAll("button")).find(
+      (b) => b.textContent === "Refine",
     );
-    trainBtn!.click();
+    refineBtn!.click();
     await waitFor(() => dom.container.querySelector("textarea") !== null);
     assert.ok(dom.container.querySelector("textarea"));
 
@@ -130,17 +130,17 @@ describe("MentorChamber", () => {
     await waitFor(() => dom.container.textContent?.includes("performing well") === true);
   });
 
-  it("evolve: disabled when not at trait capacity", () => {
+  it("level-up: disabled when not at trait capacity", () => {
     const soul = makeSoul();
     render(<MentorChamber soul={soul} onUpdated={async () => soul} />, dom.container);
-    const evolveBtn = Array.from(dom.container.querySelectorAll("button")).find(
-      (b) => b.textContent === "Evolve",
+    const levelUpBtn = Array.from(dom.container.querySelectorAll("button")).find(
+      (b) => b.textContent === "Level Up",
     );
-    assert.ok(evolveBtn);
-    assert.ok((evolveBtn as HTMLButtonElement).disabled);
+    assert.ok(levelUpBtn);
+    assert.ok((levelUpBtn as HTMLButtonElement).disabled);
   });
 
-  it("evolve: shows confirm when ready and clicked", async () => {
+  it("level-up: shows confirm when ready and clicked", async () => {
     const traits = Array.from({ length: 10 }, (_, i) => ({
       id: i + 1,
       principle: `Trait ${i + 1}`,
@@ -153,12 +153,12 @@ describe("MentorChamber", () => {
     }));
     const soul = makeSoul({ traits });
     render(<MentorChamber soul={soul} onUpdated={async () => soul} />, dom.container);
-    const evolveBtn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("Evolve Now"),
+    const levelUpBtn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Level Up Now"),
     );
-    assert.ok(evolveBtn);
-    assert.ok(!(evolveBtn as HTMLButtonElement).disabled);
-    evolveBtn!.click();
+    assert.ok(levelUpBtn);
+    assert.ok(!(levelUpBtn as HTMLButtonElement).disabled);
+    levelUpBtn!.click();
     await waitFor(() => dom.container.textContent?.includes("cannot be undone") === true);
   });
 
@@ -166,10 +166,10 @@ describe("MentorChamber", () => {
     mockFetchError(500, "Internal server error.");
     const soul = makeSoul();
     render(<MentorChamber soul={soul} onUpdated={async () => soul} />, dom.container);
-    const consultBtn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("Consult"),
+    const reviewBtn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Review"),
     );
-    consultBtn!.click();
+    reviewBtn!.click();
     await waitFor(() => dom.container.querySelector(".alert-danger") !== null);
     assert.ok(dom.container.textContent?.includes("Internal server error"));
   });
@@ -178,10 +178,10 @@ describe("MentorChamber", () => {
     mockFetchOk(mentorResponse);
     const soul = makeSoul();
     render(<MentorChamber soul={soul} onUpdated={async () => soul} />, dom.container);
-    const consultBtn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("Consult"),
+    const reviewBtn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Review"),
     );
-    consultBtn!.click();
+    reviewBtn!.click();
     await waitFor(() => dom.container.textContent?.includes("performing well") === true);
     const closeBtn = Array.from(dom.container.querySelectorAll("button")).find((b) =>
       b.textContent?.includes("Close"),
@@ -190,7 +190,7 @@ describe("MentorChamber", () => {
     await waitFor(() => !dom.container.textContent?.includes("performing well"));
   });
 
-  it("shows trait status on Evolve card", () => {
+  it("shows trait status on Level Up card", () => {
     const soul = makeSoul();
     render(<MentorChamber soul={soul} onUpdated={async () => soul} />, dom.container);
     assert.ok(dom.container.textContent?.includes("3/10"));

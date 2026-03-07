@@ -1,14 +1,14 @@
 import { defineCommand } from "citty";
-import { deleteSoul, isMandatorySoulId, resolveSoul } from "../../core/souls/index.ts";
+import { isMandatorySoulId, resolveSoul, retireSoul } from "../../core/souls/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
 export default defineCommand({
-  meta: { name: "archive", description: "Archive (soft-delete) a custom soul" },
+  meta: { name: "retire", description: "Retire a custom soul (preserves full history)" },
   args: {
     name: {
       type: "positional",
-      description: "Soul ID or name to archive",
+      description: "Soul ID or name to retire",
       required: true,
     },
   },
@@ -31,15 +31,15 @@ export default defineCommand({
       if (isMandatorySoulId(soul.id)) {
         console.error(
           style.boldRed("error".padStart(10)),
-          ` "${soul.name}" is a mandatory soul and cannot be archived.`,
+          ` "${soul.name}" is a core soul and cannot be retired.`,
         );
         process.exitCode = 1;
         return;
       }
 
       try {
-        deleteSoul(db, soul.id);
-        console.log(style.cyan("archived".padStart(10)), ` "${soul.name}"`);
+        retireSoul(db, soul.id);
+        console.log(style.cyan("retired".padStart(10)), ` "${soul.name}"`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(style.boldRed("error".padStart(10)), ` ${msg}`);

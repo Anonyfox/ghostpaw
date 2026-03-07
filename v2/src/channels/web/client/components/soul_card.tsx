@@ -5,41 +5,41 @@ import { SoulXpBar } from "./soul_xp_bar.tsx";
 interface SoulCardProps {
   soul: SoulOverviewInfo;
   traitLimit: number;
-  variant?: "hero" | "party" | "custom" | "graveyard";
-  onArchive?: (id: number) => void;
-  onRestore?: (id: number) => void;
+  variant?: "hero" | "party" | "custom" | "dormant";
+  onRetire?: (id: number) => void;
+  onAwaken?: (id: number) => void;
 }
 
 export function SoulCard({
   soul,
   traitLimit,
   variant = "custom",
-  onArchive,
-  onRestore,
+  onRetire,
+  onAwaken,
 }: SoulCardProps) {
   const isHero = variant === "hero";
-  const isGraveyard = variant === "graveyard";
+  const isDormant = variant === "dormant";
   const cardClass = [
     "card",
     "h-100",
     isHero ? "border-info border-2" : "",
-    isGraveyard ? "border-secondary opacity-75" : "",
+    isDormant ? "border-secondary opacity-75" : "",
   ]
     .filter(Boolean)
     .join(" ");
 
-  const handleArchive = (e: Event) => {
+  const handleRetire = (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onArchive && confirm(`Archive soul "${soul.name}"?`)) {
-      onArchive(soul.id);
+    if (onRetire && confirm(`Retire soul "${soul.name}"?`)) {
+      onRetire(soul.id);
     }
   };
 
-  const handleRestore = (e: Event) => {
+  const handleAwaken = (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
-    onRestore?.(soul.id);
+    onAwaken?.(soul.id);
   };
 
   return (
@@ -55,7 +55,7 @@ export function SoulCard({
             </Link>
           </h5>
           <span class={`badge ${isHero ? "bg-info" : "bg-secondary"}`}>Lv. {soul.level}</span>
-          {!isGraveyard && soul.activeTraitCount >= traitLimit && traitLimit > 0 && (
+          {!isDormant && soul.activeTraitCount >= traitLimit && traitLimit > 0 && (
             <span class="badge bg-warning text-dark">Ready</span>
           )}
         </div>
@@ -68,21 +68,21 @@ export function SoulCard({
             traitLimit={traitLimit}
             variant="compact"
             isHero={isHero}
-            isArchived={isGraveyard}
+            isDormant={isDormant}
           />
         </div>
         <div class="d-flex justify-content-between align-items-center">
-          {!soul.isMandatory && !isGraveyard && onArchive && (
-            <button type="button" class="btn btn-outline-danger btn-sm" onClick={handleArchive}>
-              Archive
+          {!soul.isMandatory && !isDormant && onRetire && (
+            <button type="button" class="btn btn-outline-danger btn-sm" onClick={handleRetire}>
+              Retire
             </button>
           )}
-          {isGraveyard && onRestore && (
-            <button type="button" class="btn btn-outline-success btn-sm" onClick={handleRestore}>
-              Restore
+          {isDormant && onAwaken && (
+            <button type="button" class="btn btn-outline-success btn-sm" onClick={handleAwaken}>
+              Awaken
             </button>
           )}
-          {soul.isMandatory && <span class="badge bg-warning text-dark">Mandatory</span>}
+          {soul.isMandatory && <span class="badge bg-warning text-dark">Core</span>}
         </div>
       </div>
     </div>

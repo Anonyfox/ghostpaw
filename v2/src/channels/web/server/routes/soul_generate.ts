@@ -33,7 +33,7 @@ export function createSoulGenerateHandlers(db: DatabaseHandle) {
         return;
       }
       if (soul.deletedAt !== null) {
-        json(ctx, 400, { error: "Archived souls cannot be modified." });
+        json(ctx, 400, { error: "Dormant souls cannot be modified." });
         return;
       }
 
@@ -92,7 +92,7 @@ export function createSoulGenerateHandlers(db: DatabaseHandle) {
         return;
       }
       if (soul.deletedAt !== null) {
-        json(ctx, 400, { error: "Archived souls cannot be modified." });
+        json(ctx, 400, { error: "Dormant souls cannot be modified." });
         return;
       }
 

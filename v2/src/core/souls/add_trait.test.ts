@@ -66,10 +66,10 @@ describe("addTrait", () => {
     throws(() => addTrait(db, 999, { principle: "p", provenance: "e" }), /not found/i);
   });
 
-  it("throws when soul is archived", () => {
-    const custom = createSoul(db, { name: "Archived", essence: "" });
+  it("throws when soul is dormant", () => {
+    const custom = createSoul(db, { name: "Dormant", essence: "" });
     db.prepare("UPDATE souls SET deleted_at = ? WHERE id = ?").run(Date.now(), custom.id);
-    throws(() => addTrait(db, custom.id, { principle: "p", provenance: "e" }), /archived/i);
+    throws(() => addTrait(db, custom.id, { principle: "p", provenance: "e" }), /dormant/i);
   });
 
   it("throws on null principle", () => {
