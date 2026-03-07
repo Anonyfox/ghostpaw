@@ -9,6 +9,7 @@ import { initHowlTables } from "../../core/howl/index.ts";
 import { initMemoryTable } from "../../core/memory/index.ts";
 import { initPackTables } from "../../core/pack/index.ts";
 import { initQuestTables } from "../../core/quests/index.ts";
+import { initScheduleTables } from "../../core/schedule/index.ts";
 import {
   initSecretsTable,
   loadSecretsIntoEnv,
@@ -30,6 +31,7 @@ export async function withRunDb<T>(fn: (db: DatabaseHandle) => T | Promise<T>): 
   initPackTables(db);
   initHowlTables(db);
   initQuestTables(db);
+  initScheduleTables(db);
   recoverOrphanedSessions(db);
   ensureMandatorySouls(db);
   loadSecretsIntoEnv(db);

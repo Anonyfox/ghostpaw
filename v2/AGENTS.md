@@ -14,7 +14,7 @@ If you are working on a specific system, also read its spec:
 | Memory | `docs/MEMORY.md` | **Implemented** | Belief-based storage, recall, embeddings, confidence decay |
 | Secrets | `docs/SECRETS.md` | **Implemented** | Secret storage, provider keys, isolation, scrubbing |
 | Config | `docs/CONFIG.md` | **Implemented** | Runtime configuration, validation, changelog |
-| Haunting | `docs/HAUNT.md` | **Spec only** | Autonomous inner life, journal, undirected processing |
+| Haunting | `docs/HAUNT.md` | **Implemented** | Haunt cycle, scheduled via builtin scheduler |
 | Quests | `docs/QUESTS.md` | **Implemented** | Unified task/event/calendar system, temporal awareness, Quest Board |
 | Pack | `docs/PACK.md` | **Implemented** | Social bonds, Theory of Mind, relational identity |
 | Pawprints | `docs/PAWPRINT.md` | **Spec only** | Situated experiential knowledge, discovery by presence |
@@ -37,29 +37,41 @@ The runtime is fully operational. It builds to `dist/ghostpaw.mjs`, opens `ghost
 
 | Module | What it does |
 |--------|-------------|
-| `chat/` | Turn execution pipeline — sessions, messages, streaming, compaction, locking |
+| `chat/` | Sessions, messages, streaming, compaction, locking, cost queries, spend tracking |
 | `souls/` | 6 mandatory souls with evolutionary traits, level-up, graveyard, backfill |
 | `memory/` | Belief-based recall with confidence decay, trigram + FTS5 search |
+| `pack/` | Social bonds, contacts, identity resolution, member merging, Theory of Mind |
+| `quests/` | Unified task/event/calendar system, temporal awareness, quest board, FTS5 |
+| `howl/` | Proactive outreach — routing metadata, origin tracking, delivery lifecycle |
 | `skills/` | Git-backed skill files, checkpoint/rollback, validation, repair |
 | `config/` | Flat key-value store with changelog, attribution, undo |
+| `schedule/` | Job scheduling — CAS-based at-most-once locking, builtin + custom jobs |
 | `secrets/` | Encrypted credential store, env var sync, alias resolution |
-| `cost/` | Budget tracking, spend windows, token limits |
-| `runs/` | Delegation tracking with parent-child sessions, orphan recovery |
-| `models/` | Provider registry, live model discovery |
-| `service/` | systemd/launchd service install for daemon mode |
+
+Modules that moved to `lib/`: `models/` (provider registry), `service/` (systemd/launchd/cron), `cost/` (pure spend computation — query functions live in `chat/`).
 
 ### Harness (`src/harness/`)
 
 The entity composition layer. `createEntity` wires core modules into a working agent:
 
-- **Context assembly** — soul + environment + recalled memories + skill index + tool guidance, fresh each turn
-- **Delegation** — foreground and background, with soul-switching to specialists, auto-resume
+- **Context assembly** — soul + environment + skill index + tool guidance. Fully static, no automatic memory injection. Persistence access is explicit through warden delegation.
+- **Delegation** — foreground and background, with soul-switching to specialists, per-soul tool surfaces, auto-resume
+- **Haunt cycle** — context analysis, seed selection, multi-turn execution, warden consolidation, howl extraction
+- **Howl cycle** — reply and dismiss flows with warden consolidation in system sessions
 - **Oneshots** — title generation, compaction summarization, session distillation, soul text generation, essence rewriting
 - **Mentor/trainer invocation** — `invokeMentor`, `invokeTrainer` with two-phase propose/execute
 
-### Tools (~30+, registered in the entity)
+### Tools (per-soul surfaces, delegation-first)
 
-Filesystem (read, write, edit, find_and_replace, ls, grep, bash), web (web_search with Brave/Tavily/Serper/DDG, web_fetch), memory (recall, remember, revise, forget), config (get, list, set, undo, reset), secrets (list, set, remove), mentor-exclusive (review_soul, propose_trait, revise_trait, revert_trait, reactivate_trait, execute_level_up, revert_level_up), trainer-exclusive (review_skills, create_skill, checkpoint_skills, skill_diff, skill_history, rollback_skill, validate_skills), MCP (discover + call), delegation (delegate + check_run), utilities (calc, datetime, sense).
+**Coordinator (ghostpaw, 13 tools):** filesystem (read, write, edit, ls, grep, bash), web (web_search, web_fetch), mcp, sense, howl, delegate, check_run. No persistence or infrastructure tools — delegates to specialists.
+
+**Warden (23 tools):** memory (recall, remember, revise, forget), pack (pack_sense, pack_meet, pack_bond, pack_note, contact_add, contact_remove, contact_list, contact_lookup, pack_merge), quests (quest_create, quest_update, quest_done, quest_list, quest_accept, quest_dismiss, questlog_create, questlog_list), datetime, recall_haunts. No filesystem, web, or delegation.
+
+**Chamberlain (14 tools):** config (get, list, set, undo, reset), secrets (list, set, remove), schedule (list, create, update, delete), calc, datetime. No filesystem, web, or delegation.
+
+**Mentor (shared + 7):** shared tools + review_soul, propose_trait, revise_trait, revert_trait, reactivate_trait, execute_level_up, revert_level_up.
+
+**Trainer (shared + 7):** shared tools + review_skills, create_skill, checkpoint_skills, skill_diff, skill_history, rollback_skill, validate_skills.
 
 ### Channels (`src/channels/`)
 
@@ -67,23 +79,22 @@ Filesystem (read, write, edit, find_and_replace, ls, grep, bash), web (web_searc
 |---------|--------|-------------|
 | `tui/` | **Working** | Full terminal UI — alt-screen, streaming, scroll, tool status. Default when TTY. |
 | `web/` | **Working** | Preact SPA + Bootstrap. Dashboard, chat (WebSocket), sessions, souls, memories, settings, costs, training. Password-protected. |
-| `telegram/` | **Working** | grammY long-polling, session rotation, background delegation notifications. |
-| `cli/` | **Working** | Full subcommand tree: run, secrets, config, souls, memory, sessions, skills, costs, distill, train, scout, service. |
+| `telegram/` | **Working** | grammY long-polling, background delegation notifications. |
+| `cli/` | **Working** | Full subcommand tree: run, secrets, config, souls, memory, sessions, skills, costs, distill, train, scout, schedules, service. |
 | Daemon | **Working** | No-TTY mode: web + telegram until SIGTERM. |
 
 ### Additional systems
 
 - **Sense** (`lib/sense/`, `tools/sense.ts`) — Proprioceptive text quality measurement. Compression ratio, negation density, semantic distance, momentum, phase transitions. Detects premature convergence, highway drift, abandoned breakthroughs.
-- **Distillation** (`harness/distill_pending.ts`, `oneshots/distill_session.ts`) — Post-session memory extraction. Sweeps closed/stale sessions, extracts memories via LLM. Runs at startup.
+- **Distillation** (`harness/distill_pending.ts`, `oneshots/distill_session.ts`) — Post-session persistence extraction via warden. Sweeps closed/stale sessions, extracts memories, updates pack bonds, reconciles quests. Runs at startup and on a builtin schedule (every 2h).
+- **Scheduler** (`harness/scheduler.ts`, `core/schedule/`) — In-process job scheduler using event-loop timers. CAS-based at-most-once locking across multiple instances. Spawns CLI subcommands as child processes. Builtin schedules: `haunt` (30m, disabled by default), `distill` (2h, enabled). Custom schedules via chamberlain tools.
 - **Default souls** — ghostpaw (coordinator), js-engineer (builder), mentor (soul refiner), trainer (skill builder), warden (persistence keeper), chamberlain (infrastructure governor). Each with essence + baseline traits.
 - **Default skills** — `effective-writing` (universal writing craft), `skill-mcp` (MCP server integration guide).
 
 ## What's NOT Built
 
-These systems have detailed design specs but zero implementation:
-
-- **Haunting** — No haunt loop, no journal, no autonomous cycling, no adaptive sleep, no proactive messaging.
-- **Pack** — Core module implemented (`core/pack/`): schema, meet/get/list/count members, update bond, note interaction, sense member/pack, render bond. Not yet wired into context assembly or tools.
+- **Haunt auto-tuning** — Haunt scheduling exists (builtin schedule, disabled by default) but there is no adaptive interval or idle detection. The agent or user enables and tunes the interval manually.
+- **Cost tools (chamberlain)** — `cost_summary` and `cost_check` tool wrappers for the chamberlain don't exist yet. The underlying query functions are in `core/chat/`.
 - **Pawprints** — No discovery-by-presence tooling, no territory map. The convention (`.pawprint.md` files) is defined but no code supports it.
 - **Fitness evaluation** — No automated evidence-based fitness signals for soul refinement. Refinement is CLI-triggered.
 - **Cross-soul pattern detection** — No migration between soul islands.

@@ -134,7 +134,7 @@ This is not a minor administrative role. The chamberlain has real power:
 
 **Secret isolation.** API keys, credentials, and access tokens never enter any other soul's context. The coordinator cannot even list secret names — it delegates to the chamberlain when it needs to know what integrations are available. This is a deliberate security boundary. A prompt injection in the coordinator's conversation context cannot exfiltrate secrets because secrets are not there. They exist only within the chamberlain's isolated, ephemeral context during a delegation.
 
-**Budget authority.** The chamberlain tracks costs, enforces spending limits, and can refuse operations that would exceed budget. Model routing costs, API call expenses, token burn rates — the chamberlain sees all of it. When the coordinator asks "can we do this expensive operation?", the chamberlain is the one who answers.
+**Budget authority.** The chamberlain tracks costs, enforces spending limits, and can refuse operations that would exceed budget. API call expenses, token burn rates — the chamberlain sees all of it. When the coordinator asks "can we do this expensive operation?", the chamberlain is the one who answers.
 
 **Config governance.** Configuration mutations (model selection, behavioral parameters, feature flags) go through the chamberlain. This prevents accidental misconfiguration from a coordinator that's busy with conversation. The chamberlain validates changes, can undo them, and maintains config history. Read-only config access could remain on the coordinator for low-latency checks, but mutations are always delegated.
 
@@ -151,8 +151,6 @@ The chamberlain's tool surface:
 | Utility | datetime, calc |
 
 No filesystem tools. No web tools. No persistence tools. No delegation outward. The chamberlain operates exclusively within the ghost's infrastructure layer.
-
-The chamberlain runs on a fast/cheap model for routine queries (config reads, schedule checks) and a stronger model for consequential decisions (budget enforcement, secret rotation). Like the warden, its maintenance tasks are well-defined and don't need frontier reasoning.
 
 ---
 
@@ -357,7 +355,7 @@ Beyond active delegation during conversations, the warden runs periodic maintena
 - **Delegated explicitly.** The coordinator can delegate "things feel messy, run a maintenance pass" during quiet moments.
 - **Daemon idle time.** When running as a service with no active conversations.
 
-The warden can run on a cheaper, faster model for maintenance tasks. These are well-defined operations — scan, compare, update — that don't need frontier reasoning. The coordinator uses the heavy model for actual conversation; the warden uses the efficient model for housekeeping.
+Maintenance tasks are well-defined operations — scan, compare, update. The warden's lean context means each maintenance delegation costs very little regardless of model.
 
 ---
 
@@ -563,7 +561,7 @@ This preserves prompt caching (the soul prefix is identical across all haunt ses
 
 ### The only hard limit is dollars
 
-Token counts are not meaningful cost limits. A million tokens on a fast model costs a fraction of what a hundred thousand tokens on a frontier reasoning model costs — and prices change over time. Token-based limits (`max_tokens_per_session`, `max_tokens_per_day`) are eliminated as hard blocks. They create confusing UX ("why did my session stop?") without providing real cost protection.
+Token counts are not meaningful cost limits. Pricing varies by model and changes over time — token counts don't map to dollars predictably. Token-based limits (`max_tokens_per_session`, `max_tokens_per_day`) are eliminated as hard blocks. They create confusing UX ("why did my session stop?") without providing real cost protection.
 
 The single hard limit is **`max_cost_per_day`** — a dollar cap. When daily spend reaches the cap, sessions are blocked. This is the only point where the system refuses to run. Everything else is transparent orchestration.
 
@@ -681,29 +679,6 @@ This is a USP. Most AI agents are passive receivers. Ghostpaw howls.
 
 ---
 
-## Model Routing
-
-The delegation architecture enables per-soul model routing. Different cognitive tasks have different capability requirements.
-
-| Soul | Typical model tier | Why |
-|---|---|---|
-| Ghostpaw (coordinator) | Frontier | User-facing conversation, nuanced judgment, relationship management |
-| JS Engineer | Frontier/Strong | Code generation, debugging, architecture — needs deep reasoning |
-| Mentor | Strong | Soul refinement requires careful judgment but is well-scoped |
-| Trainer | Strong | Skill writing requires quality but follows clear patterns |
-| Warden (active) | Fast/Cheap | Persistence queries are well-defined, small context |
-| Warden (maintenance) | Fast/Cheap | Scan-compare-update operations, no creativity needed |
-| Chamberlain (queries) | Fast/Cheap | Config reads, schedule checks, cost lookups — trivial operations |
-| Chamberlain (mutations) | Strong | Budget decisions, secret management, scheduling changes — consequential |
-
-The coordinator's model selection has the highest impact on user experience. The warden's and chamberlain's model selection has the highest impact on per-token cost. Routing them independently is a direct cost optimization that the previous architecture — where all tools ran in the coordinator's context — could not achieve.
-
-[Model routing](https://zylos.ai/research/2026-02-19-ai-agent-cost-optimization-token-economics) is identified as one of the highest-leverage cost reductions for agent workloads — switching routine tasks from premium to appropriately-sized models. The [Orchestrator-Worker pattern](https://medium.com/codetodeploy/the-architecture-of-scale-a-deep-dive-into-anthropics-sub-agents-6c4faae1abda) shows 90% performance gains on complex tasks by using capable models for planning and cheaper models for execution. [SkillOrchestra](https://arxiv.org/abs/2602.19672) models agent-specific competence and cost under different skills, achieving explicit performance-cost trade-offs.
-
-Ghostpaw's background tasks benefit most from routing. [OpenClaw's heartbeat system](https://rezhajul.io/posts/reducing-openclaw-heartbeat-token-usage/) at default settings runs 48 heartbeats daily, each loading full context — costing $1-5/day just for idle checks, $150/month for background burn. The documented fix: route background tasks to cheap models and run them in isolated sessions. The warden's maintenance cycle follows this pattern exactly — well-defined housekeeping tasks on a fast model with a tiny context, not frontier reasoning with full conversation history.
-
----
-
 ## What This Changes
 
 ### Replaces
@@ -728,7 +703,6 @@ Ghostpaw's background tasks benefit most from routing. [OpenClaw's heartbeat sys
 - **The chamberlain as 6th mandatory soul** — DONE. Infrastructure governor with authority over config, secrets, budget, and scheduling. `chamberlain: 6` in `MANDATORY_SOUL_IDS`, full soul essence and 2 baseline traits in `DEFAULT_SOULS`, `createChamberlainTools(db)` exported from `harness/tools.ts` (10 tools: config 5, secrets 3, calc, datetime), chamberlain delegation wired in `delegate.ts` (restricted tool set — no filesystem, web, bash, or delegation), `assembleContext` produces minimal prompt for chamberlain (soul + environment + tool guidance only), `buildTurnArgs` in `entity.ts` routes chamberlain to `toolSets.chamberlainTools`.
 - **Delegation-first everything** — DONE. The coordinator no longer has any persistence or infrastructure tools. Memory, pack, and quest operations require delegation to the warden. Config, secrets, and calc require delegation to the chamberlain. The coordinator's 13 tools are: filesystem (6), web (2), mcp, sense, howl, delegate, check_run.
 - **Per-soul tool surfaces** — DONE. Coordinator: 13 tools. Warden: 23 tools (restricted — no filesystem/web/delegation). Chamberlain: 10 tools (restricted — no filesystem/web/delegation). Mentor: shared + 7 specialist. Trainer: shared + 7 specialist. No soul approaches the degradation zone.
-- **Per-soul model routing** — different souls can run on different model tiers.
 - **Secret isolation** — API keys and credentials exist only within the chamberlain's ephemeral context. No other soul can access or leak them.
 - **Scheduling system** — infrastructure for timed background tasks, managed by the chamberlain (planned, pre-release).
 - **Transparent cascading compaction** — DONE. Automatic, invisible context management on every session. `compaction_threshold` config key (default 200K) controls when compaction fires. `getHistory()` returns post-marker messages for the LLM; `getFullHistory()` returns the complete chain for the UI. Compaction markers create context floors while the user sees the full history. Token counter resets from each marker. Conversations run unbounded in length; the working context stays bounded.
@@ -782,7 +756,7 @@ The spectral wolf contains souls, carries memories, knows its pack, tracks its q
 - [Dynamic System Instructions and Tool Exposure (ITR)](https://arxiv.org/abs/2602.17046) — Feb 2026. 95% reduction in per-step context tokens, 32% improvement in correct routing, 70% cost reduction, 2-20x more agent loops within context limits.
 - [SkillOrchestra](https://arxiv.org/abs/2602.19672) — Feb 2026. Skill-aware agent routing: 22.5% performance improvement over RL orchestrators, 700x cost reduction in learning.
 - [Context7 Sub-Agent Redesign](https://medium.com/codex/context7s-game-changing-architecture-redesign-how-sub-agents-slashed-token-usage-by-65-9dbd16d1a641) — Feb 2026. 65% token reduction through specialized sub-agents with isolated contexts.
-- [Anthropic Sub-Agents](https://docs.anthropic.com/en/docs/claude-code/sdk/subagents) — Claude Code SDK. Orchestrator-Worker pattern with context isolation, tool restrictions, and multi-model routing. 90%+ improvement on complex tasks.
+- [Anthropic Sub-Agents](https://docs.anthropic.com/en/docs/claude-code/sdk/subagents) — Claude Code SDK. Orchestrator-Worker pattern with context isolation and tool restrictions. 90%+ improvement on complex tasks.
 - [Advanced Tool Use on Claude](https://www.anthropic.com/engineering/advanced-tool-use) — Anthropic, Nov 2025. Tool Search Tool preserves up to 191,300 tokens versus loading all tool definitions upfront.
 - [Team of Thoughts](https://arxiv.org/abs/2602.16485) — Feb 2026. Heterogeneous models as specialized tools with dynamic orchestration. 96.67% on AIME24 vs. 80% baseline.
 
@@ -792,7 +766,7 @@ The spectral wolf contains souls, carries memories, knows its pack, tracks its q
 - [OpenClaw Cost Deep Dive](https://openclawpulse.com/openclaw-api-cost-deep-dive/) — 2026. Context replay is 40-50% of cost. Tool output storage is 20-30%. Users report 1-3M tokens in minutes, $3,600/month.
 - [ACON](https://arxiv.org/abs/2510.00615) — Oct 2025, ICLR 2026. Context compression for long-horizon agents: 26-54% peak token reduction, up to 46% accuracy improvement on smaller models.
 - [Prompt Caching for AI Agents](https://zylos.ai/research/2026-02-24-prompt-caching-ai-agents-architecture) — Zylos, Feb 2026. 50-90% cost reduction on cached tokens, 50-85% latency reduction. Requires static prefixes — dynamic injection breaks caching.
-- [Reducing OpenClaw Heartbeat Token Usage](https://rezhajul.io/posts/reducing-openclaw-heartbeat-token-usage/) — Heartbeats cost $1-5/day at default settings. Isolated sessions with cheap models eliminate background burn.
+- [Reducing OpenClaw Heartbeat Token Usage](https://rezhajul.io/posts/reducing-openclaw-heartbeat-token-usage/) — Heartbeats cost $1-5/day at default settings. Isolated sessions eliminate background burn.
 
 ### Retrieval and Memory
 

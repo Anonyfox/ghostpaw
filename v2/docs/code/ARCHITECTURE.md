@@ -43,9 +43,12 @@ Features include (not exhaustive — grows as the system grows):
 - **souls/** — soul loading, rendering, refinement pipeline, default soul content (as .ts files).
 - **config/** — typed configuration with known keys, defaults, and validation.
 - **secrets/** — encrypted secret storage, provider key management.
-- **models/** — provider registry, model discovery, API key resolution.
+- **pack/** — social bonds, contacts, identity resolution, member merging, Theory of Mind.
+- **quests/** — unified task/event/calendar system, temporal awareness, quest board, FTS5 search.
+- **howl/** — proactive outreach — routing metadata, origin tracking, delivery lifecycle.
 - **skills/** — skill storage, craft/train/scout pipeline, default skills (as .ts files).
-- **(cost was eliminated)** — cost queries live in `chat/` (they query sessions); pure cost computation lives in `lib/cost/`.
+
+Modules that moved out of `core/`: `models/` → `lib/models/` (stateless provider registry), `service/` → `lib/service/` (OS-level daemon install), `cost/` eliminated (queries in `chat/`, pure computation in `lib/cost/`), `runs/` eliminated (merged into `chat/` sessions), `haunt/` eliminated (sessions with `purpose = 'haunt'`).
 
 Core modules never make discretionary LLM calls. `core/chat` is a special case: its purpose IS to execute the LLM turn pipeline, but it doesn't initiate auxiliary LLM tasks (like summarization or title generation). Those live in `harness/oneshots/`.
 
@@ -99,7 +102,7 @@ The ghost in operational form. The harness composes core modules into a working 
 
 **Entity.** The main composition. `createEntity(options)` produces an `Entity` with `streamTurn` and `executeTurn` methods. A channel hands it a session ID and user message; the entity handles everything: soul loading, memory recall, context assembly, tool registration, model resolution, compaction, and post-turn operations. The entity is a thin coordinator — it delegates every operation to a dedicated function, staying under 50 lines.
 
-**Context assembly.** `assembleContext(db, userMessage, soulId?)` builds the system prompt fresh each turn: rendered soul (identity, essence, traits), environment (current date), recalled memories relevant to the user's message, and tool guidance. This is the ghost's perception — what it sees when a human speaks.
+**Context assembly.** `assembleContext(db, workspace, soulId?)` builds the system prompt: rendered soul (identity, essence, traits), environment (current date), skill index (non-warden/chamberlain), and tool guidance. Fully static — no automatic memory injection. Persistence access is explicit through warden delegation.
 
 **Oneshots.** `harness/oneshots/` contains fine-tuned, single-purpose LLM calls for semantic tasks that pure code can't handle: title generation, compaction summarization, and (future) classification, extraction, and routing. Each oneshot is individually tuned with its own system prompt, model parameters, and token limits. Use them liberally — ad-hoc LLM calls are an unfair advantage of an AI-first system.
 
@@ -167,7 +170,7 @@ One SQLite file: `ghostpaw.db`. One connection. Managed in two layers:
 
 **`lib/` provides the connection.** A generic database module that opens the file, sets sane pragmas (WAL mode, foreign keys, journal size, synchronous mode), and exposes the connection handle. This module knows nothing about tables, features, or domain logic. It's pure infrastructure.
 
-**Each feature owns its tables.** `core/chat/` creates and queries the `sessions` and `messages` tables. `core/memory/` creates and queries the `memories` table. `core/cost/` queries session data for spend tracking. Schema creation, queries, migrations — all live inside the feature folder. No ORM, no query builder, no abstraction layer. Hand-tuned SQL, unit-tested.
+**Each feature owns its tables.** `core/chat/` creates and queries the `sessions` and `messages` tables (including cost aggregation queries). `core/memory/` creates and queries the `memories` table. `core/pack/` owns `pack_members`, `pack_interactions`, and `pack_contacts`. Schema creation, queries, migrations — all live inside the feature folder. No ORM, no query builder, no abstraction layer. Hand-tuned SQL, unit-tested.
 
 **SQL lives in core, nowhere else.** SQL statements (`.prepare()`, `.exec()`, raw `SELECT`/`INSERT`/`UPDATE`/`DELETE`) may only exist inside `core/` and `lib/`. Layers above core access data exclusively through the public API exported from each core module's `index.ts`. Raw SQL in channels, harness, or tools is a boundary violation equivalent to importing internal files. When a layer above core needs data that isn't exposed, the correct response is to add a function to the owning core module — never to write SQL in the caller.
 

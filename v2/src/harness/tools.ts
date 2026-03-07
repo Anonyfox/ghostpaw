@@ -32,6 +32,7 @@ import { createPackTools } from "../tools/pack/index.ts";
 import { createQuestTools } from "../tools/quests/index.ts";
 import { createReadTool } from "../tools/read.ts";
 import { createRecallHauntsTool } from "../tools/recall_haunts.ts";
+import { createScheduleTools } from "../tools/schedule/index.ts";
 import {
   createListSecretsTool,
   createRemoveSecretTool,
@@ -87,6 +88,7 @@ export function createChamberlainTools(db: DatabaseHandle): Tool[] {
     createListSecretsTool(db),
     createSetSecretTool(db),
     createRemoveSecretTool(db),
+    ...createScheduleTools(db),
     createCalcTool(),
     createDatetimeTool(),
   ];

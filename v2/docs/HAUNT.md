@@ -256,7 +256,6 @@ A ghost that haunts aggressively burns through API budget while you sleep.
 - `maxCostPerDay` caps total daily spend including haunting.
 - `maxCostPerHaunt` caps each individual cycle. Default: low (e.g., $0.10/cycle).
 - Adaptive sleep intervals: when the ghost decides nothing is worth doing, sleep duration increases exponentially (5 min → 15 min → 1 hour → 4 hours). Any event resets to minimum. Idle ghosts cost near zero.
-- Model routing: triage on a cheap model, full model only when acting.
 - Prompt caching: soul and environment sections cache across cycles (90% cost reduction on cached tokens).
 
 ### Notification spam
@@ -310,7 +309,6 @@ Research shows reasoning models can autonomously circumvent safety guardrails wi
 Design principles:
 
 - **Sleep-first.** The ghost defaults to sleeping. It wakes when triggered or when a minimum interval passes. Exponential backoff means idle ghosts cost almost nothing.
-- **Triage with cheap models.** The "is anything worth doing?" decision runs on a fast, cheap model. Only actual action uses the full model.
 - **Two lean phases.** Private thinking is one LLM call with introspection tools — rich context but contained scope. Processing is one LLM call reading the journal and producing structured decisions. Neither phase drags unnecessary context.
 - **Cap per cycle.** `maxCostPerHaunt` ensures no single cycle runs away.
 - **Prompt caching.** Soul and environment sections are stable across cycles — provider caching reduces them to ~10% of normal cost.

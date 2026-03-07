@@ -11,6 +11,7 @@ import { initHowlTables } from "./core/howl/index.ts";
 import { initMemoryTable } from "./core/memory/index.ts";
 import { initPackTables } from "./core/pack/index.ts";
 import { initQuestTables } from "./core/quests/index.ts";
+import { ensureDefaultSchedules, initScheduleTables } from "./core/schedule/index.ts";
 import { initSecretsTable, loadSecretsIntoEnv, syncProviderKeys } from "./core/secrets/index.ts";
 import {
   checkpoint,
@@ -42,6 +43,7 @@ const subCommands = {
   howls: () => import("./channels/cli/howls.ts").then((m) => m.default),
   quests: () => import("./channels/cli/quests.ts").then((m) => m.default),
   train: () => import("./channels/cli/train.ts").then((m) => m.default),
+  schedules: () => import("./channels/cli/schedules.ts").then((m) => m.default),
   scout: () => import("./channels/cli/scout.ts").then((m) => m.default),
   service: () => import("./channels/cli/service.ts").then((m) => m.default),
 };
@@ -86,8 +88,10 @@ const main = defineCommand({
     initPackTables(db);
     initHowlTables(db);
     initQuestTables(db);
+    initScheduleTables(db);
     recoverOrphanedSessions(db);
     ensureMandatorySouls(db);
+    ensureDefaultSchedules(db);
     loadSecretsIntoEnv(db);
     syncProviderKeys(db);
 
@@ -154,6 +158,9 @@ const main = defineCommand({
     const { distillPending } = await import("./harness/distill_pending.ts");
     distillPending(db, defaultChatFactory, resolveModel(db)).catch(() => {});
     deleteOldDistilled(db);
+
+    const { startScheduler } = await import("./harness/scheduler.ts");
+    const scheduler = startScheduler(db, workspace);
 
     let httpServer: import("node:http").Server | undefined;
     let telegramChannel:
@@ -253,6 +260,7 @@ const main = defineCommand({
     }
 
     log.info("shutting down");
+    await scheduler.stop();
     if (telegramChannel) await telegramChannel.stop();
     if (httpServer) httpServer.close();
     await entity.flush();
