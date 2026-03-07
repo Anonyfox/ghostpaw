@@ -141,7 +141,7 @@ function detectNovelty(db: DatabaseHandle, recentHaunts: HauntSummary[]): Novelt
   const newRows = db
     .prepare(
       `SELECT id, claim FROM memories
-       WHERE superseded_by IS NULL AND created_at > ?
+       WHERE superseded_by IS NULL AND created_at >= ?
        ORDER BY created_at DESC LIMIT 3`,
     )
     .all(lastHauntTime) as Array<{ id: number; claim: string }>;
@@ -149,7 +149,7 @@ function detectNovelty(db: DatabaseHandle, recentHaunts: HauntSummary[]): Novelt
   const revisedRows = db
     .prepare(
       `SELECT id, claim FROM memories
-       WHERE superseded_by IS NULL AND verified_at > ? AND created_at <= ?
+       WHERE superseded_by IS NULL AND verified_at >= ? AND created_at < ?
        ORDER BY verified_at DESC LIMIT 3`,
     )
     .all(lastHauntTime, lastHauntTime) as Array<{ id: number; claim: string }>;

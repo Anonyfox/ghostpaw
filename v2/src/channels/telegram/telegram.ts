@@ -10,13 +10,24 @@ import type { ReactionEmoji, TelegramChannel, TelegramChannelConfig } from "./ty
 const CONNECTION_TIMEOUT_MS = 10_000;
 const TELEGRAM_CHANNEL_ID = "telegram";
 
+function recoverChatId(db: Parameters<typeof getOrCreateSession>[0]): number | null {
+  const row = db
+    .prepare(
+      "SELECT key FROM sessions WHERE key LIKE 'telegram:%' ORDER BY last_active_at DESC LIMIT 1",
+    )
+    .get() as { key: string } | undefined;
+  if (!row) return null;
+  const id = Number(row.key.split(":")[1]);
+  return Number.isFinite(id) ? id : null;
+}
+
 export function createTelegramChannel(config: TelegramChannelConfig): TelegramChannel {
   const { token, db, entity, allowedChatIds } = config;
 
   const bot = config.bot ?? new Bot(token);
   let running = false;
   let connectedUsername: string | null = null;
-  let lastActiveChatId: number | null = allowedChatIds?.[0] ?? null;
+  let lastActiveChatId: number | null = allowedChatIds?.[0] ?? recoverChatId(db) ?? null;
 
   const sendMessage =
     config.sendMessage ??

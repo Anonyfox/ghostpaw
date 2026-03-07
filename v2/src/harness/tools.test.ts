@@ -8,6 +8,7 @@ import { initSecretsTable } from "../core/secrets/index.ts";
 import { initHauntTables } from "../core/haunt/index.ts";
 import { initHowlTables } from "../core/howl/index.ts";
 import { initPackTables } from "../core/pack/index.ts";
+import { initQuestTables } from "../core/quests/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
@@ -26,6 +27,7 @@ beforeEach(async () => {
   initPackTables(db);
   initHauntTables(db);
   initHowlTables(db);
+  initQuestTables(db);
   ensureMandatorySouls(db);
 });
 
@@ -52,6 +54,14 @@ const EXPECTED_BASE_TOOLS = [
   "pack_meet",
   "pack_note",
   "pack_sense",
+  "quest_accept",
+  "quest_create",
+  "quest_dismiss",
+  "quest_done",
+  "quest_list",
+  "quest_update",
+  "questlog_create",
+  "questlog_list",
   "read",
   "recall",
   "recall_haunts",

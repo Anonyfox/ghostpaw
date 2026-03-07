@@ -1,6 +1,6 @@
 import type { ChatFactory } from "../../core/chat/chat_instance.ts";
 import type { TurnResult } from "../../core/chat/index.ts";
-import { closeSession, createSession } from "../../core/chat/index.ts";
+import { addMessage, closeSession, createSession, getSession } from "../../core/chat/index.ts";
 import { getConfig } from "../../core/config/index.ts";
 import { storeHaunt } from "../../core/haunt/index.ts";
 import { storeHowl, updateHowlChannel } from "../../core/howl/index.ts";
@@ -127,6 +127,18 @@ export async function runHaunt(
     summary = "(empty)";
   }
 
+  // Append the consolidation summary as the final message on the haunt session
+  // so it's visible when browsing sessions.
+  if (summary !== "(empty)") {
+    const head = getSession(db, sessionId)?.headMessageId ?? undefined;
+    addMessage(db, {
+      sessionId,
+      role: "assistant",
+      content: `**Consolidation Summary**\n\n${summary}`,
+      parentId: head,
+    });
+  }
+
   const seededMemoryIds = (analysis?.seedMemories ?? []).map((m) => m.id);
   const haunt = storeHaunt(db, { sessionId, rawJournal, summary, seededMemoryIds });
 
@@ -156,12 +168,18 @@ export async function runHaunt(
   await entity.flush();
   closeSession(db, sessionId);
 
+  const usage = aggregateUsage(turns);
+  const cost = aggregateCost(turns);
+  if (consolidation?.cost) {
+    cost.estimatedUsd += consolidation.cost.estimatedUsd;
+  }
+
   return {
     haunt,
     sessionId,
     succeeded: chunks.length > 0,
-    usage: aggregateUsage(turns),
-    cost: aggregateCost(turns),
+    usage,
+    cost,
     consolidation,
   };
 }

@@ -1,10 +1,10 @@
 import { ok, rejects, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { TurnResult } from "../chat/index.ts";
-import { createSession, initChatTables } from "../chat/index.ts";
 import type { Entity } from "../../harness/types.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
+import type { TurnResult } from "../chat/index.ts";
+import { createSession, initChatTables } from "../chat/index.ts";
 import { getHowl } from "./get_howl.ts";
 import { replyToHowl } from "./reply_to_howl.ts";
 import { initHowlTables } from "./schema.ts";
@@ -21,6 +21,7 @@ function makeTurnResult(content: string): TurnResult {
     model: "test",
     usage: { inputTokens: 0, outputTokens: 0, reasoningTokens: 0, cachedTokens: 0, totalTokens: 0 },
     cost: { estimatedUsd: 0 },
+    iterations: 1,
   };
 }
 

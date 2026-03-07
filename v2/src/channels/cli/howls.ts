@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { defineCommand } from "citty";
+import type { HowlStatus } from "../../core/howl/index.ts";
 import {
   countPendingHowls,
   getHowl,
@@ -7,7 +8,6 @@ import {
   replyToHowl,
   updateHowlStatus,
 } from "../../core/howl/index.ts";
-import type { HowlStatus } from "../../core/howl/index.ts";
 import { createEntity } from "../../harness/index.ts";
 import { label, style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
@@ -101,9 +101,15 @@ const showCmd = defineCommand({
       label("status", statusLabel(howl.status));
       label("urgency", urgencyLabel(howl.urgency));
       if (howl.channel) label("channel", howl.channel);
-      label("created", `${new Date(howl.createdAt).toISOString()} (${relativeAge(howl.createdAt)} ago)`);
+      label(
+        "created",
+        `${new Date(howl.createdAt).toISOString()} (${relativeAge(howl.createdAt)} ago)`,
+      );
       if (howl.respondedAt) {
-        label("responded", `${new Date(howl.respondedAt).toISOString()} (${relativeAge(howl.respondedAt)} ago)`);
+        label(
+          "responded",
+          `${new Date(howl.respondedAt).toISOString()} (${relativeAge(howl.respondedAt)} ago)`,
+        );
       }
       label("session", `#${howl.sessionId}`);
     });
@@ -173,11 +179,7 @@ const replyCmd = defineCommand({
 
         console.log(result.turn.content);
         console.log();
-        console.log(
-          style.dim(
-            `howl #${id} responded | ${result.turn.usage.totalTokens} tokens`,
-          ),
-        );
+        console.log(style.dim(`howl #${id} responded | ${result.turn.usage.totalTokens} tokens`));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(style.boldRed("error"), msg);
@@ -188,7 +190,10 @@ const replyCmd = defineCommand({
 });
 
 export default defineCommand({
-  meta: { name: "howls", description: "View and respond to howls — the ghost's proactive messages" },
+  meta: {
+    name: "howls",
+    description: "View and respond to howls — the ghost's proactive messages",
+  },
   subCommands: {
     list: listCmd,
     show: showCmd,

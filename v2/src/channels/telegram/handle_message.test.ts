@@ -1,7 +1,8 @@
 import { deepStrictEqual, ok, strictEqual } from "node:assert";
-import { describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import type { TurnResult } from "../../core/chat/index.ts";
 import { createSession, getSession, initChatTables } from "../../core/chat/index.ts";
+import { initHowlTables } from "../../core/howl/index.ts";
 import type { Entity } from "../../harness/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase, TokenBudgetError } from "../../lib/index.ts";
@@ -25,9 +26,21 @@ const TURN_OK: TurnResult = {
   iterations: 1,
 };
 
+let sharedDb: DatabaseHandle;
+
+beforeEach(async () => {
+  sharedDb = await openTestDatabase();
+  initChatTables(sharedDb);
+  initHowlTables(sharedDb);
+});
+
+afterEach(() => {
+  sharedDb.close();
+});
+
 function stubEntity(executeTurn: Entity["executeTurn"], db?: DatabaseHandle): Entity {
   return {
-    db: db ?? ({} as never),
+    db: db ?? sharedDb,
     workspace: "/tmp",
     executeTurn,
     async *streamTurn() {
@@ -141,6 +154,7 @@ describe("handleMessage — session rotation", () => {
   it("rotates transparently when session token budget is exhausted", async () => {
     const db = await openTestDatabase();
     initChatTables(db);
+    initHowlTables(db);
     const session = createSession(db, "telegram:42", { purpose: "chat" });
 
     let callCount = 0;
@@ -187,6 +201,7 @@ describe("handleMessage — session rotation", () => {
   it("shows error when retry after rotation also fails", async () => {
     const db = await openTestDatabase();
     initChatTables(db);
+    initHowlTables(db);
     const session = createSession(db, "telegram:42", { purpose: "chat" });
 
     const deps = createMockDeps({

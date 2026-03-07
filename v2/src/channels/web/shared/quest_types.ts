@@ -74,7 +74,7 @@ export interface CreateQuestBody {
   priority?: QuestPriority;
   questLogId?: number;
   tags?: string;
-  createdBy?: string;
+  createdBy?: "human" | "ghost";
   startsAt?: number;
   endsAt?: number;
   dueAt?: number;
@@ -100,7 +100,7 @@ export interface CreateQuestLogBody {
   title: string;
   description?: string;
   dueAt?: number;
-  createdBy?: string;
+  createdBy?: "human" | "ghost";
 }
 
 export interface UpdateQuestLogBody {

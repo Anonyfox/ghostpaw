@@ -135,8 +135,14 @@ describe("sampleAntiRecencyMemories", () => {
   });
 
   it("excludes previously seeded memory IDs", () => {
-    const m1 = storeMemory(db, "First memory", embedText("first"), { category: "fact", confidence: 0.8 });
-    const m2 = storeMemory(db, "Second memory", embedText("second"), { category: "fact", confidence: 0.8 });
+    const m1 = storeMemory(db, "First memory", embedText("first"), {
+      category: "fact",
+      confidence: 0.8,
+    });
+    const _m2 = storeMemory(db, "Second memory", embedText("second"), {
+      category: "fact",
+      confidence: 0.8,
+    });
 
     const excluded = new Set([m1.id]);
     const result = sampleAntiRecencyMemories(db, null, excluded);

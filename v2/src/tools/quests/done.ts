@@ -43,19 +43,22 @@ export function createQuestDoneTool(db: DatabaseHandle) {
       }
 
       try {
-        const result = completeQuest(db, id, occurrenceAt ? { occurrenceAt } : undefined);
+        const result = completeQuest(db, id, occurrenceAt || undefined);
 
-        if (occurrenceAt) {
+        if ("questId" in result) {
+          const quest = getQuest(db, id)!;
           return {
-            quest: formatQuest(result.quest),
-            occurrence: result.occurrence,
+            quest: formatQuest(quest),
+            occurrence: result,
             note: "Occurrence recorded. Recurring quest remains active.",
           };
         }
 
-        return { quest: formatQuest(result.quest) };
+        return { quest: formatQuest(result) };
       } catch (err) {
-        return { error: `Failed to complete quest: ${err instanceof Error ? err.message : String(err)}` };
+        return {
+          error: `Failed to complete quest: ${err instanceof Error ? err.message : String(err)}`,
+        };
       }
     },
   });

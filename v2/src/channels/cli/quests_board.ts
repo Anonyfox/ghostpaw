@@ -1,7 +1,7 @@
 import { defineCommand } from "citty";
 import { listQuests } from "../../core/quests/index.ts";
 import { style } from "../../lib/terminal/index.ts";
-import { boardIcon, relativeAge, statusLabel } from "./quests_format.ts";
+import { boardIcon, relativeAge } from "./quests_format.ts";
 import { withRunDb } from "./with_run_db.ts";
 
 export default defineCommand({
@@ -11,7 +11,9 @@ export default defineCommand({
       const quests = listQuests(db, { status: "offered", limit: 100 });
 
       if (quests.length === 0) {
-        console.log(style.dim("Quest Board is empty. Offer quests with: ghostpaw quests offer \"title\""));
+        console.log(
+          style.dim('Quest Board is empty. Offer quests with: ghostpaw quests offer "title"'),
+        );
         return;
       }
 

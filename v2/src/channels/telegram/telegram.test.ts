@@ -1,6 +1,8 @@
 import { ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
+import { initChatTables } from "../../core/chat/index.ts";
 import type { Entity } from "../../harness/index.ts";
+import { openTestDatabase } from "../../lib/index.ts";
 import type { TelegramChannelConfig } from "./types.ts";
 
 describe("createTelegramChannel", () => {
@@ -11,6 +13,8 @@ describe("createTelegramChannel", () => {
 
   it("returns a channel with the expected interface", async () => {
     const { createTelegramChannel } = await import("./telegram.ts");
+    const testDb = await openTestDatabase();
+    initChatTables(testDb);
 
     const mockBot = {
       catch: () => {},
@@ -23,9 +27,9 @@ describe("createTelegramChannel", () => {
 
     const config: TelegramChannelConfig = {
       token: "fake:token",
-      db: {} as never,
+      db: testDb,
       entity: {
-        db: {} as never,
+        db: testDb,
         workspace: "/tmp",
         async executeTurn() {
           return {

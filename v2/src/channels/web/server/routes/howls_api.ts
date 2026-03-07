@@ -1,4 +1,5 @@
 import { getHistory } from "../../../../core/chat/index.ts";
+import type { HowlStatus } from "../../../../core/howl/index.ts";
 import {
   countPendingHowls,
   getHowl,
@@ -6,7 +7,6 @@ import {
   replyToHowl,
   updateHowlStatus,
 } from "../../../../core/howl/index.ts";
-import type { HowlStatus } from "../../../../core/howl/index.ts";
 import type { Entity } from "../../../../harness/types.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { readJsonBody } from "../body_parser.ts";
@@ -24,7 +24,7 @@ function parseQuery(url: string | undefined): URLSearchParams {
   return new URLSearchParams(url.slice(idx + 1));
 }
 
-export function createHowlsApiHandlers(db: DatabaseHandle, entity: Entity) {
+export function createHowlsApiHandlers(db: DatabaseHandle, entity?: Entity) {
   return {
     pending(ctx: RouteContext) {
       json(ctx, 200, { count: countPendingHowls(db) });
@@ -67,6 +67,10 @@ export function createHowlsApiHandlers(db: DatabaseHandle, entity: Entity) {
     },
 
     async reply(ctx: RouteContext) {
+      if (!entity) {
+        json(ctx, 503, { error: "Entity not available." });
+        return;
+      }
       const id = Number(ctx.params?.id);
       if (!id || Number.isNaN(id)) {
         json(ctx, 400, { error: "Invalid howl ID" });

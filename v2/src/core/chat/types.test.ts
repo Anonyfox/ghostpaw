@@ -14,8 +14,8 @@ import type {
 import { MESSAGE_ROLES, SESSION_PURPOSES } from "./types.ts";
 
 describe("SESSION_PURPOSES", () => {
-  it("contains all five purpose values", () => {
-    deepStrictEqual(SESSION_PURPOSES, ["chat", "delegate", "train", "scout", "system"]);
+  it("contains all purpose values", () => {
+    deepStrictEqual(SESSION_PURPOSES, ["chat", "delegate", "train", "scout", "system", "haunt", "howl"]);
   });
 
   it("every element is unique", () => {

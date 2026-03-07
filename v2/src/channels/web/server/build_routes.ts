@@ -8,6 +8,7 @@ import { createConfigApiHandlers } from "./routes/config_api.ts";
 import { createCostsApiHandlers } from "./routes/costs_api.ts";
 import { createDashboardHandler } from "./routes/dashboard_api.ts";
 import { createDistillApiHandlers } from "./routes/distill_api.ts";
+import { createHauntApiHandlers } from "./routes/haunt_api.ts";
 import { createHowlsApiHandlers } from "./routes/howls_api.ts";
 import { createMemoryApiHandlers } from "./routes/memory_api.ts";
 import { createMentorApiHandlers } from "./routes/mentor_api.ts";
@@ -64,6 +65,7 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
   const costs = createCostsApiHandlers(config.db);
   const sessions = createSessionsApiHandlers(config.db);
   const distill = createDistillApiHandlers(config.db);
+  const haunt = createHauntApiHandlers(config.db, config.entity);
   const howls = createHowlsApiHandlers(config.db, config.entity);
   const mentor = createMentorApiHandlers(config.db, config.entity);
   const trainer = createTrainerApiHandlers(config.db, config.entity);
@@ -159,6 +161,8 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("GET", "/api/distill/status", distill.status, true),
       createRoute("POST", "/api/distill", distill.sweep, true),
       createRoute("POST", "/api/distill/:id", distill.single, true),
+      createRoute("POST", "/api/haunt", haunt.trigger, true),
+      createRoute("GET", "/api/haunt/status", haunt.status, true),
       createRoute("GET", "/api/howls/pending", howls.pending, true),
       createRoute("GET", "/api/howls", howls.list, true),
       createRoute("GET", "/api/howls/:id", howls.detail, true),

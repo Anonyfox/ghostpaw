@@ -25,6 +25,7 @@ Additional docs not tied to a single module:
 
 | Doc | What it covers |
 |-----|----------------|
+| `docs/ORCHESTRATION.md` | Four aspects (evolution, persistence, play, infrastructure), mandatory souls, warden, delegation architecture |
 | `docs/USP.md` | Product positioning and value proposition |
 | `docs/research/PROPRIOCEPTIVE_SENSING.md` | Research paper behind the sense system in `lib/sense/` |
 

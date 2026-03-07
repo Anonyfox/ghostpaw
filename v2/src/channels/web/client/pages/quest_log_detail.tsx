@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { Link, useParams } from "wouter-preact";
-import type { QuestInfo, QuestLogDetailResponse, QuestLogInfo, QuestLogListResponse, UpdateQuestLogBody } from "../../shared/quest_types.ts";
+import type {
+  QuestInfo,
+  QuestLogDetailResponse,
+  QuestLogInfo,
+  QuestLogListResponse,
+  UpdateQuestLogBody,
+} from "../../shared/quest_types.ts";
 import { relativeAge, relativeDue } from "../../shared/quest_types.ts";
 import { apiGet } from "../api_get.ts";
 import { apiPatch } from "../api_patch.ts";
@@ -9,7 +15,7 @@ import { QuestDetail } from "../components/quest_detail.tsx";
 import { QuestRow } from "../components/quest_row.tsx";
 import { QuestStatusPill } from "../components/quest_status_pill.tsx";
 
-function fmtDate(ts: number): string {
+function _fmtDate(ts: number): string {
   return new Date(ts).toISOString().replace("T", " ").slice(0, 16);
 }
 
@@ -42,7 +48,9 @@ export function QuestLogDetailPage() {
       .catch(() => {});
   }, [logId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (!detail) return <div class="text-body-tertiary small">Loading...</div>;
 
@@ -78,7 +86,10 @@ export function QuestLogDetailPage() {
 
   return (
     <div>
-      <Link href="/quests" class="text-body-secondary small text-decoration-none mb-2 d-inline-block">
+      <Link
+        href="/quests"
+        class="text-body-secondary small text-decoration-none mb-2 d-inline-block"
+      >
         &larr; All Quests
       </Link>
 
@@ -93,16 +104,37 @@ export function QuestLogDetailPage() {
         <div class="border rounded p-3 bg-body-tertiary mb-3">
           <div class="row g-2 mb-2">
             <div class="col-12">
-              <input type="text" class="form-control form-control-sm" placeholder="Title"
-                value={form.title ?? ""} onInput={(e) => setForm({ ...form, title: (e.target as HTMLInputElement).value })} />
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                placeholder="Title"
+                value={form.title ?? ""}
+                onInput={(e) => setForm({ ...form, title: (e.target as HTMLInputElement).value })}
+              />
             </div>
             <div class="col-12">
-              <textarea class="form-control form-control-sm" rows={2} placeholder="Description"
-                value={form.description ?? ""} onInput={(e) => setForm({ ...form, description: (e.target as HTMLTextAreaElement).value || null })} />
+              <textarea
+                class="form-control form-control-sm"
+                rows={2}
+                placeholder="Description"
+                value={form.description ?? ""}
+                onInput={(e) =>
+                  setForm({ ...form, description: (e.target as HTMLTextAreaElement).value || null })
+                }
+              />
             </div>
             <div class="col-sm-6">
-              <select class="form-select form-select-sm" value={form.status ?? d.status}
-                onChange={(e) => setForm({ ...form, status: (e.target as HTMLSelectElement).value as QuestLogDetailResponse["status"] })}>
+              <select
+                class="form-select form-select-sm"
+                value={form.status ?? d.status}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    status: (e.target as HTMLSelectElement)
+                      .value as QuestLogDetailResponse["status"],
+                  })
+                }
+              >
                 <option value="active">Active</option>
                 <option value="completed">Completed</option>
                 <option value="archived">Archived</option>
@@ -110,14 +142,27 @@ export function QuestLogDetailPage() {
             </div>
             <div class="col-sm-6">
               <label class="form-label small text-body-secondary mb-0">Deadline</label>
-              <input type="datetime-local" class="form-control form-control-sm"
+              <input
+                type="datetime-local"
+                class="form-control form-control-sm"
                 value={toLocalInput(form.dueAt ?? null)}
-                onInput={(e) => setForm({ ...form, dueAt: fromLocalInput((e.target as HTMLInputElement).value) })} />
+                onInput={(e) =>
+                  setForm({ ...form, dueAt: fromLocalInput((e.target as HTMLInputElement).value) })
+                }
+              />
             </div>
           </div>
           <div class="d-flex gap-2">
-            <button type="button" class="btn btn-sm btn-info" onClick={saveEdit}>Save</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onClick={() => setEditing(false)}>Cancel</button>
+            <button type="button" class="btn btn-sm btn-info" onClick={saveEdit}>
+              Save
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              onClick={() => setEditing(false)}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       ) : (
@@ -125,27 +170,39 @@ export function QuestLogDetailPage() {
           {d.description && <p class="text-body-secondary small mb-2">{d.description}</p>}
 
           <div class="progress quest-progress-bar mb-2" style="height: 12px;">
-            <div class="progress-bar bg-info" role="progressbar" style={`width: ${pct}%`}
-              aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} />
+            <div
+              class="progress-bar bg-info"
+              role="progressbar"
+              style={`width: ${pct}%`}
+              aria-valuenow={pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            />
           </div>
 
           <div class="d-flex flex-wrap gap-3 small text-body-secondary mb-3">
-            <span>{progress.done}/{progress.total} done ({pct}%)</span>
+            <span>
+              {progress.done}/{progress.total} done ({pct}%)
+            </span>
             {progress.active > 0 && <span>{progress.active} active</span>}
             {progress.pending > 0 && <span>{progress.pending} pending</span>}
             {progress.blocked > 0 && <span class="text-warning">{progress.blocked} blocked</span>}
             {d.dueAt && (
-              <span class={d.dueAt < Date.now() ? "text-danger" : ""}>
-                {relativeDue(d.dueAt)}
-              </span>
+              <span class={d.dueAt < Date.now() ? "text-danger" : ""}>{relativeDue(d.dueAt)}</span>
             )}
-            <span>Created {relativeAge(d.createdAt)} ago by {d.createdBy}</span>
+            <span>
+              Created {relativeAge(d.createdAt)} ago by {d.createdBy}
+            </span>
           </div>
 
           <div class="d-flex gap-2 mb-3">
-            <button type="button" class="btn btn-sm btn-outline-info" onClick={startEdit}>Edit</button>
+            <button type="button" class="btn btn-sm btn-outline-info" onClick={startEdit}>
+              Edit
+            </button>
             {d.status === "active" && (
-              <button type="button" class="btn btn-sm btn-success" onClick={handleDone}>Mark Complete</button>
+              <button type="button" class="btn btn-sm btn-success" onClick={handleDone}>
+                Mark Complete
+              </button>
             )}
           </div>
         </div>
@@ -158,8 +215,11 @@ export function QuestLogDetailPage() {
         <div class="border rounded">
           {d.quests.map((q: QuestInfo) => (
             <div key={q.id}>
-              <QuestRow quest={q} isExpanded={expandedId === q.id}
-                onToggle={(qid) => setExpandedId(expandedId === qid ? null : qid)} />
+              <QuestRow
+                quest={q}
+                isExpanded={expandedId === q.id}
+                onToggle={(qid) => setExpandedId(expandedId === qid ? null : qid)}
+              />
               {expandedId === q.id && (
                 <QuestDetail
                   questId={q.id}

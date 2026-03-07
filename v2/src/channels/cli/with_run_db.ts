@@ -3,9 +3,9 @@ import { initChatTables } from "../../core/chat/index.ts";
 import { initConfigTable } from "../../core/config/index.ts";
 import { initHauntTables } from "../../core/haunt/index.ts";
 import { initHowlTables } from "../../core/howl/index.ts";
-import { initQuestTables } from "../../core/quests/index.ts";
 import { initMemoryTable } from "../../core/memory/index.ts";
 import { initPackTables } from "../../core/pack/index.ts";
+import { initQuestTables } from "../../core/quests/index.ts";
 import { initRunsTable, recoverOrphanedRuns } from "../../core/runs/index.ts";
 import {
   initSecretsTable,

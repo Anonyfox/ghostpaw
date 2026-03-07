@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
-import { completeQuest } from "../../core/quests/index.ts";
 import type { Quest, QuestOccurrence } from "../../core/quests/index.ts";
+import { completeQuest } from "../../core/quests/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { errorLine, formatDate, parseTimestamp } from "./quests_format.ts";
 import { withRunDb } from "./with_run_db.ts";
@@ -28,9 +28,7 @@ export default defineCommand({
 
     try {
       await withRunDb((db) => {
-        const occurrenceAt = args.at
-          ? parseTimestamp(args.at as string)
-          : undefined;
+        const occurrenceAt = args.at ? parseTimestamp(args.at as string) : undefined;
 
         const result = completeQuest(db, id, occurrenceAt);
 
@@ -42,10 +40,7 @@ export default defineCommand({
           );
         } else {
           const q = result as Quest;
-          console.log(
-            style.green("done".padStart(10)),
-            ` #${q.id} "${q.title}"`,
-          );
+          console.log(style.green("done".padStart(10)), ` #${q.id} "${q.title}"`);
         }
       });
     } catch (err) {

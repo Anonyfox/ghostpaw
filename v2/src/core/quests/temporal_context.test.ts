@@ -1,4 +1,4 @@
-import { ok, strictEqual } from "node:assert";
+import { strictEqual } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
