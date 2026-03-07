@@ -28,11 +28,11 @@ describe("undo_config tool", () => {
   });
 
   it("restores to default when undoing the only override", async () => {
-    setConfig(db, "max_tokens_per_session", 50000, "agent");
-    const result = (await execute({ key: "max_tokens_per_session" })) as Record<string, unknown>;
+    setConfig(db, "compaction_threshold", 50000, "agent");
+    const result = (await execute({ key: "compaction_threshold" })) as Record<string, unknown>;
     strictEqual(result.undone, true);
     strictEqual(result.restored_to_default, true);
-    strictEqual(getConfig(db, "max_tokens_per_session"), 200_000);
+    strictEqual(getConfig(db, "compaction_threshold"), 200_000);
   });
 
   it("returns error when key has no history", async () => {

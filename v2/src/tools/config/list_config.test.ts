@@ -28,9 +28,9 @@ describe("list_config tool", () => {
   });
 
   it("shows overridden values with their actual source", async () => {
-    setConfig(db, "max_tokens_per_session", 50000, "web");
+    setConfig(db, "compaction_threshold", 50000, "web");
     const result = (await execute({})) as { entries: { key: string; source: string }[] };
-    const entry = result.entries.find((e) => e.key === "max_tokens_per_session");
+    const entry = result.entries.find((e) => e.key === "compaction_threshold");
     strictEqual(entry?.source, "web");
   });
 

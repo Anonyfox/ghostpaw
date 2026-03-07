@@ -10,21 +10,13 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
     description: "LLM model identifier used for new sessions.",
   },
   {
-    key: "max_tokens_per_session",
+    key: "compaction_threshold",
     type: "integer",
     defaultValue: 200_000,
-    category: "cost",
-    label: "Max Tokens Per Session",
-    description: "Hard limit on tokens consumed in a single session. Prevents runaway costs.",
-    validate: (v) => typeof v === "number" && v > 0,
-  },
-  {
-    key: "max_tokens_per_day",
-    type: "integer",
-    defaultValue: 1_000_000,
-    category: "cost",
-    label: "Max Tokens Per Day",
-    description: "Daily token budget across all sessions. Zero means unlimited.",
+    category: "behavior",
+    label: "Compaction Threshold",
+    description:
+      "Token count at which automatic context compaction fires. The LLM sees a summary of earlier messages plus everything after the compaction point. Lower values keep working context smaller; higher values let longer conversations run before compacting.",
     validate: (v) => typeof v === "number" && v > 0,
   },
   {
@@ -33,7 +25,7 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
     defaultValue: 80,
     category: "cost",
     label: "Warning Threshold (%)",
-    description: "Percentage of token/cost budget that triggers a warning (0-100).",
+    description: "Percentage of daily dollar budget (max_cost_per_day) that triggers a warning (0-100).",
     validate: (v) => typeof v === "number" && v >= 0 && v <= 100,
   },
   {

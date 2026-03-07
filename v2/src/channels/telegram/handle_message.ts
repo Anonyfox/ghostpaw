@@ -1,10 +1,6 @@
-import type { TurnResult } from "../../core/chat/index.ts";
 import { getPendingHowl } from "../../core/howl/index.ts";
 import { processHowlReply } from "../../harness/howl/index.ts";
 import type { Entity } from "../../harness/index.ts";
-import { TokenBudgetError } from "../../lib/index.ts";
-import { rotateSession } from "./rotate_session.ts";
-import { sessionKeyForChat } from "./session_key.ts";
 import { splitMessage } from "./split_message.ts";
 import type { ReactionEmoji } from "./types.ts";
 
@@ -50,7 +46,8 @@ export async function handleMessage(
         await deps.sendMessage(chatId, part);
       }
     } else {
-      const result = await executeTurnWithRotation(deps, chatId, text);
+      const sessionId = deps.resolveSessionId(chatId);
+      const result = await deps.entity.executeTurn(sessionId, text);
       clearInterval(typingInterval);
       await deps.setReaction(chatId, messageId, "\u{1F44D}");
 
@@ -68,26 +65,3 @@ export async function handleMessage(
   }
 }
 
-/**
- * Runs a turn, transparently rotating the session if the token budget is
- * exhausted. Rotation closes the spent session, opens a fresh one with the
- * same key, bridges the compaction summary, and retries the turn exactly once.
- * Any other error (daily limit, LLM failure) propagates unchanged.
- */
-async function executeTurnWithRotation(
-  deps: HandleMessageDeps,
-  chatId: number,
-  text: string,
-): Promise<TurnResult> {
-  const sessionId = deps.resolveSessionId(chatId);
-  try {
-    return await deps.entity.executeTurn(sessionId, text);
-  } catch (err) {
-    if (err instanceof TokenBudgetError && err.scope === "session") {
-      const sessionKey = sessionKeyForChat(chatId);
-      const newSessionId = rotateSession(deps.entity.db, sessionId, sessionKey);
-      return deps.entity.executeTurn(newSessionId, text);
-    }
-    throw err;
-  }
-}

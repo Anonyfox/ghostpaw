@@ -25,8 +25,8 @@ describe("setConfig", () => {
   });
 
   it("stores an integer value for a known key", () => {
-    setConfig(db, "max_tokens_per_session", 500_000, "web");
-    strictEqual(getConfig(db, "max_tokens_per_session"), 500_000);
+    setConfig(db, "compaction_threshold", 500_000, "web");
+    strictEqual(getConfig(db, "compaction_threshold"), 500_000);
   });
 
   it("stores a number value for a known key", () => {
@@ -139,8 +139,8 @@ describe("setConfig", () => {
   });
 
   it("rejects value that fails type validation for known key", () => {
-    throws(() => setConfig(db, "max_tokens_per_session", 0, "cli"), /constraint/i);
-    strictEqual(getConfig(db, "max_tokens_per_session"), 200_000);
+    throws(() => setConfig(db, "compaction_threshold", 0, "cli"), /constraint/i);
+    strictEqual(getConfig(db, "compaction_threshold"), 200_000);
   });
 
   it("rejects negative max_cost_per_day", () => {
@@ -153,7 +153,7 @@ describe("setConfig", () => {
 
   it("rejects wrong runtime type for known key", () => {
     throws(
-      () => setConfig(db, "max_tokens_per_session", "not a number" as unknown as number, "cli"),
+      () => setConfig(db, "compaction_threshold", "not a number" as unknown as number, "cli"),
       /must be an integer/i,
     );
   });
@@ -167,25 +167,25 @@ describe("setConfig", () => {
 
   it("does not create any rows on validation failure (atomicity)", () => {
     try {
-      setConfig(db, "max_tokens_per_session", 0, "cli");
+      setConfig(db, "compaction_threshold", 0, "cli");
     } catch {
       // expected
     }
-    const rows = db.prepare("SELECT * FROM config WHERE key = ?").all("max_tokens_per_session");
+    const rows = db.prepare("SELECT * FROM config WHERE key = ?").all("compaction_threshold");
     strictEqual(rows.length, 0);
   });
 
   it("does not corrupt the chain on failure during update", () => {
-    setConfig(db, "max_tokens_per_session", 100, "cli");
+    setConfig(db, "compaction_threshold", 100, "cli");
 
     try {
-      setConfig(db, "max_tokens_per_session", -1, "cli");
+      setConfig(db, "compaction_threshold", -1, "cli");
     } catch {
       // expected
     }
 
-    strictEqual(getConfig(db, "max_tokens_per_session"), 100);
-    const rows = db.prepare("SELECT * FROM config WHERE key = ?").all("max_tokens_per_session");
+    strictEqual(getConfig(db, "compaction_threshold"), 100);
+    const rows = db.prepare("SELECT * FROM config WHERE key = ?").all("compaction_threshold");
     strictEqual(rows.length, 1);
     strictEqual(rows[0]!.next_id, null);
   });

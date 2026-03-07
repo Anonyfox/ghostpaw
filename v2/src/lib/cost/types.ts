@@ -6,11 +6,3 @@ export interface SpendStatus {
   isBlocked: boolean;
   windowMs: number;
 }
-
-export interface BudgetNumbers {
-  sessionTokens: number;
-  sessionLimit: number;
-  dayTokens: number;
-  dayLimit: number;
-  warnAtPercentage: number;
-}

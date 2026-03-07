@@ -1,18 +1,15 @@
 import type { TurnResult } from "../core/chat/index.ts";
 import { executeTurn, streamTurn } from "../core/chat/index.ts";
+import { getConfig } from "../core/config/index.ts";
 import { MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
 import { defaultChatFactory } from "./chat_factory.ts";
 import { checkSpendLimit } from "./check_spend_limit.ts";
-import { checkTokenBudget } from "./check_token_budget.ts";
-import { computeBudgetSummary } from "./compute_budget_summary.ts";
 import { assembleContext } from "./context.ts";
 import { resolveModel } from "./model.ts";
 import { compactHistory } from "./oneshots/summarize_for_compaction.ts";
 import { handlePostTurn } from "./post_turn.ts";
 import { createEntityToolSets } from "./tools.ts";
 import type { Entity, EntityOptions, EntityTurnOptions } from "./types.ts";
-
-const COMPACTION_THRESHOLD = 50_000;
 
 export function createEntity(options: EntityOptions): Entity {
   const { db, workspace } = options;
@@ -39,13 +36,9 @@ export function createEntity(options: EntityOptions): Entity {
 
   function buildTurnArgs(sessionId: number, content: string, opts?: EntityTurnOptions) {
     const model = resolveModel(db, opts?.model);
-    const budgetSummary = computeBudgetSummary(db, sessionId) ?? undefined;
     const systemPrompt =
       opts?.systemPrompt ??
-      assembleContext(db, workspace, content, {
-        soulId: opts?.soulId,
-        budgetSummary,
-      });
+      assembleContext(db, workspace, { soulId: opts?.soulId });
     const isWarden = opts?.soulId === MANDATORY_SOUL_IDS.warden;
     const isChamberlain = opts?.soulId === MANDATORY_SOUL_IDS.chamberlain;
     const isMentor = opts?.soulId === MANDATORY_SOUL_IDS.mentor;
@@ -59,12 +52,13 @@ export function createEntity(options: EntityOptions): Entity {
           : isTrainer
             ? toolSets.allToolsWithTrainer
             : toolSets.baseTools;
+    const compactionThreshold = (getConfig(db, "compaction_threshold") as number | null) ?? 200_000;
     const turnInput = {
       sessionId,
       content,
       systemPrompt,
       model,
-      compactionThreshold: COMPACTION_THRESHOLD,
+      compactionThreshold,
       maxIterations: opts?.maxIterations,
       temperature: opts?.temperature,
       reasoning: opts?.reasoning,
@@ -81,7 +75,6 @@ export function createEntity(options: EntityOptions): Entity {
 
     async *streamTurn(sessionId, content, opts) {
       checkSpendLimit(db);
-      checkTokenBudget(db, sessionId);
       const { turnInput, turnContext, model } = buildTurnArgs(sessionId, content, opts);
       activeSessionId = sessionId;
       try {
@@ -106,7 +99,6 @@ export function createEntity(options: EntityOptions): Entity {
 
     async executeTurn(sessionId, content, opts) {
       checkSpendLimit(db);
-      checkTokenBudget(db, sessionId);
       const { turnInput, turnContext, model } = buildTurnArgs(sessionId, content, opts);
       activeSessionId = sessionId;
       try {

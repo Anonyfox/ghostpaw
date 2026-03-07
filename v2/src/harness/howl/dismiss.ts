@@ -49,7 +49,7 @@ export async function processHowlDismiss(
 
   try {
     const tools = createWardenTools(db);
-    const systemPrompt = assembleContext(db, "", "", {
+    const systemPrompt = assembleContext(db, "", {
       soulId: MANDATORY_SOUL_IDS.warden,
     });
 

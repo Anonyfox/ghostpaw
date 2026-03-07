@@ -118,9 +118,9 @@ describe("config API", () => {
 
     it("stores a known integer key", async () => {
       const res = mockRes();
-      await handlers.set(ctx(mockReq({ key: "max_tokens_per_session", value: "50000" }), res));
+      await handlers.set(ctx(mockReq({ key: "compaction_threshold", value: "50000" }), res));
       strictEqual(res.status, 200);
-      strictEqual(getConfig(db, "max_tokens_per_session"), 50000);
+      strictEqual(getConfig(db, "compaction_threshold"), 50000);
     });
 
     it("stores a custom key with explicit type", async () => {

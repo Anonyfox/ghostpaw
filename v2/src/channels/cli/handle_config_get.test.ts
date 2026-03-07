@@ -41,8 +41,8 @@ describe("handleConfigGet", () => {
   });
 
   it("returns typed value for known integer key", () => {
-    setConfig(db, "max_tokens_per_session", 50000, "web");
-    const result = handleConfigGet(db, "max_tokens_per_session");
+    setConfig(db, "compaction_threshold", 50000, "web");
+    const result = handleConfigGet(db, "compaction_threshold");
     strictEqual(result.found, true);
     strictEqual(result.value, 50000);
     strictEqual(result.type, "integer");

@@ -23,6 +23,7 @@ export { getCostByPurpose } from "./get_cost_by_purpose.ts";
 export { getCostBySoul } from "./get_cost_by_soul.ts";
 export { getCostSummary } from "./get_cost_summary.ts";
 export { getDailyCostTrend } from "./get_daily_cost_trend.ts";
+export { getFullHistory } from "./get_full_history.ts";
 export { getHistory } from "./get_history.ts";
 export { getOrCreateSession } from "./get_or_create_session.ts";
 export { getSession } from "./get_session.ts";

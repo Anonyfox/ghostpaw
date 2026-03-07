@@ -11,28 +11,20 @@ describe("validateKnownValue", () => {
     doesNotThrow(() => validateKnownValue("default_model", "gpt-4o"));
   });
 
-  it("accepts valid max_tokens_per_session", () => {
-    doesNotThrow(() => validateKnownValue("max_tokens_per_session", 200_000));
+  it("accepts valid compaction_threshold", () => {
+    doesNotThrow(() => validateKnownValue("compaction_threshold", 200_000));
   });
 
-  it("accepts 1 as max_tokens_per_session", () => {
-    doesNotThrow(() => validateKnownValue("max_tokens_per_session", 1));
+  it("accepts 1 as compaction_threshold", () => {
+    doesNotThrow(() => validateKnownValue("compaction_threshold", 1));
   });
 
-  it("rejects zero for max_tokens_per_session", () => {
-    throws(() => validateKnownValue("max_tokens_per_session", 0), /constraint/i);
+  it("rejects zero for compaction_threshold", () => {
+    throws(() => validateKnownValue("compaction_threshold", 0), /constraint/i);
   });
 
-  it("rejects negative for max_tokens_per_session", () => {
-    throws(() => validateKnownValue("max_tokens_per_session", -1), /constraint/i);
-  });
-
-  it("accepts valid max_tokens_per_day", () => {
-    doesNotThrow(() => validateKnownValue("max_tokens_per_day", 1_000_000));
-  });
-
-  it("rejects zero for max_tokens_per_day", () => {
-    throws(() => validateKnownValue("max_tokens_per_day", 0), /constraint/i);
+  it("rejects negative for compaction_threshold", () => {
+    throws(() => validateKnownValue("compaction_threshold", -1), /constraint/i);
   });
 
   it("accepts zero for warn_at_percentage", () => {
@@ -75,10 +67,10 @@ describe("validateKnownValue", () => {
 
   it("error message includes the key name and label", () => {
     try {
-      validateKnownValue("max_tokens_per_session", 0);
+      validateKnownValue("compaction_threshold", 0);
     } catch (e) {
       const msg = (e as Error).message;
-      if (!msg.includes("Max Tokens Per Session")) {
+      if (!msg.includes("Compaction Threshold")) {
         throw new Error(`Expected label in error message, got: ${msg}`);
       }
     }

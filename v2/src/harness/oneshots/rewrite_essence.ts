@@ -7,9 +7,11 @@ import {
   createSession,
   executeTurn,
 } from "../../core/chat/index.ts";
+import { MANDATORY_SOUL_IDS } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
+import { assembleContext } from "../context.ts";
 
-const SYSTEM_PROMPT = [
+const REWRITE_RULES = [
   "You are rewriting a soul's essence text after a level-up. This is the most",
   "critical prompt in the system — the essence IS the soul's identity.",
   "",
@@ -34,8 +36,17 @@ export interface RewriteEssenceInput {
   carriedTraits: { principle: string }[];
 }
 
-function buildPrompt(input: RewriteEssenceInput): string {
+function buildPrompt(input: RewriteEssenceInput, writingSkill: string | null): string {
   const sections: string[] = [];
+
+  if (writingSkill) {
+    sections.push("## Writing Reference\n");
+    sections.push(writingSkill);
+    sections.push("");
+  }
+
+  sections.push(REWRITE_RULES);
+  sections.push("");
 
   sections.push(`Soul: ${input.soulName}`);
   if (input.description) sections.push(`Description: ${input.description}`);
@@ -96,10 +107,13 @@ export async function rewriteEssence(
   createChat: ChatFactory,
 ): Promise<string> {
   const skillContent = readWritingSkill(workspace);
-  const systemPrompt = skillContent ? `${skillContent}\n\n${SYSTEM_PROMPT}` : SYSTEM_PROMPT;
+  const systemPrompt = assembleContext(db, workspace, {
+    soulId: MANDATORY_SOUL_IDS.mentor,
+  });
 
   const session = createSession(db, `system:essence-rewrite:${input.soulId}:${Date.now()}`, {
     purpose: "system",
+    soulId: MANDATORY_SOUL_IDS.mentor,
   });
   const sessionId = session.id as number;
 
@@ -107,7 +121,7 @@ export async function rewriteEssence(
     const result = await executeTurn(
       {
         sessionId,
-        content: buildPrompt(input),
+        content: buildPrompt(input, skillContent),
         systemPrompt,
         model,
         maxIterations: 1,

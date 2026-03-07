@@ -28,8 +28,8 @@ describe("get_config tool", () => {
   });
 
   it("returns an overridden known key with its set value and source", async () => {
-    setConfig(db, "max_tokens_per_session", 50000, "web");
-    const result = (await execute({ key: "max_tokens_per_session" })) as Record<string, unknown>;
+    setConfig(db, "compaction_threshold", 50000, "web");
+    const result = (await execute({ key: "compaction_threshold" })) as Record<string, unknown>;
     strictEqual(result.value, 50000);
     strictEqual(result.source, "web");
     strictEqual(result.type, "integer");

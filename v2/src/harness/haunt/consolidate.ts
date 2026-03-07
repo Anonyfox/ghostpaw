@@ -92,7 +92,7 @@ export async function consolidateHaunt(
       `${CONSOLIDATION_INSTRUCTION}\n\nJournal from private session:\n\n${rawJournal}` +
       formatSeededMemoriesForConsolidation(seededMemories);
 
-    const systemPrompt = assembleContext(db, "", "", {
+    const systemPrompt = assembleContext(db, "", {
       soulId: MANDATORY_SOUL_IDS.warden,
     });
 

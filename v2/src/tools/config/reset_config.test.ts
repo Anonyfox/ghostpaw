@@ -19,11 +19,11 @@ describe("reset_config tool", () => {
   afterEach(() => db.close());
 
   it("resets a known key to its default value", async () => {
-    setConfig(db, "max_tokens_per_session", 50000, "agent");
-    const result = (await execute({ key: "max_tokens_per_session" })) as Record<string, unknown>;
+    setConfig(db, "compaction_threshold", 50000, "agent");
+    const result = (await execute({ key: "compaction_threshold" })) as Record<string, unknown>;
     strictEqual(result.reset, true);
     strictEqual(result.default_value, 200_000);
-    strictEqual(getConfig(db, "max_tokens_per_session"), 200_000);
+    strictEqual(getConfig(db, "compaction_threshold"), 200_000);
   });
 
   it("removes a custom key entirely", async () => {

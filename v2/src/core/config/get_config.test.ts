@@ -32,8 +32,8 @@ describe("getConfig", () => {
     strictEqual(getConfig(db, "default_model"), "claude-sonnet-4-6");
   });
 
-  it("returns code default for max_tokens_per_session with no DB entry", () => {
-    strictEqual(getConfig(db, "max_tokens_per_session"), 200_000);
+  it("returns code default for compaction_threshold with no DB entry", () => {
+    strictEqual(getConfig(db, "compaction_threshold"), 200_000);
   });
 
   it("returns code default for max_cost_per_day with no DB entry", () => {
@@ -54,8 +54,8 @@ describe("getConfig", () => {
   });
 
   it("returns a typed integer from DB for integer keys", () => {
-    insertCurrent("max_tokens_per_session", "500000", "integer", "cost");
-    const result = getConfig(db, "max_tokens_per_session");
+    insertCurrent("compaction_threshold", "500000", "integer", "cost");
+    const result = getConfig(db, "compaction_threshold");
     strictEqual(result, 500_000);
     strictEqual(typeof result, "number");
   });
@@ -85,8 +85,8 @@ describe("getConfig", () => {
   it("uses code-defined type for known keys, ignoring DB type column", () => {
     db.prepare(
       "INSERT INTO config (key, value, type, category, source, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-    ).run("max_tokens_per_session", "300000", "string", "cost", "cli", Date.now());
-    const result = getConfig(db, "max_tokens_per_session");
+    ).run("compaction_threshold", "300000", "string", "cost", "cli", Date.now());
+    const result = getConfig(db, "compaction_threshold");
     strictEqual(result, 300_000);
     strictEqual(typeof result, "number");
   });
@@ -94,8 +94,8 @@ describe("getConfig", () => {
   it("falls back to code default when DB value is corrupt for known key", () => {
     db.prepare(
       "INSERT INTO config (key, value, type, category, source, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-    ).run("max_tokens_per_session", "not-a-number", "integer", "cost", "cli", Date.now());
-    strictEqual(getConfig(db, "max_tokens_per_session"), 200_000);
+    ).run("compaction_threshold", "not-a-number", "integer", "cost", "cli", Date.now());
+    strictEqual(getConfig(db, "compaction_threshold"), 200_000);
   });
 
   it("throws when custom key DB value is corrupt and unparseable", () => {

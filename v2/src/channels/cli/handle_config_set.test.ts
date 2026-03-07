@@ -27,10 +27,10 @@ describe("handleConfigSet", () => {
   });
 
   it("sets a known integer key by parsing the string", () => {
-    const result = handleConfigSet(db, "max_tokens_per_session", "50000");
+    const result = handleConfigSet(db, "compaction_threshold", "50000");
     strictEqual(result.success, true);
     strictEqual(result.type, "integer");
-    strictEqual(getConfig(db, "max_tokens_per_session"), 50000);
+    strictEqual(getConfig(db, "compaction_threshold"), 50000);
   });
 
   it("sets a known number key by parsing the string", () => {

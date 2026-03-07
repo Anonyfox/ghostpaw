@@ -95,7 +95,7 @@ export function createDelegateHandler(options: DelegateExecutorOptions): Delegat
     const childSessionId = childSession.id as number;
 
     try {
-      const systemPrompt = `${assembleContext(db, options.workspace, args.task, soulId)}\n\n${DELEGATE_PREAMBLE}`;
+      const systemPrompt = `${assembleContext(db, options.workspace, soulId)}\n\n${DELEGATE_PREAMBLE}`;
       const isWarden = soulId === MANDATORY_SOUL_IDS.warden;
       const isChamberlain = soulId === MANDATORY_SOUL_IDS.chamberlain;
       const isMentor = soulId === MANDATORY_SOUL_IDS.mentor;

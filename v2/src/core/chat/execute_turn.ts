@@ -21,9 +21,10 @@ export async function executeTurn(input: TurnInput, ctx: TurnContext): Promise<T
 
     let headId = session.headMessageId;
 
-    if (input.compactionThreshold && input.compactionThreshold > 0 && ctx.compactFn) {
+    const threshold = input.compactionThreshold ?? 0;
+    if (ctx.compactFn && threshold > 0) {
       const preHistory = getHistory(ctx.db, input.sessionId);
-      if (shouldCompact(preHistory, input.compactionThreshold)) {
+      if (shouldCompact(preHistory, threshold)) {
         await ctx.compactFn(ctx.db, input.sessionId, preHistory, input.model, ctx.createChat);
         headId = getSession(ctx.db, input.sessionId)?.headMessageId ?? null;
       }

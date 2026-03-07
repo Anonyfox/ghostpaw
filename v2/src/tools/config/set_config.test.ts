@@ -19,14 +19,14 @@ describe("set_config tool", () => {
   afterEach(() => db.close());
 
   it("sets a known key with type inference", async () => {
-    const result = (await execute({ key: "max_tokens_per_session", value: "50000" })) as Record<
+    const result = (await execute({ key: "compaction_threshold", value: "50000" })) as Record<
       string,
       unknown
     >;
-    strictEqual(result.key, "max_tokens_per_session");
+    strictEqual(result.key, "compaction_threshold");
     strictEqual(result.value, 50000);
     strictEqual(result.type, "integer");
-    strictEqual(getConfig(db, "max_tokens_per_session"), 50000);
+    strictEqual(getConfig(db, "compaction_threshold"), 50000);
   });
 
   it("sets a custom string key", async () => {
@@ -67,14 +67,14 @@ describe("set_config tool", () => {
   });
 
   it("validates known key constraints", async () => {
-    const result = (await execute({ key: "max_tokens_per_session", value: "-100" })) as {
+    const result = (await execute({ key: "compaction_threshold", value: "-100" })) as {
       error: string;
     };
     ok(result.error);
   });
 
   it("returns error for invalid type", async () => {
-    const result = (await execute({ key: "max_tokens_per_session", value: "not_a_number" })) as {
+    const result = (await execute({ key: "compaction_threshold", value: "not_a_number" })) as {
       error: string;
     };
     ok(result.error);

@@ -47,9 +47,9 @@ describe("listConfig", () => {
     strictEqual(model.value, "claude-sonnet-4-6");
   });
 
-  it("max_tokens_per_session has the correct default value serialized", () => {
+  it("compaction_threshold has the correct default value serialized", () => {
     const entries = listConfig(db);
-    const entry = entries.find((e) => e.key === "max_tokens_per_session");
+    const entry = entries.find((e) => e.key === "compaction_threshold");
     ok(entry);
     strictEqual(entry.value, "200000");
   });

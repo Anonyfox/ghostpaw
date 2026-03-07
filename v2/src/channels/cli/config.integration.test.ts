@@ -73,10 +73,10 @@ describe("CLI: config set + get round-trip", () => {
   });
 
   it("sets and gets an integer value for known key", () => {
-    const set = cli(["config", "set", "max_tokens_per_session", "50000"]);
+    const set = cli(["config", "set", "compaction_threshold", "50000"]);
     strictEqual(set.status, 0);
 
-    const get = cli(["config", "get", "max_tokens_per_session"]);
+    const get = cli(["config", "get", "compaction_threshold"]);
     strictEqual(get.status, 0);
     ok((get.stdout + get.stderr).includes("50000"));
   });

@@ -1,7 +1,7 @@
 import type { SessionWithCounts } from "../../../../core/chat/index.ts";
 import {
   deriveSessionTitle,
-  getHistory,
+  getFullHistory,
   getSession,
   getSessionMessage,
   getSessionStats,
@@ -116,7 +116,7 @@ export function createSessionsApiHandlers(db: DatabaseHandle) {
         return;
       }
 
-      const rawMessages = getHistory(db, id);
+      const rawMessages = getFullHistory(db, id);
       const messages: SessionMessageInfo[] = rawMessages.map((m) => ({
         id: m.id,
         role: m.role,

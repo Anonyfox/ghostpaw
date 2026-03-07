@@ -3,8 +3,8 @@ import { describe, it } from "node:test";
 import { KNOWN_CONFIG_KEYS } from "./known_keys.ts";
 
 describe("KNOWN_CONFIG_KEYS", () => {
-  it("contains exactly 18 system keys", () => {
-    strictEqual(KNOWN_CONFIG_KEYS.length, 18);
+  it("contains exactly 17 system keys", () => {
+    strictEqual(KNOWN_CONFIG_KEYS.length, 17);
   });
 
   it("has default_model in the model category", () => {
@@ -15,20 +15,12 @@ describe("KNOWN_CONFIG_KEYS", () => {
     strictEqual(key.defaultValue, "claude-sonnet-4-6");
   });
 
-  it("has max_tokens_per_session in the cost category", () => {
-    const key = KNOWN_CONFIG_KEYS.find((k) => k.key === "max_tokens_per_session");
-    ok(key, "max_tokens_per_session exists");
+  it("has compaction_threshold in the behavior category", () => {
+    const key = KNOWN_CONFIG_KEYS.find((k) => k.key === "compaction_threshold");
+    ok(key, "compaction_threshold exists");
     strictEqual(key.type, "integer");
-    strictEqual(key.category, "cost");
+    strictEqual(key.category, "behavior");
     strictEqual(key.defaultValue, 200_000);
-  });
-
-  it("has max_tokens_per_day in the cost category", () => {
-    const key = KNOWN_CONFIG_KEYS.find((k) => k.key === "max_tokens_per_day");
-    ok(key, "max_tokens_per_day exists");
-    strictEqual(key.type, "integer");
-    strictEqual(key.category, "cost");
-    strictEqual(key.defaultValue, 1_000_000);
   });
 
   it("has warn_at_percentage in the cost category", () => {
@@ -73,17 +65,9 @@ describe("KNOWN_CONFIG_KEYS", () => {
     }
   });
 
-  it("max_tokens_per_session rejects zero and negative", () => {
-    const key = KNOWN_CONFIG_KEYS.find((k) => k.key === "max_tokens_per_session")!;
+  it("compaction_threshold rejects zero and negative", () => {
+    const key = KNOWN_CONFIG_KEYS.find((k) => k.key === "compaction_threshold")!;
     ok(key.validate!(200_000));
-    ok(key.validate!(1));
-    ok(!key.validate!(0));
-    ok(!key.validate!(-1));
-  });
-
-  it("max_tokens_per_day rejects zero and negative", () => {
-    const key = KNOWN_CONFIG_KEYS.find((k) => k.key === "max_tokens_per_day")!;
-    ok(key.validate!(1_000_000));
     ok(key.validate!(1));
     ok(!key.validate!(0));
     ok(!key.validate!(-1));

@@ -1,10 +1,14 @@
-import { ok, rejects } from "node:assert";
+import { ok, rejects, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
 import type { ChatFactory } from "../../core/chat/index.ts";
 import { initChatTables } from "../../core/chat/index.ts";
 import { initConfigTable } from "../../core/config/index.ts";
 import { initMemoryTable } from "../../core/memory/index.ts";
-import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
+import {
+  ensureMandatorySouls,
+  initSoulsTables,
+  MANDATORY_SOUL_IDS,
+} from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import type { RewriteEssenceInput } from "./rewrite_essence.ts";
@@ -113,7 +117,7 @@ describe("rewriteEssence", () => {
     ok(parent.cost_usd > 0);
   });
 
-  it("creates and closes a system session", async () => {
+  it("creates session tagged with mentor soulId and closes it", async () => {
     const db = await setup();
 
     const now = Date.now();
@@ -127,10 +131,11 @@ describe("rewriteEssence", () => {
 
     const sessions = db
       .prepare("SELECT * FROM sessions WHERE key LIKE 'system:essence-rewrite:%'")
-      .all() as { closed_at: number | null }[];
+      .all() as { closed_at: number | null; soul_id: number | null }[];
     ok(sessions.length > 0);
     for (const s of sessions) {
       ok(s.closed_at !== null);
+      strictEqual(s.soul_id, MANDATORY_SOUL_IDS.mentor);
     }
   });
 
