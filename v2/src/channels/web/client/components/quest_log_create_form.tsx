@@ -46,21 +46,46 @@ export function QuestLogCreateForm({ onCreated, onCancel }: Props) {
       <div class="card-body">
         <h6 class="card-title mb-2">New Quest Log</h6>
         {error && <div class="alert alert-danger py-1 small">{error}</div>}
-        <input type="text" class="form-control form-control-sm mb-2" placeholder="Title *"
-          value={form.title} onInput={(e) => setForm({ ...form, title: (e.target as HTMLInputElement).value })}
-          onKeyDown={onKeyDown} autoFocus />
-        <textarea class="form-control form-control-sm mb-2" rows={2} placeholder="Description"
-          value={form.description ?? ""} onInput={(e) => setForm({ ...form, description: (e.target as HTMLTextAreaElement).value || undefined })} />
+        <input
+          type="text"
+          class="form-control form-control-sm mb-2"
+          placeholder="Title *"
+          value={form.title}
+          onInput={(e) => setForm({ ...form, title: (e.target as HTMLInputElement).value })}
+          onKeyDown={onKeyDown}
+        />
+        <textarea
+          class="form-control form-control-sm mb-2"
+          rows={2}
+          placeholder="Description"
+          value={form.description ?? ""}
+          onInput={(e) =>
+            setForm({ ...form, description: (e.target as HTMLTextAreaElement).value || undefined })
+          }
+        />
         <div class="mb-2">
-          <label class="form-label small text-body-secondary mb-0">Deadline</label>
-          <input type="datetime-local" class="form-control form-control-sm"
-            onInput={(e) => setForm({ ...form, dueAt: fromLocal((e.target as HTMLInputElement).value) })} />
+          <label
+            htmlFor="quest-log-create-deadline"
+            class="form-label small text-body-secondary mb-0"
+          >
+            Deadline
+          </label>
+          <input
+            id="quest-log-create-deadline"
+            type="datetime-local"
+            class="form-control form-control-sm"
+            onInput={(e) =>
+              setForm({ ...form, dueAt: fromLocal((e.target as HTMLInputElement).value) })
+            }
+          />
         </div>
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-sm btn-info" onClick={submit} disabled={submitting}>
             {submitting ? "Creating..." : "Create"}
           </button>
-          <button type="button" class="btn btn-sm btn-outline-secondary" onClick={onCancel}>Cancel</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onClick={onCancel}>
+            Cancel
+          </button>
         </div>
       </div>
     </div>

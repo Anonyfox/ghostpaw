@@ -1,15 +1,13 @@
 import type { Tool } from "chatoyant";
 import type { ChatFactory } from "../core/chat/index.ts";
-import { accumulateUsage, closeSession, createSession, executeTurn } from "../core/chat/index.ts";
-import type { DelegationRun } from "../core/runs/index.ts";
 import {
-  completeRun,
-  createRun,
-  failRun,
-  getRun,
-  linkChildSession,
-  recordRunUsage,
-} from "../core/runs/index.ts";
+  closeSession,
+  createSession,
+  executeTurn,
+  finalizeDelegation,
+  getSession,
+  getSessionMessage,
+} from "../core/chat/index.ts";
 import { getSoulByName, listSouls, MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import type { DelegateArgs, DelegateHandler } from "../tools/delegate.ts";
@@ -18,6 +16,7 @@ import { assembleContext } from "./context.ts";
 import { resolveModel } from "./model.ts";
 import type { ChannelNotifyFn } from "./notify_background_complete.ts";
 import { notifyBackgroundComplete } from "./notify_background_complete.ts";
+import type { DelegationOutcome } from "./types.ts";
 
 const DEFAULT_TIMEOUT_MS = 1_800_000;
 const CHILD_MAX_ITERATIONS = 15;
@@ -37,7 +36,7 @@ export interface DelegateExecutorOptions {
   trainerTools?: Tool[];
   chatFactory: ChatFactory;
   getParentSessionId: () => number | null;
-  onBackgroundComplete?: (parentSessionId: number, run: DelegationRun) => void;
+  onBackgroundComplete?: (parentSessionId: number, outcome: DelegationOutcome) => void;
 }
 
 function withTimeout<T>(fn: (signal: AbortSignal) => Promise<T>, ms: number): Promise<T> {
@@ -60,6 +59,7 @@ export function createDelegateHandler(options: DelegateExecutorOptions): Delegat
 
     const model = resolveModel(db, args.model);
     const timeoutMs = args.timeout ? args.timeout * 1000 : DEFAULT_TIMEOUT_MS;
+    const specialist = args.specialist ?? "default";
 
     let soulId: number = MANDATORY_SOUL_IDS.ghostpaw;
     if (args.specialist) {
@@ -75,23 +75,15 @@ export function createDelegateHandler(options: DelegateExecutorOptions): Delegat
       soulId = soul.id;
     }
 
-    const run = createRun(db, {
-      parentSessionId,
-      specialist: args.specialist ?? "default",
+    const childSession = createSession(db, `delegate:${Date.now()}`, {
+      purpose: "delegate",
       model,
-      task: args.task,
+      parentSessionId,
+      soulId,
     });
-    let childSessionId: number | null = null;
+    const childSessionId = childSession.id as number;
 
     try {
-      const childSession = createSession(db, `delegate:${run.id}`, {
-        purpose: "delegate",
-        model,
-        parentSessionId,
-      });
-      childSessionId = childSession.id as number;
-      linkChildSession(db, run.id, childSessionId);
-
       const systemPrompt = `${assembleContext(db, options.workspace, args.task, soulId)}\n\n${DELEGATE_PREAMBLE}`;
       const isMentor = soulId === MANDATORY_SOUL_IDS.mentor;
       const isTrainer = soulId === MANDATORY_SOUL_IDS.trainer;
@@ -104,13 +96,13 @@ export function createDelegateHandler(options: DelegateExecutorOptions): Delegat
 
       if (args.background) {
         const channelNotify: ChannelNotifyFn | undefined = options.onBackgroundComplete
-          ? (pid, r) => options.onBackgroundComplete!(pid, r)
+          ? (pid, o) => options.onBackgroundComplete!(pid, o)
           : undefined;
         runInBackground(
           db,
-          run,
           parentSessionId,
           childSessionId,
+          specialist,
           systemPrompt,
           model,
           timeoutMs,
@@ -120,17 +112,17 @@ export function createDelegateHandler(options: DelegateExecutorOptions): Delegat
           channelNotify,
         );
         return {
-          runId: run.id,
+          runId: childSessionId,
           status: "running",
-          message: `Background task started. Use check_run with run_id=${run.id} to poll for results.`,
+          message: `Background task started. Use check_run with run_id=${childSessionId} to poll for results.`,
         };
       }
 
       return await executeAndFinalize(
         db,
-        run,
         parentSessionId,
         childSessionId,
+        specialist,
         systemPrompt,
         model,
         timeoutMs,
@@ -140,7 +132,11 @@ export function createDelegateHandler(options: DelegateExecutorOptions): Delegat
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      safeFailRun(db, run.id, childSessionId, msg);
+      try {
+        closeSession(db, childSessionId, msg);
+      } catch {
+        /* best-effort */
+      }
       return { error: `Delegation failed: ${msg}` };
     }
   };
@@ -148,9 +144,9 @@ export function createDelegateHandler(options: DelegateExecutorOptions): Delegat
 
 function executeAndFinalize(
   db: DatabaseHandle,
-  run: { id: number },
   parentSessionId: number,
   childSessionId: number,
+  specialist: string,
   systemPrompt: string,
   model: string,
   timeoutMs: number,
@@ -182,49 +178,56 @@ function executeAndFinalize(
         costUsd: result.cost.estimatedUsd,
       };
 
-      db.exec("BEGIN");
-      try {
-        if (result.succeeded) {
-          completeRun(db, run.id, result.content);
-        } else {
-          failRun(db, run.id, result.content);
-        }
-        recordRunUsage(db, run.id, usage);
-        accumulateUsage(db, parentSessionId, usage);
-        closeSession(db, childSessionId);
-        db.exec("COMMIT");
-      } catch (txErr) {
-        db.exec("ROLLBACK");
-        throw txErr;
-      }
+      finalizeDelegation(
+        db,
+        parentSessionId,
+        childSessionId,
+        usage,
+        result.succeeded ? undefined : result.content,
+      );
 
       if (!result.succeeded) {
         return { error: `Delegation failed: ${result.content}` } as Record<string, unknown>;
       }
-      const label = args.specialist ?? "default";
-      return `[${label} completed]\n\n${result.content}`;
+      return `[${specialist} completed]\n\n${result.content}`;
     },
     (err) => {
       const msg = err instanceof Error ? err.message : String(err);
-      db.exec("BEGIN");
       try {
-        failRun(db, run.id, msg);
-        closeSession(db, childSessionId);
-        db.exec("COMMIT");
-      } catch (txErr) {
-        db.exec("ROLLBACK");
-        throw txErr;
+        closeSession(db, childSessionId, msg);
+      } catch {
+        /* best-effort */
       }
       return { error: `Delegation failed: ${msg}` } as Record<string, unknown>;
     },
   );
 }
 
+function buildOutcome(
+  db: DatabaseHandle,
+  childSessionId: number,
+  parentSessionId: number,
+  specialist: string,
+): DelegationOutcome {
+  const session = getSession(db, childSessionId);
+  const failed = session?.error != null;
+  const resultContent = getSessionMessage(db, childSessionId, "assistant", "last");
+
+  return {
+    childSessionId,
+    parentSessionId,
+    specialist,
+    status: failed ? "failed" : "completed",
+    result: failed ? null : (resultContent ?? null),
+    error: session?.error ?? null,
+  };
+}
+
 function runInBackground(
   db: DatabaseHandle,
-  run: { id: number },
   parentSessionId: number,
   childSessionId: number,
+  specialist: string,
   systemPrompt: string,
   model: string,
   timeoutMs: number,
@@ -235,9 +238,9 @@ function runInBackground(
 ): void {
   executeAndFinalize(
     db,
-    run,
     parentSessionId,
     childSessionId,
+    specialist,
     systemPrompt,
     model,
     timeoutMs,
@@ -247,40 +250,24 @@ function runInBackground(
   )
     .then(() => {
       try {
-        const completedRun = getRun(db, run.id);
-        if (completedRun) notifyBackgroundComplete(db, completedRun, channelNotify);
+        const outcome = buildOutcome(db, childSessionId, parentSessionId, specialist);
+        notifyBackgroundComplete(db, outcome, channelNotify);
       } catch {
         /* DB may be closed if process is shutting down */
       }
     })
     .catch((err) => {
       const msg = err instanceof Error ? err.message : String(err);
-      safeFailRun(db, run.id, childSessionId, msg);
       try {
-        const failedRun = getRun(db, run.id);
-        if (failedRun) notifyBackgroundComplete(db, failedRun, channelNotify);
+        closeSession(db, childSessionId, msg);
+      } catch {
+        /* best-effort */
+      }
+      try {
+        const outcome = buildOutcome(db, childSessionId, parentSessionId, specialist);
+        notifyBackgroundComplete(db, outcome, channelNotify);
       } catch {
         /* DB may be closed if process is shutting down */
       }
     });
-}
-
-function safeFailRun(
-  db: DatabaseHandle,
-  runId: number,
-  childSessionId: number | null,
-  error: string,
-): void {
-  try {
-    db.exec("BEGIN");
-    failRun(db, runId, error);
-    if (childSessionId != null) closeSession(db, childSessionId);
-    db.exec("COMMIT");
-  } catch (_) {
-    try {
-      db.exec("ROLLBACK");
-    } catch (_2) {
-      /* DB is irrecoverable */
-    }
-  }
 }

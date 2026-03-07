@@ -1,13 +1,12 @@
 import { resolve } from "node:path";
 import { defineCommand, runMain } from "citty";
-import { deleteOldDistilled, initChatTables } from "./core/chat/index.ts";
+import { deleteOldDistilled, initChatTables, recoverOrphanedSessions } from "./core/chat/index.ts";
 import { initConfigTable } from "./core/config/index.ts";
 import { initHauntTables } from "./core/haunt/index.ts";
 import { initHowlTables } from "./core/howl/index.ts";
-import { initQuestTables } from "./core/quests/index.ts";
 import { initMemoryTable } from "./core/memory/index.ts";
 import { initPackTables } from "./core/pack/index.ts";
-import { initRunsTable, recoverOrphanedRuns } from "./core/runs/index.ts";
+import { initQuestTables } from "./core/quests/index.ts";
 import { initSecretsTable, loadSecretsIntoEnv, syncProviderKeys } from "./core/secrets/index.ts";
 import {
   checkpoint,
@@ -79,12 +78,11 @@ const main = defineCommand({
     initChatTables(db);
     initMemoryTable(db);
     initSoulsTables(db);
-    initRunsTable(db);
     initPackTables(db);
     initHauntTables(db);
     initHowlTables(db);
     initQuestTables(db);
-    recoverOrphanedRuns(db);
+    recoverOrphanedSessions(db);
     ensureMandatorySouls(db);
     loadSecretsIntoEnv(db);
     syncProviderKeys(db);
@@ -117,13 +115,13 @@ const main = defineCommand({
     const entity = createEntity({
       db,
       workspace,
-      onBackgroundComplete: (_parentSessionId, run) => {
-        const channelNotify = (pid: number, r: typeof run) => {
+      onBackgroundComplete: (_parentSessionId, outcome) => {
+        const channelNotify = (pid: number, o: typeof outcome) => {
           notifySession(pid, {
             type: "background_complete",
-            runId: r.id,
-            specialist: r.specialist,
-            status: r.status,
+            runId: o.childSessionId,
+            specialist: o.specialist,
+            status: o.status,
           });
 
           const parentSession = getSession(db, pid);
@@ -136,14 +134,14 @@ const main = defineCommand({
                 sendNotification({
                   token,
                   chatId,
-                  text: formatDelegationMessage(r),
+                  text: formatDelegationMessage(o),
                 }).catch(() => {});
               });
             }
           }
         };
 
-        autoResumeDelegation(db, entity, run, channelNotify).catch(() => {});
+        autoResumeDelegation(db, entity, outcome, channelNotify).catch(() => {});
       },
     });
 

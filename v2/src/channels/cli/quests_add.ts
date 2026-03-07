@@ -77,10 +77,7 @@ export default defineCommand({
           createdBy: (args.by as QuestCreator) ?? undefined,
         });
 
-        console.log(
-          style.cyan("stored".padStart(10)),
-          ` #${q.id} "${q.title}"`,
-        );
+        console.log(style.cyan("stored".padStart(10)), ` #${q.id} "${q.title}"`);
 
         const meta: string[] = [];
         if (q.priority !== "normal") meta.push(`priority: ${q.priority}`);

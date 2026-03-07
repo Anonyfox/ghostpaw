@@ -2,7 +2,6 @@ import { ok, strictEqual } from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import { addMessage, createSession, initChatTables } from "../../../../core/chat/index.ts";
 import { initConfigTable } from "../../../../core/config/index.ts";
-import { initRunsTable } from "../../../../core/runs/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { openTestDatabase } from "../../../../lib/index.ts";
 import { createSessionsApiHandlers } from "./sessions_api.ts";
@@ -36,7 +35,6 @@ describe("sessions_api", () => {
     db = await openTestDatabase();
     initConfigTable(db);
     initChatTables(db);
-    initRunsTable(db);
   });
 
   it("list returns empty when no sessions", () => {

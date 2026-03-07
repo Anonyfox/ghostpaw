@@ -1,11 +1,11 @@
 import { ok } from "node:assert/strict";
 import { describe, it } from "node:test";
 import type {
-  CostsByModel,
-  CostsByPurpose,
-  CostsBySoul,
-  CostsDailyEntry,
+  CostByModel,
+  CostByPurpose,
+  CostBySoul,
   CostsResponse,
+  DailyCostEntry,
 } from "./cost_types.ts";
 
 describe("cost shared types", () => {
@@ -28,8 +28,8 @@ describe("cost shared types", () => {
     ok(res.today.costUsd > 0);
   });
 
-  it("CostsByModel is structurally valid", () => {
-    const entry: CostsByModel = {
+  it("CostByModel is structurally valid", () => {
+    const entry: CostByModel = {
       model: "claude-sonnet-4-6",
       costUsd: 0.38,
       tokens: 42150,
@@ -38,18 +38,18 @@ describe("cost shared types", () => {
     ok(entry.calls > 0);
   });
 
-  it("CostsBySoul is structurally valid", () => {
-    const entry: CostsBySoul = { soul: "Ghostpaw", costUsd: 0.22, runs: 8, avgCostUsd: 0.028 };
+  it("CostBySoul is structurally valid", () => {
+    const entry: CostBySoul = { soul: "Ghostpaw", costUsd: 0.22, runs: 8, avgCostUsd: 0.028 };
     ok(entry.runs > 0);
   });
 
-  it("CostsByPurpose is structurally valid", () => {
-    const entry: CostsByPurpose = { purpose: "chat", costUsd: 0.3, sessionCount: 3 };
+  it("CostByPurpose is structurally valid", () => {
+    const entry: CostByPurpose = { purpose: "chat", costUsd: 0.3, sessionCount: 3 };
     ok(entry.sessionCount > 0);
   });
 
-  it("CostsDailyEntry is structurally valid", () => {
-    const entry: CostsDailyEntry = {
+  it("DailyCostEntry is structurally valid", () => {
+    const entry: DailyCostEntry = {
       date: "2026-03-03",
       costUsd: 0.42,
       tokens: 45350,

@@ -1,7 +1,7 @@
-import type { CostsTodaySummary } from "../../shared/cost_types.ts";
+import type { CostSummary } from "../../shared/cost_types.ts";
 
 interface Props {
-  today: CostsTodaySummary;
+  today: CostSummary;
 }
 
 function fmt(n: number): string {

@@ -1,6 +1,5 @@
 import { defineCommand } from "citty";
-import { getHistory, getSession } from "../../core/chat/index.ts";
-import { listRuns } from "../../core/runs/index.ts";
+import { getHistory, getSession, listSessions } from "../../core/chat/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -92,20 +91,21 @@ export default defineCommand({
         console.log(`${style.dim("parent".padStart(12))}  ${label}`);
       }
 
-      const runs = listRuns(db, id);
-      if (runs.length > 0) {
+      const delegations = listSessions(db, { purpose: "delegate", parentSessionId: id });
+      if (delegations.length > 0) {
         console.log();
-        console.log(style.dim("── Delegation Runs ──"));
-        for (const r of runs) {
+        console.log(style.dim("── Delegations ──"));
+        for (const d of delegations) {
+          const status = d.error ? "failed" : d.closedAt ? "completed" : "running";
           const statusStr =
-            r.status === "completed"
-              ? style.green(r.status)
-              : r.status === "failed"
-                ? style.boldRed(r.status)
-                : style.yellow(r.status);
-          const task = r.task.length > 40 ? `${r.task.slice(0, 39)}…` : r.task;
+            status === "completed"
+              ? style.green(status)
+              : status === "failed"
+                ? style.boldRed(status)
+                : style.yellow(status);
+          const label = d.key.length > 40 ? `${d.key.slice(0, 39)}…` : d.key;
           console.log(
-            `  [${statusStr}] ${r.specialist}: ${task}  $${formatCost(r.costUsd)}  ${formatTokens(r.tokensIn + r.tokensOut)}`,
+            `  [${statusStr}] ${label}  $${formatCost(d.costUsd)}  ${formatTokens(d.tokensIn + d.tokensOut)}`,
           );
         }
       }

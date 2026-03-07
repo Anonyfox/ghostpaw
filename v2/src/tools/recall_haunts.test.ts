@@ -1,6 +1,6 @@
 import { deepStrictEqual, ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initChatTables, createSession } from "../core/chat/index.ts";
+import { createSession, initChatTables } from "../core/chat/index.ts";
 import { initHauntTables, storeHaunt } from "../core/haunt/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";

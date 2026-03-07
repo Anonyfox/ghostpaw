@@ -1,6 +1,11 @@
 import { createTool, Schema } from "chatoyant";
-import { getQuest, QUEST_PRIORITIES, QUEST_STATUSES, updateQuest } from "../../core/quests/index.ts";
 import type { QuestPriority, QuestStatus } from "../../core/quests/index.ts";
+import {
+  getQuest,
+  QUEST_PRIORITIES,
+  QUEST_STATUSES,
+  updateQuest,
+} from "../../core/quests/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatQuest } from "./format_quest.ts";
 
@@ -18,7 +23,8 @@ class QuestUpdateParams extends Schema {
   });
   status = Schema.Enum([...QUEST_STATUSES] as unknown as readonly string[], {
     optional: true,
-    description: "New status. Transitions to 'done'/'failed'/'cancelled' set completed_at automatically.",
+    description:
+      "New status. Transitions to 'done'/'failed'/'cancelled' set completed_at automatically.",
   });
   priority = Schema.Enum([...QUEST_PRIORITIES] as unknown as readonly string[], {
     optional: true,
@@ -103,7 +109,9 @@ export function createQuestUpdateTool(db: DatabaseHandle) {
         const updated = updateQuest(db, a.id, input);
         return { quest: formatQuest(updated) };
       } catch (err) {
-        return { error: `Failed to update quest: ${err instanceof Error ? err.message : String(err)}` };
+        return {
+          error: `Failed to update quest: ${err instanceof Error ? err.message : String(err)}`,
+        };
       }
     },
   });

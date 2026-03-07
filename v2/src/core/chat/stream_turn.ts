@@ -20,23 +20,23 @@ export async function* streamTurn(
   const release = await acquireSessionLock(input.sessionId);
   try {
     const session = getSession(ctx.db, input.sessionId);
-    if (!session) {
-      throw new Error(`Session ${input.sessionId} not found`);
-    }
+    if (!session) throw new Error(`Session ${input.sessionId} not found`);
+
+    let headId = session.headMessageId;
 
     if (input.compactionThreshold && input.compactionThreshold > 0 && ctx.compactFn) {
       const preHistory = getHistory(ctx.db, input.sessionId);
       if (shouldCompact(preHistory, input.compactionThreshold)) {
         await ctx.compactFn(ctx.db, input.sessionId, preHistory, input.model, ctx.createChat);
+        headId = getSession(ctx.db, input.sessionId)?.headMessageId ?? null;
       }
     }
 
-    const freshSession = getSession(ctx.db, input.sessionId);
-    addMessage(ctx.db, {
+    const userMsg = addMessage(ctx.db, {
       sessionId: input.sessionId,
       role: "user",
       content: input.content,
-      parentId: freshSession?.headMessageId ?? undefined,
+      parentId: headId ?? undefined,
       tokensIn: estimateTokens(input.content),
     });
 
@@ -62,23 +62,21 @@ export async function* streamTurn(
         yield chunk;
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (!fullText) fullText = `Error: ${msg}`;
+      if (!fullText) fullText = `Error: ${err instanceof Error ? err.message : String(err)}`;
       succeeded = false;
     }
 
     const toolMessages = chat.messages.slice(preGenerateCount, -1);
-    let currentHead = getSession(ctx.db, input.sessionId)?.headMessageId ?? null;
+    let currentHead: number | null = userMsg.id;
     if (toolMessages.length > 0) {
       currentHead = persistToolMessages(ctx.db, input.sessionId, toolMessages, currentHead);
     }
 
     const lastResult = succeeded ? chat.lastResult : null;
-    const finalContent = lastResult?.content ?? fullText;
     return recordTurn(
       ctx.db,
       input.sessionId,
-      finalContent,
+      lastResult?.content ?? fullText,
       lastResult,
       input.model,
       currentHead,

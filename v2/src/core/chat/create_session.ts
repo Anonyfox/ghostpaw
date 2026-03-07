@@ -10,13 +10,14 @@ export function createSession(
   const purpose = options?.purpose ?? "chat";
   const model = options?.model ?? null;
   const parentSessionId = options?.parentSessionId ?? null;
+  const soulId = options?.soulId ?? null;
 
   const result = db
     .prepare(
-      `INSERT INTO sessions (key, purpose, model, created_at, last_active_at, parent_session_id)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO sessions (key, purpose, model, created_at, last_active_at, parent_session_id, soul_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(key, purpose, model, now, now, parentSessionId);
+    .run(key, purpose, model, now, now, parentSessionId, soulId);
 
   return {
     id: result.lastInsertRowid,
@@ -35,5 +36,7 @@ export function createSession(
     closedAt: null,
     distilledAt: null,
     parentSessionId,
+    soulId,
+    error: null,
   };
 }

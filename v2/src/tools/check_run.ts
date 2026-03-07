@@ -1,11 +1,16 @@
 import { createTool, Schema } from "chatoyant";
-import { getRun } from "../core/runs/index.ts";
+import { getSession, getSessionMessage } from "../core/chat/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 
 class CheckRunParams extends Schema {
   run_id = Schema.Integer({
     description: "The run ID returned by a background delegate call. Must be a positive integer.",
   });
+}
+
+function deriveStatus(session: { closedAt: number | null; error: string | null }): string {
+  if (!session.closedAt) return "running";
+  return session.error ? "failed" : "completed";
 }
 
 export function createCheckRunTool(db: DatabaseHandle) {
@@ -19,25 +24,30 @@ export function createCheckRunTool(db: DatabaseHandle) {
     parameters: new CheckRunParams() as any,
     execute: async ({ args }) => {
       const { run_id } = args as { run_id: number };
-      const run = getRun(db, run_id);
-      if (!run) {
+      const session = getSession(db, run_id);
+      if (!session || session.purpose !== "delegate") {
         return {
           error: `No delegation run found with ID ${run_id}. Verify the run_id from your delegate call.`,
         };
       }
+
+      const status = deriveStatus(session);
+      const task = getSessionMessage(db, run_id, "user", "first");
+      const result =
+        status === "completed" ? getSessionMessage(db, run_id, "assistant", "last") : undefined;
+
       return {
-        runId: run.id,
-        specialist: run.specialist,
-        status: run.status,
-        task: run.task,
-        ...(run.result != null && { result: run.result }),
-        ...(run.error != null && { error: run.error }),
-        model: run.model,
-        tokensIn: run.tokensIn,
-        tokensOut: run.tokensOut,
-        costUsd: run.costUsd,
-        createdAt: run.createdAt,
-        ...(run.completedAt != null && { completedAt: run.completedAt }),
+        runId: session.id,
+        status,
+        task,
+        ...(result != null && { result }),
+        ...(session.error != null && { error: session.error }),
+        model: session.model,
+        tokensIn: session.tokensIn,
+        tokensOut: session.tokensOut,
+        costUsd: session.costUsd,
+        createdAt: session.createdAt,
+        ...(session.closedAt != null && { completedAt: session.closedAt }),
       };
     },
   });

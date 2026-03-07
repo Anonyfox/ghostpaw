@@ -1,7 +1,7 @@
-import type { CostsDailyEntry } from "../../shared/cost_types.ts";
+import type { DailyCostEntry } from "../../shared/cost_types.ts";
 
 interface Props {
-  daily: CostsDailyEntry[];
+  daily: DailyCostEntry[];
 }
 
 function formatUsd(n: number): string {

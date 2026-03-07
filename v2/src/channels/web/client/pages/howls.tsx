@@ -151,11 +151,7 @@ function PendingHowlCard({
                     onClick={handleSend}
                     disabled={!reply.trim() || sending}
                   >
-                    {sending ? (
-                      <span class="spinner-border spinner-border-sm" />
-                    ) : (
-                      "Reply"
-                    )}
+                    {sending ? <span class="spinner-border spinner-border-sm" /> : "Reply"}
                   </button>
                 </div>
                 <div class="mt-2 text-end">
@@ -185,28 +181,22 @@ function ResolvedHowlRow({
   onSelect: (id: number) => void;
 }) {
   return (
-    <div
-      class="d-flex align-items-center gap-2 py-2 px-2 howl-history-row"
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
+      class="d-flex align-items-center gap-2 py-2 px-2 howl-history-row btn border-0 w-100 text-start"
       onClick={() => onSelect(howl.id)}
-      onKeyDown={(e) => e.key === "Enter" && onSelect(howl.id)}
     >
       <StatusBadge status={howl.status} />
       <span class="text-truncate flex-grow-1">{howl.message}</span>
-      {howl.channel && <span class="badge bg-body-secondary text-body-secondary">{howl.channel}</span>}
+      {howl.channel && (
+        <span class="badge bg-body-secondary text-body-secondary">{howl.channel}</span>
+      )}
       <span class="text-muted small flex-shrink-0">{relativeTime(howl.createdAt)}</span>
-    </div>
+    </button>
   );
 }
 
-function HowlHistoryDetail({
-  howlId,
-  onBack,
-}: {
-  howlId: number;
-  onBack: () => void;
-}) {
+function HowlHistoryDetail({ howlId, onBack }: { howlId: number; onBack: () => void }) {
   const [howl, setHowl] = useState<HowlDetail | null>(null);
   const [messages, setMessages] = useState<HistoryMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -222,7 +212,11 @@ function HowlHistoryDetail({
   }, [howlId]);
 
   if (loading) {
-    return <div class="text-center py-4"><span class="spinner-border spinner-border-sm" /></div>;
+    return (
+      <div class="text-center py-4">
+        <span class="spinner-border spinner-border-sm" />
+      </div>
+    );
   }
 
   if (!howl) {
@@ -240,7 +234,9 @@ function HowlHistoryDetail({
             <strong>Howl #{howl.id}</strong>
             <StatusBadge status={howl.status} />
             <UrgencyBadge urgency={howl.urgency} />
-            {howl.channel && <span class="badge bg-body-secondary text-body-secondary">{howl.channel}</span>}
+            {howl.channel && (
+              <span class="badge bg-body-secondary text-body-secondary">{howl.channel}</span>
+            )}
             <span class="text-muted small ms-auto">{relativeTime(howl.createdAt)}</span>
           </div>
           <RenderMarkdown content={howl.message} />
@@ -251,7 +247,10 @@ function HowlHistoryDetail({
           {messages
             .filter((m) => m.role === "user" || m.role === "assistant")
             .map((m) => (
-              <div key={m.id} class={`mb-2 p-2 rounded ${m.role === "user" ? "bg-body-secondary" : ""}`}>
+              <div
+                key={m.id}
+                class={`mb-2 p-2 rounded ${m.role === "user" ? "bg-body-secondary" : ""}`}
+              >
                 <div class="text-muted small mb-1">
                   {m.role === "user" ? "You" : "Ghostpaw"} &middot; {relativeTime(m.createdAt)}
                 </div>

@@ -1,6 +1,7 @@
 export { getHowl, getHowlBySessionId } from "./get_howl.ts";
 export { countPendingHowls, getPendingHowl } from "./get_pending_howl.ts";
 export { countHowlsToday, lastHowlTime, listHowls } from "./list_howls.ts";
+export type { HowlReplyResult, ReplyToHowlOptions } from "./reply_to_howl.ts";
 export { replyToHowl } from "./reply_to_howl.ts";
 export { initHowlTables } from "./schema.ts";
 export { storeHowl } from "./store_howl.ts";
@@ -11,5 +12,4 @@ export type {
   HowlUrgency,
   StoreHowlInput,
 } from "./types.ts";
-export type { HowlReplyResult, ReplyToHowlOptions } from "./reply_to_howl.ts";
 export { updateHowlChannel, updateHowlStatus } from "./update_howl.ts";

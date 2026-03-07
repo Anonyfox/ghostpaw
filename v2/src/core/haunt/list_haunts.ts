@@ -15,9 +15,7 @@ export function listHaunts(db: DatabaseHandle, limit = 10): HauntSummary[] {
 
 export function getRecentSeededMemoryIds(db: DatabaseHandle, limit = 3): Set<number> {
   const rows = db
-    .prepare(
-      "SELECT seeded_memory_ids FROM haunts ORDER BY created_at DESC, id DESC LIMIT ?",
-    )
+    .prepare("SELECT seeded_memory_ids FROM haunts ORDER BY created_at DESC, id DESC LIMIT ?")
     .all(limit) as Array<{ seeded_memory_ids: string }>;
 
   const ids = new Set<number>();

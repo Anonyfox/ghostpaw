@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
-import type { QuestInfo, QuestListResponse, QuestLogInfo, QuestLogListResponse } from "../../shared/quest_types.ts";
+import type {
+  QuestInfo,
+  QuestListResponse,
+  QuestLogInfo,
+  QuestLogListResponse,
+} from "../../shared/quest_types.ts";
 import { apiGet } from "../api_get.ts";
 import { apiPost } from "../api_post.ts";
 import { QuestBulletinBoard } from "../components/quest_bulletin_board.tsx";
@@ -70,9 +75,15 @@ export function QuestsPage() {
       .finally(() => setBoardLoading(false));
   }, []);
 
-  useEffect(() => { fetchLogs(); }, [fetchLogs]);
-  useEffect(() => { fetchQuests(); }, [fetchQuests]);
-  useEffect(() => { fetchBoard(); }, [fetchBoard]);
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+  useEffect(() => {
+    fetchQuests();
+  }, [fetchQuests]);
+  useEffect(() => {
+    fetchBoard();
+  }, [fetchBoard]);
 
   const handleSearch = () => {
     committedQuery.current = query;
@@ -119,7 +130,9 @@ export function QuestsPage() {
       await apiPost<QuestInfo>("/api/quests", { title, status: "offered" });
       setBoardInput("");
       fetchBoard();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleAccept = async (id: number, questLogId?: number) => {
@@ -128,14 +141,18 @@ export function QuestsPage() {
       fetchBoard();
       fetchQuests();
       fetchLogs();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleDismiss = async (id: number) => {
     try {
       await apiPost(`/api/quests/${id}/dismiss`);
       fetchBoard();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   return (
@@ -144,14 +161,20 @@ export function QuestsPage() {
         <h4 class="mb-0">Quests</h4>
         <ul class="nav nav-tabs mb-0">
           <li class="nav-item">
-            <button type="button" class={`nav-link ${tab === "quests" ? "active" : ""}`}
-              onClick={() => setTab("quests")}>
+            <button
+              type="button"
+              class={`nav-link ${tab === "quests" ? "active" : ""}`}
+              onClick={() => setTab("quests")}
+            >
               Quest Log
             </button>
           </li>
           <li class="nav-item">
-            <button type="button" class={`nav-link ${tab === "board" ? "active" : ""}`}
-              onClick={() => setTab("board")}>
+            <button
+              type="button"
+              class={`nav-link ${tab === "board" ? "active" : ""}`}
+              onClick={() => setTab("board")}
+            >
               Quest Board
               {boardQuests.length > 0 && (
                 <span class="badge bg-warning text-dark ms-1">{boardQuests.length}</span>
@@ -159,8 +182,11 @@ export function QuestsPage() {
             </button>
           </li>
           <li class="nav-item">
-            <button type="button" class={`nav-link ${tab === "storylines" ? "active" : ""}`}
-              onClick={() => setTab("storylines")}>
+            <button
+              type="button"
+              class={`nav-link ${tab === "storylines" ? "active" : ""}`}
+              onClick={() => setTab("storylines")}
+            >
               Storylines ({logs.length})
             </button>
           </li>
@@ -172,10 +198,21 @@ export function QuestsPage() {
           <QuestBulletinBoard onQuestClick={handleQuestClick} boardCount={boardQuests.length} />
 
           <QuestToolbar
-            query={query} onQueryChange={setQuery} onSearch={handleSearch}
-            status={status} onStatusChange={(s) => { setStatus(s); }}
-            priority={priority} onPriorityChange={(p) => { setPriority(p); }}
-            logFilter={logFilter} onLogFilterChange={(l) => { setLogFilter(l); }}
+            query={query}
+            onQueryChange={setQuery}
+            onSearch={handleSearch}
+            status={status}
+            onStatusChange={(s) => {
+              setStatus(s);
+            }}
+            priority={priority}
+            onPriorityChange={(p) => {
+              setPriority(p);
+            }}
+            logFilter={logFilter}
+            onLogFilterChange={(l) => {
+              setLogFilter(l);
+            }}
             logs={logs}
             onAdd={() => setShowCreate(true)}
           />
@@ -192,10 +229,16 @@ export function QuestsPage() {
             <div class="text-body-tertiary small">Loading quests...</div>
           ) : quests.length === 0 ? (
             <div class="text-body-tertiary text-center py-5">
-              {committedQuery.current.trim() ? "No quests match your search." : "No active quests. Start your first quest!"}
+              {committedQuery.current.trim()
+                ? "No quests match your search."
+                : "No active quests. Start your first quest!"}
               {!committedQuery.current.trim() && !showCreate && (
                 <div class="mt-2">
-                  <button type="button" class="btn btn-sm btn-info" onClick={() => setShowCreate(true)}>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-info"
+                    onClick={() => setShowCreate(true)}
+                  >
                     + New Quest
                   </button>
                 </div>
@@ -209,11 +252,7 @@ export function QuestsPage() {
               <div class="border rounded">
                 {quests.map((q) => (
                   <div key={q.id}>
-                    <QuestRow
-                      quest={q}
-                      isExpanded={expandedId === q.id}
-                      onToggle={handleToggle}
-                    />
+                    <QuestRow quest={q} isExpanded={expandedId === q.id} onToggle={handleToggle} />
                     {expandedId === q.id && (
                       <QuestDetail
                         questId={q.id}
@@ -246,8 +285,14 @@ export function QuestsPage() {
       {tab === "storylines" && (
         <div>
           <div class="d-flex justify-content-between align-items-center mb-3">
-            <span class="text-body-tertiary small">{logs.length} quest log{logs.length !== 1 ? "s" : ""}</span>
-            <button type="button" class="btn btn-sm btn-info" onClick={() => setShowLogCreate(true)}>
+            <span class="text-body-tertiary small">
+              {logs.length} quest log{logs.length !== 1 ? "s" : ""}
+            </span>
+            <button
+              type="button"
+              class="btn btn-sm btn-info"
+              onClick={() => setShowLogCreate(true)}
+            >
               + New Quest Log
             </button>
           </div>
@@ -288,7 +333,16 @@ interface BoardTabProps {
   onDismiss: (id: number) => void;
 }
 
-function BoardTab({ quests, loading, logs, input, onInputChange, onQuickAdd, onAccept, onDismiss }: BoardTabProps) {
+function BoardTab({
+  quests,
+  loading,
+  logs,
+  input,
+  onInputChange,
+  onQuickAdd,
+  onAccept,
+  onDismiss,
+}: BoardTabProps) {
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
   const [acceptLogId, setAcceptLogId] = useState("");
 
@@ -310,12 +364,12 @@ function BoardTab({ quests, loading, logs, input, onInputChange, onQuickAdd, onA
             placeholder="Drop an idea here... press Enter"
             value={input}
             onInput={(e) => onInputChange((e.target as HTMLInputElement).value)}
-            onKeyDown={(e) => { if (e.key === "Enter") onQuickAdd(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onQuickAdd();
+            }}
           />
         </div>
-        <div class="text-body-tertiary small mt-1">
-          Quick-add to the board. Sort it out later.
-        </div>
+        <div class="text-body-tertiary small mt-1">Quick-add to the board. Sort it out later.</div>
       </div>
 
       {loading ? (
@@ -327,15 +381,22 @@ function BoardTab({ quests, loading, logs, input, onInputChange, onQuickAdd, onA
       ) : (
         <div class="border rounded">
           {quests.map((q) => (
-            <div key={q.id} class="quest-board-row d-flex align-items-start gap-2 px-3 py-2 border-bottom">
-              <span class={`quest-board-icon mt-1 ${q.createdBy === "ghost" ? "quest-board-icon-exclaim" : "quest-board-icon-question"}`}>
+            <div
+              key={q.id}
+              class="quest-board-row d-flex align-items-start gap-2 px-3 py-2 border-bottom"
+            >
+              <span
+                class={`quest-board-icon mt-1 ${q.createdBy === "ghost" ? "quest-board-icon-exclaim" : "quest-board-icon-question"}`}
+              >
                 {q.createdBy === "ghost" ? "!" : "?"}
               </span>
               <div class="flex-grow-1">
                 <div class="d-flex align-items-center gap-2">
                   <span class="fw-medium">{q.title}</span>
                   {q.priority !== "normal" && (
-                    <span class={`badge ${q.priority === "urgent" ? "bg-danger" : q.priority === "high" ? "bg-warning text-dark" : "bg-secondary"} rounded-pill`}>
+                    <span
+                      class={`badge ${q.priority === "urgent" ? "bg-danger" : q.priority === "high" ? "bg-warning text-dark" : "bg-secondary"} rounded-pill`}
+                    >
                       {q.priority}
                     </span>
                   )}
@@ -363,14 +424,24 @@ function BoardTab({ quests, loading, logs, input, onInputChange, onQuickAdd, onA
                       >
                         <option value="">No quest log</option>
                         {logs.map((l) => (
-                          <option key={l.id} value={String(l.id)}>{l.title}</option>
+                          <option key={l.id} value={String(l.id)}>
+                            {l.title}
+                          </option>
                         ))}
                       </select>
                     )}
-                    <button type="button" class="btn btn-sm btn-success" onClick={() => confirmAccept(q.id)}>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-success"
+                      onClick={() => confirmAccept(q.id)}
+                    >
                       Confirm
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onClick={() => setAcceptingId(null)}>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-secondary"
+                      onClick={() => setAcceptingId(null)}
+                    >
                       Cancel
                     </button>
                   </div>
@@ -378,12 +449,20 @@ function BoardTab({ quests, loading, logs, input, onInputChange, onQuickAdd, onA
               </div>
               {acceptingId !== q.id && (
                 <div class="d-flex gap-1 flex-shrink-0">
-                  <button type="button" class="btn btn-sm btn-outline-success" onClick={() => setAcceptingId(q.id)}
-                    title="Accept quest">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-success"
+                    onClick={() => setAcceptingId(q.id)}
+                    title="Accept quest"
+                  >
                     Accept
                   </button>
-                  <button type="button" class="btn btn-sm btn-outline-secondary" onClick={() => onDismiss(q.id)}
-                    title="Dismiss quest">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    onClick={() => onDismiss(q.id)}
+                    title="Dismiss quest"
+                  >
                     Dismiss
                   </button>
                 </div>

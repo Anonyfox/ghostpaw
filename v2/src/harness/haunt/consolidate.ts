@@ -36,7 +36,8 @@ Maximum ~5 memories per session. Do nothing if the session was routine.`;
 function formatSeededMemoriesForConsolidation(memories: Memory[]): string {
   if (memories.length === 0) return "";
   const lines = memories.map(
-    (m) => `- #${m.id}: ${m.claim} [${m.category}, confidence=${Math.round(m.confidence * 100) / 100}]`,
+    (m) =>
+      `- #${m.id}: ${m.claim} [${m.category}, confidence=${Math.round(m.confidence * 100) / 100}]`,
   );
   return `\n\nCurrent beliefs (already stored — use revise with ID to correct or confirm):\n${lines.join("\n")}`;
 }
@@ -57,10 +58,7 @@ function extractHighlight(text: string): string | null {
   return after;
 }
 
-function countToolCalls(
-  db: DatabaseHandle,
-  sessionId: number,
-): ConsolidationResult["toolCalls"] {
+function countToolCalls(db: DatabaseHandle, sessionId: number): ConsolidationResult["toolCalls"] {
   const counts = { recall: 0, remember: 0, revise: 0, forget: 0 };
   const messages = getHistory(db, sessionId);
 

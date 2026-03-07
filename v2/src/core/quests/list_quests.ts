@@ -2,10 +2,7 @@ import type { DatabaseHandle } from "../../lib/index.ts";
 import { rowToQuest } from "./row_to_quest.ts";
 import type { ListQuestsOptions, Quest } from "./types.ts";
 
-export function listQuests(
-  db: DatabaseHandle,
-  options: ListQuestsOptions = {},
-): Quest[] {
+export function listQuests(db: DatabaseHandle, options: ListQuestsOptions = {}): Quest[] {
   const clauses: string[] = [];
   const values: unknown[] = [];
 
@@ -53,9 +50,7 @@ export function listQuests(
   const offset = options.offset ?? 0;
 
   const rows = db
-    .prepare(
-      `SELECT * FROM quests ${where} ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?`,
-    )
+    .prepare(`SELECT * FROM quests ${where} ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?`)
     .all(...values, limit, offset) as Record<string, unknown>[];
 
   return rows.map(rowToQuest);

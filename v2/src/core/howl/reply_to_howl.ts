@@ -1,6 +1,6 @@
-import type { TurnResult } from "../chat/index.ts";
 import type { Entity } from "../../harness/types.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
+import type { TurnResult } from "../chat/index.ts";
 import { getHowl } from "./get_howl.ts";
 import { updateHowlStatus } from "./update_howl.ts";
 

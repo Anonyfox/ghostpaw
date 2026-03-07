@@ -1,4 +1,9 @@
-import { deriveSessionTitle, listSessions, renameSession } from "../../../../core/chat/index.ts";
+import {
+  deriveSessionTitle,
+  getSessionMessage,
+  listSessions,
+  renameSession,
+} from "../../../../core/chat/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { ChatSessionSummary } from "../../shared/chat_session_summary.ts";
 import { readJsonBody } from "../body_parser.ts";
@@ -16,29 +21,19 @@ function channelFromKey(key: string): string {
   return colon > 0 ? key.slice(0, colon) : "unknown";
 }
 
-function firstUserMessage(db: DatabaseHandle, sessionId: number): string {
-  const row = db
-    .prepare(
-      "SELECT content FROM messages WHERE session_id = ? AND role = 'user' ORDER BY id ASC LIMIT 1",
-    )
-    .get(sessionId) as { content: string } | undefined;
-  return row?.content ?? "";
-}
-
 export function createChatSessionsApiHandlers(db: DatabaseHandle) {
   return {
     list(routeCtx: RouteContext): void {
-      const sessions = listSessions(db, { purpose: "chat", distilled: false });
-      const limited = sessions.slice(0, LIST_LIMIT);
+      const sessions = listSessions(db, { purpose: "chat", distilled: false, limit: LIST_LIMIT });
 
-      const summaries: ChatSessionSummary[] = limited.map((s) => {
+      const summaries: ChatSessionSummary[] = sessions.map((s) => {
         let displayName = s.displayName;
         if (!displayName) {
-          const msg = firstUserMessage(db, s.id as number);
+          const msg = getSessionMessage(db, s.id, "user", "first") ?? "";
           displayName = deriveSessionTitle(msg);
         }
         return {
-          sessionId: s.id as number,
+          sessionId: s.id,
           displayName,
           model: s.model,
           totalTokens: s.tokensIn + s.tokensOut,

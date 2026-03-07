@@ -23,9 +23,7 @@ export function completeQuest(
 
   if (occurrenceAt !== undefined) {
     if (!existing.rrule) {
-      throw new Error(
-        `Quest #${id} is not recurring — occurrence_at is not applicable.`,
-      );
+      throw new Error(`Quest #${id} is not recurring — occurrence_at is not applicable.`);
     }
     const now = Date.now();
     const { lastInsertRowid } = db
@@ -35,16 +33,12 @@ export function completeQuest(
       )
       .run(id, occurrenceAt, now);
 
-    const row = db
-      .prepare("SELECT * FROM quest_occurrences WHERE id = ?")
-      .get(lastInsertRowid);
+    const row = db.prepare("SELECT * FROM quest_occurrences WHERE id = ?").get(lastInsertRowid);
     return rowToOccurrence(row as Record<string, unknown>);
   }
 
   if (TERMINAL_STATUSES.includes(existing.status as QuestStatus)) {
-    throw new Error(
-      `Quest #${id} is already in terminal state "${existing.status}".`,
-    );
+    throw new Error(`Quest #${id} is already in terminal state "${existing.status}".`);
   }
 
   const now = Date.now();

@@ -31,8 +31,8 @@ export function getHowl(db: DatabaseHandle, id: number): Howl | null {
 }
 
 export function getHowlBySessionId(db: DatabaseHandle, sessionId: number): Howl | null {
-  const row = db
-    .prepare("SELECT * FROM howls WHERE session_id = ?")
-    .get(sessionId) as HowlRow | undefined;
+  const row = db.prepare("SELECT * FROM howls WHERE session_id = ?").get(sessionId) as
+    | HowlRow
+    | undefined;
   return row ? rowToHowl(row) : null;
 }

@@ -46,9 +46,9 @@ export function countHowlsToday(db: DatabaseHandle): number {
 }
 
 export function lastHowlTime(db: DatabaseHandle): number | null {
-  const row = db
-    .prepare("SELECT created_at FROM howls ORDER BY created_at DESC LIMIT 1")
-    .get() as { created_at: number } | undefined;
+  const row = db.prepare("SELECT created_at FROM howls ORDER BY created_at DESC LIMIT 1").get() as
+    | { created_at: number }
+    | undefined;
   return row?.created_at ?? null;
 }
 

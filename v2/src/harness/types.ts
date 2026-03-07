@@ -1,12 +1,20 @@
 import type { ChatFactory, ToolCallInfo, ToolResultInfo, TurnResult } from "../core/chat/index.ts";
-import type { DelegationRun } from "../core/runs/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
+
+export interface DelegationOutcome {
+  childSessionId: number;
+  parentSessionId: number;
+  specialist: string;
+  status: "completed" | "failed";
+  result: string | null;
+  error: string | null;
+}
 
 export interface EntityOptions {
   db: DatabaseHandle;
   workspace: string;
   chatFactory?: ChatFactory;
-  onBackgroundComplete?: (parentSessionId: number, run: DelegationRun) => void;
+  onBackgroundComplete?: (parentSessionId: number, outcome: DelegationOutcome) => void;
 }
 
 export interface EntityTurnOptions {

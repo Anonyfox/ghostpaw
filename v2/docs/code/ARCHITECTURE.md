@@ -45,7 +45,7 @@ Features include (not exhaustive — grows as the system grows):
 - **secrets/** — encrypted secret storage, provider key management.
 - **models/** — provider registry, model discovery, API key resolution.
 - **skills/** — skill storage, craft/train/scout pipeline, default skills (as .ts files).
-- **cost/** — budget tracking, cost guards, spend limits.
+- **(cost was eliminated)** — cost queries live in `chat/` (they query sessions); pure cost computation lives in `lib/cost/`.
 
 Core modules never make discretionary LLM calls. `core/chat` is a special case: its purpose IS to execute the LLM turn pipeline, but it doesn't initiate auxiliary LLM tasks (like summarization or title generation). Those live in `harness/oneshots/`.
 
@@ -167,7 +167,9 @@ One SQLite file: `ghostpaw.db`. One connection. Managed in two layers:
 
 **`lib/` provides the connection.** A generic database module that opens the file, sets sane pragmas (WAL mode, foreign keys, journal size, synchronous mode), and exposes the connection handle. This module knows nothing about tables, features, or domain logic. It's pure infrastructure.
 
-**Each feature owns its tables.** `core/sessions/` creates and queries the `sessions` table. `core/memory/` creates and queries the `memories` table. `core/cost/` creates and queries the `runs` table. Schema creation, queries, migrations — all live inside the feature folder. No ORM, no query builder, no abstraction layer. Hand-tuned SQL, unit-tested.
+**Each feature owns its tables.** `core/chat/` creates and queries the `sessions` and `messages` tables. `core/memory/` creates and queries the `memories` table. `core/cost/` queries session data for spend tracking. Schema creation, queries, migrations — all live inside the feature folder. No ORM, no query builder, no abstraction layer. Hand-tuned SQL, unit-tested.
+
+**SQL lives in core, nowhere else.** SQL statements (`.prepare()`, `.exec()`, raw `SELECT`/`INSERT`/`UPDATE`/`DELETE`) may only exist inside `core/` and `lib/`. Layers above core access data exclusively through the public API exported from each core module's `index.ts`. Raw SQL in channels, harness, or tools is a boundary violation equivalent to importing internal files. When a layer above core needs data that isn't exposed, the correct response is to add a function to the owning core module — never to write SQL in the caller.
 
 **Testing:** `lib/` also provides a test database connection that returns an in-memory (`:memory:`) SQLite instance instead of a WAL-mode on-disk file. Fast, isolated, throwaway. Every feature's tests use this — no test ever touches a real database file. Network calls are mocked — no test ever makes a real HTTP request or LLM API call.
 

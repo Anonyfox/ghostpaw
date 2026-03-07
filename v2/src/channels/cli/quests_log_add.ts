@@ -42,10 +42,7 @@ export default defineCommand({
           createdBy: (args.by as QuestCreator) ?? undefined,
         });
 
-        console.log(
-          style.cyan("stored".padStart(10)),
-          ` #${log.id} "${log.title}"`,
-        );
+        console.log(style.cyan("stored".padStart(10)), ` #${log.id} "${log.title}"`);
       });
     } catch (err) {
       errorLine(err instanceof Error ? err.message : String(err));

@@ -19,38 +19,17 @@ describe("renameSession", () => {
     db.close();
   });
 
-  it("sets display_name on an existing session", () => {
-    const session = createSession(db, "test:1", { purpose: "chat" });
+  it("sets and overwrites display_name", () => {
+    const session = createSession(db, "test:1");
     strictEqual(session.displayName, null);
-
-    renameSession(db, session.id as number, "My Chat Title");
-
-    const updated = getSession(db, session.id as number);
-    strictEqual(updated!.displayName, "My Chat Title");
-  });
-
-  it("overwrites a previously set display_name", () => {
-    const session = createSession(db, "test:2", { purpose: "chat" });
-    renameSession(db, session.id as number, "First Title");
-    renameSession(db, session.id as number, "Second Title");
-
-    const updated = getSession(db, session.id as number);
-    strictEqual(updated!.displayName, "Second Title");
+    renameSession(db, session.id as number, "First");
+    strictEqual(getSession(db, session.id as number)!.displayName, "First");
+    renameSession(db, session.id as number, "Second");
+    strictEqual(getSession(db, session.id as number)!.displayName, "Second");
   });
 
   it("does nothing for a non-existent session id", () => {
     renameSession(db, 99999, "Ghost Title");
-    const result = getSession(db, 99999);
-    strictEqual(result, null);
-  });
-
-  it("preserves other session fields when renaming", () => {
-    const session = createSession(db, "test:3", { purpose: "delegate" });
-    renameSession(db, session.id as number, "Renamed");
-
-    const updated = getSession(db, session.id as number);
-    strictEqual(updated!.key, "test:3");
-    strictEqual(updated!.purpose, "delegate");
-    strictEqual(updated!.displayName, "Renamed");
+    strictEqual(getSession(db, 99999), null);
   });
 });

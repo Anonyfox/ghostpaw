@@ -23,10 +23,7 @@ export default defineCommand({
     try {
       await withRunDb((db) => {
         const q = dismissQuest(db, id);
-        console.log(
-          style.dim("dismissed".padStart(10)),
-          ` #${q.id} "${q.title}"`,
-        );
+        console.log(style.dim("dismissed".padStart(10)), ` #${q.id} "${q.title}"`);
       });
     } catch (err) {
       errorLine(err instanceof Error ? err.message : String(err));

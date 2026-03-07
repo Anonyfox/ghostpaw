@@ -321,7 +321,12 @@ describe("mcp tool", () => {
 
     const server = `node ${serverPath}`;
     const result = await tool.execute(
-      execArgs({ action: "call", server, tool: "ping", input: { msg: "obj" } as unknown as string }),
+      execArgs({
+        action: "call",
+        server,
+        tool: "ping",
+        input: { msg: "obj" } as unknown as string,
+      }),
     );
     strictEqual(result, "pong: obj");
   });

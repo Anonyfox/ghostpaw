@@ -14,13 +14,66 @@ const STALE_SUPPLEMENT = 2;
 const SEEDED_EXCLUSION_LOOKBACK = 3;
 
 const STOPWORDS = new Set([
-  "about", "after", "also", "and", "are", "been", "before", "but", "can",
-  "could", "does", "during", "each", "explored", "for", "found", "from",
-  "had", "has", "have", "her", "his", "how", "into", "its", "looked",
-  "may", "more", "new", "not", "now", "one", "our", "own", "some", "than",
-  "that", "the", "their", "them", "then", "there", "these", "they", "this",
-  "through", "too", "use", "was", "were", "what", "when", "which", "while",
-  "who", "will", "with", "would", "you", "your",
+  "about",
+  "after",
+  "also",
+  "and",
+  "are",
+  "been",
+  "before",
+  "but",
+  "can",
+  "could",
+  "does",
+  "during",
+  "each",
+  "explored",
+  "for",
+  "found",
+  "from",
+  "had",
+  "has",
+  "have",
+  "her",
+  "his",
+  "how",
+  "into",
+  "its",
+  "looked",
+  "may",
+  "more",
+  "new",
+  "not",
+  "now",
+  "one",
+  "our",
+  "own",
+  "some",
+  "than",
+  "that",
+  "the",
+  "their",
+  "them",
+  "then",
+  "there",
+  "these",
+  "they",
+  "this",
+  "through",
+  "too",
+  "use",
+  "was",
+  "were",
+  "what",
+  "when",
+  "which",
+  "while",
+  "who",
+  "will",
+  "with",
+  "would",
+  "you",
+  "your",
 ]);
 
 export function analyzeHauntContext(db: DatabaseHandle): HauntAnalysis {
@@ -33,7 +86,15 @@ export function analyzeHauntContext(db: DatabaseHandle): HauntAnalysis {
   const novelty = detectNovelty(db, recentHaunts);
   const seed = selectSeed(db, recentTopicCluster, novelty);
 
-  return { hauntCount, recentTopicCluster, coveredTopics, seed, seedMemories, recentHaunts, novelty };
+  return {
+    hauntCount,
+    recentTopicCluster,
+    coveredTopics,
+    seed,
+    seedMemories,
+    recentHaunts,
+    novelty,
+  };
 }
 
 export function detectTopicCluster(haunts: HauntSummary[]): string | null {
@@ -98,7 +159,11 @@ export function sampleAntiRecencyMemories(
   for (const cat of categories) {
     const extra = excludeIds.size > 0 ? excludeIds.size : 0;
     let memories = queryRandomMemories(
-      db, cat, MEMORIES_PER_CATEGORY + extra, MIN_CONFIDENCE, recentTopicCluster,
+      db,
+      cat,
+      MEMORIES_PER_CATEGORY + extra,
+      MIN_CONFIDENCE,
+      recentTopicCluster,
     );
     if (memories.length === 0 && recentTopicCluster) {
       memories = queryRandomMemories(db, cat, MEMORIES_PER_CATEGORY + extra, MIN_CONFIDENCE, null);

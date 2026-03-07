@@ -33,4 +33,4 @@ export {
   buildTrainExecutePrompt,
   buildTrainProposePrompt,
 } from "./trainer_train_prompt.ts";
-export type { Entity, EntityOptions, EntityTurnOptions } from "./types.ts";
+export type { DelegationOutcome, Entity, EntityOptions, EntityTurnOptions } from "./types.ts";

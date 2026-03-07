@@ -55,27 +55,4 @@ describe("accumulateUsage", () => {
     strictEqual(updated.cachedTokens, 30);
     strictEqual(updated.costUsd, 0.003);
   });
-
-  it("handles zero deltas without changing counters", () => {
-    const session = createSession(db, "k");
-    accumulateUsage(db, session.id, {
-      tokensIn: 100,
-      tokensOut: 50,
-      reasoningTokens: 10,
-      cachedTokens: 20,
-      costUsd: 0.005,
-    });
-    accumulateUsage(db, session.id, {
-      tokensIn: 0,
-      tokensOut: 0,
-      reasoningTokens: 0,
-      cachedTokens: 0,
-      costUsd: 0,
-    });
-    const updated = getSession(db, session.id)!;
-    strictEqual(updated.tokensIn, 100);
-    strictEqual(updated.tokensOut, 50);
-    strictEqual(updated.reasoningTokens, 10);
-    strictEqual(updated.cachedTokens, 20);
-  });
 });

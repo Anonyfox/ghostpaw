@@ -1,6 +1,6 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { updateQuest } from "./update_quest.ts";
 import type { Quest } from "./types.ts";
+import { updateQuest } from "./update_quest.ts";
 
 export function dismissQuest(db: DatabaseHandle, id: number): Quest {
   const existing = db.prepare("SELECT * FROM quests WHERE id = ?").get(id) as

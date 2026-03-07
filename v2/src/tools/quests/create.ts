@@ -1,6 +1,6 @@
 import { createTool, Schema } from "chatoyant";
-import { createQuest, QUEST_PRIORITIES, QUEST_STATUSES } from "../../core/quests/index.ts";
 import type { QuestCreator, QuestPriority, QuestStatus } from "../../core/quests/index.ts";
+import { createQuest, QUEST_PRIORITIES, QUEST_STATUSES } from "../../core/quests/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatQuest } from "./format_quest.ts";
 
@@ -97,7 +97,9 @@ export function createQuestCreateTool(db: DatabaseHandle) {
         });
         return { quest: formatQuest(quest) };
       } catch (err) {
-        return { error: `Failed to create quest: ${err instanceof Error ? err.message : String(err)}` };
+        return {
+          error: `Failed to create quest: ${err instanceof Error ? err.message : String(err)}`,
+        };
       }
     },
   });

@@ -1,14 +1,9 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
 import type { QuestLogProgress } from "./types.ts";
 
-export function getQuestLogProgress(
-  db: DatabaseHandle,
-  questLogId: number,
-): QuestLogProgress {
+export function getQuestLogProgress(db: DatabaseHandle, questLogId: number): QuestLogProgress {
   const rows = db
-    .prepare(
-      `SELECT status, COUNT(*) as count FROM quests WHERE quest_log_id = ? GROUP BY status`,
-    )
+    .prepare(`SELECT status, COUNT(*) as count FROM quests WHERE quest_log_id = ? GROUP BY status`)
     .all(questLogId) as { status: string; count: number }[];
 
   const counts: Record<string, number> = {};

@@ -2,10 +2,9 @@ import { deepStrictEqual, ok, strictEqual, throws } from "node:assert";
 import { describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
-import { initChatTables } from "../chat/index.ts";
+import { createSession, initChatTables } from "../chat/index.ts";
 import { initConfigTable } from "../config/index.ts";
 import { initMemoryTable } from "../memory/index.ts";
-import { initRunsTable } from "../runs/index.ts";
 import {
   addTrait,
   ensureMandatorySouls,
@@ -20,7 +19,6 @@ async function setup(): Promise<DatabaseHandle> {
   initSoulsTables(db);
   initChatTables(db);
   initMemoryTable(db);
-  initRunsTable(db);
   initConfigTable(db);
   ensureMandatorySouls(db);
   return db;
@@ -48,26 +46,30 @@ describe("gatherSoulEvidence", () => {
     deepStrictEqual(evidence.levelHistory, []);
   });
 
-  it("tracks delegation stats when runs exist", async () => {
+  it("tracks delegation stats when delegate sessions exist", async () => {
     const db = await setup();
-    const now = Date.now();
+    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const parent = createSession(db, "test:parent", { purpose: "chat" });
 
+    const s1 = createSession(db, "d:1", {
+      purpose: "delegate",
+      model: "test-model",
+      parentSessionId: parent.id as number,
+      soulId,
+    });
     db.prepare(
-      `INSERT INTO sessions (id, key, purpose, model, created_at, last_active_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run(100, "test:parent", "chat", "test-model", now, now);
+      "UPDATE sessions SET cost_usd = 0.01, tokens_in = 100, tokens_out = 200, closed_at = ? WHERE id = ?",
+    ).run(Date.now(), s1.id);
 
+    const s2 = createSession(db, "d:2", {
+      purpose: "delegate",
+      model: "test-model",
+      parentSessionId: parent.id as number,
+      soulId,
+    });
     db.prepare(
-      `INSERT INTO delegation_runs
-       (parent_session_id, specialist, model, task, status, cost_usd, tokens_in, tokens_out, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(100, "JS Engineer", "test-model", "task1", "completed", 0.01, 100, 200, now);
-
-    db.prepare(
-      `INSERT INTO delegation_runs
-       (parent_session_id, specialist, model, task, status, cost_usd, tokens_in, tokens_out, created_at, error)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(100, "JS Engineer", "test-model", "task2", "failed", 0.005, 50, 0, now, "timeout");
+      "UPDATE sessions SET cost_usd = 0.005, tokens_in = 50, tokens_out = 0, closed_at = ?, error = 'timeout' WHERE id = ?",
+    ).run(Date.now(), s2.id);
 
     const evidence = gatherSoulEvidence(db, "JS Engineer");
     strictEqual(evidence.delegationStats.total, 2);

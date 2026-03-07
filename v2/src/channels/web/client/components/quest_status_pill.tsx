@@ -12,8 +12,6 @@ const STATUS_CLASSES: Record<string, string> = {
 
 export function QuestStatusPill({ status }: { status: string }) {
   return (
-    <span class={`badge ${STATUS_CLASSES[status] ?? "bg-secondary"} rounded-pill`}>
-      {status}
-    </span>
+    <span class={`badge ${STATUS_CLASSES[status] ?? "bg-secondary"} rounded-pill`}>{status}</span>
   );
 }

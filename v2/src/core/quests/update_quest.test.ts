@@ -91,10 +91,7 @@ describe("updateQuest", () => {
 
   it("rejects invalid status", () => {
     const q = createQuest(db, { title: "Test" });
-    throws(
-      () => updateQuest(db, q.id, { status: "bogus" as never }),
-      /Invalid status/,
-    );
+    throws(() => updateQuest(db, q.id, { status: "bogus" as never }), /Invalid status/);
   });
 
   it("rejects empty title", () => {
@@ -104,10 +101,7 @@ describe("updateQuest", () => {
 
   it("rejects nonexistent quest_log_id", () => {
     const q = createQuest(db, { title: "Test" });
-    throws(
-      () => updateQuest(db, q.id, { questLogId: 999 }),
-      /does not exist/,
-    );
+    throws(() => updateQuest(db, q.id, { questLogId: 999 }), /does not exist/);
   });
 
   it("updates FTS index on title change", () => {

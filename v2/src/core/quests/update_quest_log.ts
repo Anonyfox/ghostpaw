@@ -42,10 +42,7 @@ export function updateQuestLog(
 
   const now = Date.now();
 
-  if (
-    input.status === "completed" &&
-    existing.status !== "completed"
-  ) {
+  if (input.status === "completed" && existing.status !== "completed") {
     sets.push("completed_at = ?");
     values.push(now);
   }

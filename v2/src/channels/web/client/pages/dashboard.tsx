@@ -25,7 +25,9 @@ function HauntButton() {
 
   useEffect(() => {
     apiGet<{ running: boolean }>("/api/haunt/status")
-      .then((d) => { if (d.running) setState("running"); })
+      .then((d) => {
+        if (d.running) setState("running");
+      })
       .catch(() => {});
   }, []);
 

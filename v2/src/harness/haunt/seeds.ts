@@ -207,9 +207,7 @@ function buildQuestSeeds(db: DatabaseHandle): SeedCandidate[] {
 
 function queryOldestMemory(db: DatabaseHandle): Memory | null {
   const row = db
-    .prepare(
-      "SELECT * FROM memories WHERE superseded_by IS NULL ORDER BY created_at ASC LIMIT 1",
-    )
+    .prepare("SELECT * FROM memories WHERE superseded_by IS NULL ORDER BY created_at ASC LIMIT 1")
     .get() as Record<string, unknown> | undefined;
   if (!row) return null;
   return {

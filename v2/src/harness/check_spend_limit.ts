@@ -1,5 +1,5 @@
+import { getSpendInWindow } from "../core/chat/index.ts";
 import { getConfig } from "../core/config/index.ts";
-import { getSpendInWindow } from "../core/cost/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { SpendLimitError } from "../lib/index.ts";
 

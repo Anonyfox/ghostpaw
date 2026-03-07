@@ -158,7 +158,8 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
     defaultValue: 60,
     category: "behavior",
     label: "Howl Cooldown (minutes)",
-    description: "Minimum minutes between howls. High-urgency howls bypass this but not the daily cap.",
+    description:
+      "Minimum minutes between howls. High-urgency howls bypass this but not the daily cap.",
     validate: (v) => typeof v === "number" && Number.isInteger(v) && v >= 0,
   },
   {

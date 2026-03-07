@@ -1,10 +1,9 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ChatInstance } from "../core/chat/index.ts";
-import { createSession, getSession, initChatTables } from "../core/chat/index.ts";
+import { createSession, getSession, initChatTables, listSessions } from "../core/chat/index.ts";
 import { initConfigTable } from "../core/config/index.ts";
 import { initMemoryTable } from "../core/memory/index.ts";
-import { getRun, initRunsTable, listRuns } from "../core/runs/index.ts";
 import { initSecretsTable } from "../core/secrets/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
@@ -21,7 +20,6 @@ beforeEach(async () => {
   initMemoryTable(db);
   initConfigTable(db);
   initSecretsTable(db);
-  initRunsTable(db);
   ensureMandatorySouls(db);
   const session = createSession(db, "test:parent", { purpose: "chat" });
   parentSessionId = session.id as number;
@@ -94,42 +92,41 @@ function makeHandler(factory: ReturnType<typeof mockChatFactory>) {
   });
 }
 
+function getDelegateChildren(parentId: number) {
+  return listSessions(db, { purpose: "delegate", parentSessionId: parentId });
+}
+
 describe("createDelegateHandler", () => {
-  it("creates a delegation_runs record with correct parent session", async () => {
+  it("creates a child session with correct parent and purpose", async () => {
     const handler = makeHandler(mockChatFactory("done"));
     await handler({ task: "do something" });
-    const runs = listRuns(db, parentSessionId);
-    strictEqual(runs.length, 1);
-    strictEqual(runs[0]!.parentSessionId, parentSessionId);
-    strictEqual(runs[0]!.task, "do something");
+    const children = getDelegateChildren(parentSessionId);
+    strictEqual(children.length, 1);
+    strictEqual(children[0]!.parentSessionId, parentSessionId);
+    strictEqual(children[0]!.purpose, "delegate");
   });
 
-  it("creates child session with purpose delegate and parent_session_id", async () => {
+  it("child session records soul_id", async () => {
     const handler = makeHandler(mockChatFactory("done"));
     await handler({ task: "do it" });
-    const runs = listRuns(db, parentSessionId);
-    const run = runs[0]!;
-    ok(run.childSessionId);
-    const child = getSession(db, run.childSessionId!);
-    ok(child);
-    strictEqual(child.purpose, "delegate");
-    strictEqual(child.parentSessionId, parentSessionId);
+    const children = getDelegateChildren(parentSessionId);
+    ok(children[0]!.soulId != null);
   });
 
   it("child session is closed after successful foreground execution", async () => {
     const handler = makeHandler(mockChatFactory("result"));
     await handler({ task: "work" });
-    const runs = listRuns(db, parentSessionId);
-    const child = getSession(db, runs[0]!.childSessionId!);
-    ok(child!.closedAt);
+    const children = getDelegateChildren(parentSessionId);
+    ok(children[0]!.closedAt);
+    strictEqual(children[0]!.error, null);
   });
 
-  it("child session is closed even on foreground failure", async () => {
+  it("child session is closed with error on foreground failure", async () => {
     const handler = makeHandler(failingChatFactory("boom"));
     await handler({ task: "fail" });
-    const runs = listRuns(db, parentSessionId);
-    const child = getSession(db, runs[0]!.childSessionId!);
-    ok(child!.closedAt);
+    const children = getDelegateChildren(parentSessionId);
+    ok(children[0]!.closedAt);
+    ok(children[0]!.error!.includes("boom"));
   });
 
   it("returns formatted string with result content (foreground)", async () => {
@@ -166,8 +163,8 @@ describe("createDelegateHandler", () => {
   it("uses override model when specified", async () => {
     const handler = makeHandler(mockChatFactory("ok"));
     await handler({ task: "go", model: "gpt-4o-mini" });
-    const runs = listRuns(db, parentSessionId);
-    strictEqual(runs[0]!.model, "gpt-4o-mini");
+    const children = getDelegateChildren(parentSessionId);
+    strictEqual(children[0]!.model, "gpt-4o-mini");
   });
 
   it("returns error object on execution failure", async () => {
@@ -177,29 +174,19 @@ describe("createDelegateHandler", () => {
     ok(((result as Record<string, unknown>).error as string).includes("LLM crashed"));
   });
 
-  it("marks run as failed on execution failure", async () => {
+  it("child session has error set on execution failure", async () => {
     const handler = makeHandler(failingChatFactory("kaboom"));
     await handler({ task: "explode" });
-    const runs = listRuns(db, parentSessionId);
-    strictEqual(runs[0]!.status, "failed");
-    ok(runs[0]!.error!.includes("kaboom"));
+    const children = getDelegateChildren(parentSessionId);
+    ok(children[0]!.error!.includes("kaboom"));
   });
 
-  it("marks run as completed on success", async () => {
+  it("child session has no error on success", async () => {
     const handler = makeHandler(mockChatFactory("done"));
     await handler({ task: "finish" });
-    const runs = listRuns(db, parentSessionId);
-    strictEqual(runs[0]!.status, "completed");
-    strictEqual(runs[0]!.result, "done");
-  });
-
-  it("records token usage on the run after completion", async () => {
-    const handler = makeHandler(mockChatFactory("ok"));
-    await handler({ task: "count tokens" });
-    const runs = listRuns(db, parentSessionId);
-    strictEqual(runs[0]!.tokensIn, 200);
-    strictEqual(runs[0]!.tokensOut, 80);
-    strictEqual(runs[0]!.costUsd, 0.01);
+    const children = getDelegateChildren(parentSessionId);
+    strictEqual(children[0]!.error, null);
+    ok(children[0]!.closedAt);
   });
 
   it("background returns immediately with runId and running status", async () => {
@@ -212,39 +199,39 @@ describe("createDelegateHandler", () => {
     ok((obj.message as string).includes("check_run"));
   });
 
-  it("background completes the run asynchronously", async () => {
+  it("background completes the child session asynchronously", async () => {
     const handler = makeHandler(mockChatFactory("async result"));
     const result = await handler({ task: "bg task", background: true });
-    const runId = (result as Record<string, unknown>).runId as number;
+    const childId = (result as Record<string, unknown>).runId as number;
 
     for (let i = 0; i < 50; i++) {
-      const run = getRun(db, runId);
-      if (run && run.status !== "running") break;
+      const session = getSession(db, childId);
+      if (session?.closedAt) break;
       await new Promise((r) => setTimeout(r, 50));
     }
 
-    const run = getRun(db, runId)!;
-    strictEqual(run.status, "completed");
-    strictEqual(run.result, "async result");
+    const session = getSession(db, childId)!;
+    ok(session.closedAt);
+    strictEqual(session.error, null);
   });
 
-  it("background marks run as failed on error", async () => {
+  it("background marks child session as failed on error", async () => {
     const handler = makeHandler(failingChatFactory("async boom"));
     const result = await handler({ task: "bg fail", background: true });
-    const runId = (result as Record<string, unknown>).runId as number;
+    const childId = (result as Record<string, unknown>).runId as number;
 
     for (let i = 0; i < 50; i++) {
-      const run = getRun(db, runId);
-      if (run && run.status !== "running") break;
+      const session = getSession(db, childId);
+      if (session?.closedAt) break;
       await new Promise((r) => setTimeout(r, 50));
     }
 
-    const run = getRun(db, runId)!;
-    strictEqual(run.status, "failed");
-    ok(run.error!.includes("async boom"));
+    const session = getSession(db, childId)!;
+    ok(session.closedAt);
+    ok(session.error!.includes("async boom"));
   });
 
-  it("cleans up run and session when setup phase throws (assembleContext failure)", async () => {
+  it("cleans up child session when setup phase throws", async () => {
     const handler = makeHandler(mockChatFactory("ok"));
     db.exec("DELETE FROM soul_traits");
     db.exec("DELETE FROM souls");
@@ -253,15 +240,10 @@ describe("createDelegateHandler", () => {
     ok(typeof result === "object");
     ok(((result as Record<string, unknown>).error as string).includes("Delegation failed"));
 
-    const runs = db.prepare("SELECT * FROM delegation_runs").all() as Record<string, unknown>[];
-    strictEqual(runs.length, 1);
-    strictEqual(runs[0]!.status, "failed");
-
-    const childId = runs[0]!.child_session_id as number | null;
-    if (childId) {
-      const child = getSession(db, childId);
-      ok(child!.closedAt);
-    }
+    const children = getDelegateChildren(parentSessionId);
+    strictEqual(children.length, 1);
+    ok(children[0]!.closedAt);
+    ok(children[0]!.error);
   });
 
   it("returns error when called outside an active turn", async () => {

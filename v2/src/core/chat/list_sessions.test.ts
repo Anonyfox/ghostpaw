@@ -93,10 +93,69 @@ describe("listSessions", () => {
     strictEqual(openDelegates[0]!.id, s2.id);
   });
 
-  it("returns all when filter is undefined", () => {
+  it("filters by parentSessionId", () => {
+    const parent = createSession(db, "parent");
+    createSession(db, "child1", { parentSessionId: parent.id as number });
+    createSession(db, "child2", { parentSessionId: parent.id as number });
+    createSession(db, "orphan");
+
+    const children = listSessions(db, { parentSessionId: parent.id as number });
+    strictEqual(children.length, 2);
+    ok(children.every((s) => s.parentSessionId === parent.id));
+  });
+
+  it("filters by soulId", () => {
+    createSession(db, "k1", { soulId: 1 });
+    createSession(db, "k2", { soulId: 3 });
+    createSession(db, "k3", { soulId: 1 });
+
+    const soul1 = listSessions(db, { soulId: 1 });
+    strictEqual(soul1.length, 2);
+    ok(soul1.every((s) => s.soulId === 1));
+
+    const soul3 = listSessions(db, { soulId: 3 });
+    strictEqual(soul3.length, 1);
+  });
+
+  it("includes soulId and error in returned sessions", () => {
+    const s = createSession(db, "k", { soulId: 5 });
+    db.prepare("UPDATE sessions SET error = ? WHERE id = ?").run("test error", s.id);
+
+    const list = listSessions(db);
+    strictEqual(list[0]!.soulId, 5);
+    strictEqual(list[0]!.error, "test error");
+  });
+
+  it("filters by keyPrefix", () => {
+    createSession(db, "telegram:123");
+    createSession(db, "telegram:456");
+    createSession(db, "web:abc");
+
+    const telegram = listSessions(db, { keyPrefix: "telegram:" });
+    strictEqual(telegram.length, 2);
+    ok(telegram.every((s) => s.key.startsWith("telegram:")));
+
+    const web = listSessions(db, { keyPrefix: "web:" });
+    strictEqual(web.length, 1);
+  });
+
+  it("respects limit", () => {
     createSession(db, "k1");
     createSession(db, "k2");
-    strictEqual(listSessions(db).length, 2);
-    strictEqual(listSessions(db, {}).length, 2);
+    createSession(db, "k3");
+
+    const limited = listSessions(db, { limit: 2 });
+    strictEqual(limited.length, 2);
+  });
+
+  it("combines keyPrefix and limit", () => {
+    createSession(db, "telegram:1");
+    createSession(db, "telegram:2");
+    createSession(db, "telegram:3");
+    createSession(db, "web:1");
+
+    const result = listSessions(db, { keyPrefix: "telegram:", limit: 1 });
+    strictEqual(result.length, 1);
+    ok(result[0]!.key.startsWith("telegram:"));
   });
 });

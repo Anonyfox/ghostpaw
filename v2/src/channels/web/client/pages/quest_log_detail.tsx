@@ -141,8 +141,14 @@ export function QuestLogDetailPage() {
               </select>
             </div>
             <div class="col-sm-6">
-              <label class="form-label small text-body-secondary mb-0">Deadline</label>
+              <label
+                htmlFor="quest-log-edit-deadline"
+                class="form-label small text-body-secondary mb-0"
+              >
+                Deadline
+              </label>
               <input
+                id="quest-log-edit-deadline"
                 type="datetime-local"
                 class="form-control form-control-sm"
                 value={toLocalInput(form.dueAt ?? null)}

@@ -1,5 +1,6 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, describe, it } from "node:test";
+import type { ChannelHandle } from "./channel_registry.ts";
 import {
   clearChannelRegistry,
   getBestChannel,
@@ -8,7 +9,6 @@ import {
   registerChannel,
   unregisterChannel,
 } from "./channel_registry.ts";
-import type { ChannelHandle } from "./channel_registry.ts";
 
 function makeHandle(type: ChannelHandle["type"], connected = true): ChannelHandle {
   return {

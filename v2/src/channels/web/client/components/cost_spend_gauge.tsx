@@ -1,8 +1,8 @@
 import { useState } from "preact/hooks";
-import type { CostsLimitInfo, CostsTodaySummary } from "../../shared/cost_types.ts";
+import type { CostSummary, CostsLimitInfo } from "../../shared/cost_types.ts";
 
 interface Props {
-  today: CostsTodaySummary;
+  today: CostSummary;
   limit: CostsLimitInfo;
   onLimitChange: (value: number) => void;
 }

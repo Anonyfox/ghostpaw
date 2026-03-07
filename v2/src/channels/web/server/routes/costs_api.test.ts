@@ -1,8 +1,8 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
-import { initChatTables } from "../../../../core/chat/index.ts";
+import { createSession, initChatTables } from "../../../../core/chat/index.ts";
 import { initConfigTable, setConfig } from "../../../../core/config/index.ts";
-import { initRunsTable } from "../../../../core/runs/index.ts";
+import { initSoulsTables } from "../../../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { openTestDatabase } from "../../../../lib/index.ts";
 import { createCostsApiHandlers } from "./costs_api.ts";
@@ -36,7 +36,7 @@ describe("costs_api", () => {
     db = await openTestDatabase();
     initConfigTable(db);
     initChatTables(db);
-    initRunsTable(db);
+    initSoulsTables(db);
   });
 
   it("GET /api/costs returns CostsResponse shape", () => {
@@ -102,42 +102,37 @@ describe("costs_api", () => {
     strictEqual(data.limit.warnAtPercentage, 90);
   });
 
-  it("groups delegation runs by soul", () => {
+  it("groups delegate sessions by soul", () => {
     const now = Date.now();
-    db.prepare(
-      `INSERT INTO sessions (key, purpose, model, created_at, last_active_at) VALUES (?, ?, ?, ?, ?)`,
-    ).run("web:test", "chat", "claude-sonnet-4-6", now - 1000, now);
-    const sessionId = 1;
+    const parent = createSession(db, "web:test", { purpose: "chat" });
 
+    const soulNow = Date.now();
     db.prepare(
-      `INSERT INTO delegation_runs (parent_session_id, specialist, model, task, status, cost_usd, tokens_in, tokens_out, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      sessionId,
-      "Ghostpaw",
-      "claude-sonnet-4-6",
-      "test task",
-      "completed",
-      0.22,
-      10000,
-      5000,
-      now,
-    );
+      "INSERT INTO souls (name, essence, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+    ).run("Ghostpaw", "spectral wolf", "coordinator", soulNow, soulNow);
+    const soulId = (
+      db.prepare("SELECT id FROM souls WHERE name = 'Ghostpaw'").get() as { id: number }
+    ).id;
 
+    createSession(db, "d:1", {
+      purpose: "delegate",
+      model: "claude-sonnet-4-6",
+      parentSessionId: parent.id as number,
+      soulId,
+    });
     db.prepare(
-      `INSERT INTO delegation_runs (parent_session_id, specialist, model, task, status, cost_usd, tokens_in, tokens_out, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      sessionId,
-      "Ghostpaw",
-      "claude-sonnet-4-6",
-      "test task 2",
-      "completed",
-      0.11,
-      5000,
-      2500,
-      now,
-    );
+      "UPDATE sessions SET cost_usd = 0.22, tokens_in = 10000, tokens_out = 5000, last_active_at = ? WHERE key = 'd:1'",
+    ).run(now);
+
+    createSession(db, "d:2", {
+      purpose: "delegate",
+      model: "claude-sonnet-4-6",
+      parentSessionId: parent.id as number,
+      soulId,
+    });
+    db.prepare(
+      "UPDATE sessions SET cost_usd = 0.11, tokens_in = 5000, tokens_out = 2500, last_active_at = ? WHERE key = 'd:2'",
+    ).run(now);
 
     const handlers = createCostsApiHandlers(db);
     const { ctx, json } = mockCtx();

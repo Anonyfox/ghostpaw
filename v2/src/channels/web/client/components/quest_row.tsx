@@ -12,11 +12,15 @@ interface Props {
 export function QuestRow({ quest, isExpanded, onToggle }: Props) {
   const q = quest;
   const recurrence = rruleLabel(q.rrule);
-  const isOverdue = q.dueAt != null && q.dueAt < Date.now() && !["offered", "done", "failed", "cancelled"].includes(q.status);
+  const isOverdue =
+    q.dueAt != null &&
+    q.dueAt < Date.now() &&
+    !["offered", "done", "failed", "cancelled"].includes(q.status);
 
   return (
-    <div
-      class={`d-flex align-items-center gap-2 px-3 py-2 border-bottom quest-row ${isExpanded ? "quest-row-expanded" : ""}`}
+    <button
+      type="button"
+      class={`d-flex align-items-center gap-2 px-3 py-2 border-bottom quest-row btn border-0 w-100 text-start ${isExpanded ? "quest-row-expanded" : ""}`}
       style="cursor: pointer;"
       onClick={() => onToggle(q.id)}
     >
@@ -41,6 +45,6 @@ export function QuestRow({ quest, isExpanded, onToggle }: Props) {
       <span class="text-body-tertiary small" style="min-width: 30px; text-align: right;">
         {relativeAge(q.createdAt)}
       </span>
-    </div>
+    </button>
   );
 }

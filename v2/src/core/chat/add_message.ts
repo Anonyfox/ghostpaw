@@ -16,7 +16,8 @@ export function addMessage(db: DatabaseHandle, input: AddMessageInput): ChatMess
   const result = db
     .prepare(
       `INSERT INTO messages
-       (session_id, parent_id, role, content, model, tokens_in, tokens_out, reasoning_tokens, cached_tokens, cost_usd, created_at, is_compaction, tool_data)
+       (session_id, parent_id, role, content, model, tokens_in, tokens_out,
+        reasoning_tokens, cached_tokens, cost_usd, created_at, is_compaction, tool_data)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
@@ -37,15 +38,9 @@ export function addMessage(db: DatabaseHandle, input: AddMessageInput): ChatMess
 
   const messageId = result.lastInsertRowid;
 
-  db.prepare("UPDATE sessions SET head_message_id = ?, last_active_at = ? WHERE id = ?").run(
-    messageId,
-    now,
-    input.sessionId,
-  );
-
   db.prepare(
-    "UPDATE sessions SET distilled_at = NULL WHERE id = ? AND distilled_at IS NOT NULL",
-  ).run(input.sessionId);
+    "UPDATE sessions SET head_message_id = ?, last_active_at = ?, distilled_at = NULL WHERE id = ?",
+  ).run(messageId, now, input.sessionId);
 
   return {
     id: messageId,

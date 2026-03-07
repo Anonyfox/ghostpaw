@@ -1,4 +1,11 @@
-export type QuestStatus = "offered" | "pending" | "active" | "blocked" | "done" | "failed" | "cancelled";
+export type QuestStatus =
+  | "offered"
+  | "pending"
+  | "active"
+  | "blocked"
+  | "done"
+  | "failed"
+  | "cancelled";
 export type QuestPriority = "low" | "normal" | "high" | "urgent";
 export type QuestLogStatus = "active" | "completed" | "archived";
 
@@ -48,7 +55,14 @@ export interface QuestLogInfo {
   updatedAt: number;
   completedAt: number | null;
   dueAt: number | null;
-  progress: { total: number; done: number; active: number; pending: number; blocked: number; offered: number };
+  progress: {
+    total: number;
+    done: number;
+    active: number;
+    pending: number;
+    blocked: number;
+    offered: number;
+  };
 }
 
 export interface QuestLogDetailResponse extends QuestLogInfo {

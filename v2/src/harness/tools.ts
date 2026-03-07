@@ -1,6 +1,5 @@
 import type { Tool } from "chatoyant";
 import type { ChatFactory } from "../core/chat/index.ts";
-import type { DelegationRun } from "../core/runs/index.ts";
 import { getSecret } from "../core/secrets/index.ts";
 import { listSouls, MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
@@ -18,6 +17,7 @@ import { createDatetimeTool } from "../tools/datetime.ts";
 import { createDelegateTool } from "../tools/delegate.ts";
 import { createEditTool } from "../tools/edit.ts";
 import { createGrepTool } from "../tools/grep.ts";
+import { createHowlTool } from "../tools/howl.ts";
 import { createLsTool } from "../tools/ls.ts";
 import { createMcpTool } from "../tools/mcp/index.ts";
 import {
@@ -30,7 +30,6 @@ import { createMentorTools } from "../tools/mentor/index.ts";
 import { createPackTools } from "../tools/pack/index.ts";
 import { createQuestTools } from "../tools/quests/index.ts";
 import { createReadTool } from "../tools/read.ts";
-import { createHowlTool } from "../tools/howl.ts";
 import { createRecallHauntsTool } from "../tools/recall_haunts.ts";
 import {
   createListSecretsTool,
@@ -43,13 +42,14 @@ import { createWebFetchTool } from "../tools/web_fetch.ts";
 import { createWebSearchTool } from "../tools/web_search/index.ts";
 import { createWriteTool } from "../tools/write.ts";
 import { createDelegateHandler } from "./delegate.ts";
+import type { DelegationOutcome } from "./types.ts";
 
 export interface EntityToolsConfig {
   db: DatabaseHandle;
   workspace: string;
   chatFactory: ChatFactory;
   getParentSessionId: () => number | null;
-  onBackgroundComplete?: (parentSessionId: number, run: DelegationRun) => void;
+  onBackgroundComplete?: (parentSessionId: number, outcome: DelegationOutcome) => void;
 }
 
 export interface EntityToolSets {

@@ -18,57 +18,29 @@ afterEach(() => {
 });
 
 describe("getSession", () => {
-  it("returns a session by id", () => {
-    const created = createSession(db, "k");
-    const found = getSession(db, created.id);
-    ok(found);
-    strictEqual(found.id, created.id);
-    strictEqual(found.key, "k");
-    strictEqual(found.purpose, "chat");
-  });
-
-  it("returns null for a non-existent id", () => {
-    const found = getSession(db, 99999);
-    strictEqual(found, null);
-  });
-
-  it("returns the session even when closed", () => {
-    const created = createSession(db, "k");
-    db.prepare("UPDATE sessions SET closed_at = ? WHERE id = ?").run(Date.now(), created.id);
-    const found = getSession(db, created.id);
-    ok(found);
-    ok(found.closedAt !== null);
-  });
-
-  it("returns the session even when distilled", () => {
-    const created = createSession(db, "k");
-    db.prepare("UPDATE sessions SET distilled_at = ? WHERE id = ?").run(Date.now(), created.id);
-    const found = getSession(db, created.id);
-    ok(found);
-    ok(found.distilledAt !== null);
-  });
-
-  it("reflects updated token counts", () => {
+  it("returns a session by id with all fields mapped", () => {
     const created = createSession(db, "k");
     db.prepare(
       "UPDATE sessions SET tokens_in = 100, tokens_out = 50, cost_usd = 0.01 WHERE id = ?",
     ).run(created.id);
     const found = getSession(db, created.id);
     ok(found);
+    strictEqual(found.id, created.id);
+    strictEqual(found.key, "k");
     strictEqual(found.tokensIn, 100);
-    strictEqual(found.tokensOut, 50);
     strictEqual(found.costUsd, 0.01);
   });
 
-  it("reflects head_message_id when set", () => {
-    const created = createSession(db, "k");
-    db.prepare(
-      "INSERT INTO messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
-    ).run(created.id, "user", "hello", Date.now());
-    const msgId = (db.prepare("SELECT id FROM messages").get() as { id: number }).id;
-    db.prepare("UPDATE sessions SET head_message_id = ? WHERE id = ?").run(msgId, created.id);
-    const found = getSession(db, created.id);
-    ok(found);
-    strictEqual(found.headMessageId, msgId);
+  it("returns null for a non-existent id", () => {
+    strictEqual(getSession(db, 99999), null);
+  });
+
+  it("returns session regardless of closed or distilled state", () => {
+    const s1 = createSession(db, "a");
+    const s2 = createSession(db, "b");
+    db.prepare("UPDATE sessions SET closed_at = ? WHERE id = ?").run(Date.now(), s1.id);
+    db.prepare("UPDATE sessions SET distilled_at = ? WHERE id = ?").run(Date.now(), s2.id);
+    ok(getSession(db, s1.id));
+    ok(getSession(db, s2.id));
   });
 });

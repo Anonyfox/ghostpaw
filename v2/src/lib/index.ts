@@ -7,6 +7,8 @@ export {
   registerChannel,
   unregisterChannel,
 } from "./channel_registry.ts";
+export type { BudgetNumbers, SpendStatus } from "./cost/index.ts";
+export { computeSpendStatus, formatBudgetSummary, isSpendBlocked } from "./cost/index.ts";
 export type { DatabaseHandle } from "./database_handle.ts";
 export { isEntrypoint } from "./is_entrypoint.ts";
 export { isInsideWorkspace } from "./is_inside_workspace.ts";

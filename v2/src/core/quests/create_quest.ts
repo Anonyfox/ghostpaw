@@ -22,9 +22,7 @@ export function createQuest(db: DatabaseHandle, input: CreateQuestInput): Quest 
   }
 
   if (input.questLogId !== undefined) {
-    const log = db
-      .prepare("SELECT id FROM quest_logs WHERE id = ?")
-      .get(input.questLogId);
+    const log = db.prepare("SELECT id FROM quest_logs WHERE id = ?").get(input.questLogId);
     if (!log) {
       throw new Error(`Quest log #${input.questLogId} does not exist.`);
     }

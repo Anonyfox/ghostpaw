@@ -15,11 +15,17 @@ interface Props {
 }
 
 export function QuestToolbar({
-  query, onQueryChange, onSearch,
-  status, onStatusChange,
-  priority, onPriorityChange,
-  logFilter, onLogFilterChange,
-  logs, onAdd,
+  query,
+  onQueryChange,
+  onSearch,
+  status,
+  onStatusChange,
+  priority,
+  onPriorityChange,
+  logFilter,
+  onLogFilterChange,
+  logs,
+  onAdd,
 }: Props) {
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter") onSearch();
@@ -80,7 +86,9 @@ export function QuestToolbar({
         >
           <option value="">All quest logs</option>
           {logs.map((l) => (
-            <option key={l.id} value={String(l.id)}>{l.title}</option>
+            <option key={l.id} value={String(l.id)}>
+              {l.title}
+            </option>
           ))}
         </select>
       )}

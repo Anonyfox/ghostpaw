@@ -1,3 +1,4 @@
+import { listDistillableSessionIds } from "../../../../core/chat/index.ts";
 import { defaultChatFactory } from "../../../../harness/chat_factory.ts";
 import { distillPending } from "../../../../harness/distill_pending.ts";
 import { ELIGIBLE_PURPOSES, STALE_THRESHOLD_MS } from "../../../../harness/distill_types.ts";
@@ -14,18 +15,11 @@ function json(ctx: RouteContext, status: number, data: unknown): void {
 export function createDistillApiHandlers(db: DatabaseHandle) {
   return {
     status(ctx: RouteContext): void {
-      const staleThreshold = Date.now() - STALE_THRESHOLD_MS;
-      const purposes = ELIGIBLE_PURPOSES.map((p) => `'${p}'`).join(", ");
-      const row = db
-        .prepare(
-          `SELECT COUNT(*) AS cnt FROM sessions
-           WHERE distilled_at IS NULL
-             AND head_message_id IS NOT NULL
-             AND purpose IN (${purposes})
-             AND (closed_at IS NOT NULL OR last_active_at < ?)`,
-        )
-        .get(staleThreshold) as { cnt: number };
-      json(ctx, 200, { undistilledCount: row.cnt });
+      const ids = listDistillableSessionIds(db, {
+        staleThresholdMs: STALE_THRESHOLD_MS,
+        eligiblePurposes: ELIGIBLE_PURPOSES,
+      });
+      json(ctx, 200, { undistilledCount: ids.length });
     },
 
     async sweep(ctx: RouteContext): Promise<void> {

@@ -53,7 +53,8 @@ export default defineCommand({
       if (q.dueAt) f("due", `${formatDate(q.dueAt)} (${relativeDue(q.dueAt)})`);
       if (q.remindAt) f("remind at", formatDate(q.remindAt));
       if (q.remindedAt) f("reminded", formatDate(q.remindedAt));
-      if (q.completedAt) f("completed", `${formatDate(q.completedAt)} (${relativeAge(q.completedAt)} ago)`);
+      if (q.completedAt)
+        f("completed", `${formatDate(q.completedAt)} (${relativeAge(q.completedAt)} ago)`);
       if (q.rrule) f("recurrence", q.rrule);
 
       if (q.rrule) {

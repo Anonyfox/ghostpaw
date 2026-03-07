@@ -44,10 +44,7 @@ export default defineCommand({
         });
 
         const icon = q.createdBy === "ghost" ? "!" : "?";
-        console.log(
-          style.yellow("offered".padStart(10)),
-          ` #${q.id} ${icon} "${q.title}"`,
-        );
+        console.log(style.yellow("offered".padStart(10)), ` #${q.id} ${icon} "${q.title}"`);
       });
     } catch (err) {
       errorLine(err instanceof Error ? err.message : String(err));

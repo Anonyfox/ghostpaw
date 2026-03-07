@@ -41,8 +41,12 @@ export default defineCommand({
         if (args.clear) {
           const field = args.clear as string;
           const map: Record<string, () => void> = {
-            desc: () => { input.description = null; },
-            due: () => { input.dueAt = null; },
+            desc: () => {
+              input.description = null;
+            },
+            due: () => {
+              input.dueAt = null;
+            },
           };
           if (!map[field]) {
             errorLine(`Cannot clear "${field}". Clearable fields: ${CLEARABLE.join(", ")}`);

@@ -34,9 +34,9 @@ describe("initQuestTables", () => {
     db.prepare(
       "INSERT INTO quests (title, status, created_at, created_by, updated_at) VALUES (?, ?, ?, ?, ?)",
     ).run("board quest", "offered", now, "human", now);
-    const row = db
-      .prepare("SELECT status FROM quests WHERE title = 'board quest'")
-      .get() as { status: string };
+    const row = db.prepare("SELECT status FROM quests WHERE title = 'board quest'").get() as {
+      status: string;
+    };
     ok(row.status === "offered");
   });
 
@@ -90,9 +90,7 @@ describe("initQuestTables", () => {
     db.prepare(
       "INSERT INTO quests (title, created_at, created_by, updated_at) VALUES (?, ?, ?, ?)",
     ).run("recurring", now, "human", now);
-    const questId = (
-      db.prepare("SELECT last_insert_rowid() as id").get() as { id: number }
-    ).id;
+    const questId = (db.prepare("SELECT last_insert_rowid() as id").get() as { id: number }).id;
     db.prepare(
       "INSERT INTO quest_occurrences (quest_id, occurrence_at, completed_at) VALUES (?, ?, ?)",
     ).run(questId, now, now);
@@ -105,9 +103,7 @@ describe("initQuestTables", () => {
 
   it("creates FTS5 virtual table for quests", () => {
     const tables = db
-      .prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='quests_fts'",
-      )
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='quests_fts'")
       .all() as { name: string }[];
     ok(tables.length === 1);
   });
@@ -117,9 +113,7 @@ describe("initQuestTables", () => {
     db.prepare(
       "INSERT INTO quests (title, description, created_at, created_by, updated_at) VALUES (?, ?, ?, ?, ?)",
     ).run("deploy v3", "rollout to production", now, "human", now);
-    const hits = db
-      .prepare("SELECT rowid FROM quests_fts WHERE quests_fts MATCH 'deploy'")
-      .all();
+    const hits = db.prepare("SELECT rowid FROM quests_fts WHERE quests_fts MATCH 'deploy'").all();
     ok(hits.length === 1);
   });
 });

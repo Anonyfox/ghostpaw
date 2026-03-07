@@ -51,21 +51,21 @@ export interface SoulEvidence {
   relatedMemoryCount: number;
 }
 
-function queryDelegationStats(db: DatabaseHandle, soulName: string): DelegationStats {
+function queryDelegationStats(db: DatabaseHandle, soulId: number): DelegationStats {
   const row = db
     .prepare(
       `SELECT
-        COUNT(*)                           AS total,
-        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed,
-        SUM(CASE WHEN status = 'failed'    THEN 1 ELSE 0 END) AS failed,
-        COALESCE(AVG(cost_usd), 0)         AS avg_cost,
-        COALESCE(SUM(cost_usd), 0)         AS total_cost,
-        COALESCE(SUM(tokens_in), 0)        AS total_in,
-        COALESCE(SUM(tokens_out), 0)       AS total_out
-      FROM delegation_runs
-      WHERE specialist = ?`,
+        COUNT(*)                                                          AS total,
+        SUM(CASE WHEN closed_at IS NOT NULL AND error IS NULL THEN 1 ELSE 0 END) AS completed,
+        SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END)                       AS failed,
+        COALESCE(AVG(cost_usd), 0)                                        AS avg_cost,
+        COALESCE(SUM(cost_usd), 0)                                        AS total_cost,
+        COALESCE(SUM(tokens_in), 0)                                       AS total_in,
+        COALESCE(SUM(tokens_out), 0)                                      AS total_out
+      FROM sessions
+      WHERE purpose = 'delegate' AND soul_id = ?`,
     )
-    .get(soulName) as Record<string, number>;
+    .get(soulId) as Record<string, number>;
 
   return {
     total: row.total,
@@ -142,7 +142,7 @@ export function gatherSoulEvidence(db: DatabaseHandle, soulName: string): SoulEv
     activeTraitCount: activeCount,
     traitLimit,
     atCapacity: activeCount >= traitLimit,
-    delegationStats: queryDelegationStats(db, soulName),
+    delegationStats: queryDelegationStats(db, soulId),
     activeTraits,
     revertedTraits,
     consolidatedTraits,

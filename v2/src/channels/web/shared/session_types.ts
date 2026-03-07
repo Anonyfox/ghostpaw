@@ -49,9 +49,9 @@ export interface SessionMessageInfo {
 
 export interface SessionRunInfo {
   id: number;
-  specialist: string;
-  model: string;
-  task: string;
+  specialist: string | null;
+  model: string | null;
+  task: string | null;
   status: "running" | "completed" | "failed";
   result: string | null;
   error: string | null;

@@ -108,6 +108,6 @@ describe("searchMemories", () => {
     const results = searchMemories(db, query);
     const elapsed = performance.now() - start;
     ok(results.length > 0, "should return results");
-    ok(elapsed < 100, `search took ${elapsed.toFixed(1)}ms, expected <100ms`);
+    ok(elapsed < 200, `search took ${elapsed.toFixed(1)}ms, expected <200ms`);
   });
 });

@@ -15,127 +15,88 @@ afterEach(() => {
 });
 
 describe("initChatTables", () => {
-  it("creates the sessions table with expected columns", () => {
+  it("creates sessions with all 18 columns", () => {
     initChatTables(db);
     const cols = db.prepare("PRAGMA table_info(sessions)").all() as { name: string }[];
-    const names = cols.map((c) => c.name);
-    ok(names.includes("id"));
-    ok(names.includes("key"));
-    ok(names.includes("purpose"));
-    ok(names.includes("model"));
-    ok(names.includes("created_at"));
-    ok(names.includes("last_active_at"));
-    ok(names.includes("tokens_in"));
-    ok(names.includes("tokens_out"));
-    ok(names.includes("reasoning_tokens"));
-    ok(names.includes("cached_tokens"));
-    ok(names.includes("cost_usd"));
-    ok(names.includes("head_message_id"));
-    ok(names.includes("closed_at"));
-    ok(names.includes("distilled_at"));
-    ok(names.includes("display_name"));
-    ok(names.includes("parent_session_id"));
-    strictEqual(names.length, 16);
+    strictEqual(cols.length, 18);
+    const names = new Set(cols.map((c) => c.name));
+    for (const expected of [
+      "id",
+      "key",
+      "purpose",
+      "model",
+      "display_name",
+      "created_at",
+      "last_active_at",
+      "tokens_in",
+      "tokens_out",
+      "reasoning_tokens",
+      "cached_tokens",
+      "cost_usd",
+      "head_message_id",
+      "closed_at",
+      "distilled_at",
+      "parent_session_id",
+      "soul_id",
+      "error",
+    ]) {
+      ok(names.has(expected), `missing column: ${expected}`);
+    }
   });
 
-  it("creates the messages table with expected columns", () => {
+  it("creates messages with all 15 columns", () => {
     initChatTables(db);
     const cols = db.prepare("PRAGMA table_info(messages)").all() as { name: string }[];
-    const names = cols.map((c) => c.name);
-    ok(names.includes("id"));
-    ok(names.includes("session_id"));
-    ok(names.includes("parent_id"));
-    ok(names.includes("role"));
-    ok(names.includes("content"));
-    ok(names.includes("model"));
-    ok(names.includes("tokens_in"));
-    ok(names.includes("tokens_out"));
-    ok(names.includes("reasoning_tokens"));
-    ok(names.includes("cached_tokens"));
-    ok(names.includes("cost_usd"));
-    ok(names.includes("created_at"));
-    ok(names.includes("is_compaction"));
-    ok(names.includes("tool_data"));
-    ok(names.includes("distilled"));
-    strictEqual(names.length, 15);
+    strictEqual(cols.length, 15);
+    const names = new Set(cols.map((c) => c.name));
+    for (const expected of [
+      "id",
+      "session_id",
+      "parent_id",
+      "role",
+      "content",
+      "model",
+      "tokens_in",
+      "tokens_out",
+      "reasoning_tokens",
+      "cached_tokens",
+      "cost_usd",
+      "created_at",
+      "is_compaction",
+      "tool_data",
+      "distilled",
+    ]) {
+      ok(names.has(expected), `missing column: ${expected}`);
+    }
   });
 
   it("is idempotent", () => {
     initChatTables(db);
     initChatTables(db);
-    const sessionCols = db.prepare("PRAGMA table_info(sessions)").all();
-    strictEqual(sessionCols.length, 16);
-    const messageCols = db.prepare("PRAGMA table_info(messages)").all();
-    strictEqual(messageCols.length, 15);
+    strictEqual((db.prepare("PRAGMA table_info(sessions)").all() as unknown[]).length, 18);
+    strictEqual((db.prepare("PRAGMA table_info(messages)").all() as unknown[]).length, 15);
   });
 
-  it("sessions id is an autoincrement integer primary key", () => {
+  it("enforces NOT NULL on session key and timestamps", () => {
     initChatTables(db);
     const now = Date.now();
-    db.prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)").run(
-      "k1",
-      now,
-      now,
-    );
-    db.prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)").run(
-      "k2",
-      now,
-      now,
-    );
-    const rows = db.prepare("SELECT id FROM sessions ORDER BY id").all();
-    strictEqual(rows.length, 2);
-    ok((rows[0]!.id as number) < (rows[1]!.id as number));
-  });
-
-  it("sessions purpose defaults to 'chat'", () => {
-    initChatTables(db);
-    const now = Date.now();
-    db.prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)").run(
-      "k",
-      now,
-      now,
-    );
-    const row = db.prepare("SELECT purpose FROM sessions").get();
-    strictEqual(row!.purpose, "chat");
-  });
-
-  it("sessions tokens_in defaults to 0", () => {
-    initChatTables(db);
-    const now = Date.now();
-    db.prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)").run(
-      "k",
-      now,
-      now,
-    );
-    const row = db.prepare("SELECT tokens_in, tokens_out, cost_usd FROM sessions").get();
-    strictEqual(row!.tokens_in, 0);
-    strictEqual(row!.tokens_out, 0);
-    strictEqual(row!.cost_usd, 0);
-  });
-
-  it("sessions rejects null key", () => {
-    initChatTables(db);
     throws(
       () =>
         db
           .prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)")
-          .run(null, Date.now(), Date.now()),
+          .run(null, now, now),
       /NOT NULL/i,
     );
-  });
-
-  it("sessions rejects null created_at", () => {
-    initChatTables(db);
     throws(
       () =>
         db
           .prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)")
-          .run("k", null, Date.now()),
+          .run("k", null, now),
       /NOT NULL/i,
     );
   });
 
-  it("sessions allows null model, closed_at, distilled_at, head_message_id, display_name, parent_session_id", () => {
+  it("defaults purpose to chat, counters to zero, nullable fields to null", () => {
     initChatTables(db);
     const now = Date.now();
     db.prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)").run(
@@ -145,18 +106,21 @@ describe("initChatTables", () => {
     );
     const row = db
       .prepare(
-        "SELECT model, closed_at, distilled_at, head_message_id, display_name, parent_session_id FROM sessions",
+        "SELECT purpose, tokens_in, tokens_out, cost_usd, model, closed_at, distilled_at, head_message_id, display_name, parent_session_id, soul_id, error FROM sessions",
       )
-      .get();
-    strictEqual(row!.model, null);
-    strictEqual(row!.closed_at, null);
-    strictEqual(row!.distilled_at, null);
-    strictEqual(row!.head_message_id, null);
-    strictEqual(row!.display_name, null);
-    strictEqual(row!.parent_session_id, null);
+      .get() as Record<string, unknown>;
+    strictEqual(row.purpose, "chat");
+    strictEqual(row.tokens_in, 0);
+    strictEqual(row.tokens_out, 0);
+    strictEqual(row.cost_usd, 0);
+    strictEqual(row.model, null);
+    strictEqual(row.closed_at, null);
+    strictEqual(row.parent_session_id, null);
+    strictEqual(row.soul_id, null);
+    strictEqual(row.error, null);
   });
 
-  it("messages rejects invalid role", () => {
+  it("enforces role CHECK constraint on messages", () => {
     initChatTables(db);
     const now = Date.now();
     db.prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)").run(
@@ -174,67 +138,15 @@ describe("initChatTables", () => {
           .run(sid, "system", "text", now),
       /CHECK/i,
     );
-  });
-
-  it("messages accepts all valid roles", () => {
-    initChatTables(db);
-    const now = Date.now();
-    db.prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)").run(
-      "k",
-      now,
-      now,
-    );
-    const sid = (db.prepare("SELECT id FROM sessions").get() as { id: number }).id;
     for (const role of ["user", "assistant", "tool_call", "tool_result"]) {
       db.prepare(
         "INSERT INTO messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
       ).run(sid, role, "text", now);
     }
-    const rows = db.prepare("SELECT role FROM messages ORDER BY id").all();
-    strictEqual(rows.length, 4);
-    strictEqual(rows[0]!.role, "user");
-    strictEqual(rows[1]!.role, "assistant");
-    strictEqual(rows[2]!.role, "tool_call");
-    strictEqual(rows[3]!.role, "tool_result");
+    strictEqual((db.prepare("SELECT COUNT(*) AS c FROM messages").get() as { c: number }).c, 4);
   });
 
-  it("messages rejects null content", () => {
-    initChatTables(db);
-    const now = Date.now();
-    db.prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)").run(
-      "k",
-      now,
-      now,
-    );
-    const sid = (db.prepare("SELECT id FROM sessions").get() as { id: number }).id;
-    throws(
-      () =>
-        db
-          .prepare(
-            "INSERT INTO messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
-          )
-          .run(sid, "user", null, now),
-      /NOT NULL/i,
-    );
-  });
-
-  it("messages is_compaction defaults to 0", () => {
-    initChatTables(db);
-    const now = Date.now();
-    db.prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)").run(
-      "k",
-      now,
-      now,
-    );
-    const sid = (db.prepare("SELECT id FROM sessions").get() as { id: number }).id;
-    db.prepare(
-      "INSERT INTO messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
-    ).run(sid, "user", "hello", now);
-    const row = db.prepare("SELECT is_compaction FROM messages").get();
-    strictEqual(row!.is_compaction, 0);
-  });
-
-  it("messages foreign key references sessions", () => {
+  it("enforces foreign keys on messages", () => {
     initChatTables(db);
     throws(
       () =>
@@ -247,40 +159,23 @@ describe("initChatTables", () => {
     );
   });
 
-  it("messages parent_id foreign key references messages", () => {
+  it("creates all expected indices", () => {
     initChatTables(db);
-    const now = Date.now();
-    db.prepare("INSERT INTO sessions (key, created_at, last_active_at) VALUES (?, ?, ?)").run(
-      "k",
-      now,
-      now,
+    const sessionIdx = (db.prepare("PRAGMA index_list(sessions)").all() as { name: string }[]).map(
+      (i) => i.name,
     );
-    const sid = (db.prepare("SELECT id FROM sessions").get() as { id: number }).id;
-    throws(
-      () =>
-        db
-          .prepare(
-            "INSERT INTO messages (session_id, parent_id, role, content, created_at) VALUES (?, ?, ?, ?, ?)",
-          )
-          .run(sid, 99999, "user", "hello", now),
-      /FOREIGN KEY/i,
+    ok(sessionIdx.some((n) => n.includes("sessions_key")));
+    ok(sessionIdx.some((n) => n.includes("sessions_purpose")));
+    ok(sessionIdx.some((n) => n.includes("sessions_last_active")));
+    ok(sessionIdx.some((n) => n.includes("sessions_parent")));
+    ok(sessionIdx.some((n) => n.includes("sessions_closed")));
+    ok(sessionIdx.some((n) => n.includes("sessions_distilled")));
+    ok(sessionIdx.some((n) => n.includes("sessions_soul")));
+
+    const msgIdx = (db.prepare("PRAGMA index_list(messages)").all() as { name: string }[]).map(
+      (i) => i.name,
     );
-  });
-
-  it("creates sessions indexes", () => {
-    initChatTables(db);
-    const indexes = db.prepare("PRAGMA index_list(sessions)").all() as { name: string }[];
-    const names = indexes.map((i) => i.name);
-    ok(names.some((n) => n.includes("sessions_key")));
-    ok(names.some((n) => n.includes("sessions_purpose")));
-    ok(names.some((n) => n.includes("sessions_last_active")));
-  });
-
-  it("creates messages indexes", () => {
-    initChatTables(db);
-    const indexes = db.prepare("PRAGMA index_list(messages)").all() as { name: string }[];
-    const names = indexes.map((i) => i.name);
-    ok(names.some((n) => n.includes("messages_session")));
-    ok(names.some((n) => n.includes("messages_parent")));
+    ok(msgIdx.some((n) => n.includes("messages_session_role")));
+    ok(msgIdx.some((n) => n.includes("messages_parent")));
   });
 });

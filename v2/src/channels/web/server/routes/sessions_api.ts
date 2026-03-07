@@ -1,5 +1,14 @@
-import { deriveSessionTitle, getHistory, getSession } from "../../../../core/chat/index.ts";
-import { listRuns } from "../../../../core/runs/index.ts";
+import type { SessionWithCounts } from "../../../../core/chat/index.ts";
+import {
+  deriveSessionTitle,
+  getHistory,
+  getSession,
+  getSessionMessage,
+  getSessionStats,
+  listSessions,
+  pruneEmptySessions,
+  querySessionsPage,
+} from "../../../../core/chat/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type {
   SessionDetailResponse,
@@ -21,9 +30,9 @@ function channelFromKey(key: string): string {
   return colon > 0 ? key.slice(0, colon) : "unknown";
 }
 
-function statusOf(row: { closed_at: unknown; distilled_at: unknown }): SessionStatus {
-  if (row.distilled_at) return "distilled";
-  if (row.closed_at) return "closed";
+function statusOf(session: { closedAt: number | null; distilledAt: number | null }): SessionStatus {
+  if (session.distilledAt) return "distilled";
+  if (session.closedAt) return "closed";
   return "open";
 }
 
@@ -33,42 +42,35 @@ function parseQuery(req: { url?: string }): URLSearchParams {
   return new URLSearchParams(q >= 0 ? url.slice(q + 1) : "");
 }
 
-function firstUserMessage(db: DatabaseHandle, sessionId: number): string {
-  const row = db
-    .prepare(
-      "SELECT content FROM messages WHERE session_id = ? AND role = 'user' ORDER BY id ASC LIMIT 1",
-    )
-    .get(sessionId) as { content: string } | undefined;
-  if (!row) return "";
-  const text = row.content.replace(/\s+/g, " ").trim();
+function sessionPreview(db: DatabaseHandle, sessionId: number): string {
+  const raw = getSessionMessage(db, sessionId, "user", "first") ?? "";
+  const text = raw.replace(/\s+/g, " ").trim();
   return text.length > 120 ? `${text.slice(0, 117)}...` : text;
 }
 
-function toSessionInfo(db: DatabaseHandle, row: Record<string, unknown>): SessionInfo {
-  const id = row.id as number;
-  const key = row.key as string;
-  const displayName =
-    (row.display_name as string) || deriveSessionTitle(firstUserMessage(db, id)) || key;
+function toSessionInfo(db: DatabaseHandle, s: SessionWithCounts): SessionInfo {
+  const preview = sessionPreview(db, s.id);
+  const displayName = s.displayName || deriveSessionTitle(preview) || s.key;
 
   return {
-    id,
-    key,
-    channel: channelFromKey(key),
-    purpose: (row.purpose as string) ?? "chat",
-    status: statusOf(row as { closed_at: unknown; distilled_at: unknown }),
+    id: s.id,
+    key: s.key,
+    channel: channelFromKey(s.key),
+    purpose: s.purpose,
+    status: statusOf(s),
     displayName,
-    preview: firstUserMessage(db, id),
-    model: (row.model as string) ?? null,
-    createdAt: row.created_at as number,
-    lastActiveAt: row.last_active_at as number,
-    tokensIn: (row.tokens_in as number) ?? 0,
-    tokensOut: (row.tokens_out as number) ?? 0,
-    reasoningTokens: (row.reasoning_tokens as number) ?? 0,
-    cachedTokens: (row.cached_tokens as number) ?? 0,
-    costUsd: (row.cost_usd as number) ?? 0,
-    messageCount: (row.message_count as number) ?? 0,
-    parentSessionId: (row.parent_session_id as number) ?? null,
-    delegationCount: (row.delegation_count as number) ?? 0,
+    preview,
+    model: s.model,
+    createdAt: s.createdAt,
+    lastActiveAt: s.lastActiveAt,
+    tokensIn: s.tokensIn,
+    tokensOut: s.tokensOut,
+    reasoningTokens: s.reasoningTokens,
+    cachedTokens: s.cachedTokens,
+    costUsd: s.costUsd,
+    messageCount: s.messageCount,
+    parentSessionId: s.parentSessionId,
+    delegationCount: s.delegationCount,
   };
 }
 
@@ -78,100 +80,26 @@ export function createSessionsApiHandlers(db: DatabaseHandle) {
       const q = parseQuery(ctx.req);
       const channel = q.get("channel") || undefined;
       const purpose = q.get("purpose") || undefined;
-      const status = q.get("status") || undefined;
-      const sort = q.get("sort") || "recent";
+      const status = q.get("status") as "open" | "closed" | "distilled" | undefined;
+      const sort = (q.get("sort") || "recent") as "recent" | "oldest" | "expensive" | "tokens";
       const search = q.get("search") || undefined;
       const limit = Math.min(Number.parseInt(q.get("limit") || "50", 10), 200);
       const offset = Math.max(Number.parseInt(q.get("offset") || "0", 10), 0);
 
-      const clauses: string[] = [];
-      const params: unknown[] = [];
+      const result = querySessionsPage(db, {
+        filter: { channel, purpose: purpose as never, status, search },
+        sort,
+        limit,
+        offset,
+      });
 
-      if (channel) {
-        clauses.push("s.key LIKE ?");
-        params.push(`${channel}:%`);
-      }
-      if (purpose) {
-        clauses.push("s.purpose = ?");
-        params.push(purpose);
-      }
-      if (status === "open") clauses.push("s.closed_at IS NULL");
-      else if (status === "closed")
-        clauses.push("s.closed_at IS NOT NULL AND s.distilled_at IS NULL");
-      else if (status === "distilled") clauses.push("s.distilled_at IS NOT NULL");
-
-      if (search) {
-        clauses.push("s.display_name LIKE ?");
-        params.push(`%${search}%`);
-      }
-
-      const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
-
-      let orderBy = "s.last_active_at DESC";
-      if (sort === "oldest") orderBy = "s.last_active_at ASC";
-      else if (sort === "expensive") orderBy = "s.cost_usd DESC";
-      else if (sort === "tokens") orderBy = "(s.tokens_in + s.tokens_out) DESC";
-
-      const countRow = db
-        .prepare(`SELECT COUNT(*) AS cnt FROM sessions s ${where}`)
-        .get(...params) as unknown as { cnt: number };
-      const total = countRow.cnt;
-
-      const rows = db
-        .prepare(
-          `SELECT s.*,
-            (SELECT COUNT(*) FROM messages m WHERE m.session_id = s.id) AS message_count,
-            (SELECT COUNT(*) FROM delegation_runs d WHERE d.parent_session_id = s.id) AS delegation_count
-          FROM sessions s
-          ${where}
-          ORDER BY ${orderBy}
-          LIMIT ? OFFSET ?`,
-        )
-        .all(...params, limit, offset) as unknown as Record<string, unknown>[];
-
-      const sessions = rows.map((r) => toSessionInfo(db, r));
-      json(ctx, 200, { sessions, total });
+      const sessions = result.sessions.map((s) => toSessionInfo(db, s));
+      json(ctx, 200, { sessions, total: result.total });
     },
 
     stats(ctx: RouteContext): void {
-      const totals = db
-        .prepare(
-          `SELECT
-            COUNT(*) AS total,
-            COUNT(CASE WHEN closed_at IS NULL THEN 1 END) AS open,
-            COUNT(CASE WHEN closed_at IS NOT NULL AND distilled_at IS NULL THEN 1 END) AS closed,
-            COUNT(CASE WHEN distilled_at IS NOT NULL THEN 1 END) AS distilled
-          FROM sessions`,
-        )
-        .get() as unknown as { total: number; open: number; closed: number; distilled: number };
-
-      const channelRows = db
-        .prepare(
-          `SELECT
-            CASE
-              WHEN key LIKE 'web:%' THEN 'web'
-              WHEN key LIKE 'telegram:%' THEN 'telegram'
-              WHEN key LIKE 'delegate:%' THEN 'delegate'
-              WHEN key LIKE 'system:%' THEN 'system'
-              WHEN key LIKE 'cli:%' THEN 'cli'
-              ELSE 'other'
-            END AS channel,
-            COUNT(*) AS cnt
-          FROM sessions GROUP BY channel`,
-        )
-        .all() as unknown as { channel: string; cnt: number }[];
-
-      const byChannel: Record<string, number> = {};
-      for (const r of channelRows) byChannel[r.channel] = r.cnt;
-
-      const purposeRows = db
-        .prepare("SELECT purpose, COUNT(*) AS cnt FROM sessions GROUP BY purpose")
-        .all() as unknown as { purpose: string; cnt: number }[];
-
-      const byPurpose: Record<string, number> = {};
-      for (const r of purposeRows) byPurpose[r.purpose] = r.cnt;
-
-      const response: SessionStatsResponse = { ...totals, byChannel, byPurpose };
+      const stats = getSessionStats(db);
+      const response: SessionStatsResponse = stats;
       json(ctx, 200, response);
     },
 
@@ -201,21 +129,21 @@ export function createSessionsApiHandlers(db: DatabaseHandle) {
         tokensOut: m.tokensOut,
       }));
 
-      const rawRuns = listRuns(db, id);
-      const runs: SessionRunInfo[] = rawRuns.map((r) => ({
-        id: r.id,
-        specialist: r.specialist,
-        model: r.model,
-        task: r.task,
-        status: r.status,
-        result: r.result,
-        error: r.error,
-        costUsd: r.costUsd,
-        tokensIn: r.tokensIn,
-        tokensOut: r.tokensOut,
-        createdAt: r.createdAt,
-        completedAt: r.completedAt,
-        childSessionId: r.childSessionId,
+      const childSessions = listSessions(db, { purpose: "delegate", parentSessionId: id });
+      const runs: SessionRunInfo[] = childSessions.map((s) => ({
+        id: s.id,
+        specialist: null,
+        model: s.model,
+        task: null,
+        status: s.error ? "failed" : s.closedAt ? "completed" : "running",
+        result: null,
+        error: s.error,
+        costUsd: s.costUsd,
+        tokensIn: s.tokensIn,
+        tokensOut: s.tokensOut,
+        createdAt: s.createdAt,
+        completedAt: s.closedAt,
+        childSessionId: s.id,
       }));
 
       let parentSession: { id: number; displayName: string } | null = null;
@@ -229,16 +157,27 @@ export function createSessionsApiHandlers(db: DatabaseHandle) {
         }
       }
 
-      const sessionRow = db
-        .prepare(
-          `SELECT s.*,
-          (SELECT COUNT(*) FROM messages m WHERE m.session_id = s.id) AS message_count,
-          (SELECT COUNT(*) FROM delegation_runs d WHERE d.parent_session_id = s.id) AS delegation_count
-        FROM sessions s WHERE s.id = ?`,
-        )
-        .get(id) as unknown as Record<string, unknown>;
-
-      const sessionInfo = toSessionInfo(db, sessionRow);
+      const preview = sessionPreview(db, id);
+      const sessionInfo: SessionInfo = {
+        id: session.id,
+        key: session.key,
+        channel: channelFromKey(session.key),
+        purpose: session.purpose,
+        status: statusOf(session),
+        displayName: session.displayName || deriveSessionTitle(preview) || session.key,
+        preview,
+        model: session.model,
+        createdAt: session.createdAt,
+        lastActiveAt: session.lastActiveAt,
+        tokensIn: session.tokensIn,
+        tokensOut: session.tokensOut,
+        reasoningTokens: session.reasoningTokens,
+        cachedTokens: session.cachedTokens,
+        costUsd: session.costUsd,
+        messageCount: rawMessages.length,
+        parentSessionId: session.parentSessionId,
+        delegationCount: childSessions.length,
+      };
 
       const response: SessionDetailResponse = {
         session: sessionInfo,
@@ -250,21 +189,8 @@ export function createSessionsApiHandlers(db: DatabaseHandle) {
     },
 
     prune(ctx: RouteContext): void {
-      const oneHourAgo = Date.now() - 60 * 60 * 1000;
-      const result = db
-        .prepare(
-          `DELETE FROM sessions
-          WHERE created_at < ?
-            AND id NOT IN (SELECT DISTINCT session_id FROM messages)
-            AND id NOT IN (
-              SELECT parent_session_id FROM delegation_runs WHERE status = 'running'
-              UNION
-              SELECT child_session_id FROM delegation_runs
-                WHERE status = 'running' AND child_session_id IS NOT NULL
-            )`,
-        )
-        .run(oneHourAgo);
-      json(ctx, 200, { pruned: result.changes });
+      const pruned = pruneEmptySessions(db);
+      json(ctx, 200, { pruned });
     },
   };
 }

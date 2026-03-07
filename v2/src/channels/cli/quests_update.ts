@@ -17,7 +17,10 @@ export default defineCommand({
     },
     title: { type: "string", description: "New title" },
     desc: { type: "string", description: "New description" },
-    status: { type: "string", description: "New status: pending, active, blocked, done, failed, cancelled" },
+    status: {
+      type: "string",
+      description: "New status: pending, active, blocked, done, failed, cancelled",
+    },
     priority: { type: "string", description: "New priority: low, normal, high, urgent" },
     log: { type: "string", description: "Move to quest log ID" },
     tags: { type: "string", description: "New comma-separated tags" },
@@ -58,14 +61,30 @@ export default defineCommand({
         if (args.clear) {
           const field = args.clear as string;
           const map: Record<string, () => void> = {
-            desc: () => { input.description = null; },
-            tags: () => { input.tags = null; },
-            log: () => { input.questLogId = null; },
-            due: () => { input.dueAt = null; },
-            starts: () => { input.startsAt = null; },
-            ends: () => { input.endsAt = null; },
-            remind: () => { input.remindAt = null; },
-            rrule: () => { input.rrule = null; },
+            desc: () => {
+              input.description = null;
+            },
+            tags: () => {
+              input.tags = null;
+            },
+            log: () => {
+              input.questLogId = null;
+            },
+            due: () => {
+              input.dueAt = null;
+            },
+            starts: () => {
+              input.startsAt = null;
+            },
+            ends: () => {
+              input.endsAt = null;
+            },
+            remind: () => {
+              input.remindAt = null;
+            },
+            rrule: () => {
+              input.rrule = null;
+            },
           };
           if (!map[field]) {
             errorLine(`Cannot clear "${field}". Clearable fields: ${CLEARABLE.join(", ")}`);

@@ -36,7 +36,8 @@ function fmtUsd(n: number): string {
 }
 
 export function SessionRunRow({ run }: Props) {
-  const taskPreview = run.task.length > 80 ? `${run.task.slice(0, 77)}...` : run.task;
+  const task = run.task ?? "";
+  const taskPreview = task.length > 80 ? `${task.slice(0, 77)}...` : task;
   const totalTokens = run.tokensIn + run.tokensOut;
 
   return (

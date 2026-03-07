@@ -1,4 +1,5 @@
 import { createTool, Schema } from "chatoyant";
+import type { QuestPriority, QuestStatus } from "../../core/quests/index.ts";
 import {
   DEFAULT_EXCLUDE_STATUSES,
   getTemporalContext,
@@ -6,7 +7,6 @@ import {
   QUEST_PRIORITIES,
   QUEST_STATUSES,
 } from "../../core/quests/index.ts";
-import type { QuestPriority, QuestStatus } from "../../core/quests/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatQuestBrief } from "./format_quest.ts";
 
@@ -85,18 +85,15 @@ export function createQuestListTool(db: DatabaseHandle) {
         priority: a.priority,
         questLogId: a.questLogId,
         query: a.query?.trim() || undefined,
-        excludeStatuses: hasExplicitStatus || a.includeAll
-          ? undefined
-          : [...DEFAULT_EXCLUDE_STATUSES],
+        excludeStatuses:
+          hasExplicitStatus || a.includeAll ? undefined : [...DEFAULT_EXCLUDE_STATUSES],
         limit: a.limit ?? 50,
       });
 
       if (quests.length === 0) {
         return {
           quests: [],
-          note: a.query
-            ? "No quests match the search."
-            : "No quests found with current filters.",
+          note: a.query ? "No quests match the search." : "No quests found with current filters.",
         };
       }
 

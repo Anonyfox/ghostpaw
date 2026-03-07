@@ -1,7 +1,7 @@
 import { ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
+import { buildHauntPrompt, TEXT_ONLY_CONTINUATION, WRAP_UP } from "./haunt_prompt.ts";
 import type { HauntAnalysis } from "./types.ts";
-import { TEXT_ONLY_CONTINUATION, WRAP_UP, buildHauntPrompt } from "./haunt_prompt.ts";
 
 function makeAnalysis(overrides?: Partial<HauntAnalysis>): HauntAnalysis {
   return {

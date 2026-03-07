@@ -3,7 +3,6 @@ import { describe, it } from "node:test";
 import { initChatTables } from "../../core/chat/index.ts";
 import { initConfigTable } from "../../core/config/index.ts";
 import { initMemoryTable } from "../../core/memory/index.ts";
-import { initRunsTable } from "../../core/runs/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
@@ -16,7 +15,6 @@ async function setup(): Promise<DatabaseHandle> {
   initSoulsTables(db);
   initChatTables(db);
   initMemoryTable(db);
-  initRunsTable(db);
   initConfigTable(db);
   ensureMandatorySouls(db);
   return db;

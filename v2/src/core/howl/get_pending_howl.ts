@@ -37,8 +37,8 @@ export function getPendingHowl(db: DatabaseHandle): Howl | null {
  * Returns the count of pending howls.
  */
 export function countPendingHowls(db: DatabaseHandle): number {
-  const row = db
-    .prepare("SELECT COUNT(*) AS cnt FROM howls WHERE status = 'pending'")
-    .get() as { cnt: number };
+  const row = db.prepare("SELECT COUNT(*) AS cnt FROM howls WHERE status = 'pending'").get() as {
+    cnt: number;
+  };
   return row.cnt;
 }

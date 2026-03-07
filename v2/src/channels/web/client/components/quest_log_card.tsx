@@ -20,7 +20,10 @@ export function QuestLogCard({ log }: Props) {
             <QuestStatusPill status={log.status} />
           </div>
           {log.description && (
-            <p class="card-text small text-body-secondary mb-2" style="overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+            <p
+              class="card-text small text-body-secondary mb-2"
+              style="overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"
+            >
               {log.description}
             </p>
           )}
@@ -35,9 +38,13 @@ export function QuestLogCard({ log }: Props) {
             />
           </div>
           <div class="d-flex justify-content-between align-items-center">
-            <span class="small text-body-tertiary">{progress.done}/{progress.total} done</span>
+            <span class="small text-body-tertiary">
+              {progress.done}/{progress.total} done
+            </span>
             {log.dueAt && (
-              <span class={`small ${log.dueAt < Date.now() ? "text-danger" : "text-body-tertiary"}`}>
+              <span
+                class={`small ${log.dueAt < Date.now() ? "text-danger" : "text-body-tertiary"}`}
+              >
                 {relativeDue(log.dueAt)}
               </span>
             )}

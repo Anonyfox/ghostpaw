@@ -6,8 +6,8 @@ import { embedText, initMemoryTable, storeMemory } from "../../core/memory/index
 import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
-import type { HauntAnalysis } from "./types.ts";
 import { assembleHauntContext } from "./haunt_context.ts";
+import type { HauntAnalysis } from "./types.ts";
 
 let db: DatabaseHandle;
 

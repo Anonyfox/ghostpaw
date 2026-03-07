@@ -1,4 +1,10 @@
 import type { IncomingMessage } from "node:http";
+import type {
+  Quest,
+  QuestLog,
+  QuestOccurrence,
+  QuestStatus,
+} from "../../../../core/quests/index.ts";
 import {
   acceptQuest,
   completeQuest,
@@ -16,7 +22,6 @@ import {
   updateQuest,
   updateQuestLog,
 } from "../../../../core/quests/index.ts";
-import type { Quest, QuestLog, QuestOccurrence, QuestStatus } from "../../../../core/quests/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type {
   CreateQuestBody,
@@ -45,7 +50,9 @@ async function parseBody(req: IncomingMessage): Promise<Record<string, unknown> 
   try {
     const body = await readJsonBody(req);
     if (typeof body === "object" && body !== null) return body as Record<string, unknown>;
-  } catch { /* invalid body */ }
+  } catch {
+    /* invalid body */
+  }
   return null;
 }
 
@@ -96,8 +103,8 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
         ? (excludeRaw.split(",").filter(Boolean) as QuestStatus[])
         : undefined;
       const quests = listQuests(db, {
-        status: qs.get("status") as Quest["status"] | undefined ?? undefined,
-        priority: qs.get("priority") as Quest["priority"] | undefined ?? undefined,
+        status: (qs.get("status") as Quest["status"] | undefined) ?? undefined,
+        priority: (qs.get("priority") as Quest["priority"] | undefined) ?? undefined,
         questLogId: qs.get("log") ? Number(qs.get("log")) : undefined,
         query: qs.get("query") ?? undefined,
         excludeStatuses,
@@ -121,10 +128,36 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
     async create(ctx: RouteContext) {
       const body = await parseBody(ctx.req);
       if (!body) return json(ctx, 400, { error: "Invalid request body." });
-      const { title, description, status, priority, questLogId, tags, createdBy, startsAt, endsAt, dueAt, remindAt, rrule } = body as unknown as CreateQuestBody;
+      const {
+        title,
+        description,
+        status,
+        priority,
+        questLogId,
+        tags,
+        createdBy,
+        startsAt,
+        endsAt,
+        dueAt,
+        remindAt,
+        rrule,
+      } = body as unknown as CreateQuestBody;
       if (!title?.trim()) return json(ctx, 400, { error: "Title is required." });
       try {
-        const q = createQuest(db, { title, description, status, priority, questLogId, tags, createdBy, startsAt, endsAt, dueAt, remindAt, rrule });
+        const q = createQuest(db, {
+          title,
+          description,
+          status,
+          priority,
+          questLogId,
+          tags,
+          createdBy,
+          startsAt,
+          endsAt,
+          dueAt,
+          remindAt,
+          rrule,
+        });
         json(ctx, 201, toQuestInfo(q));
       } catch (err) {
         json(ctx, 400, { error: (err as Error).message });
@@ -138,7 +171,10 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
       if (!q) return json(ctx, 404, { error: `Quest #${id} not found.` });
       const occurrences = q.rrule
         ? listOccurrences(db, id, { limit: 50 }).map((o) => ({
-            id: o.id, occurrenceAt: o.occurrenceAt, status: o.status, completedAt: o.completedAt,
+            id: o.id,
+            occurrenceAt: o.occurrenceAt,
+            status: o.status,
+            completedAt: o.completedAt,
           }))
         : [];
       json(ctx, 200, { ...toQuestInfo(q), occurrences });
@@ -149,9 +185,33 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
       if (!Number.isInteger(id)) return json(ctx, 400, { error: "Invalid quest ID." });
       const body = await parseBody(ctx.req);
       if (!body) return json(ctx, 400, { error: "Invalid request body." });
-      const { title, description, status, priority, questLogId, tags, startsAt, endsAt, dueAt, remindAt, rrule } = body as unknown as UpdateQuestBody;
+      const {
+        title,
+        description,
+        status,
+        priority,
+        questLogId,
+        tags,
+        startsAt,
+        endsAt,
+        dueAt,
+        remindAt,
+        rrule,
+      } = body as unknown as UpdateQuestBody;
       try {
-        const q = updateQuest(db, id, { title, description, status, priority, questLogId, tags, startsAt, endsAt, dueAt, remindAt, rrule });
+        const q = updateQuest(db, id, {
+          title,
+          description,
+          status,
+          priority,
+          questLogId,
+          tags,
+          startsAt,
+          endsAt,
+          dueAt,
+          remindAt,
+          rrule,
+        });
         json(ctx, 200, toQuestInfo(q));
       } catch (err) {
         json(ctx, 400, { error: (err as Error).message });
@@ -197,7 +257,7 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
     logList(ctx: RouteContext) {
       const qs = parseQuery(ctx.req.url);
       const logs = listQuestLogs(db, {
-        status: qs.get("status") as QuestLog["status"] | undefined ?? undefined,
+        status: (qs.get("status") as QuestLog["status"] | undefined) ?? undefined,
         limit: qs.get("limit") ? Number(qs.get("limit")) : 50,
       });
       json(ctx, 200, { logs: logs.map((l) => toQuestLogInfo(l, db)) });

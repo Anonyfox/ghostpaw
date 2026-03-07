@@ -7,39 +7,34 @@ import {
   getHistory,
   initChatTables,
 } from "../core/chat/index.ts";
-import type { DelegationRun } from "../core/runs/index.ts";
-import { createRun, initRunsTable } from "../core/runs/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
 import { autoResumeDelegation } from "./auto_resume_delegation.ts";
 import type { ChannelNotifyFn } from "./notify_background_complete.ts";
-import type { Entity } from "./types.ts";
+import type { DelegationOutcome, Entity } from "./types.ts";
 
 let db: DatabaseHandle;
 
 beforeEach(async () => {
   db = await openTestDatabase();
   initChatTables(db);
-  initRunsTable(db);
 });
 
 afterEach(() => {
   db.close();
 });
 
-function makeRun(parentSessionId: number, overrides?: Partial<DelegationRun>): DelegationRun {
-  const run = createRun(db, {
+function makeOutcome(
+  parentSessionId: number,
+  overrides?: Partial<DelegationOutcome>,
+): DelegationOutcome {
+  return {
+    childSessionId: 99,
     parentSessionId,
     specialist: "scout",
-    model: "test",
-    task: "do something",
-  });
-  return {
-    ...run,
     status: "completed",
     result: "Task done.",
     error: null,
-    completedAt: Date.now(),
     ...overrides,
   };
 }
@@ -99,13 +94,13 @@ function fakeEntity(opts?: { throws?: Error }): { entity: Entity; calls: TurnCal
 }
 
 describe("autoResumeDelegation", () => {
-  it("calls entity.executeTurn with a system prompt containing the run result", async () => {
+  it("calls entity.executeTurn with a system prompt containing the delegation result", async () => {
     const session = createSession(db, "test:1", { purpose: "chat" });
     addMessage(db, { sessionId: session.id as number, role: "user", content: "hi" });
-    const run = makeRun(session.id as number);
+    const outcome = makeOutcome(session.id as number);
     const { entity, calls } = fakeEntity();
 
-    await autoResumeDelegation(db, entity, run);
+    await autoResumeDelegation(db, entity, outcome);
 
     strictEqual(calls.length, 1);
     strictEqual(calls[0].sessionId, session.id as number);
@@ -117,26 +112,26 @@ describe("autoResumeDelegation", () => {
   it("fires channelNotify after successful auto-resume", async () => {
     const session = createSession(db, "test:2", { purpose: "chat" });
     addMessage(db, { sessionId: session.id as number, role: "user", content: "hi" });
-    const run = makeRun(session.id as number);
+    const outcome = makeOutcome(session.id as number);
     const { entity } = fakeEntity();
 
-    let notifiedWith: { pid: number; run: DelegationRun } | null = null;
-    const notify: ChannelNotifyFn = (pid, r) => {
-      notifiedWith = { pid, run: r };
+    let notifiedWith: { pid: number; outcome: DelegationOutcome } | null = null;
+    const notify: ChannelNotifyFn = (pid, o) => {
+      notifiedWith = { pid, outcome: o };
     };
 
-    await autoResumeDelegation(db, entity, run, notify);
+    await autoResumeDelegation(db, entity, outcome, notify);
 
     ok(notifiedWith);
-    const nw = notifiedWith as { pid: number; run: DelegationRun };
+    const nw = notifiedWith as { pid: number; outcome: DelegationOutcome };
     strictEqual(nw.pid, session.id as number);
-    strictEqual(nw.run.id, run.id);
+    strictEqual(nw.outcome.specialist, "scout");
   });
 
   it("falls back to static message when executeTurn throws", async () => {
     const session = createSession(db, "test:3", { purpose: "chat" });
     addMessage(db, { sessionId: session.id as number, role: "user", content: "hi" });
-    const run = makeRun(session.id as number);
+    const outcome = makeOutcome(session.id as number);
     const { entity } = fakeEntity({ throws: new Error("Budget exceeded") });
 
     let notified = false;
@@ -144,7 +139,7 @@ describe("autoResumeDelegation", () => {
       notified = true;
     };
 
-    await autoResumeDelegation(db, entity, run, notify);
+    await autoResumeDelegation(db, entity, outcome, notify);
 
     const history = getHistory(db, session.id as number);
     const fallback = history.find((m) => m.content.includes("Background task completed"));
@@ -156,7 +151,7 @@ describe("autoResumeDelegation", () => {
     const session = createSession(db, "test:4", { purpose: "chat" });
     addMessage(db, { sessionId: session.id as number, role: "user", content: "hi" });
     closeSession(db, session.id as number);
-    const run = makeRun(session.id as number);
+    const outcome = makeOutcome(session.id as number);
     const { entity, calls } = fakeEntity();
 
     let notified = false;
@@ -164,23 +159,23 @@ describe("autoResumeDelegation", () => {
       notified = true;
     };
 
-    await autoResumeDelegation(db, entity, run, notify);
+    await autoResumeDelegation(db, entity, outcome, notify);
 
     strictEqual(calls.length, 0, "should not call executeTurn");
     ok(notified, "channelNotify should still fire for closed sessions");
   });
 
-  it("handles failed run status in the prompt", async () => {
+  it("handles failed delegation status in the prompt", async () => {
     const session = createSession(db, "test:5", { purpose: "chat" });
     addMessage(db, { sessionId: session.id as number, role: "user", content: "hi" });
-    const run = makeRun(session.id as number, {
+    const outcome = makeOutcome(session.id as number, {
       status: "failed",
       error: "Timeout exceeded",
       result: null,
     });
     const { entity, calls } = fakeEntity();
 
-    await autoResumeDelegation(db, entity, run);
+    await autoResumeDelegation(db, entity, outcome);
 
     strictEqual(calls.length, 1);
     ok(calls[0].content.includes("failed"));
@@ -189,13 +184,12 @@ describe("autoResumeDelegation", () => {
 
   it("skips executeTurn when parent session does not exist", async () => {
     const session = createSession(db, "test:gone", { purpose: "chat" });
-    const run = makeRun(session.id as number);
-    db.prepare("DELETE FROM messages WHERE session_id = ?").run(session.id);
-    db.prepare("DELETE FROM delegation_runs WHERE parent_session_id = ?").run(session.id);
-    db.prepare("DELETE FROM sessions WHERE id = ?").run(session.id);
+    const sid = session.id as number;
+    const outcome = makeOutcome(sid);
+    db.prepare("DELETE FROM sessions WHERE id = ?").run(sid);
     const { entity, calls } = fakeEntity();
 
-    await autoResumeDelegation(db, entity, run);
+    await autoResumeDelegation(db, entity, outcome);
 
     strictEqual(calls.length, 0);
   });

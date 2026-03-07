@@ -43,7 +43,11 @@ export default defineCommand({
         return;
       }
 
-      console.log(style.dim(`${quests.length} result${quests.length !== 1 ? "s" : ""} for "${query.trim()}":`));
+      console.log(
+        style.dim(
+          `${quests.length} result${quests.length !== 1 ? "s" : ""} for "${query.trim()}":`,
+        ),
+      );
       console.log(questTableHeader());
       for (const q of quests) {
         console.log(questRow(q));

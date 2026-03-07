@@ -44,7 +44,9 @@ export function createQuestLogCreateTool(db: DatabaseHandle) {
         });
         return { questLog: formatQuestLog(log) };
       } catch (err) {
-        return { error: `Failed to create quest log: ${err instanceof Error ? err.message : String(err)}` };
+        return {
+          error: `Failed to create quest log: ${err instanceof Error ? err.message : String(err)}`,
+        };
       }
     },
   });

@@ -1,4 +1,12 @@
-export const SESSION_PURPOSES = ["chat", "delegate", "train", "scout", "system", "haunt", "howl"] as const;
+export const SESSION_PURPOSES = [
+  "chat",
+  "delegate",
+  "train",
+  "scout",
+  "system",
+  "haunt",
+  "howl",
+] as const;
 export type SessionPurpose = (typeof SESSION_PURPOSES)[number];
 
 export const MESSAGE_ROLES = ["user", "assistant", "tool_call", "tool_result"] as const;
@@ -21,6 +29,8 @@ export interface ChatSession {
   closedAt: number | null;
   distilledAt: number | null;
   parentSessionId: number | null;
+  soulId: number | null;
+  error: string | null;
 }
 
 export interface ChatMessage {
@@ -44,6 +54,7 @@ export interface CreateSessionInput {
   purpose?: SessionPurpose;
   model?: string;
   parentSessionId?: number;
+  soulId?: number;
 }
 
 export interface AddMessageInput {
@@ -65,6 +76,10 @@ export interface ListSessionsFilter {
   purpose?: SessionPurpose;
   open?: boolean;
   distilled?: boolean;
+  parentSessionId?: number;
+  soulId?: number;
+  keyPrefix?: string;
+  limit?: number;
 }
 
 export interface ToolCallInfo {

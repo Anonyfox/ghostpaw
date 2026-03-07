@@ -73,10 +73,7 @@ describe("createQuest", () => {
   });
 
   it("rejects nonexistent quest_log_id", () => {
-    throws(
-      () => createQuest(db, { title: "test", questLogId: 999 }),
-      /does not exist/,
-    );
+    throws(() => createQuest(db, { title: "test", questLogId: 999 }), /does not exist/);
   });
 
   it("trims title and description", () => {

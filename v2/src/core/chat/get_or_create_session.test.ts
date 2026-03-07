@@ -18,17 +18,12 @@ afterEach(() => {
 });
 
 describe("getOrCreateSession", () => {
-  it("creates a new session when none exists", () => {
-    const session = getOrCreateSession(db, "new-key");
-    ok(session.id > 0);
-    strictEqual(session.key, "new-key");
-    strictEqual(session.purpose, "chat");
-  });
-
-  it("returns the existing active session when one exists", () => {
-    const original = createSession(db, "sticky");
-    const found = getOrCreateSession(db, "sticky");
-    strictEqual(found.id, original.id);
+  it("creates when none exists, returns existing on repeat", () => {
+    const s1 = getOrCreateSession(db, "k", { purpose: "delegate", model: "gpt-4o" });
+    ok(s1.id > 0);
+    strictEqual(s1.purpose, "delegate");
+    const s2 = getOrCreateSession(db, "k");
+    strictEqual(s2.id, s1.id);
   });
 
   it("creates a new session when the existing one is closed", () => {
@@ -36,25 +31,11 @@ describe("getOrCreateSession", () => {
     db.prepare("UPDATE sessions SET closed_at = ? WHERE id = ?").run(Date.now(), closed.id);
     const fresh = getOrCreateSession(db, "k");
     ok(fresh.id !== closed.id);
-    strictEqual(fresh.key, "k");
-  });
-
-  it("passes options through to the new session", () => {
-    const session = getOrCreateSession(db, "k", { purpose: "delegate", model: "gpt-4o" });
-    strictEqual(session.purpose, "delegate");
-    strictEqual(session.model, "gpt-4o");
   });
 
   it("ignores options when returning an existing session", () => {
     createSession(db, "k", { purpose: "chat" });
-    const found = getOrCreateSession(db, "k", { purpose: "delegate", model: "gpt-4o" });
+    const found = getOrCreateSession(db, "k", { purpose: "delegate" });
     strictEqual(found.purpose, "chat");
-    strictEqual(found.model, null);
-  });
-
-  it("is idempotent — multiple calls return the same session", () => {
-    const s1 = getOrCreateSession(db, "k");
-    const s2 = getOrCreateSession(db, "k");
-    strictEqual(s1.id, s2.id);
   });
 });

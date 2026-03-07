@@ -45,9 +45,7 @@ export default defineCommand({
         priority: args.priority as QuestPriority | undefined,
         questLogId,
         query: args.query as string | undefined,
-        excludeStatuses: hasStatusFilter || showAll
-          ? undefined
-          : [...DEFAULT_EXCLUDE_STATUSES],
+        excludeStatuses: hasStatusFilter || showAll ? undefined : [...DEFAULT_EXCLUDE_STATUSES],
         limit,
       });
 

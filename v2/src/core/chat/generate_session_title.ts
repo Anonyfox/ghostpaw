@@ -9,12 +9,6 @@ import { renameSession } from "./rename_session.ts";
 const TITLE_SYSTEM_PROMPT =
   "You generate concise chat titles. Output ONLY the title, nothing else. Max 6 words.";
 
-function buildTitlePrompt(firstUserMessage: string): string {
-  const truncated =
-    firstUserMessage.length > 200 ? firstUserMessage.slice(0, 200) : firstUserMessage;
-  return `Generate a title for a chat that starts with: ${truncated}`;
-}
-
 export async function generateSessionTitle(
   db: DatabaseHandle,
   parentSessionId: number,
@@ -26,16 +20,17 @@ export async function generateSessionTitle(
   if (!parent) return null;
   if (parent.displayName) return parent.displayName;
 
+  const truncated =
+    firstUserMessage.length > 200 ? firstUserMessage.slice(0, 200) : firstUserMessage;
   const systemSession = createSession(db, `system:title:${parentSessionId}`, {
     purpose: "system",
   });
-  const systemSessionId = systemSession.id as number;
 
   try {
     const result = await executeTurn(
       {
-        sessionId: systemSessionId,
-        content: buildTitlePrompt(firstUserMessage),
+        sessionId: systemSession.id as number,
+        content: `Generate a title for a chat that starts with: ${truncated}`,
         systemPrompt: TITLE_SYSTEM_PROMPT,
         model,
         maxIterations: 1,
@@ -51,6 +46,6 @@ export async function generateSessionTitle(
     }
     return null;
   } finally {
-    closeSession(db, systemSessionId);
+    closeSession(db, systemSession.id as number);
   }
 }

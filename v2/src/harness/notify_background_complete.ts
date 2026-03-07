@@ -1,32 +1,34 @@
 import { addMessage, getSession } from "../core/chat/index.ts";
-import type { DelegationRun } from "../core/runs/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
+import type { DelegationOutcome } from "./types.ts";
 
-export type ChannelNotifyFn = (parentSessionId: number, run: DelegationRun) => void;
+export type ChannelNotifyFn = (parentSessionId: number, outcome: DelegationOutcome) => void;
 
-export function formatDelegationMessage(run: DelegationRun): string {
-  const label = run.specialist || "default";
+export function formatDelegationMessage(outcome: DelegationOutcome): string {
+  const label = outcome.specialist || "default";
   const body =
-    run.status === "completed" ? (run.result ?? "No output.") : (run.error ?? "Unknown error.");
+    outcome.status === "completed"
+      ? (outcome.result ?? "No output.")
+      : (outcome.error ?? "Unknown error.");
   const prefix =
-    run.status === "completed" ? "Background task completed" : "Background task failed";
+    outcome.status === "completed" ? "Background task completed" : "Background task failed";
   return `**${prefix}** -- *${label}*\n\n${body}`;
 }
 
 export function notifyBackgroundComplete(
   db: DatabaseHandle,
-  run: DelegationRun,
+  outcome: DelegationOutcome,
   channelNotify?: ChannelNotifyFn,
 ): void {
-  const session = getSession(db, run.parentSessionId);
+  const session = getSession(db, outcome.parentSessionId);
   if (session && !session.closedAt) {
     addMessage(db, {
-      sessionId: run.parentSessionId,
+      sessionId: outcome.parentSessionId,
       role: "assistant",
-      content: formatDelegationMessage(run),
+      content: formatDelegationMessage(outcome),
       parentId: session.headMessageId ?? undefined,
     });
   }
 
-  channelNotify?.(run.parentSessionId, run);
+  channelNotify?.(outcome.parentSessionId, outcome);
 }

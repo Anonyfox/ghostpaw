@@ -51,12 +51,16 @@ export default defineCommand({
 
       f("status", log.status);
       f("progress", progressBar(progress.done, progress.total, 15));
-      f("breakdown", `${progress.pending} pending / ${progress.active} active / ${progress.blocked} blocked / ${progress.done} done`);
+      f(
+        "breakdown",
+        `${progress.pending} pending / ${progress.active} active / ${progress.blocked} blocked / ${progress.done} done`,
+      );
       f("created by", log.createdBy);
       f("created", `${formatDate(log.createdAt)} (${relativeAge(log.createdAt)} ago)`);
       f("updated", `${formatDate(log.updatedAt)} (${relativeAge(log.updatedAt)} ago)`);
       if (log.dueAt) f("due", `${formatDate(log.dueAt)} (${relativeDue(log.dueAt)})`);
-      if (log.completedAt) f("completed", `${formatDate(log.completedAt)} (${relativeAge(log.completedAt)} ago)`);
+      if (log.completedAt)
+        f("completed", `${formatDate(log.completedAt)} (${relativeAge(log.completedAt)} ago)`);
 
       const quests = listQuests(db, { questLogId: log.id, limit: 100 });
       if (quests.length > 0) {

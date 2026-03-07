@@ -13,7 +13,7 @@ import { analyzeHauntContext } from "./analyze.ts";
 import { consolidateHaunt } from "./consolidate.ts";
 import { extractSummary } from "./extract_summary.ts";
 import { assembleHauntContext } from "./haunt_context.ts";
-import { TEXT_ONLY_CONTINUATION, WRAP_UP, buildHauntPrompt } from "./haunt_prompt.ts";
+import { buildHauntPrompt, TEXT_ONLY_CONTINUATION, WRAP_UP } from "./haunt_prompt.ts";
 import type { ConsolidationResult, HauntResult, RunHauntOptions } from "./types.ts";
 
 const MAX_TOOL_ITERATIONS = 200;

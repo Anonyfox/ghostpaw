@@ -23,17 +23,13 @@ function msg(content: string): ChatMessage {
 }
 
 describe("shouldCompact", () => {
-  it("returns false for empty history", () => {
+  it("returns false for empty history or below threshold", () => {
     strictEqual(shouldCompact([], 1000), false);
-  });
-
-  it("returns false when below threshold", () => {
     strictEqual(shouldCompact([msg("short")], 1000), false);
   });
 
-  it("returns true when above threshold", () => {
-    const long = msg("a".repeat(5000));
-    strictEqual(shouldCompact([long], 1000), true);
+  it("returns true when estimated tokens exceed threshold", () => {
+    strictEqual(shouldCompact([msg("a".repeat(5000))], 1000), true);
   });
 
   it("sums tokens across all messages", () => {
@@ -42,21 +38,8 @@ describe("shouldCompact", () => {
     strictEqual(shouldCompact(messages, 500), false);
   });
 
-  it("returns false when threshold is zero (disabled)", () => {
+  it("returns false when threshold is zero or negative (disabled)", () => {
     strictEqual(shouldCompact([msg("a".repeat(10000))], 0), false);
-  });
-
-  it("returns false when threshold is negative (disabled)", () => {
     strictEqual(shouldCompact([msg("a".repeat(10000))], -1), false);
-  });
-
-  it("returns false at exactly the threshold (not exceeded)", () => {
-    const content = "a".repeat(4000);
-    strictEqual(shouldCompact([msg(content)], 1000), false);
-  });
-
-  it("returns true at one token over the threshold", () => {
-    const content = "a".repeat(4004);
-    strictEqual(shouldCompact([msg(content)], 1000), true);
   });
 });

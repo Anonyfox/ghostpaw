@@ -3,11 +3,7 @@ import { rowToQuest } from "./row_to_quest.ts";
 import type { Quest, QuestStatus, UpdateQuestInput } from "./types.ts";
 import { QUEST_PRIORITIES, QUEST_STATUSES, TERMINAL_STATUSES } from "./types.ts";
 
-export function updateQuest(
-  db: DatabaseHandle,
-  id: number,
-  input: UpdateQuestInput,
-): Quest {
+export function updateQuest(db: DatabaseHandle, id: number, input: UpdateQuestInput): Quest {
   const existing = db.prepare("SELECT * FROM quests WHERE id = ?").get(id) as
     | Record<string, unknown>
     | undefined;
@@ -32,9 +28,7 @@ export function updateQuest(
   }
 
   if (input.questLogId !== undefined && input.questLogId !== null) {
-    const log = db
-      .prepare("SELECT id FROM quest_logs WHERE id = ?")
-      .get(input.questLogId);
+    const log = db.prepare("SELECT id FROM quest_logs WHERE id = ?").get(input.questLogId);
     if (!log) {
       throw new Error(`Quest log #${input.questLogId} does not exist.`);
     }

@@ -106,9 +106,7 @@ export function createMcpTool(config: McpToolConfig) {
   return { tool, shutdown: () => pool.shutdown() };
 }
 
-type InputResult =
-  | { ok: true; value: Record<string, unknown> }
-  | { ok: false; error: string };
+type InputResult = { ok: true; value: Record<string, unknown> } | { ok: false; error: string };
 
 /**
  * Normalize LLM-provided input into a plain object.

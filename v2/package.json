@@ -16,7 +16,7 @@
     "lint": "biome check",
     "lint:fix": "biome check --fix",
     "format": "biome format --write",
-    "test": "node --import ./tsx-loader.mjs --test 'src/**/*.test.ts' 'src/**/*.test.tsx'",
+    "test": "node --import ./tsx-loader.mjs --test-reporter=dot --test 'src/**/*.test.ts' 'src/**/*.test.tsx'",
     "check": "biome check && tsc --noEmit",
     "deploy": "npm run build && mkdir -p playground && cp dist/ghostpaw.mjs playground/"
   },

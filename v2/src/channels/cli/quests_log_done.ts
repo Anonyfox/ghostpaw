@@ -24,10 +24,7 @@ export default defineCommand({
     try {
       await withRunDb((db) => {
         const log = updateQuestLog(db, id, { status: "completed" });
-        console.log(
-          style.green("completed".padStart(10)),
-          ` #${log.id} "${log.title}"`,
-        );
+        console.log(style.green("completed".padStart(10)), ` #${log.id} "${log.title}"`);
       });
     } catch (err) {
       errorLine(err instanceof Error ? err.message : String(err));

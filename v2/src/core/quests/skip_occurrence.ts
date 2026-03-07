@@ -25,8 +25,6 @@ export function skipOccurrence(
     )
     .run(questId, occurrenceAt, now);
 
-  const row = db
-    .prepare("SELECT * FROM quest_occurrences WHERE id = ?")
-    .get(lastInsertRowid);
+  const row = db.prepare("SELECT * FROM quest_occurrences WHERE id = ?").get(lastInsertRowid);
   return rowToOccurrence(row as Record<string, unknown>);
 }

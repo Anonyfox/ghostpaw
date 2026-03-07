@@ -1,12 +1,12 @@
 import { defineCommand } from "citty";
 import { getTemporalContext, listQuests } from "../../core/quests/index.ts";
 import { style } from "../../lib/terminal/index.ts";
-import { formatDate, relativeAge, relativeDue } from "./quests_format.ts";
 import questsAccept from "./quests_accept.ts";
 import questsAdd from "./quests_add.ts";
 import questsBoard from "./quests_board.ts";
 import questsDismiss from "./quests_dismiss.ts";
 import questsDone from "./quests_done.ts";
+import { formatDate, relativeAge, relativeDue } from "./quests_format.ts";
 import questsList from "./quests_list.ts";
 import questsLogAdd from "./quests_log_add.ts";
 import questsLogDone from "./quests_log_done.ts";
@@ -40,9 +40,21 @@ export default defineCommand({
   },
   async run() {
     const subs = [
-      "list", "search", "show", "add", "done", "update",
-      "board", "offer", "accept", "dismiss",
-      "log-list", "log-add", "log-show", "log-done", "log-update",
+      "list",
+      "search",
+      "show",
+      "add",
+      "done",
+      "update",
+      "board",
+      "offer",
+      "accept",
+      "dismiss",
+      "log-list",
+      "log-add",
+      "log-show",
+      "log-done",
+      "log-update",
     ];
     const positionals = process.argv.slice(2).filter((a) => !a.startsWith("-"));
     if (positionals.length > 1 && subs.includes(positionals[1])) return;
@@ -61,7 +73,7 @@ export default defineCommand({
       if (total === 0 && boardQuests.length === 0) {
         const allQuests = listQuests(db, { limit: 1 });
         if (allQuests.length === 0) {
-          console.log(style.dim("No quests yet. Create one with: ghostpaw quests add \"title\""));
+          console.log(style.dim('No quests yet. Create one with: ghostpaw quests add "title"'));
         } else {
           console.log(style.dim("All clear — nothing needs attention right now."));
         }
@@ -70,7 +82,12 @@ export default defineCommand({
 
       const counts: string[] = [];
       if (ctx.overdue.length > 0) counts.push(style.boldRed(`${ctx.overdue.length} overdue`));
-      if (ctx.pendingReminders.length > 0) counts.push(style.yellow(`${ctx.pendingReminders.length} reminder${ctx.pendingReminders.length !== 1 ? "s" : ""}`));
+      if (ctx.pendingReminders.length > 0)
+        counts.push(
+          style.yellow(
+            `${ctx.pendingReminders.length} reminder${ctx.pendingReminders.length !== 1 ? "s" : ""}`,
+          ),
+        );
       if (ctx.todayEvents.length > 0) counts.push(style.cyan(`${ctx.todayEvents.length} today`));
       if (ctx.activeQuests.length > 0) counts.push(`${ctx.activeQuests.length} active`);
       if (ctx.dueSoon.length > 0) counts.push(style.dim(`${ctx.dueSoon.length} due soon`));
@@ -102,9 +119,7 @@ export default defineCommand({
         console.log(style.cyan("── Today ──"));
         for (const q of ctx.todayEvents) {
           const id = `#${q.id}`.padStart(6);
-          const time = q.startsAt
-            ? new Date(q.startsAt).toISOString().slice(11, 16)
-            : "";
+          const time = q.startsAt ? new Date(q.startsAt).toISOString().slice(11, 16) : "";
           console.log(`  ${style.dim(id)} ${time ? `${style.cyan(time)} ` : ""}${q.title}`);
         }
         console.log();

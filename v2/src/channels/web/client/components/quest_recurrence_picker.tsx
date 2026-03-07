@@ -5,8 +5,18 @@ type Preset = "none" | "daily" | "weekly" | "monthly" | "yearly" | "custom";
 const DAY_LABELS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as const;
 const DAY_CODES = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] as const;
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ] as const;
 
 interface Props {
@@ -160,10 +170,14 @@ function previewText(state: RecurrenceState): string {
 function ordinalSuffix(n: number): string {
   if (n >= 11 && n <= 13) return "th";
   switch (n % 10) {
-    case 1: return "st";
-    case 2: return "nd";
-    case 3: return "rd";
-    default: return "th";
+    case 1:
+      return "st";
+    case 2:
+      return "nd";
+    case 3:
+      return "rd";
+    default:
+      return "th";
   }
 }
 
@@ -218,12 +232,18 @@ export function RecurrencePicker({ value, onChange }: Props) {
               min={1}
               max={99}
               value={state.interval}
-              onInput={(e) => update({ interval: Math.max(1, Number((e.target as HTMLInputElement).value) || 1) })}
+              onInput={(e) =>
+                update({ interval: Math.max(1, Number((e.target as HTMLInputElement).value) || 1) })
+              }
             />
             <span class="small text-body-secondary">
-              {state.preset === "daily" ? "day(s)" :
-               state.preset === "weekly" ? "week(s)" :
-               state.preset === "monthly" ? "month(s)" : "year(s)"}
+              {state.preset === "daily"
+                ? "day(s)"
+                : state.preset === "weekly"
+                  ? "week(s)"
+                  : state.preset === "monthly"
+                    ? "month(s)"
+                    : "year(s)"}
             </span>
           </div>
         )}
@@ -254,7 +274,14 @@ export function RecurrencePicker({ value, onChange }: Props) {
             min={1}
             max={31}
             value={state.monthDay}
-            onInput={(e) => update({ monthDay: Math.min(31, Math.max(1, Number((e.target as HTMLInputElement).value) || 1)) })}
+            onInput={(e) =>
+              update({
+                monthDay: Math.min(
+                  31,
+                  Math.max(1, Number((e.target as HTMLInputElement).value) || 1),
+                ),
+              })
+            }
           />
         </div>
       )}
@@ -268,7 +295,9 @@ export function RecurrencePicker({ value, onChange }: Props) {
             onChange={(e) => update({ yearMonth: Number((e.target as HTMLSelectElement).value) })}
           >
             {MONTH_NAMES.map((m, i) => (
-              <option key={m} value={i + 1}>{m}</option>
+              <option key={m} value={i + 1}>
+                {m}
+              </option>
             ))}
           </select>
           <input
@@ -278,7 +307,14 @@ export function RecurrencePicker({ value, onChange }: Props) {
             min={1}
             max={31}
             value={state.yearDay}
-            onInput={(e) => update({ yearDay: Math.min(31, Math.max(1, Number((e.target as HTMLInputElement).value) || 1)) })}
+            onInput={(e) =>
+              update({
+                yearDay: Math.min(
+                  31,
+                  Math.max(1, Number((e.target as HTMLInputElement).value) || 1),
+                ),
+              })
+            }
           />
         </div>
       )}
@@ -293,9 +329,7 @@ export function RecurrencePicker({ value, onChange }: Props) {
         />
       )}
 
-      {state.preset !== "none" && (
-        <div class="preview">{previewText(state)}</div>
-      )}
+      {state.preset !== "none" && <div class="preview">{previewText(state)}</div>}
     </div>
   );
 }

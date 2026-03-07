@@ -76,10 +76,7 @@ describe("updateQuestLog", () => {
 
   it("rejects invalid status", () => {
     const log = createQuestLog(db, { title: "Test" });
-    throws(
-      () => updateQuestLog(db, log.id, { status: "bogus" as never }),
-      /Invalid status/,
-    );
+    throws(() => updateQuestLog(db, log.id, { status: "bogus" as never }), /Invalid status/);
   });
 
   it("rejects empty title", () => {

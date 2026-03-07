@@ -7,6 +7,7 @@ import {
   getHistory,
   getSession,
   markDistilled,
+  markMessagesDistilled,
 } from "../../core/chat/index.ts";
 import { formatConversation } from "../../core/memory/format_conversation.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
@@ -147,9 +148,7 @@ export async function distillSession(
 
     db.exec("BEGIN IMMEDIATE");
     try {
-      db.prepare("UPDATE messages SET distilled = 1 WHERE session_id = ? AND distilled = 0").run(
-        sessionId,
-      );
+      markMessagesDistilled(db, sessionId);
       markDistilled(db, sessionId);
       db.exec("COMMIT");
     } catch (err) {

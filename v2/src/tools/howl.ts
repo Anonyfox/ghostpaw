@@ -1,8 +1,8 @@
 import { createTool, Schema } from "chatoyant";
 import { createSession } from "../core/chat/index.ts";
 import { getConfig } from "../core/config/index.ts";
-import { countHowlsToday, lastHowlTime, storeHowl, updateHowlChannel } from "../core/howl/index.ts";
 import type { HowlUrgency } from "../core/howl/index.ts";
+import { countHowlsToday, lastHowlTime, storeHowl, updateHowlChannel } from "../core/howl/index.ts";
 import { getBestChannel } from "../lib/channel_registry.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 

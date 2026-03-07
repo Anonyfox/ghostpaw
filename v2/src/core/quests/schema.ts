@@ -2,10 +2,8 @@ import type { DatabaseHandle } from "../../lib/index.ts";
 
 const QUEST_STATUS_CHECK =
   "CHECK(status IN ('offered','pending','active','blocked','done','failed','cancelled'))";
-const QUEST_PRIORITY_CHECK =
-  "CHECK(priority IN ('low','normal','high','urgent'))";
-const QUEST_LOG_STATUS_CHECK =
-  "CHECK(status IN ('active','completed','archived'))";
+const QUEST_PRIORITY_CHECK = "CHECK(priority IN ('low','normal','high','urgent'))";
+const QUEST_LOG_STATUS_CHECK = "CHECK(status IN ('active','completed','archived'))";
 
 export function initQuestTables(db: DatabaseHandle): void {
   db.exec(`
@@ -22,9 +20,7 @@ export function initQuestTables(db: DatabaseHandle): void {
       due_at        INTEGER
     )
   `);
-  db.exec(
-    "CREATE INDEX IF NOT EXISTS idx_quest_logs_status ON quest_logs(status)",
-  );
+  db.exec("CREATE INDEX IF NOT EXISTS idx_quest_logs_status ON quest_logs(status)");
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS quests (
@@ -52,12 +48,8 @@ export function initQuestTables(db: DatabaseHandle): void {
 
   migrateQuestsCheckIfNeeded(db);
 
-  db.exec(
-    "CREATE INDEX IF NOT EXISTS idx_quests_status ON quests(status)",
-  );
-  db.exec(
-    "CREATE INDEX IF NOT EXISTS idx_quests_quest_log_id ON quests(quest_log_id)",
-  );
+  db.exec("CREATE INDEX IF NOT EXISTS idx_quests_status ON quests(status)");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_quests_quest_log_id ON quests(quest_log_id)");
   db.exec(
     "CREATE INDEX IF NOT EXISTS idx_quests_due_at ON quests(due_at) WHERE due_at IS NOT NULL",
   );
