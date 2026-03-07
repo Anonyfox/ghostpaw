@@ -14,7 +14,8 @@ interface HowlSummary {
 
 interface HowlDetail {
   id: number;
-  sessionId: number;
+  originSessionId: number;
+  originMessageId: number | null;
   message: string;
   urgency: "low" | "high";
   channel: string | null;
@@ -77,10 +78,10 @@ function PendingHowlCard({
     setSending(true);
     setError(null);
     try {
-      const res = await apiPost<{ content: string }>(`/api/howls/${howl.id}/reply`, {
+      const res = await apiPost<{ summary: string }>(`/api/howls/${howl.id}/reply`, {
         message: reply.trim(),
       });
-      setResponse(res.content);
+      setResponse(res.summary);
       setReply("");
       onReplied();
     } catch (err) {
@@ -130,7 +131,7 @@ function PendingHowlCard({
 
             {response ? (
               <div class="howl-response mt-3 p-3 bg-body-secondary rounded">
-                <div class="text-muted small mb-1">Ghost's response:</div>
+                <div class="text-muted small mb-1">Noted:</div>
                 <RenderMarkdown content={response} />
               </div>
             ) : (
@@ -240,10 +241,14 @@ function HowlHistoryDetail({ howlId, onBack }: { howlId: number; onBack: () => v
             <span class="text-muted small ms-auto">{relativeTime(howl.createdAt)}</span>
           </div>
           <RenderMarkdown content={howl.message} />
+          <div class="text-muted small mt-2">
+            Origin session #{howl.originSessionId}
+          </div>
         </div>
       </div>
       {messages.length > 0 && (
         <div class="ms-4">
+          <div class="text-muted small mb-2">Origin session context:</div>
           {messages
             .filter((m) => m.role === "user" || m.role === "assistant")
             .map((m) => (

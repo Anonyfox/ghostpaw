@@ -1,236 +1,171 @@
-import { resolve } from "node:path";
 import { defineCommand } from "citty";
+import { getHistory } from "../../core/chat/index.ts";
 import type { HowlStatus } from "../../core/howl/index.ts";
 import {
   countPendingHowls,
   getHowl,
   listHowls,
-  replyToHowl,
-  updateHowlStatus,
 } from "../../core/howl/index.ts";
-import { createEntity } from "../../harness/index.ts";
-import { label, style } from "../../lib/terminal/index.ts";
+import { processHowlDismiss, processHowlReply } from "../../harness/howl/index.ts";
+import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
-function statusLabel(s: string): string {
-  if (s === "pending") return style.cyan(s);
-  if (s === "responded") return style.dim(s);
-  if (s === "dismissed") return style.dim(s);
-  return s;
-}
-
-function urgencyLabel(u: string): string {
-  return u === "high" ? style.boldRed("high") : style.dim("low");
-}
-
-function relativeAge(ms: number): string {
-  const elapsed = Date.now() - ms;
-  const minutes = Math.floor(elapsed / 60_000);
-  if (minutes < 60) return `${minutes}m`;
+function formatAge(ms: number): string {
+  const diff = Date.now() - ms;
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
+  if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
-  return `${days}d`;
+  return `${days}d ago`;
 }
 
-function truncate(s: string, max = 60): string {
-  return s.length > max ? `${s.slice(0, max - 1)}\u2026` : s;
-}
-
-const listCmd = defineCommand({
-  meta: { name: "list", description: "List howls" },
+const howlShow = defineCommand({
+  meta: { name: "show", description: "Show howl details" },
   args: {
-    status: {
-      type: "string",
-      alias: "s",
-      description: "Filter by status: pending, responded, dismissed",
-    },
-    limit: {
-      type: "string",
-      alias: "n",
-      description: "Max results (default: 20)",
-    },
-  },
-  async run({ args }) {
-    await withRunDb((db) => {
-      const status = args.status as HowlStatus | undefined;
-      const limit = Number(args.limit) || 20;
-      const howls = listHowls(db, { status, limit });
-
-      if (howls.length === 0) {
-        console.log(style.dim("No howls found."));
-        return;
-      }
-
-      console.log(`${howls.length} howl${howls.length > 1 ? "s" : ""}`);
-      for (const h of howls) {
-        const age = relativeAge(h.createdAt);
-        const msg = truncate(h.message);
-        console.log(
-          `  ${String(h.id).padStart(4)} ${urgencyLabel(h.urgency)} ${statusLabel(h.status).padEnd(18)} ${msg}  ${style.dim(age)}`,
-        );
-      }
-    });
-  },
-});
-
-const showCmd = defineCommand({
-  meta: { name: "show", description: "Show howl detail" },
-  args: {
-    id: { type: "positional", description: "Howl ID", required: true },
+    id: { type: "positional", description: "Howl ID" },
   },
   async run({ args }) {
     await withRunDb((db) => {
       const id = Number(args.id);
-      if (!id || !Number.isFinite(id)) {
-        console.error(style.boldRed("error"), "Valid howl ID required.");
-        process.exitCode = 1;
+      if (!id) {
+        console.log(style.dim("  Usage: howls show <id>"));
         return;
       }
       const howl = getHowl(db, id);
       if (!howl) {
-        console.error(style.boldRed("error"), `Howl #${id} not found.`);
-        process.exitCode = 1;
+        console.log(style.dim(`  Howl #${id} not found.`));
         return;
       }
-
-      console.log(`Howl #${howl.id}`);
-      console.log();
-      console.log(howl.message);
-      console.log();
-      label("status", statusLabel(howl.status));
-      label("urgency", urgencyLabel(howl.urgency));
-      if (howl.channel) label("channel", howl.channel);
-      label(
-        "created",
-        `${new Date(howl.createdAt).toISOString()} (${relativeAge(howl.createdAt)} ago)`,
-      );
+      console.log(`  ${style.cyan("Howl")} #${howl.id}`);
+      console.log(`  ${style.dim("Message:")} ${howl.message}`);
+      console.log(`  ${style.dim("Urgency:")} ${howl.urgency}`);
+      console.log(`  ${style.dim("Status:")}  ${howl.status}`);
+      console.log(`  ${style.dim("Channel:")} ${howl.channel ?? "none"}`);
+      console.log(`  ${style.dim("Origin:")}  session #${howl.originSessionId}${howl.originMessageId ? ` msg #${howl.originMessageId}` : ""}`);
+      console.log(`  ${style.dim("Created:")} ${new Date(howl.createdAt).toLocaleString()}`);
       if (howl.respondedAt) {
-        label(
-          "responded",
-          `${new Date(howl.respondedAt).toISOString()} (${relativeAge(howl.respondedAt)} ago)`,
-        );
+        console.log(`  ${style.dim("Responded:")} ${new Date(howl.respondedAt).toLocaleString()}`);
       }
-      label("session", `#${howl.sessionId}`);
     });
   },
 });
 
-const dismissCmd = defineCommand({
-  meta: { name: "dismiss", description: "Dismiss a pending howl" },
-  args: {
-    id: { type: "positional", description: "Howl ID", required: true },
-  },
-  async run({ args }) {
-    await withRunDb((db) => {
-      const id = Number(args.id);
-      if (!id || !Number.isFinite(id)) {
-        console.error(style.boldRed("error"), "Valid howl ID required.");
-        process.exitCode = 1;
-        return;
-      }
-      const howl = getHowl(db, id);
-      if (!howl) {
-        console.error(style.boldRed("error"), `Howl #${id} not found.`);
-        process.exitCode = 1;
-        return;
-      }
-      if (howl.status !== "pending") {
-        console.error(style.boldRed("error"), `Howl #${id} is already "${howl.status}".`);
-        process.exitCode = 1;
-        return;
-      }
-      updateHowlStatus(db, id, "dismissed");
-      console.log(`Howl #${id} dismissed.`);
-    });
-  },
-});
-
-const replyCmd = defineCommand({
+const howlReply = defineCommand({
   meta: { name: "reply", description: "Reply to a pending howl" },
   args: {
-    id: { type: "positional", description: "Howl ID", required: true },
-    message: { type: "positional", description: "Reply message", required: true },
+    id: { type: "positional", description: "Howl ID" },
+    message: { type: "positional", description: "Reply message" },
   },
   async run({ args }) {
     await withRunDb(async (db) => {
       const id = Number(args.id);
-      if (!id || !Number.isFinite(id)) {
-        console.error(style.boldRed("error"), "Valid howl ID required.");
-        process.exitCode = 1;
+      const message = String(args.message ?? "").trim();
+      if (!id || !message) {
+        console.log(style.dim("  Usage: howls reply <id> <message>"));
         return;
       }
-
-      const message = [args.message, ...(args._ ?? [])].join(" ");
-      if (!message.trim()) {
-        console.error(style.boldRed("error"), "Reply message required.");
-        process.exitCode = 1;
-        return;
-      }
-
-      const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
-      const entity = createEntity({ db, workspace });
-
       try {
-        const result = await replyToHowl(db, entity, id, message.trim(), {
+        const result = await processHowlReply(db, id, message, {
           replyChannel: "cli",
         });
-        await entity.flush();
-
-        console.log(result.turn.content);
-        console.log();
-        console.log(style.dim(`howl #${id} responded | ${result.turn.usage.totalTokens} tokens`));
+        console.log(`  ${style.cyan("Noted:")} ${result.summary}`);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error(style.boldRed("error"), msg);
-        process.exitCode = 1;
+        console.log(style.dim(`  Error: ${err instanceof Error ? err.message : String(err)}`));
+      }
+    });
+  },
+});
+
+const howlDismiss = defineCommand({
+  meta: { name: "dismiss", description: "Dismiss a pending howl" },
+  args: {
+    id: { type: "positional", description: "Howl ID" },
+  },
+  async run({ args }) {
+    await withRunDb(async (db) => {
+      const id = Number(args.id);
+      if (!id) {
+        console.log(style.dim("  Usage: howls dismiss <id>"));
+        return;
+      }
+      try {
+        await processHowlDismiss(db, id);
+        console.log(style.dim(`  Howl #${id} dismissed.`));
+      } catch (err) {
+        console.log(style.dim(`  Error: ${err instanceof Error ? err.message : String(err)}`));
+      }
+    });
+  },
+});
+
+const howlHistory = defineCommand({
+  meta: { name: "history", description: "Show origin session context for a howl" },
+  args: {
+    id: { type: "positional", description: "Howl ID" },
+  },
+  async run({ args }) {
+    await withRunDb((db) => {
+      const id = Number(args.id);
+      if (!id) {
+        console.log(style.dim("  Usage: howls history <id>"));
+        return;
+      }
+      const howl = getHowl(db, id);
+      if (!howl) {
+        console.log(style.dim(`  Howl #${id} not found.`));
+        return;
+      }
+      console.log(`  ${style.cyan("Origin session")} #${howl.originSessionId}:`);
+      const messages = getHistory(db, howl.originSessionId);
+      for (const m of messages) {
+        if (m.role !== "user" && m.role !== "assistant") continue;
+        const role = m.role === "user" ? "You" : "Ghost";
+        const preview = m.content.length > 120 ? `${m.content.slice(0, 120)}...` : m.content;
+        console.log(`  ${style.dim(`${role}:`)} ${preview}`);
       }
     });
   },
 });
 
 export default defineCommand({
-  meta: {
-    name: "howls",
-    description: "View and respond to howls — the ghost's proactive messages",
+  meta: { name: "howls", description: "View and manage howls" },
+  args: {
+    status: {
+      type: "string",
+      description: "Filter by status: pending, responded, dismissed",
+    },
   },
   subCommands: {
-    list: listCmd,
-    show: showCmd,
-    dismiss: dismissCmd,
-    reply: replyCmd,
+    show: howlShow,
+    reply: howlReply,
+    dismiss: howlDismiss,
+    history: howlHistory,
   },
-  async run() {
-    const subs = ["list", "show", "dismiss", "reply"];
+  async run({ args }) {
+    const subs = ["show", "reply", "dismiss", "history"];
     const positionals = process.argv.slice(2).filter((a) => !a.startsWith("-"));
     if (positionals.length > 1 && subs.includes(positionals[1])) return;
 
     await withRunDb((db) => {
+      const statusFilter = (args.status as HowlStatus) || undefined;
+      const howls = listHowls(db, { status: statusFilter, limit: 20 });
+      if (howls.length === 0) {
+        console.log(style.dim("  No howls found."));
+        return;
+      }
+      for (const h of howls) {
+        const age = formatAge(h.createdAt);
+        const badge =
+          h.status === "pending"
+            ? style.cyan(`[${h.status}]`)
+            : style.dim(`[${h.status}]`);
+        const urgency = h.urgency === "high" ? style.cyan(" !") : "";
+        console.log(`  ${style.dim(`#${h.id}`)} ${badge}${urgency} ${h.message}  ${style.dim(age)}`);
+      }
       const pending = countPendingHowls(db);
-      const recent = listHowls(db, { limit: 5 });
-
       if (pending > 0) {
-        console.log(style.cyan(`${pending} pending howl${pending > 1 ? "s" : ""}`));
-        console.log();
-        const pendingHowls = recent.filter((h) => h.status === "pending");
-        for (const h of pendingHowls) {
-          const age = relativeAge(h.createdAt);
-          console.log(`  ${urgencyLabel(h.urgency)} #${h.id}  ${h.message}  ${style.dim(age)}`);
-        }
-        console.log();
-        console.log(style.dim("Use 'ghostpaw howls reply <id> <message>' to respond."));
-      } else if (recent.length > 0) {
-        console.log(style.dim("No pending howls."));
-        console.log();
-        console.log("Recent:");
-        for (const h of recent) {
-          const age = relativeAge(h.createdAt);
-          console.log(
-            `  ${String(h.id).padStart(4)} ${statusLabel(h.status).padEnd(18)} ${truncate(h.message)}  ${style.dim(age)}`,
-          );
-        }
-      } else {
-        console.log(style.dim("No howls yet. The ghost hasn't reached out."));
+        console.log(style.dim(`\n  ${pending} pending howl(s). Use 'howls show <id>' or 'howls reply <id>'.`));
       }
     });
   },

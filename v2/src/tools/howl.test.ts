@@ -1,6 +1,6 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initChatTables } from "../core/chat/index.ts";
+import { createSession, initChatTables } from "../core/chat/index.ts";
 import { initConfigTable, setConfig } from "../core/config/index.ts";
 import { initHowlTables, listHowls } from "../core/howl/index.ts";
 import type { ChannelHandle } from "../lib/channel_registry.ts";
@@ -10,6 +10,8 @@ import { openTestDatabase } from "../lib/index.ts";
 import { createHowlTool } from "./howl.ts";
 
 let db: DatabaseHandle;
+let currentSessionId: number | null;
+let headMessageId: number | null;
 let execute: (args: Record<string, unknown>) => Promise<unknown>;
 
 beforeEach(async () => {
@@ -18,7 +20,16 @@ beforeEach(async () => {
   initConfigTable(db);
   initHowlTables(db);
   clearChannelRegistry();
-  const tool = createHowlTool(db);
+
+  const session = createSession(db, "chat:origin");
+  currentSessionId = session.id as number;
+  headMessageId = null;
+
+  const tool = createHowlTool({
+    db,
+    getCurrentSessionId: () => currentSessionId,
+    getHeadMessageId: () => headMessageId,
+  });
   execute = (args) => tool.execute({ args } as never);
 });
 
@@ -43,7 +54,7 @@ function makeMockChannel(
 }
 
 describe("howl tool", () => {
-  it("creates a howl with low urgency", async () => {
+  it("creates a howl with origin tracking", async () => {
     const result = (await execute({
       message: "Is this config valid?",
       urgency: "low",
@@ -123,5 +134,16 @@ describe("howl tool", () => {
     ok(result.howlId);
     const howls = listHowls(db);
     strictEqual(howls[0].urgency, "low");
+  });
+
+  it("returns error when no active session", async () => {
+    currentSessionId = null;
+    const result = (await execute({
+      message: "orphan howl",
+      urgency: "low",
+    })) as Record<string, unknown>;
+
+    ok(result.error);
+    ok(String(result.error).includes("Cannot howl outside"));
   });
 });

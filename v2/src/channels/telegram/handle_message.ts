@@ -1,5 +1,6 @@
 import type { TurnResult } from "../../core/chat/index.ts";
-import { getPendingHowl, replyToHowl } from "../../core/howl/index.ts";
+import { getPendingHowl } from "../../core/howl/index.ts";
+import { processHowlReply } from "../../harness/howl/index.ts";
 import type { Entity } from "../../harness/index.ts";
 import { TokenBudgetError } from "../../lib/index.ts";
 import { rotateSession } from "./rotate_session.ts";
@@ -36,23 +37,27 @@ export async function handleMessage(
 
   try {
     const pendingHowl = getPendingHowl(deps.entity.db);
-    let result: TurnResult;
 
     if (pendingHowl) {
-      const reply = await replyToHowl(deps.entity.db, deps.entity, pendingHowl.id, text, {
+      const reply = await processHowlReply(deps.entity.db, pendingHowl.id, text, {
         replyChannel: "telegram",
       });
-      result = reply.turn;
+      clearInterval(typingInterval);
+      await deps.setReaction(chatId, messageId, "\u{1F44D}");
+
+      const parts = splitMessage(reply.summary);
+      for (const part of parts) {
+        await deps.sendMessage(chatId, part);
+      }
     } else {
-      result = await executeTurnWithRotation(deps, chatId, text);
-    }
+      const result = await executeTurnWithRotation(deps, chatId, text);
+      clearInterval(typingInterval);
+      await deps.setReaction(chatId, messageId, "\u{1F44D}");
 
-    clearInterval(typingInterval);
-    await deps.setReaction(chatId, messageId, "\u{1F44D}");
-
-    const parts = splitMessage(result.content);
-    for (const part of parts) {
-      await deps.sendMessage(chatId, part);
+      const parts = splitMessage(result.content);
+      for (const part of parts) {
+        await deps.sendMessage(chatId, part);
+      }
     }
   } catch (err) {
     clearInterval(typingInterval);

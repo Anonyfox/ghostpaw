@@ -22,8 +22,12 @@ afterEach(() => {
 
 describe("updateHowlStatus", () => {
   it("marks a howl as responded with timestamp", () => {
-    const s = createSession(db, "howl:1", { purpose: "howl" });
-    const howl = storeHowl(db, { sessionId: s.id as number, message: "test", urgency: "low" });
+    const s = createSession(db, "chat:1");
+    const howl = storeHowl(db, {
+      originSessionId: s.id as number,
+      message: "test",
+      urgency: "low",
+    });
 
     updateHowlStatus(db, howl.id, "responded");
 
@@ -34,8 +38,12 @@ describe("updateHowlStatus", () => {
   });
 
   it("marks a howl as dismissed", () => {
-    const s = createSession(db, "howl:2", { purpose: "howl" });
-    const howl = storeHowl(db, { sessionId: s.id as number, message: "test", urgency: "low" });
+    const s = createSession(db, "chat:2");
+    const howl = storeHowl(db, {
+      originSessionId: s.id as number,
+      message: "test",
+      urgency: "low",
+    });
 
     updateHowlStatus(db, howl.id, "dismissed");
 
@@ -47,8 +55,12 @@ describe("updateHowlStatus", () => {
 
 describe("updateHowlChannel", () => {
   it("sets the delivery channel", () => {
-    const s = createSession(db, "howl:3", { purpose: "howl" });
-    const howl = storeHowl(db, { sessionId: s.id as number, message: "test", urgency: "low" });
+    const s = createSession(db, "chat:3");
+    const howl = storeHowl(db, {
+      originSessionId: s.id as number,
+      message: "test",
+      urgency: "low",
+    });
 
     updateHowlChannel(db, howl.id, "telegram");
 

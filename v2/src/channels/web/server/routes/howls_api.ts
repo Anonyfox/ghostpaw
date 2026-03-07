@@ -4,10 +4,8 @@ import {
   countPendingHowls,
   getHowl,
   listHowls,
-  replyToHowl,
-  updateHowlStatus,
 } from "../../../../core/howl/index.ts";
-import type { Entity } from "../../../../harness/types.ts";
+import { processHowlDismiss, processHowlReply } from "../../../../harness/howl/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { readJsonBody } from "../body_parser.ts";
 import type { RouteContext } from "../types.ts";
@@ -24,7 +22,7 @@ function parseQuery(url: string | undefined): URLSearchParams {
   return new URLSearchParams(url.slice(idx + 1));
 }
 
-export function createHowlsApiHandlers(db: DatabaseHandle, entity?: Entity) {
+export function createHowlsApiHandlers(db: DatabaseHandle) {
   return {
     pending(ctx: RouteContext) {
       json(ctx, 200, { count: countPendingHowls(db) });
@@ -51,26 +49,22 @@ export function createHowlsApiHandlers(db: DatabaseHandle, entity?: Entity) {
       json(ctx, 200, howl);
     },
 
-    dismiss(ctx: RouteContext) {
+    async dismiss(ctx: RouteContext) {
       const id = Number(ctx.params?.id);
       if (!id || Number.isNaN(id)) {
         json(ctx, 400, { error: "Invalid howl ID" });
         return;
       }
-      const howl = getHowl(db, id);
-      if (!howl) {
-        json(ctx, 404, { error: "Howl not found" });
-        return;
+      try {
+        await processHowlDismiss(db, id);
+        json(ctx, 200, { ok: true });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        json(ctx, 400, { error: msg });
       }
-      updateHowlStatus(db, id, "dismissed");
-      json(ctx, 200, { ok: true });
     },
 
     async reply(ctx: RouteContext) {
-      if (!entity) {
-        json(ctx, 503, { error: "Entity not available." });
-        return;
-      }
       const id = Number(ctx.params?.id);
       if (!id || Number.isNaN(id)) {
         json(ctx, 400, { error: "Invalid howl ID" });
@@ -89,14 +83,14 @@ export function createHowlsApiHandlers(db: DatabaseHandle, entity?: Entity) {
         return;
       }
       try {
-        const result = await replyToHowl(db, entity, id, message, {
+        const result = await processHowlReply(db, id, message, {
           replyChannel: "web",
         });
         json(ctx, 200, {
           howlId: result.howlId,
-          content: result.turn.content,
-          succeeded: result.turn.succeeded,
-          usage: result.turn.usage,
+          summary: result.summary,
+          usage: result.usage,
+          cost: result.cost,
         });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -115,7 +109,7 @@ export function createHowlsApiHandlers(db: DatabaseHandle, entity?: Entity) {
         json(ctx, 404, { error: "Howl not found" });
         return;
       }
-      const messages = getHistory(db, howl.sessionId).map((m) => ({
+      const messages = getHistory(db, howl.originSessionId).map((m) => ({
         id: m.id,
         role: m.role,
         content: m.content,

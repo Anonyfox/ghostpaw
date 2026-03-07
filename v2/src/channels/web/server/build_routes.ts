@@ -66,7 +66,7 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
   const sessions = createSessionsApiHandlers(config.db);
   const distill = createDistillApiHandlers(config.db);
   const haunt = createHauntApiHandlers(config.db, config.entity);
-  const howls = createHowlsApiHandlers(config.db, config.entity);
+  const howls = createHowlsApiHandlers(config.db);
   const mentor = createMentorApiHandlers(config.db, config.entity);
   const trainer = createTrainerApiHandlers(config.db, config.entity);
   const quests = createQuestsApiHandlers(config.db);

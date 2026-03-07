@@ -5,14 +5,22 @@ export function storeHowl(db: DatabaseHandle, input: StoreHowlInput): Howl {
   const now = Date.now();
   const result = db
     .prepare(
-      `INSERT INTO howls (session_id, message, urgency, channel, status, created_at)
-       VALUES (?, ?, ?, ?, 'pending', ?)`,
+      `INSERT INTO howls (origin_session_id, origin_message_id, message, urgency, channel, status, created_at)
+       VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
     )
-    .run(input.sessionId, input.message, input.urgency, input.channel ?? null, now);
+    .run(
+      input.originSessionId,
+      input.originMessageId ?? null,
+      input.message,
+      input.urgency,
+      input.channel ?? null,
+      now,
+    );
 
   return {
     id: result.lastInsertRowid as number,
-    sessionId: input.sessionId,
+    originSessionId: input.originSessionId,
+    originMessageId: input.originMessageId ?? null,
     message: input.message,
     urgency: input.urgency,
     channel: input.channel ?? null,

@@ -3,7 +3,8 @@ import type { Howl } from "./types.ts";
 
 interface HowlRow {
   id: number;
-  session_id: number;
+  origin_session_id: number;
+  origin_message_id: number | null;
   message: string;
   urgency: string;
   channel: string | null;
@@ -23,7 +24,8 @@ export function getPendingHowl(db: DatabaseHandle): Howl | null {
   if (!row) return null;
   return {
     id: row.id,
-    sessionId: row.session_id,
+    originSessionId: row.origin_session_id,
+    originMessageId: row.origin_message_id,
     message: row.message,
     urgency: row.urgency as Howl["urgency"],
     channel: row.channel,

@@ -1,5 +1,4 @@
 import { createTool, Schema } from "chatoyant";
-import { createSession } from "../core/chat/index.ts";
 import { getConfig } from "../core/config/index.ts";
 import type { HowlUrgency } from "../core/howl/index.ts";
 import { countHowlsToday, lastHowlTime, storeHowl, updateHowlChannel } from "../core/howl/index.ts";
@@ -19,7 +18,15 @@ class HowlParams extends Schema {
   });
 }
 
-export function createHowlTool(db: DatabaseHandle) {
+export interface HowlToolContext {
+  db: DatabaseHandle;
+  getCurrentSessionId: () => number | null;
+  getHeadMessageId: () => number | null;
+}
+
+export function createHowlTool(ctx: HowlToolContext) {
+  const { db, getCurrentSessionId, getHeadMessageId } = ctx;
+
   return createTool({
     name: "howl",
     description:
@@ -37,6 +44,11 @@ export function createHowlTool(db: DatabaseHandle) {
         urgency?: string;
       };
       const urgency: HowlUrgency = rawUrgency === "high" ? "high" : "low";
+
+      const originSessionId = getCurrentSessionId();
+      if (originSessionId == null) {
+        return { error: "Cannot howl outside of an active session." };
+      }
 
       const maxPerDay = (getConfig(db, "max_howls_per_day") as number | null) ?? 3;
       const cooldownMinutes = (getConfig(db, "howl_cooldown_minutes") as number | null) ?? 60;
@@ -58,12 +70,12 @@ export function createHowlTool(db: DatabaseHandle) {
         }
       }
 
-      const session = createSession(db, `howl:${Date.now()}`, { purpose: "howl" });
-      const sessionId = session.id as number;
-
+      const originMessageId = getHeadMessageId();
       const channel = getBestChannel();
+
       const howl = storeHowl(db, {
-        sessionId,
+        originSessionId,
+        originMessageId,
         message,
         urgency,
         channel: channel?.type ?? null,

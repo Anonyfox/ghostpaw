@@ -21,6 +21,7 @@ import { assembleHauntContext } from "./haunt_context.ts";
 import { buildHauntPrompt, TEXT_ONLY_CONTINUATION, WRAP_UP } from "./haunt_prompt.ts";
 import type { ConsolidationResult, HauntResult, RunHauntOptions } from "./types.ts";
 
+
 const MAX_TOOL_ITERATIONS = 200;
 
 function aggregateUsage(results: TurnResult[]): TurnResult["usage"] {
@@ -142,10 +143,9 @@ export async function runHaunt(
 
   if (consolidation?.highlight) {
     try {
-      const howlSession = createSession(db, `howl:haunt:${sessionId}`, { purpose: "howl" });
       const channel = getBestChannel();
       const howl = storeHowl(db, {
-        sessionId: howlSession.id as number,
+        originSessionId: sessionId,
         message: consolidation.highlight,
         urgency: "low",
         channel: channel?.type ?? null,

@@ -161,13 +161,13 @@ describe("createEntityToolSets", () => {
     }
   });
 
-  it("allToolsWithMentor also includes all base tools", () => {
+  it("allToolsWithMentor includes shared tools but not coordinator-only tools", () => {
     const sets = createEntityToolSets(mockConfig());
-    const allNames = sets.allToolsWithMentor.map((t) => t.name);
-    const baseNames = sets.baseTools.map((t) => t.name);
-    for (const baseName of baseNames) {
-      ok(allNames.includes(baseName), `${baseName} should be in allToolsWithMentor`);
+    const allNames = new Set(sets.allToolsWithMentor.map((t) => t.name));
+    for (const shared of ["read", "write", "edit", "ls", "grep", "bash", "web_fetch", "web_search", "mcp", "calc", "datetime", "sense"]) {
+      ok(allNames.has(shared), `${shared} should be in allToolsWithMentor`);
     }
+    ok(!allNames.has("howl"), "howl should not be in allToolsWithMentor (coordinator-only)");
   });
 
   it("mentorTools has exactly 7 tools", () => {
@@ -193,13 +193,13 @@ describe("createEntityToolSets", () => {
     }
   });
 
-  it("allToolsWithTrainer also includes all base tools", () => {
+  it("allToolsWithTrainer includes shared tools but not coordinator-only tools", () => {
     const sets = createEntityToolSets(mockConfig());
-    const allNames = sets.allToolsWithTrainer.map((t) => t.name);
-    const baseNames = sets.baseTools.map((t) => t.name);
-    for (const baseName of baseNames) {
-      ok(allNames.includes(baseName), `${baseName} should be in allToolsWithTrainer`);
+    const allNames = new Set(sets.allToolsWithTrainer.map((t) => t.name));
+    for (const shared of ["read", "write", "edit", "ls", "grep", "bash", "web_fetch", "web_search", "mcp", "calc", "datetime", "sense"]) {
+      ok(allNames.has(shared), `${shared} should be in allToolsWithTrainer`);
     }
+    ok(!allNames.has("howl"), "howl should not be in allToolsWithTrainer (coordinator-only)");
   });
 
   it("trainerTools has exactly 7 tools", () => {

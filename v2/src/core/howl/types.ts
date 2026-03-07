@@ -6,7 +6,8 @@ export type HowlStatus = (typeof HOWL_STATUSES)[number];
 
 export interface Howl {
   id: number;
-  sessionId: number;
+  originSessionId: number;
+  originMessageId: number | null;
   message: string;
   urgency: HowlUrgency;
   channel: string | null;
@@ -16,7 +17,8 @@ export interface Howl {
 }
 
 export interface StoreHowlInput {
-  sessionId: number;
+  originSessionId: number;
+  originMessageId?: number | null;
   message: string;
   urgency: HowlUrgency;
   channel?: string | null;

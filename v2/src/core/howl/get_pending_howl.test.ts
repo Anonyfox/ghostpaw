@@ -26,10 +26,9 @@ describe("getPendingHowl", () => {
   });
 
   it("returns the oldest pending howl", () => {
-    const s1 = createSession(db, "howl:1", { purpose: "howl" });
-    const s2 = createSession(db, "howl:2", { purpose: "howl" });
-    storeHowl(db, { sessionId: s1.id as number, message: "first", urgency: "low" });
-    storeHowl(db, { sessionId: s2.id as number, message: "second", urgency: "high" });
+    const s = createSession(db, "chat:1");
+    storeHowl(db, { originSessionId: s.id as number, message: "first", urgency: "low" });
+    storeHowl(db, { originSessionId: s.id as number, message: "second", urgency: "high" });
 
     const pending = getPendingHowl(db);
     ok(pending !== null);
@@ -37,10 +36,13 @@ describe("getPendingHowl", () => {
   });
 
   it("skips responded and dismissed howls", () => {
-    const s1 = createSession(db, "howl:1", { purpose: "howl" });
-    const s2 = createSession(db, "howl:2", { purpose: "howl" });
-    const h1 = storeHowl(db, { sessionId: s1.id as number, message: "old", urgency: "low" });
-    storeHowl(db, { sessionId: s2.id as number, message: "new", urgency: "low" });
+    const s = createSession(db, "chat:2");
+    const h1 = storeHowl(db, {
+      originSessionId: s.id as number,
+      message: "old",
+      urgency: "low",
+    });
+    storeHowl(db, { originSessionId: s.id as number, message: "new", urgency: "low" });
     updateHowlStatus(db, h1.id, "responded");
 
     const pending = getPendingHowl(db);
@@ -49,8 +51,12 @@ describe("getPendingHowl", () => {
   });
 
   it("returns null when all howls are resolved", () => {
-    const s1 = createSession(db, "howl:1", { purpose: "howl" });
-    const h1 = storeHowl(db, { sessionId: s1.id as number, message: "done", urgency: "low" });
+    const s = createSession(db, "chat:3");
+    const h1 = storeHowl(db, {
+      originSessionId: s.id as number,
+      message: "done",
+      urgency: "low",
+    });
     updateHowlStatus(db, h1.id, "dismissed");
 
     strictEqual(getPendingHowl(db), null);
@@ -63,12 +69,14 @@ describe("countPendingHowls", () => {
   });
 
   it("counts only pending howls", () => {
-    const s1 = createSession(db, "howl:1", { purpose: "howl" });
-    const s2 = createSession(db, "howl:2", { purpose: "howl" });
-    const s3 = createSession(db, "howl:3", { purpose: "howl" });
-    const h1 = storeHowl(db, { sessionId: s1.id as number, message: "a", urgency: "low" });
-    storeHowl(db, { sessionId: s2.id as number, message: "b", urgency: "low" });
-    storeHowl(db, { sessionId: s3.id as number, message: "c", urgency: "low" });
+    const s = createSession(db, "chat:4");
+    const h1 = storeHowl(db, {
+      originSessionId: s.id as number,
+      message: "a",
+      urgency: "low",
+    });
+    storeHowl(db, { originSessionId: s.id as number, message: "b", urgency: "low" });
+    storeHowl(db, { originSessionId: s.id as number, message: "c", urgency: "low" });
     updateHowlStatus(db, h1.id, "responded");
 
     strictEqual(countPendingHowls(db), 2);

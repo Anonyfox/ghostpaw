@@ -1,5 +1,6 @@
 import type { Tool } from "chatoyant";
 import type { ChatFactory } from "../core/chat/index.ts";
+import { getSession } from "../core/chat/index.ts";
 import { getSecret } from "../core/secrets/index.ts";
 import { listSouls, MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
@@ -111,8 +112,17 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     createCalcTool(),
     createDatetimeTool(),
     createSenseTool(),
-    createHowlTool(db),
   ];
+
+  const howlTool = createHowlTool({
+    db,
+    getCurrentSessionId: getParentSessionId,
+    getHeadMessageId: () => {
+      const sessionId = getParentSessionId();
+      if (sessionId == null) return null;
+      return getSession(db, sessionId)?.headMessageId ?? null;
+    },
+  });
 
   const wardenOnlyTools = createWardenTools(db);
   const chamberlainOnlyTools = createChamberlainTools(db);
@@ -140,7 +150,7 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
   const delegateTool = createDelegateTool(delegateHandler, specialists);
   const checkRunTool = createCheckRunTool(db);
 
-  const baseTools = [...sharedTools, delegateTool, checkRunTool];
+  const baseTools = [...sharedTools, howlTool, delegateTool, checkRunTool];
   const allToolsWithMentor = [...sharedTools, ...mentorOnly, delegateTool, checkRunTool];
   const allToolsWithTrainer = [...sharedTools, ...trainerOnly, delegateTool, checkRunTool];
 
