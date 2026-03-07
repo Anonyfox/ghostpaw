@@ -6,7 +6,7 @@ import {
   serviceLogs,
   serviceStatus,
   uninstallService,
-} from "../../core/service/index.ts";
+} from "../../lib/service/index.ts";
 import { log, style } from "../../lib/terminal/index.ts";
 
 const install = defineCommand({

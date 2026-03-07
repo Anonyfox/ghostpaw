@@ -1,9 +1,5 @@
 import { deepStrictEqual, ok, strictEqual } from "node:assert/strict";
-import { afterEach, beforeEach, describe, it } from "node:test";
-import type { DatabaseHandle } from "../../lib/index.ts";
-import { openTestDatabase } from "../../lib/index.ts";
-import { initConfigTable, setConfig } from "../config/index.ts";
-import { initSecretsTable, setSecret } from "../secrets/index.ts";
+import { describe, it } from "node:test";
 import { listProviders } from "./list_providers.ts";
 
 function mockFetcher(models: string[] = ["mock-model-a", "mock-model-b"]) {
@@ -16,23 +12,18 @@ function failFetcher(msg = "network error") {
   };
 }
 
+const allMockFetchers = {
+  anthropic: mockFetcher(),
+  openai: mockFetcher(),
+  xai: mockFetcher(),
+};
+
 describe("listProviders", () => {
-  let db: DatabaseHandle;
-
-  beforeEach(async () => {
-    db = await openTestDatabase();
-    initSecretsTable(db);
-    initConfigTable(db);
-  });
-
-  afterEach(() => {
-    db.close();
-  });
-
   it("returns all three providers", async () => {
-    const providers = await listProviders(db, {
-      fetchers: { anthropic: mockFetcher(), openai: mockFetcher(), xai: mockFetcher() },
-    });
+    const providers = await listProviders(
+      { currentModel: "claude-sonnet-4-20250514", configuredKeys: new Set() },
+      { fetchers: allMockFetchers },
+    );
     strictEqual(providers.length, 3);
     deepStrictEqual(
       providers.map((p) => p.id),
@@ -41,9 +32,10 @@ describe("listProviders", () => {
   });
 
   it("marks providers without keys as hasKey=false", async () => {
-    const providers = await listProviders(db, {
-      fetchers: { anthropic: mockFetcher(), openai: mockFetcher(), xai: mockFetcher() },
-    });
+    const providers = await listProviders(
+      { currentModel: "claude-sonnet-4-20250514", configuredKeys: new Set() },
+      { fetchers: allMockFetchers },
+    );
     for (const p of providers) {
       strictEqual(p.hasKey, false);
       strictEqual(p.modelsSource, "static");
@@ -51,12 +43,15 @@ describe("listProviders", () => {
   });
 
   it("marks provider with key as hasKey=true and uses fetcher", async () => {
-    setSecret(db, "API_KEY_ANTHROPIC", "sk-test");
     process.env.API_KEY_ANTHROPIC = "sk-test";
 
-    const providers = await listProviders(db, {
-      fetchers: { anthropic: mockFetcher(["claude-sonnet-4-6", "claude-opus-4"]) },
-    });
+    const providers = await listProviders(
+      {
+        currentModel: "claude-sonnet-4-20250514",
+        configuredKeys: new Set(["API_KEY_ANTHROPIC"]),
+      },
+      { fetchers: { anthropic: mockFetcher(["claude-sonnet-4-6", "claude-opus-4"]) } },
+    );
 
     const anthropic = providers.find((p) => p.id === "anthropic")!;
     strictEqual(anthropic.hasKey, true);
@@ -67,12 +62,15 @@ describe("listProviders", () => {
   });
 
   it("marks the current provider as isCurrent=true", async () => {
-    setSecret(db, "API_KEY_ANTHROPIC", "sk-test");
     process.env.API_KEY_ANTHROPIC = "sk-test";
 
-    const providers = await listProviders(db, {
-      fetchers: { anthropic: mockFetcher() },
-    });
+    const providers = await listProviders(
+      {
+        currentModel: "claude-sonnet-4-20250514",
+        configuredKeys: new Set(["API_KEY_ANTHROPIC"]),
+      },
+      { fetchers: { anthropic: mockFetcher() } },
+    );
 
     const anthropic = providers.find((p) => p.id === "anthropic")!;
     strictEqual(anthropic.isCurrent, true);
@@ -84,13 +82,12 @@ describe("listProviders", () => {
   });
 
   it("detects current provider from overridden model", async () => {
-    setConfig(db, "default_model", "gpt-4o", "web");
-    setSecret(db, "API_KEY_OPENAI", "sk-test");
     process.env.API_KEY_OPENAI = "sk-test";
 
-    const providers = await listProviders(db, {
-      fetchers: { openai: mockFetcher(["gpt-4o"]) },
-    });
+    const providers = await listProviders(
+      { currentModel: "gpt-4o", configuredKeys: new Set(["API_KEY_OPENAI"]) },
+      { fetchers: { openai: mockFetcher(["gpt-4o"]) } },
+    );
 
     const openai = providers.find((p) => p.id === "openai")!;
     strictEqual(openai.isCurrent, true);
@@ -102,12 +99,12 @@ describe("listProviders", () => {
   });
 
   it("falls back to static models when fetch fails for keyed provider", async () => {
-    setSecret(db, "API_KEY_OPENAI", "sk-bad");
     process.env.API_KEY_OPENAI = "sk-bad";
 
-    const providers = await listProviders(db, {
-      fetchers: { openai: failFetcher("401 Unauthorized") },
-    });
+    const providers = await listProviders(
+      { currentModel: "claude-sonnet-4-20250514", configuredKeys: new Set(["API_KEY_OPENAI"]) },
+      { fetchers: { openai: failFetcher("401 Unauthorized") } },
+    );
 
     const openai = providers.find((p) => p.id === "openai")!;
     strictEqual(openai.hasKey, true);
@@ -119,28 +116,30 @@ describe("listProviders", () => {
   });
 
   it("returns display names for all providers", async () => {
-    const providers = await listProviders(db, {
-      fetchers: { anthropic: mockFetcher(), openai: mockFetcher(), xai: mockFetcher() },
-    });
+    const providers = await listProviders(
+      { currentModel: "claude-sonnet-4-20250514", configuredKeys: new Set() },
+      { fetchers: allMockFetchers },
+    );
     strictEqual(providers.find((p) => p.id === "anthropic")!.name, "Anthropic");
     strictEqual(providers.find((p) => p.id === "openai")!.name, "OpenAI");
     strictEqual(providers.find((p) => p.id === "xai")!.name, "xAI");
   });
 
   it("handles no keys and default model gracefully", async () => {
-    const providers = await listProviders(db, {
-      fetchers: { anthropic: mockFetcher(), openai: mockFetcher(), xai: mockFetcher() },
-    });
+    const providers = await listProviders(
+      { currentModel: "claude-sonnet-4-20250514", configuredKeys: new Set() },
+      { fetchers: allMockFetchers },
+    );
     const current = providers.filter((p) => p.isCurrent);
     strictEqual(current.length, 1, "default model maps to one provider");
     strictEqual(current[0].id, "anthropic", "default claude model is anthropic");
   });
 
   it("sets isCurrent=false for all when model is unrecognized", async () => {
-    setConfig(db, "default_model", "unknown-model-xyz", "web");
-    const providers = await listProviders(db, {
-      fetchers: { anthropic: mockFetcher(), openai: mockFetcher(), xai: mockFetcher() },
-    });
+    const providers = await listProviders(
+      { currentModel: "unknown-model-xyz", configuredKeys: new Set() },
+      { fetchers: allMockFetchers },
+    );
     const current = providers.filter((p) => p.isCurrent);
     strictEqual(current.length, 0);
   });

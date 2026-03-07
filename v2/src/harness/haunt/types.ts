@@ -1,6 +1,5 @@
 import type { ChatFactory } from "../../core/chat/chat_instance.ts";
-import type { TurnResult } from "../../core/chat/index.ts";
-import type { Haunt, HauntSummary } from "../../core/haunt/index.ts";
+import type { ChatSession, TurnResult } from "../../core/chat/index.ts";
 import type { Memory } from "../../core/memory/index.ts";
 
 export interface NoveltyInfo {
@@ -15,7 +14,7 @@ export interface HauntAnalysis {
   coveredTopics: string[];
   seed: string;
   seedMemories: Memory[];
-  recentHaunts: HauntSummary[];
+  recentHaunts: ChatSession[];
   novelty: NoveltyInfo;
 }
 
@@ -25,8 +24,8 @@ export interface RunHauntOptions {
 }
 
 export interface HauntResult {
-  haunt: Haunt;
   sessionId: number;
+  summary: string;
   succeeded: boolean;
   usage: TurnResult["usage"];
   cost: TurnResult["cost"];

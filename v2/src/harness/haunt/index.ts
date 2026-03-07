@@ -1,4 +1,4 @@
-export { analyzeHauntContext, detectTopicCluster, sampleAntiRecencyMemories } from "./analyze.ts";
+export { analyzeHauntContext } from "./analyze.ts";
 export { consolidateHaunt } from "./consolidate.ts";
 export { extractSummary } from "./extract_summary.ts";
 export { assembleHauntContext } from "./haunt_context.ts";

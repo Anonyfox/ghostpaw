@@ -1,8 +1,13 @@
 import type { ChatFactory } from "../../core/chat/chat_instance.ts";
 import type { TurnResult } from "../../core/chat/index.ts";
-import { addMessage, closeSession, createSession, getSession } from "../../core/chat/index.ts";
+import {
+  addMessage,
+  closeSession,
+  createSession,
+  getSession,
+  renameSession,
+} from "../../core/chat/index.ts";
 import { getConfig } from "../../core/config/index.ts";
-import { storeHaunt } from "../../core/haunt/index.ts";
 import { storeHowl, updateHowlChannel } from "../../core/howl/index.ts";
 import { getBestChannel } from "../../lib/channel_registry.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
@@ -71,13 +76,10 @@ export async function runHaunt(
       maxIterations: MAX_TOOL_ITERATIONS,
     };
 
-    // Turn 1: the main session — tool loop sustains exploration up to 200 iterations
     const first = await entity.executeTurn(sessionId, openingPrompt, turnOpts);
     turns.push(first);
     chunks.push(first.content);
 
-    // Turn 2 (conditional): only if Turn 1 was pure text with zero tool calls.
-    // Models that used tools already had a full exploration loop — no need to interrupt.
     const usedTools = first.iterations > 1;
     if (first.succeeded && !usedTools) {
       try {
@@ -85,7 +87,6 @@ export async function runHaunt(
         turns.push(second);
         chunks.push(second.content);
 
-        // Turn 3: wrap up if turn 2 also produced content
         if (second.succeeded && second.content.trim().length > 0) {
           try {
             const third = await entity.executeTurn(sessionId, WRAP_UP, turnOpts);
@@ -100,7 +101,7 @@ export async function runHaunt(
       }
     }
   } catch {
-    // First turn failed entirely — store whatever we can
+    /* first turn failed entirely */
   }
 
   const rawJournal = chunks.join("\n\n---\n\n") || "(empty)";
@@ -127,8 +128,6 @@ export async function runHaunt(
     summary = "(empty)";
   }
 
-  // Append the consolidation summary as the final message on the haunt session
-  // so it's visible when browsing sessions.
   if (summary !== "(empty)") {
     const head = getSession(db, sessionId)?.headMessageId ?? undefined;
     addMessage(db, {
@@ -139,12 +138,11 @@ export async function runHaunt(
     });
   }
 
-  const seededMemoryIds = (analysis?.seedMemories ?? []).map((m) => m.id);
-  const haunt = storeHaunt(db, { sessionId, rawJournal, summary, seededMemoryIds });
+  renameSession(db, sessionId, summary);
 
   if (consolidation?.highlight) {
     try {
-      const howlSession = createSession(db, `howl:haunt:${haunt.id}`, { purpose: "howl" });
+      const howlSession = createSession(db, `howl:haunt:${sessionId}`, { purpose: "howl" });
       const channel = getBestChannel();
       const howl = storeHowl(db, {
         sessionId: howlSession.id as number,
@@ -175,8 +173,8 @@ export async function runHaunt(
   }
 
   return {
-    haunt,
     sessionId,
+    summary,
     succeeded: chunks.length > 0,
     usage,
     cost,

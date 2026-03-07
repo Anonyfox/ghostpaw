@@ -1,5 +1,10 @@
-import type { Memory, MemoryCategory } from "../../core/memory/index.ts";
-import { MEMORY_CATEGORIES, staleMemories } from "../../core/memory/index.ts";
+import { memoryCategoryCounts, oldestMemory, staleMemories } from "../../core/memory/index.ts";
+import {
+  countQuestsByStatus,
+  dueSoonQuests,
+  overdueQuests,
+  staleQuests,
+} from "../../core/quests/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import type { NoveltyInfo } from "./types.ts";
 
@@ -76,7 +81,7 @@ function buildDynamicSeeds(
     });
   }
 
-  const oldest = queryOldestMemory(db);
+  const oldest = oldestMemory(db);
   if (oldest) {
     const claim = truncateClaim(oldest.claim);
     seeds.push({
@@ -131,71 +136,50 @@ function buildDynamicSeeds(
   return seeds;
 }
 
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
 function buildQuestSeeds(db: DatabaseHandle): SeedCandidate[] {
   const seeds: SeedCandidate[] = [];
   try {
-    const overdue = db
-      .prepare(
-        `SELECT * FROM quests WHERE due_at IS NOT NULL AND due_at < ?
-         AND status NOT IN ('offered','done','failed','cancelled')
-         ORDER BY due_at ASC LIMIT 1`,
-      )
-      .get(Date.now()) as Record<string, unknown> | undefined;
-    if (overdue) {
+    const overdue = overdueQuests(db, 1);
+    if (overdue.length > 0) {
       seeds.push({
-        text: `Quest "${overdue.title as string}" is overdue. What's the situation?`,
+        text: `Quest "${overdue[0].title}" is overdue. What's the situation?`,
         weight: 3,
       });
     }
 
-    const dueSoon = db
-      .prepare(
-        `SELECT * FROM quests WHERE due_at IS NOT NULL AND due_at >= ? AND due_at <= ?
-         AND status NOT IN ('offered','done','failed','cancelled')
-         ORDER BY due_at ASC LIMIT 1`,
-      )
-      .get(Date.now(), Date.now() + 3 * 24 * 60 * 60 * 1000) as Record<string, unknown> | undefined;
-    if (dueSoon) {
-      const dueAt = dueSoon.due_at as number;
-      const hoursLeft = Math.floor((dueAt - Date.now()) / (60 * 60 * 1000));
+    const upcoming = dueSoonQuests(db, THREE_DAYS_MS, 1);
+    if (upcoming.length > 0) {
+      const q = upcoming[0];
+      const hoursLeft = Math.floor((q.dueAt! - Date.now()) / (60 * 60 * 1000));
       const timeLeft = hoursLeft < 24 ? `${hoursLeft}h` : `${Math.floor(hoursLeft / 24)}d`;
       seeds.push({
-        text: `Quest "${dueSoon.title as string}" is due in ${timeLeft}. What needs to happen?`,
+        text: `Quest "${q.title}" is due in ${timeLeft}. What needs to happen?`,
         weight: 2.5,
       });
     }
 
-    const staleQuest = db
-      .prepare(
-        `SELECT * FROM quests WHERE status = 'active'
-         AND updated_at < ? ORDER BY updated_at ASC LIMIT 1`,
-      )
-      .get(Date.now() - 7 * 24 * 60 * 60 * 1000) as Record<string, unknown> | undefined;
-    if (staleQuest) {
+    const stale = staleQuests(db, 1);
+    if (stale.length > 0) {
       seeds.push({
-        text: `"${staleQuest.title as string}" has been active but untouched for over a week. Still relevant?`,
+        text: `"${stale[0].title}" has been active but untouched for over a week. Still relevant?`,
         weight: 2.5,
       });
     }
 
-    const activeCount = db
-      .prepare(`SELECT COUNT(*) AS cnt FROM quests WHERE status = 'active'`)
-      .get() as Record<string, unknown> | undefined;
-    const cnt = (activeCount?.cnt as number) ?? 0;
-    if (cnt > 5) {
+    const activeCount = countQuestsByStatus(db, "active");
+    if (activeCount > 5) {
       seeds.push({
-        text: `You have ${cnt} active quests. Is anything stuck or obsolete?`,
+        text: `You have ${activeCount} active quests. Is anything stuck or obsolete?`,
         weight: 2,
       });
     }
 
-    const offeredCount = db
-      .prepare(`SELECT COUNT(*) AS cnt FROM quests WHERE status = 'offered'`)
-      .get() as Record<string, unknown> | undefined;
-    const offered = (offeredCount?.cnt as number) ?? 0;
-    if (offered > 0) {
+    const offeredCount = countQuestsByStatus(db, "offered");
+    if (offeredCount > 0) {
       seeds.push({
-        text: `${offered} quest${offered > 1 ? "s" : ""} on the Quest Board. Any worth accepting or dismissing?`,
+        text: `${offeredCount} quest${offeredCount > 1 ? "s" : ""} on the Quest Board. Any worth accepting or dismissing?`,
         weight: 2,
       });
     }
@@ -205,40 +189,13 @@ function buildQuestSeeds(db: DatabaseHandle): SeedCandidate[] {
   return seeds;
 }
 
-function queryOldestMemory(db: DatabaseHandle): Memory | null {
-  const row = db
-    .prepare("SELECT * FROM memories WHERE superseded_by IS NULL ORDER BY created_at ASC LIMIT 1")
-    .get() as Record<string, unknown> | undefined;
-  if (!row) return null;
-  return {
-    id: row.id as number,
-    claim: row.claim as string,
-    confidence: row.confidence as number,
-    evidenceCount: row.evidence_count as number,
-    createdAt: row.created_at as number,
-    verifiedAt: row.verified_at as number,
-    source: row.source as Memory["source"],
-    category: row.category as Memory["category"],
-    supersededBy: null,
-  };
+interface ImbalanceResult {
+  dominant: { category: string; count: number };
+  sparse: { category: string; count: number };
 }
 
-interface CategoryCount {
-  category: MemoryCategory;
-  count: number;
-}
-
-function detectCategoryImbalance(
-  db: DatabaseHandle,
-): { dominant: CategoryCount; sparse: CategoryCount } | null {
-  const counts: CategoryCount[] = [];
-  for (const cat of MEMORY_CATEGORIES) {
-    const row = db
-      .prepare("SELECT COUNT(*) AS cnt FROM memories WHERE superseded_by IS NULL AND category = ?")
-      .get(cat) as Record<string, unknown> | undefined;
-    const count = (row?.cnt as number) ?? 0;
-    if (count > 0) counts.push({ category: cat, count });
-  }
+function detectCategoryImbalance(db: DatabaseHandle): ImbalanceResult | null {
+  const counts = memoryCategoryCounts(db);
   if (counts.length < 2) return null;
 
   counts.sort((a, b) => b.count - a.count);

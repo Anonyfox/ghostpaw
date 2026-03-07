@@ -2,7 +2,6 @@ import { deepStrictEqual, ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initChatTables } from "../core/chat/index.ts";
 import { initConfigTable } from "../core/config/index.ts";
-import { initHauntTables } from "../core/haunt/index.ts";
 import { initHowlTables } from "../core/howl/index.ts";
 import { initMemoryTable } from "../core/memory/index.ts";
 import { initPackTables } from "../core/pack/index.ts";
@@ -23,7 +22,6 @@ beforeEach(async () => {
   initMemoryTable(db);
   initSecretsTable(db);
   initPackTables(db);
-  initHauntTables(db);
   initHowlTables(db);
   initQuestTables(db);
   ensureMandatorySouls(db);

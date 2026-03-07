@@ -1,7 +1,4 @@
 import { detectProviderByModel } from "chatoyant";
-import type { DatabaseHandle } from "../../lib/index.ts";
-import { getConfig } from "../config/index.ts";
-import { listSecrets } from "../secrets/index.ts";
 import { fetchProviderModels } from "./fetch_provider_models.ts";
 import type { ListProvidersOptions, ProviderId, ProviderInfo } from "./types.ts";
 import {
@@ -11,17 +8,21 @@ import {
   PROVIDER_SECRET_KEYS,
 } from "./types.ts";
 
+export interface ListProvidersParams {
+  currentModel: string;
+  configuredKeys: Set<string>;
+}
+
 export async function listProviders(
-  db: DatabaseHandle,
+  params: ListProvidersParams,
   options?: ListProvidersOptions,
 ): Promise<ProviderInfo[]> {
-  // default_model is a known key with a string default — always returns string
-  const currentModel = getConfig(db, "default_model") as string;
-  const currentProvider = detectCurrentProvider(currentModel);
-  const configuredKeys = new Set(listSecrets(db));
+  const currentProvider = detectCurrentProvider(params.currentModel);
 
   const results = await Promise.allSettled(
-    PROVIDER_IDS.map((id) => fetchSingleProvider(id, configuredKeys, currentProvider, options)),
+    PROVIDER_IDS.map((id) =>
+      fetchSingleProvider(id, params.configuredKeys, currentProvider, options),
+    ),
   );
 
   return results.map((r, i) => {
@@ -60,7 +61,6 @@ async function fetchSingleProvider(
 
   if (!hasKey) {
     const { getModelsForProvider } = await import("chatoyant");
-    // chatoyant types the return broadly; we only need the string model IDs
     const fallback = getModelsForProvider(id) as string[];
     return {
       id,

@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { getHaunt, listHaunts, searchHaunts } from "../core/haunt/index.ts";
+import { getHistory, getSession, listSessions, querySessionsPage } from "../core/chat/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 
 class RecallHauntsParams extends Schema {
@@ -15,7 +15,7 @@ class RecallHauntsParams extends Schema {
   });
   id = Schema.Integer({
     optional: true,
-    description: "Haunt ID to read the full journal of. Required for 'read' action.",
+    description: "Haunt session ID to read the full journal of. Required for 'read' action.",
   });
   limit = Schema.Integer({
     optional: true,
@@ -31,7 +31,6 @@ export function createRecallHauntsTool(db: DatabaseHandle) {
       "'search' to find haunts by keyword, or 'read' to get the full journal " +
       "of a specific haunt by ID. Summaries are brief — use 'read' to dive " +
       "deeper into a specific haunt's thinking.",
-    // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new RecallHauntsParams() as any,
     execute: async ({ args }) => {
       const { action, query, id, limit } = args as {
@@ -44,13 +43,13 @@ export function createRecallHauntsTool(db: DatabaseHandle) {
       const effectiveLimit = limit ?? 10;
 
       if (action === "list") {
-        const summaries = listHaunts(db, effectiveLimit);
-        if (summaries.length === 0) return { haunts: [], note: "No previous haunts found." };
+        const sessions = listSessions(db, { purpose: "haunt", limit: effectiveLimit });
+        if (sessions.length === 0) return { haunts: [], note: "No previous haunts found." };
         return {
-          haunts: summaries.map((h) => ({
-            id: h.id,
-            summary: h.summary,
-            date: new Date(h.createdAt).toISOString(),
+          haunts: sessions.map((s) => ({
+            id: s.id,
+            summary: s.displayName ?? "(no summary)",
+            date: new Date(s.createdAt).toISOString(),
           })),
         };
       }
@@ -59,28 +58,38 @@ export function createRecallHauntsTool(db: DatabaseHandle) {
         if (!query || !query.trim()) {
           return { error: "Query is required for search action." };
         }
-        const results = searchHaunts(db, query.trim(), effectiveLimit);
-        if (results.length === 0) return { haunts: [], note: "No matching haunts found." };
+        const { sessions } = querySessionsPage(db, {
+          filter: { purpose: "haunt", search: query.trim() },
+          limit: effectiveLimit,
+        });
+        if (sessions.length === 0) return { haunts: [], note: "No matching haunts found." };
         return {
-          haunts: results.map((h) => ({
-            id: h.id,
-            summary: h.summary,
-            date: new Date(h.createdAt).toISOString(),
+          haunts: sessions.map((s) => ({
+            id: s.id,
+            summary: s.displayName ?? "(no summary)",
+            date: new Date(s.createdAt).toISOString(),
           })),
         };
       }
 
       if (action === "read") {
         if (!id || !Number.isInteger(id) || id <= 0) {
-          return { error: "A valid haunt ID is required for read action." };
+          return { error: "A valid haunt session ID is required for read action." };
         }
-        const haunt = getHaunt(db, id);
-        if (!haunt) return { error: `Haunt #${id} not found.` };
+        const session = getSession(db, id);
+        if (!session || session.purpose !== "haunt") {
+          return { error: `Haunt session #${id} not found.` };
+        }
+        const messages = getHistory(db, id);
+        const journal = messages
+          .filter((m) => m.role === "assistant")
+          .map((m) => m.content)
+          .join("\n\n---\n\n");
         return {
-          id: haunt.id,
-          journal: haunt.rawJournal,
-          summary: haunt.summary,
-          date: new Date(haunt.createdAt).toISOString(),
+          id: session.id,
+          journal: journal || "(empty)",
+          summary: session.displayName ?? "(no summary)",
+          date: new Date(session.createdAt).toISOString(),
         };
       }
 

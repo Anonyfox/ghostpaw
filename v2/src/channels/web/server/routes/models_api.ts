@@ -1,7 +1,8 @@
 import { detectProviderByModel, isProviderActive } from "chatoyant";
 import { getConfig, setConfig } from "../../../../core/config/index.ts";
-import { isProviderId, listProviders } from "../../../../core/models/index.ts";
+import { listSecrets } from "../../../../core/secrets/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
+import { isProviderId, listProviders } from "../../../../lib/models/index.ts";
 import type { ModelsResponse } from "../../shared/models_response.ts";
 import { readJsonBody } from "../body_parser.ts";
 import type { RouteContext } from "../types.ts";
@@ -29,7 +30,8 @@ export function createModelsApiHandlers(db: DatabaseHandle) {
 
       let providers = modelsCache.get();
       if (!providers) {
-        providers = await listProviders(db);
+        const configuredKeys = new Set(listSecrets(db));
+        providers = await listProviders({ currentModel, configuredKeys });
         modelsCache.set(providers);
       }
 

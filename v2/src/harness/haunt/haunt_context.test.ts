@@ -1,7 +1,6 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { createSession, initChatTables } from "../../core/chat/index.ts";
-import { initHauntTables, storeHaunt } from "../../core/haunt/index.ts";
+import { initChatTables } from "../../core/chat/index.ts";
 import { embedText, initMemoryTable, storeMemory } from "../../core/memory/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
@@ -16,7 +15,6 @@ beforeEach(async () => {
   initChatTables(db);
   initSoulsTables(db);
   initMemoryTable(db);
-  initHauntTables(db);
   ensureMandatorySouls(db);
 });
 
@@ -77,24 +75,6 @@ describe("assembleHauntContext", () => {
     ok(result.includes("Topics already well-covered"));
     ok(result.includes("memory"));
     ok(result.includes("Look elsewhere"));
-  });
-
-  it("does not include recent haunt summaries as context", () => {
-    const s = createSession(db, "haunt:ctx:1", { purpose: "haunt" });
-    storeHaunt(db, {
-      sessionId: s.id as number,
-      rawJournal: "full journal",
-      summary: "Explored testing patterns",
-    });
-
-    const analysis = makeAnalysis({
-      hauntCount: 1,
-      recentHaunts: [{ id: 1, summary: "Explored testing patterns", createdAt: Date.now() }],
-    });
-
-    const result = assembleHauntContext(db, "/tmp/test-workspace", analysis);
-    strictEqual(result.includes("## Recent Haunts"), false);
-    strictEqual(result.includes("Explored testing patterns"), false);
   });
 
   it("shows first haunt indicator when no previous haunts", () => {

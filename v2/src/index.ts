@@ -1,8 +1,12 @@
 import { resolve } from "node:path";
 import { defineCommand, runMain } from "citty";
-import { deleteOldDistilled, initChatTables, recoverOrphanedSessions } from "./core/chat/index.ts";
+import {
+  deleteOldDistilled,
+  initChatTables,
+  migrateHauntsToSessions,
+  recoverOrphanedSessions,
+} from "./core/chat/index.ts";
 import { initConfigTable } from "./core/config/index.ts";
-import { initHauntTables } from "./core/haunt/index.ts";
 import { initHowlTables } from "./core/howl/index.ts";
 import { initMemoryTable } from "./core/memory/index.ts";
 import { initPackTables } from "./core/pack/index.ts";
@@ -76,10 +80,10 @@ const main = defineCommand({
     initSecretsTable(db);
     initConfigTable(db);
     initChatTables(db);
+    migrateHauntsToSessions(db);
     initMemoryTable(db);
     initSoulsTables(db);
     initPackTables(db);
-    initHauntTables(db);
     initHowlTables(db);
     initQuestTables(db);
     recoverOrphanedSessions(db);

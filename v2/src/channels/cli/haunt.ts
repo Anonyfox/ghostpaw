@@ -30,7 +30,7 @@ export default defineCommand({
       }
 
       console.log();
-      console.log(style.cyan("summary"), result.haunt.summary);
+      console.log(style.cyan("summary"), result.summary);
       if (result.consolidation) {
         const tc = result.consolidation.toolCalls;
         const memOps = tc.remember + tc.revise + tc.forget;

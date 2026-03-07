@@ -1,8 +1,11 @@
-import type { HauntSummary } from "../../core/haunt/index.ts";
+import type { ChatSession } from "../../core/chat/index.ts";
 import type { Memory } from "../../core/memory/index.ts";
-import type { Quest, TemporalContext } from "../../core/quests/index.ts";
-import { getTemporalContext } from "../../core/quests/index.ts";
-import { rowToQuest } from "../../core/quests/row_to_quest.ts";
+import type { TemporalContext } from "../../core/quests/index.ts";
+import {
+  getTemporalContext,
+  recentlyCompletedQuests,
+  staleQuests,
+} from "../../core/quests/index.ts";
 import { MANDATORY_SOUL_IDS, renderSoul } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import type { HauntAnalysis, NoveltyInfo } from "./types.ts";
@@ -56,7 +59,7 @@ function formatPrivateFraming(): string {
 
 function formatEnvironment(
   workspace: string,
-  recentHaunts: HauntSummary[],
+  recentHaunts: ChatSession[],
   coveredTopics: string[],
 ): string {
   const now = new Date();
@@ -170,7 +173,7 @@ function formatQuestLandscape(db: DatabaseHandle, ctx: TemporalContext): string 
     }
   }
 
-  const stale = queryStaleQuests(db);
+  const stale = staleQuests(db);
   if (stale.length > 0) {
     lines.push(`**Stale (no update in 7+ days):**`);
     for (const q of stale) {
@@ -179,7 +182,8 @@ function formatQuestLandscape(db: DatabaseHandle, ctx: TemporalContext): string 
     }
   }
 
-  const recentlyDone = queryRecentlyCompleted(db);
+  const twoDaysAgo = Date.now() - 2 * 24 * 60 * 60 * 1000;
+  const recentlyDone = recentlyCompletedQuests(db, twoDaysAgo);
   if (recentlyDone.length > 0) {
     lines.push(`**Completed recently:**`);
     for (const q of recentlyDone) {
@@ -189,34 +193,6 @@ function formatQuestLandscape(db: DatabaseHandle, ctx: TemporalContext): string 
 
   if (lines.length === 0) return null;
   return `## Quest Landscape\n\n${lines.join("\n")}`;
-}
-
-function queryStaleQuests(db: DatabaseHandle): Quest[] {
-  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  try {
-    const rows = db
-      .prepare(
-        `SELECT * FROM quests WHERE status = 'active' AND updated_at < ? ORDER BY updated_at ASC LIMIT 5`,
-      )
-      .all(sevenDaysAgo) as Record<string, unknown>[];
-    return rows.map(rowToQuest);
-  } catch {
-    return [];
-  }
-}
-
-function queryRecentlyCompleted(db: DatabaseHandle): Quest[] {
-  const twoDaysAgo = Date.now() - 2 * 24 * 60 * 60 * 1000;
-  try {
-    const rows = db
-      .prepare(
-        `SELECT * FROM quests WHERE status = 'done' AND completed_at >= ? ORDER BY completed_at DESC LIMIT 5`,
-      )
-      .all(twoDaysAgo) as Record<string, unknown>[];
-    return rows.map(rowToQuest);
-  } catch {
-    return [];
-  }
 }
 
 function formatQuestElapsed(ms: number): string {

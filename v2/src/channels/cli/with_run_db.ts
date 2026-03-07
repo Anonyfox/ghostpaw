@@ -1,7 +1,10 @@
 import { resolve } from "node:path";
-import { initChatTables, recoverOrphanedSessions } from "../../core/chat/index.ts";
+import {
+  initChatTables,
+  migrateHauntsToSessions,
+  recoverOrphanedSessions,
+} from "../../core/chat/index.ts";
 import { initConfigTable } from "../../core/config/index.ts";
-import { initHauntTables } from "../../core/haunt/index.ts";
 import { initHowlTables } from "../../core/howl/index.ts";
 import { initMemoryTable } from "../../core/memory/index.ts";
 import { initPackTables } from "../../core/pack/index.ts";
@@ -21,10 +24,10 @@ export async function withRunDb<T>(fn: (db: DatabaseHandle) => T | Promise<T>): 
   initSecretsTable(db);
   initConfigTable(db);
   initChatTables(db);
+  migrateHauntsToSessions(db);
   initMemoryTable(db);
   initSoulsTables(db);
   initPackTables(db);
-  initHauntTables(db);
   initHowlTables(db);
   initQuestTables(db);
   recoverOrphanedSessions(db);

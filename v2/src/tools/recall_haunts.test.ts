@@ -1,10 +1,31 @@
-import { deepStrictEqual, ok, strictEqual } from "node:assert";
+import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { createSession, initChatTables } from "../core/chat/index.ts";
-import { initHauntTables, storeHaunt } from "../core/haunt/index.ts";
+import { addMessage, createSession, initChatTables, renameSession } from "../core/chat/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
 import { createRecallHauntsTool } from "./recall_haunts.ts";
+
+interface HauntSummary {
+  id: number;
+  summary: string;
+  date: string;
+}
+
+interface HauntListResult {
+  haunts: HauntSummary[];
+  note?: string;
+}
+
+interface HauntReadResult {
+  id: number;
+  journal: string;
+  summary: string;
+  date: string;
+}
+
+interface ErrorResult {
+  error: string;
+}
 
 let db: DatabaseHandle;
 let execute: (args: Record<string, unknown>) => Promise<unknown>;
@@ -12,7 +33,6 @@ let execute: (args: Record<string, unknown>) => Promise<unknown>;
 beforeEach(async () => {
   db = await openTestDatabase();
   initChatTables(db);
-  initHauntTables(db);
   const tool = createRecallHauntsTool(db);
   execute = (args) => tool.execute({ args } as never);
 });
@@ -21,70 +41,61 @@ afterEach(() => {
   db.close();
 });
 
+function createHauntSession(summary: string, journal: string): number {
+  const s = createSession(db, `haunt:test:${Date.now()}:${Math.random()}`, { purpose: "haunt" });
+  const id = s.id as number;
+  renameSession(db, id, summary);
+  addMessage(db, { sessionId: id, role: "assistant", content: journal });
+  return id;
+}
+
 describe("recall_haunts tool", () => {
   it("list returns empty when no haunts exist", async () => {
-    const result = (await execute({ action: "list" })) as Record<string, unknown>;
-    deepStrictEqual(result.haunts, []);
-    ok(result.note);
+    const result = (await execute({ action: "list" })) as HauntListResult;
+    ok(result.haunts);
+    strictEqual(result.haunts.length, 0);
   });
 
   it("list returns recent haunt summaries", async () => {
-    const s = createSession(db, "haunt:tool:1", { purpose: "haunt" });
-    storeHaunt(db, {
-      sessionId: s.id as number,
-      rawJournal: "full private thoughts",
-      summary: "thought about testing",
-    });
+    createHauntSession("Explored MCP", "I looked at MCP servers...");
+    createHauntSession("Reviewed memory", "Memory system analysis...");
 
-    const result = (await execute({ action: "list" })) as {
-      haunts: { id: number; summary: string; date: string }[];
-    };
-    strictEqual(result.haunts.length, 1);
-    strictEqual(result.haunts[0].summary, "thought about testing");
-    ok(result.haunts[0].date);
+    const result = (await execute({ action: "list" })) as HauntListResult;
+    strictEqual(result.haunts.length, 2);
+    ok(result.haunts.some((h) => h.summary === "Explored MCP"));
+    ok(result.haunts.some((h) => h.summary === "Reviewed memory"));
   });
 
-  it("search finds haunts by keyword", async () => {
-    const s1 = createSession(db, "haunt:tool:s1", { purpose: "haunt" });
-    const s2 = createSession(db, "haunt:tool:s2", { purpose: "haunt" });
-    storeHaunt(db, { sessionId: s1.id as number, rawJournal: "j", summary: "deployment review" });
-    storeHaunt(db, { sessionId: s2.id as number, rawJournal: "j", summary: "memory patterns" });
+  it("search finds haunts by keyword in display_name", async () => {
+    createHauntSession("Explored MCP protocols", "MCP exploration...");
+    createHauntSession("Reviewed memory system", "Memory review...");
 
-    const result = (await execute({ action: "search", query: "deployment" })) as {
-      haunts: { id: number; summary: string }[];
-    };
+    const result = (await execute({ action: "search", query: "MCP" })) as HauntListResult;
     strictEqual(result.haunts.length, 1);
-    strictEqual(result.haunts[0].summary, "deployment review");
+    ok(result.haunts[0].summary.includes("MCP"));
   });
 
-  it("search requires a query", async () => {
-    const result = (await execute({ action: "search" })) as { error: string };
+  it("search returns error for empty query", async () => {
+    const result = (await execute({ action: "search", query: "" })) as ErrorResult;
     ok(result.error);
   });
 
-  it("read returns full journal by id", async () => {
-    const s = createSession(db, "haunt:tool:r1", { purpose: "haunt" });
-    const haunt = storeHaunt(db, {
-      sessionId: s.id as number,
-      rawJournal: "deep private reflection about architecture",
-      summary: "architecture review",
-    });
+  it("read returns the full journal from session messages", async () => {
+    const id = createHauntSession("Explored MCP", "The full journal content here.");
 
-    const result = (await execute({ action: "read", id: haunt.id })) as {
-      journal: string;
-      summary: string;
-    };
-    strictEqual(result.journal, "deep private reflection about architecture");
-    strictEqual(result.summary, "architecture review");
+    const result = (await execute({ action: "read", id })) as HauntReadResult;
+    strictEqual(result.id, id);
+    ok(result.journal.includes("The full journal content here."));
+    strictEqual(result.summary, "Explored MCP");
   });
 
-  it("read returns error for nonexistent id", async () => {
-    const result = (await execute({ action: "read", id: 999 })) as { error: string };
+  it("read returns error for non-existent haunt", async () => {
+    const result = (await execute({ action: "read", id: 9999 })) as ErrorResult;
     ok(result.error);
   });
 
-  it("read requires a valid id", async () => {
-    const result = (await execute({ action: "read" })) as { error: string };
+  it("read returns error for invalid id", async () => {
+    const result = (await execute({ action: "read", id: -1 })) as ErrorResult;
     ok(result.error);
   });
 });

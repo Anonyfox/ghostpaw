@@ -20,7 +20,7 @@ Five layers, strictly ordered. Each layer may depend on layers below it. Never a
 
 **Dependency rules:**
 
-- `lib/` depends on nothing except `node:` built-ins.
+- `lib/` depends on `node:` built-ins and bundled npm dependencies (`chatoyant`, `marked`, etc.). These are foundational packages the project vendors — not arbitrary third-party code. No database access.
 - `core/` depends on `lib/`. Never on tools, harness, or channels. Core modules never make discretionary LLM calls — `core/chat` executes the mechanical turn pipeline it's given, but all semantic judgment (summarization, title generation, classification) lives in the harness as oneshots.
 - `tools/` depends on `core/` and `lib/`. Never on harness or channels. When a tool needs a capability that lives above it (e.g. delegation), the harness injects a callback at wiring time.
 - `harness/` depends on `core/`, `tools/`, and `lib/`. Never on channels. The harness is the ghost in operational form — it composes core modules, registers tools, assembles context, and provides the entity that channels drive.

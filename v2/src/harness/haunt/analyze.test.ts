@@ -1,7 +1,7 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { createSession, initChatTables } from "../../core/chat/index.ts";
-import { initHauntTables, storeHaunt } from "../../core/haunt/index.ts";
+import type { ChatSession } from "../../core/chat/index.ts";
+import { createSession, initChatTables, renameSession } from "../../core/chat/index.ts";
 import { embedText, initMemoryTable, storeMemory } from "../../core/memory/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
@@ -20,7 +20,6 @@ beforeEach(async () => {
   initChatTables(db);
   initSoulsTables(db);
   initMemoryTable(db);
-  initHauntTables(db);
   ensureMandatorySouls(db);
 });
 
@@ -28,23 +27,25 @@ afterEach(() => {
   db.close();
 });
 
+function makeHauntSession(displayName: string): ChatSession {
+  const s = createSession(db, `haunt:test:${Date.now()}:${Math.random()}`, { purpose: "haunt" });
+  renameSession(db, s.id as number, displayName);
+  return { ...s, displayName } as ChatSession;
+}
+
 describe("detectTopicCluster", () => {
   it("returns null for fewer than 3 haunts", () => {
     strictEqual(detectTopicCluster([]), null);
-    strictEqual(
-      detectTopicCluster([
-        { id: 1, summary: "Explored MCP tools", createdAt: Date.now() },
-        { id: 2, summary: "Built MCP server", createdAt: Date.now() },
-      ]),
-      null,
-    );
+    const s1 = makeHauntSession("Explored MCP tools");
+    const s2 = makeHauntSession("Built MCP server");
+    strictEqual(detectTopicCluster([s1, s2]), null);
   });
 
   it("detects cluster when 3+ summaries share a word", () => {
     const haunts = [
-      { id: 1, summary: "Explored MCP tools and protocols", createdAt: Date.now() },
-      { id: 2, summary: "Built MCP server integration", createdAt: Date.now() },
-      { id: 3, summary: "Tested MCP connection caching", createdAt: Date.now() },
+      makeHauntSession("Explored MCP tools and protocols"),
+      makeHauntSession("Built MCP server integration"),
+      makeHauntSession("Tested MCP connection caching"),
     ];
     const cluster = detectTopicCluster(haunts);
     ok(cluster !== null);
@@ -52,18 +53,18 @@ describe("detectTopicCluster", () => {
 
   it("returns null when summaries are diverse", () => {
     const haunts = [
-      { id: 1, summary: "Explored deployment pipeline", createdAt: Date.now() },
-      { id: 2, summary: "Researched quantum computing", createdAt: Date.now() },
-      { id: 3, summary: "Wrote haiku about silence", createdAt: Date.now() },
+      makeHauntSession("Explored deployment pipeline"),
+      makeHauntSession("Researched quantum computing"),
+      makeHauntSession("Wrote haiku about silence"),
     ];
     strictEqual(detectTopicCluster(haunts), null);
   });
 
   it("filters out stopwords", () => {
     const haunts = [
-      { id: 1, summary: "Explored this and that", createdAt: Date.now() },
-      { id: 2, summary: "Found this from there", createdAt: Date.now() },
-      { id: 3, summary: "About this through that", createdAt: Date.now() },
+      makeHauntSession("Explored this and that"),
+      makeHauntSession("Found this from there"),
+      makeHauntSession("About this through that"),
     ];
     strictEqual(detectTopicCluster(haunts), null);
   });
@@ -76,9 +77,9 @@ describe("extractCoveredTopics", () => {
 
   it("extracts topics appearing in 2+ summaries", () => {
     const haunts = [
-      { id: 1, summary: "Audited memory system and tooling", createdAt: Date.now() },
-      { id: 2, summary: "Reviewed memory management patterns", createdAt: Date.now() },
-      { id: 3, summary: "Explored workspace layout and configs", createdAt: Date.now() },
+      makeHauntSession("Audited memory system and tooling"),
+      makeHauntSession("Reviewed memory management patterns"),
+      makeHauntSession("Explored workspace layout and configs"),
     ];
     const topics = extractCoveredTopics(haunts);
     ok(topics.includes("memory"));
@@ -86,8 +87,8 @@ describe("extractCoveredTopics", () => {
 
   it("limits to maxTopics", () => {
     const haunts = [
-      { id: 1, summary: "alpha beta gamma delta epsilon", createdAt: Date.now() },
-      { id: 2, summary: "alpha beta gamma delta epsilon", createdAt: Date.now() },
+      makeHauntSession("alpha beta gamma delta epsilon"),
+      makeHauntSession("alpha beta gamma delta epsilon"),
     ];
     const topics = extractCoveredTopics(haunts, 2);
     ok(topics.length <= 2);
@@ -133,22 +134,6 @@ describe("sampleAntiRecencyMemories", () => {
     const result = sampleAntiRecencyMemories(db, "mcp");
     ok(result.length >= 1);
   });
-
-  it("excludes previously seeded memory IDs", () => {
-    const m1 = storeMemory(db, "First memory", embedText("first"), {
-      category: "fact",
-      confidence: 0.8,
-    });
-    const _m2 = storeMemory(db, "Second memory", embedText("second"), {
-      category: "fact",
-      confidence: 0.8,
-    });
-
-    const excluded = new Set([m1.id]);
-    const result = sampleAntiRecencyMemories(db, null, excluded);
-    const hasExcluded = result.some((m) => m.id === m1.id);
-    strictEqual(hasExcluded, false);
-  });
 });
 
 describe("analyzeHauntContext", () => {
@@ -177,11 +162,7 @@ describe("analyzeHauntContext", () => {
 
   it("novelty detects new memories since last haunt", () => {
     const s = createSession(db, "haunt:nov:1", { purpose: "haunt" });
-    storeHaunt(db, {
-      sessionId: s.id as number,
-      rawJournal: "old journal",
-      summary: "Old session",
-    });
+    renameSession(db, s.id as number, "Old session");
 
     storeMemory(db, "Brand new insight", embedText("new insight"), {
       category: "fact",

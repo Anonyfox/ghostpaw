@@ -38,6 +38,7 @@ export { listDistillableSessionIds } from "./list_distillable_session_ids.ts";
 export { listSessions } from "./list_sessions.ts";
 export { markDistilled } from "./mark_distilled.ts";
 export { markMessagesDistilled } from "./mark_messages_distilled.ts";
+export { migrateHauntsToSessions } from "./migrate_haunts.ts";
 export { persistToolMessages } from "./persist_tool_messages.ts";
 export { pruneEmptySessions } from "./prune_empty_sessions.ts";
 export type {

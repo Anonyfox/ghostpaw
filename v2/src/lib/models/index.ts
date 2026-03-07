@@ -1,4 +1,5 @@
 export { fetchProviderModels } from "./fetch_provider_models.ts";
+export type { ListProvidersParams } from "./list_providers.ts";
 export { listProviders } from "./list_providers.ts";
 export type {
   FetchResult,

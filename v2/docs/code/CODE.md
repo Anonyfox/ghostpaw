@@ -192,7 +192,15 @@ These apply to every `core/` module that owns tables.
 
 **Spike → Discard → TDD.** When the right interface isn't clear, spike freely to learn. Then delete the spike. Write tests for the interface you discovered. Implement against the tests. The spike was research; the tests are the deliverable.
 
-**Verify after every change.** Build, typecheck, test. All green before moving on. Broken windows compound — never leave one.
+**Verify after every change.** Build, typecheck, test. All green before moving on. Broken windows compound — never leave one. The commands live in `package.json`:
+
+```
+npm run check      # biome lint + tsc --noEmit
+npm test           # full test suite (uses tsx-loader, dot reporter)
+npm run build      # esbuild → dist/ghostpaw.mjs
+```
+
+Always use `npm test` — never raw `node --test`. The test script configures the tsx-loader for `.tsx` support and uses the dot reporter for concise output. `npm run check` combines linting and type checking in one pass.
 
 **Small commits, clear messages.** Each commit is one coherent change. The message says what changed and why. Not "WIP" or "fixes."
 
