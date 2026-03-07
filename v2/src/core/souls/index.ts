@@ -12,6 +12,7 @@ export type {
   TraitSnapshot,
 } from "./gather_evidence.ts";
 export { gatherSoulEvidence } from "./gather_evidence.ts";
+export type { CostTrend, TraitFitness, WindowedStats } from "./query_fitness_signals.ts";
 export { getActiveSoul } from "./get_active_soul.ts";
 export { getLevelHistory } from "./get_level_history.ts";
 export { getSoul } from "./get_soul.ts";

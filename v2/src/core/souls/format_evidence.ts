@@ -1,4 +1,14 @@
-import type { SoulEvidence } from "./gather_evidence.ts";
+import type { DelegationStats, SoulEvidence } from "./gather_evidence.ts";
+
+function formatSuccessRate(s: DelegationStats): string {
+  if (s.total === 0) return "no data";
+  return `${((s.completed / s.total) * 100).toFixed(1)}% (${s.total} runs)`;
+}
+
+function formatAvgCost(s: DelegationStats): string {
+  if (s.total === 0) return "—";
+  return `$${s.avgCostUsd.toFixed(4)}`;
+}
 
 export function formatSoulEvidence(evidence: SoulEvidence): string {
   const lines: string[] = [];
@@ -36,6 +46,49 @@ export function formatSoulEvidence(evidence: SoulEvidence): string {
     lines.push(`- **Avg cost/run:** $${ds.avgCostUsd.toFixed(4)}`);
     lines.push(
       `- **Total tokens:** ${ds.totalTokensIn + ds.totalTokensOut} (${ds.totalTokensIn} in, ${ds.totalTokensOut} out)`,
+    );
+  }
+
+  lines.push("");
+  lines.push("## Recent Performance");
+  if (evidence.windowedStats.length === 0) {
+    lines.push("No windowed stats available.");
+  } else {
+    lines.push("| Window | Success Rate | Avg Cost | Runs |");
+    lines.push("|--------|-------------|----------|------|");
+    for (const w of evidence.windowedStats) {
+      const s = w.stats;
+      lines.push(`| ${w.window} | ${formatSuccessRate(s)} | ${formatAvgCost(s)} | ${s.total} |`);
+    }
+    lines.push(`| all-time | ${formatSuccessRate(ds)} | ${formatAvgCost(ds)} | ${ds.total} |`);
+  }
+
+  lines.push("");
+  lines.push("## Trait Effectiveness");
+  if (evidence.traitFitness.length === 0) {
+    lines.push("No active traits to evaluate.");
+  } else {
+    for (const f of evidence.traitFitness) {
+      const s = f.statsSinceAdded;
+      const since = new Date(f.addedAt).toISOString().slice(0, 10);
+      lines.push(`- **[#${f.traitId}]** ${f.principle}`);
+      if (s.total === 0) {
+        lines.push(`  Since ${since}: no delegations yet`);
+      } else {
+        lines.push(`  Since ${since}: ${formatSuccessRate(s)}, avg cost ${formatAvgCost(s)}`);
+      }
+    }
+  }
+
+  lines.push("");
+  lines.push("## Cost Trend");
+  const ct = evidence.costTrend;
+  if (ct.recent7d === 0 && ct.previous7d === 0) {
+    lines.push("No delegation cost data in the last 14 days.");
+  } else {
+    lines.push(
+      `Avg cost/delegation: $${ct.recent7d.toFixed(4)} (last 7d) vs ` +
+        `$${ct.previous7d.toFixed(4)} (previous 7d) — **${ct.direction}**`,
     );
   }
 

@@ -7,6 +7,7 @@ import type { DatabaseHandle } from "../lib/index.ts";
 import { createBashTool } from "../tools/bash.ts";
 import { createCalcTool } from "../tools/calc.ts";
 import { createCheckRunTool } from "../tools/check_run.ts";
+import { createCostCheckTool, createCostSummaryTool } from "../tools/cost/index.ts";
 import {
   createGetConfigTool,
   createListConfigTool,
@@ -91,6 +92,8 @@ export function createChamberlainTools(db: DatabaseHandle): Tool[] {
     ...createScheduleTools(db),
     createCalcTool(),
     createDatetimeTool(),
+    createCostSummaryTool(db),
+    createCostCheckTool(db),
   ];
 }
 

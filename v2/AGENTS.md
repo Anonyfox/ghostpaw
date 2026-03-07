@@ -67,7 +67,7 @@ The entity composition layer. `createEntity` wires core modules into a working a
 
 **Warden (23 tools):** memory (recall, remember, revise, forget), pack (pack_sense, pack_meet, pack_bond, pack_note, contact_add, contact_remove, contact_list, contact_lookup, pack_merge), quests (quest_create, quest_update, quest_done, quest_list, quest_accept, quest_dismiss, questlog_create, questlog_list), datetime, recall_haunts. No filesystem, web, or delegation.
 
-**Chamberlain (14 tools):** config (get, list, set, undo, reset), secrets (list, set, remove), schedule (list, create, update, delete), calc, datetime. No filesystem, web, or delegation.
+**Chamberlain (16 tools):** config (get, list, set, undo, reset), secrets (list, set, remove), schedule (list, create, update, delete), costs (cost_summary, cost_check), calc, datetime. No filesystem, web, or delegation.
 
 **Mentor (shared + 7):** shared tools + review_soul, propose_trait, revise_trait, revert_trait, reactivate_trait, execute_level_up, revert_level_up.
 
@@ -94,9 +94,8 @@ The entity composition layer. `createEntity` wires core modules into a working a
 ## What's NOT Built
 
 - **Haunt auto-tuning** — Haunt scheduling exists (builtin schedule, disabled by default) but there is no adaptive interval or idle detection. The agent or user enables and tunes the interval manually.
-- **Cost tools (chamberlain)** — `cost_summary` and `cost_check` tool wrappers for the chamberlain don't exist yet. The underlying query functions are in `core/chat/`.
 - **Pawprints** — No discovery-by-presence tooling, no territory map. The convention (`.pawprint.md` files) is defined but no code supports it.
-- **Fitness evaluation** — No automated evidence-based fitness signals for soul refinement. Refinement is CLI-triggered.
+- **Fitness evaluation** — Temporal evidence signals exist (windowed delegation stats, per-trait effectiveness, cost trends) but refinement is manually triggered (CLI, web, or scheduled runs). No automated fitness-triggered refinement.
 - **Cross-soul pattern detection** — No migration between soul islands.
 
 ## Architecture

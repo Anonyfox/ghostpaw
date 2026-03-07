@@ -97,12 +97,18 @@ const TRAINER_TOOL_NAMES = [
 
 const EXPECTED_CHAMBERLAIN_TOOLS = [
   "calc",
+  "cost_check",
+  "cost_summary",
   "datetime",
   "get_config",
   "list_config",
   "list_secrets",
   "remove_secret",
   "reset_config",
+  "schedule_create",
+  "schedule_delete",
+  "schedule_list",
+  "schedule_update",
   "set_config",
   "set_secret",
   "undo_config",

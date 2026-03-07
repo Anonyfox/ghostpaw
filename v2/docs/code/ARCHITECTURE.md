@@ -46,6 +46,7 @@ Features include (not exhaustive — grows as the system grows):
 - **pack/** — social bonds, contacts, identity resolution, member merging, Theory of Mind.
 - **quests/** — unified task/event/calendar system, temporal awareness, quest board, FTS5 search.
 - **howl/** — proactive outreach — routing metadata, origin tracking, delivery lifecycle.
+- **schedule/** — job scheduling with CAS-based at-most-once locking, builtin + custom schedules, interval management.
 - **skills/** — skill storage, craft/train/scout pipeline, default skills (as .ts files).
 
 Modules that moved out of `core/`: `models/` → `lib/models/` (stateless provider registry), `service/` → `lib/service/` (OS-level daemon install), `cost/` eliminated (queries in `chat/`, pure computation in `lib/cost/`), `runs/` eliminated (merged into `chat/` sessions), `haunt/` eliminated (sessions with `purpose = 'haunt'`).
@@ -170,7 +171,7 @@ One SQLite file: `ghostpaw.db`. One connection. Managed in two layers:
 
 **`lib/` provides the connection.** A generic database module that opens the file, sets sane pragmas (WAL mode, foreign keys, journal size, synchronous mode), and exposes the connection handle. This module knows nothing about tables, features, or domain logic. It's pure infrastructure.
 
-**Each feature owns its tables.** `core/chat/` creates and queries the `sessions` and `messages` tables (including cost aggregation queries). `core/memory/` creates and queries the `memories` table. `core/pack/` owns `pack_members`, `pack_interactions`, and `pack_contacts`. Schema creation, queries, migrations — all live inside the feature folder. No ORM, no query builder, no abstraction layer. Hand-tuned SQL, unit-tested.
+**Each feature owns its tables.** `core/chat/` creates and queries the `sessions` and `messages` tables (including cost aggregation queries). `core/memory/` creates and queries the `memories` table. `core/pack/` owns `pack_members`, `pack_interactions`, and `pack_contacts`. `core/schedule/` owns the `schedules` table. Schema creation, queries, migrations — all live inside the feature folder. No ORM, no query builder, no abstraction layer. Hand-tuned SQL, unit-tested.
 
 **SQL lives in core, nowhere else.** SQL statements (`.prepare()`, `.exec()`, raw `SELECT`/`INSERT`/`UPDATE`/`DELETE`) may only exist inside `core/` and `lib/`. Layers above core access data exclusively through the public API exported from each core module's `index.ts`. Raw SQL in channels, harness, or tools is a boundary violation equivalent to importing internal files. When a layer above core needs data that isn't exposed, the correct response is to add a function to the owning core module — never to write SQL in the caller.
 

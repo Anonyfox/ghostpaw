@@ -3,6 +3,8 @@ import { countActiveTraits } from "./count_active_traits.ts";
 import { getLevelHistory } from "./get_level_history.ts";
 import { getSoulByName } from "./get_soul_by_name.ts";
 import { listTraits } from "./list_traits.ts";
+import type { CostTrend, TraitFitness, WindowedStats } from "./query_fitness_signals.ts";
+import { queryCostTrend, queryTraitFitness, queryWindowedStats } from "./query_fitness_signals.ts";
 import { getTraitLimit } from "./trait_limit.ts";
 
 export interface DelegationStats {
@@ -43,6 +45,9 @@ export interface SoulEvidence {
   traitLimit: number;
   atCapacity: boolean;
   delegationStats: DelegationStats;
+  windowedStats: WindowedStats[];
+  traitFitness: TraitFitness[];
+  costTrend: CostTrend;
   activeTraits: TraitSnapshot[];
   revertedTraits: TraitSnapshot[];
   consolidatedTraits: TraitSnapshot[];
@@ -133,6 +138,9 @@ export function gatherSoulEvidence(db: DatabaseHandle, soulName: string): SoulEv
     traitsMergedCount: l.traitsMerged.length,
   }));
 
+  const lastTraitChangeAt =
+    activeTraits.length > 0 ? Math.max(...activeTraits.map((t) => t.createdAt)) : null;
+
   return {
     soulId,
     soulName: soul.name,
@@ -143,6 +151,9 @@ export function gatherSoulEvidence(db: DatabaseHandle, soulName: string): SoulEv
     traitLimit,
     atCapacity: activeCount >= traitLimit,
     delegationStats: queryDelegationStats(db, soulId),
+    windowedStats: queryWindowedStats(db, soulId, lastTraitChangeAt),
+    traitFitness: queryTraitFitness(db, soulId, activeTraits),
+    costTrend: queryCostTrend(db, soulId),
     activeTraits,
     revertedTraits,
     consolidatedTraits,
