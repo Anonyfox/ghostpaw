@@ -1,4 +1,13 @@
-import { memoryCategoryCounts, oldestMemory, staleMemories } from "../../core/memory/index.ts";
+import type { Memory } from "../../core/memory/index.ts";
+import {
+  fadingMemories,
+  heavilyRevisedMemories,
+  memoryCategoryCounts,
+  memoryHealth,
+  oldestMemory,
+  staleMemories,
+} from "../../core/memory/index.ts";
+import { sensePack } from "../../core/pack/index.ts";
 import {
   countQuestsByStatus,
   dueSoonQuests,
@@ -128,6 +137,11 @@ function buildDynamicSeeds(
     }
   }
 
+  const exploitSeeds = buildExploitationSeeds(db, stale);
+  for (const es of exploitSeeds) {
+    seeds.push(es);
+  }
+
   const questSeeds = buildQuestSeeds(db);
   for (const qs of questSeeds) {
     seeds.push(qs);
@@ -205,6 +219,100 @@ function detectCategoryImbalance(db: DatabaseHandle): ImbalanceResult | null {
     return { dominant, sparse };
   }
   return null;
+}
+
+function buildExploitationSeeds(db: DatabaseHandle, staleMemorySample: Memory[]): SeedCandidate[] {
+  const seeds: SeedCandidate[] = [];
+
+  try {
+    const fading = fadingMemories(db, 1);
+    if (fading.length > 0) {
+      const claim = truncateClaim(fading[0].claim);
+      seeds.push({
+        text: `A belief is about to fade: "${claim}". Worth reinforcing or letting go?`,
+        weight: 2.5,
+      });
+    }
+  } catch {
+    // Config table may not exist yet
+  }
+
+  try {
+    const revised = heavilyRevisedMemories(db, 1);
+    if (revised.length > 0) {
+      seeds.push({
+        text: `You've revised "${truncateClaim(revised[0].claim)}" ${revised[0].revisionDepth} times. Still settling or genuinely ambiguous?`,
+        weight: 2,
+      });
+    }
+  } catch {
+    // Empty
+  }
+
+  try {
+    const sevenDaysAgo = Date.now() - 7 * 86_400_000;
+    const unconfirmed = db
+      .prepare(
+        `SELECT claim FROM memories
+         WHERE superseded_by IS NULL
+           AND source = 'explicit' AND evidence_count = 1
+           AND verified_at < ?
+         ORDER BY RANDOM() LIMIT 1`,
+      )
+      .get(sevenDaysAgo) as { claim: string } | undefined;
+    if (unconfirmed) {
+      seeds.push({
+        text: `You were told "${truncateClaim(unconfirmed.claim)}" once but never encountered it again. Still accurate?`,
+        weight: 1.5,
+      });
+    }
+  } catch {
+    // Empty
+  }
+
+  try {
+    const health = memoryHealth(db);
+    for (const [cat, count] of Object.entries(health.byCategory)) {
+      if (count <= 3) continue;
+      const catMemories = db
+        .prepare(
+          `SELECT AVG(confidence) AS avg_conf FROM memories
+           WHERE superseded_by IS NULL AND category = ?`,
+        )
+        .get(cat) as { avg_conf: number } | undefined;
+      if (catMemories && catMemories.avg_conf < 0.5) {
+        seeds.push({
+          text: `Most of what you know about ${cat} is inferred, not confirmed. What would make it solid?`,
+          weight: 2,
+        });
+        break;
+      }
+    }
+  } catch {
+    // Empty
+  }
+
+  try {
+    const packMembers = sensePack(db);
+    if (packMembers.length > 0 && staleMemorySample.length > 0) {
+      const names = packMembers.map((m) => m.name.toLowerCase());
+      for (const mem of staleMemorySample) {
+        const lower = mem.claim.toLowerCase();
+        const matched = packMembers.find((_, i) => lower.includes(names[i]));
+        if (matched) {
+          seeds.push({
+            text: `Memory "${truncateClaim(mem.claim)}" mentions ${matched.name}, who's in your pack. How does this connect?`,
+            weight: 2.5,
+          });
+          break;
+        }
+      }
+    }
+  } catch {
+    // Pack tables may not exist yet
+  }
+
+  return seeds;
 }
 
 function truncateClaim(claim: string, maxLen = 80): string {

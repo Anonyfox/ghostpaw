@@ -1,6 +1,7 @@
 export { confirmMemory } from "./confirm_memory.ts";
 export { countMemories } from "./count_memories.ts";
 export { embedText } from "./embed_text.ts";
+export { fadingMemories } from "./fading_memories.ts";
 export { formatConversation } from "./format_conversation.ts";
 export { ftsSearch } from "./fts_search.ts";
 export { getMemory } from "./get_memory.ts";
@@ -9,6 +10,10 @@ export { memoriesRevisedSince } from "./memories_revised_since.ts";
 export { memoriesSince } from "./memories_since.ts";
 export type { CategoryCount } from "./memory_category_counts.ts";
 export { memoryCategoryCounts } from "./memory_category_counts.ts";
+export type { MemoryHealth } from "./memory_health.ts";
+export { memoryHealth } from "./memory_health.ts";
+export type { RevisedMemory } from "./memory_revision_chain.ts";
+export { heavilyRevisedMemories, memoryRevisionChain } from "./memory_revision_chain.ts";
 export { oldestMemory } from "./oldest_memory.ts";
 export type { RandomMemoriesOptions } from "./random_memories.ts";
 export { randomMemories } from "./random_memories.ts";

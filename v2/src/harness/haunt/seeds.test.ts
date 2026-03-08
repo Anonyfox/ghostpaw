@@ -1,7 +1,13 @@
 import { ok } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initChatTables } from "../../core/chat/index.ts";
-import { embedText, initMemoryTable, storeMemory } from "../../core/memory/index.ts";
+import { initConfigTable } from "../../core/config/index.ts";
+import {
+  embedText,
+  initMemoryTable,
+  storeMemory,
+  supersedeMemories,
+} from "../../core/memory/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
@@ -14,6 +20,7 @@ beforeEach(async () => {
   initChatTables(db);
   initSoulsTables(db);
   initMemoryTable(db);
+  initConfigTable(db);
   ensureMandatorySouls(db);
 });
 
@@ -63,5 +70,20 @@ describe("selectSeed", () => {
     }
     const hasClusterRef = seeds.some((s) => s.includes("deployment"));
     ok(hasClusterRef, "Expected at least one seed referencing the cluster topic");
+  });
+
+  it("produces heavily-revised seeds when revision chains exist", () => {
+    const m1 = storeMemory(db, "Old belief alpha", embedText("alpha"));
+    const m2 = storeMemory(db, "Old belief beta", embedText("beta"));
+    const m3 = storeMemory(db, "Current belief gamma", embedText("gamma"));
+    supersedeMemories(db, [m1.id], m3.id);
+    supersedeMemories(db, [m2.id], m3.id);
+
+    const seeds = new Set<string>();
+    for (let i = 0; i < 100; i++) {
+      seeds.add(selectSeed(db, null));
+    }
+    const hasRevised = [...seeds].some((s) => s.includes("revised"));
+    ok(hasRevised, "Expected at least one seed about revised beliefs");
   });
 });

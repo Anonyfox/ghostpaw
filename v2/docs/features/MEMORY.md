@@ -113,6 +113,18 @@ The [warden](SOULS.md#persistence-and-infrastructure-souls) is the sole operator
 
 **Month 6.** A well-maintained ghost holds a structured model of its human's world — not a flat list of facts, but a ranked belief system where every claim carries earned certainty. Memory feeds haunting. Haunting feeds memory. Pack bonds cross-reference individual beliefs into relational understanding. Accumulated beliefs shape the ghost's behavior — [research on memory persistence in autonomous agents](https://www.agentxiv.org/paper/2602.00010) shows this creates path-dependent identity formation, where the quality of early interactions compounds into long-term trajectory. The ghost doesn't just know more. It knows *better*. [MEM1](https://openreview.net/forum?id=XY8AaxDSLb) demonstrates the compound effect: consolidated memory state yields 3.5× performance improvement with 3.7× less memory usage compared to raw accumulation. [BREW](https://arxiv.org/abs/2511.20297) confirms: structured environmental knowledge improves precision 10–20% and reduces API calls 10–15%.
 
+## Intelligent Maintenance
+
+The metadata accumulated across those months — confidence tiers, evidence counts, decay trajectories, supersession chains, source provenance, category distribution — isn't just bookkeeping. The haunt cycle reads it to decide what's worth the warden's attention. No extra LLM calls. Pure SQL analytics identify the targets; the existing haunt cycle does the work.
+
+**The ghost knows what it's forgetting.** The decay curve pinpoints memories approaching the threshold where one retrieval has maximum retention impact — what spaced repetition research calls the [optimal reinforcement window](https://www.microsoft.com/en-us/research/wp-content/uploads/2024/09/MetaReflection__CR__final.pdf) (4–16% accuracy gains). The warden sees the fading memory, decides whether to confirm it or let it go. A single well-timed retrieval resets the decay clock and doubles effective lifespan.
+
+**The ghost hedges when unsure.** Confidence labels aren't just display metadata — the warden adjusts its language. Strong memories get stated as fact. Fading ones get "I believe." Faint ones get flagged as uncertain. When a belief has been revised multiple times, the warden acknowledges that understanding is evolving rather than asserting the latest version as settled truth. This is [metacognitive calibration](https://arxiv.org/abs/2508.04339): 23.6% factual accuracy improvement from the simple act of distinguishing certainty from speculation.
+
+**The ghost notices its own blind spots.** When a category is dominated by low-confidence inferences, that's a knowledge gap — the ghost knows a lot of things about a topic but most of it is guesswork. When a direct user statement sits untouched for a week with no confirming evidence, it's either wrong or forgotten. Both patterns get surfaced during haunts so the warden can investigate or ask.
+
+**The ghost connects what it knows with who it knows.** When a memory mentions someone from the [pack](PACK.md), the haunt cycle cross-references it against the bond data. A memory about "Sarah's project deadline" plus Sarah's pack bond (trust tier, last contact, role) produces richer context than either system surfaces alone — [cross-system triangulation](https://arxiv.org/abs/2602.13530) that emerges naturally when both stores feed the same warden.
+
 ## Performance
 
 The ranking formula splits work between SQLite and JavaScript. SQLite computes `confidence × freshness` using its native C math library — no JavaScript crossing. The database pre-ranks all active memories and returns only the top candidates. JavaScript then computes cosine similarity on that reduced set.

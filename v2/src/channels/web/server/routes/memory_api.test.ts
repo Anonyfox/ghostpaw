@@ -59,6 +59,26 @@ describe("memory API", () => {
       const data = JSON.parse(res.body);
       strictEqual(data.active, 0);
       strictEqual(data.total, 0);
+      strictEqual(data.strong, 0);
+      strictEqual(data.fading, 0);
+      strictEqual(data.faint, 0);
+    });
+
+    it("returns extended health fields", () => {
+      seedMemory(db, "Test memory");
+      const res = mockRes();
+      const ctx = {
+        req: { url: "/api/memories/stats" },
+        res,
+        params: {},
+      } as unknown as RouteContext;
+      handlers.stats(ctx);
+      strictEqual(res.status, 200);
+      const data = JSON.parse(res.body);
+      ok(typeof data.bySource === "object");
+      ok(typeof data.avgEvidence === "number");
+      ok(typeof data.singleEvidence === "number");
+      ok(typeof data.recentRevisions === "number");
     });
   });
 

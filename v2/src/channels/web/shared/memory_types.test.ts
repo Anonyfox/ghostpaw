@@ -55,6 +55,10 @@ describe("memory shared types", () => {
       faint: 22,
       stale: 5,
       byCategory: { preference: 30, fact: 50, procedure: 20, capability: 10, custom: 32 },
+      bySource: { explicit: 60, observed: 40, distilled: 30, inferred: 12 },
+      avgEvidence: 2.3,
+      singleEvidence: 25,
+      recentRevisions: 3,
     };
     ok(stats.active <= stats.total);
   });

@@ -4,6 +4,7 @@ import {
   countMemories,
   getMemory,
   listMemories,
+  memoryHealth,
   recallMemories,
   staleMemories,
 } from "../../../../core/memory/index.ts";
@@ -138,31 +139,21 @@ export function createMemoryApiHandlers(db: DatabaseHandle) {
 
     stats(ctx: RouteContext): void {
       const counts = countMemories(db);
-      const active = listMemories(db, { limit: 10000 });
-
-      let strong = 0;
-      let fading = 0;
-      let faint = 0;
-      const byCategory: Record<string, number> = {};
-
-      for (const m of active) {
-        if (m.confidence >= 0.7) strong++;
-        else if (m.confidence >= 0.4) fading++;
-        else faint++;
-
-        byCategory[m.category] = (byCategory[m.category] ?? 0) + 1;
-      }
-
+      const health = memoryHealth(db);
       const stale = staleMemories(db, 100);
 
       json(ctx, 200, {
         active: counts.active,
         total: counts.total,
-        strong,
-        fading,
-        faint,
+        strong: health.strong,
+        fading: health.fading,
+        faint: health.faint,
         stale: stale.length,
-        byCategory,
+        byCategory: health.byCategory,
+        bySource: health.bySource,
+        avgEvidence: health.avgEvidence,
+        singleEvidence: health.singleEvidence,
+        recentRevisions: health.recentRevisions,
       });
     },
 

@@ -156,6 +156,9 @@ describe("assembleContext", () => {
     ok(result.includes("## Tools"));
     ok(result.includes("persistence keeper"));
     ok(result.includes("Ground every memory in evidence"));
+    ok(result.includes("fading or faint, hedge your language"));
+    ok(result.includes("cross-reference both for richer context"));
+    ok(result.includes("revised multiple times, acknowledge"));
   });
 
   it("warden context does NOT include Known Context, Quests, or Skills", () => {

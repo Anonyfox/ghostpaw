@@ -29,6 +29,10 @@ export interface MemoryStatsResponse {
   faint: number;
   stale: number;
   byCategory: Record<string, number>;
+  bySource: Record<string, number>;
+  avgEvidence: number;
+  singleEvidence: number;
+  recentRevisions: number;
 }
 
 export interface MemoryListResponse {
