@@ -6,7 +6,11 @@ interface MentorRefineInputProps {
   disabled?: boolean;
 }
 
-export function MentorRefineInput({ onSubmit, onCancel, disabled = false }: MentorRefineInputProps) {
+export function MentorRefineInput({
+  onSubmit,
+  onCancel,
+  disabled = false,
+}: MentorRefineInputProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = () => {

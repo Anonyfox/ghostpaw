@@ -64,4 +64,3 @@ export async function handleMessage(
     await deps.sendMessage(chatId, `Error: ${msg}`).catch(() => {});
   }
 }
-

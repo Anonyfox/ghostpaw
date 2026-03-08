@@ -1,17 +1,19 @@
-import type { PackContact, PackInteraction, PackMember } from "../../core/pack/types.ts";
+import type {
+  PackContact,
+  PackField,
+  PackInteraction,
+  PackLink,
+  PackMember,
+} from "../../core/pack/types.ts";
+import { trustLabel } from "./trust_label.ts";
 import type {
   FormattedContact,
+  FormattedFieldEntry,
   FormattedInteraction,
+  FormattedLinkEntry,
   FormattedMemberDetail,
   FormattedMemberSummary,
 } from "./types.ts";
-
-export function trustLabel(trust: number): string {
-  if (trust >= 0.8) return "deep";
-  if (trust >= 0.6) return "solid";
-  if (trust >= 0.3) return "growing";
-  return "shallow";
-}
 
 export function relativeTime(ts: number, now: number = Date.now()): string {
   const ms = now - ts;
@@ -42,6 +44,7 @@ export function formatMemberSummary(
   return {
     id: member.id,
     name: member.name,
+    nickname: member.nickname,
     kind: member.kind,
     trust: Math.round(member.trust * 100) / 100,
     trust_level: trustLabel(member.trust),
@@ -64,32 +67,73 @@ export function formatInteraction(
   ix: PackInteraction,
   now: number = Date.now(),
 ): FormattedInteraction {
-  return {
+  const result: FormattedInteraction = {
     id: ix.id,
     kind: ix.kind,
     summary: ix.summary,
     significance: Math.round(ix.significance * 100) / 100,
     age: relativeTime(ix.createdAt, now),
   };
+  if (ix.occurredAt != null && ix.occurredAt !== ix.createdAt) {
+    result.event_date = new Date(ix.occurredAt).toISOString().slice(0, 10);
+  }
+  return result;
 }
 
-export function formatMemberDetail(
-  member: PackMember,
-  interactions: PackInteraction[],
-  now: number = Date.now(),
-  contacts: PackContact[] = [],
-): FormattedMemberDetail {
+export interface FormatDetailInput {
+  member: PackMember;
+  interactions: PackInteraction[];
+  contacts?: PackContact[];
+  fields?: PackField[];
+  links?: PackLink[];
+  resolveTargetName?: (id: number) => string;
+  now?: number;
+}
+
+export function formatMemberDetail(input: FormatDetailInput): FormattedMemberDetail {
+  const { member, interactions, contacts = [], fields = [], links = [], now = Date.now() } = input;
+  const resolveName = input.resolveTargetName ?? ((id) => `#${id}`);
+
+  const tags: string[] = [];
+  const dataFields: FormattedFieldEntry[] = [];
+  for (const f of fields) {
+    if (f.value === null) {
+      tags.push(f.key);
+    } else {
+      dataFields.push({ key: f.key, value: f.value });
+    }
+  }
+
+  const formattedLinks: FormattedLinkEntry[] = links.map((l) => ({
+    target_id: l.targetId,
+    target_name: resolveName(l.targetId),
+    label: l.label,
+    role: l.role,
+    active: l.active,
+  }));
+
   return {
     id: member.id,
     name: member.name,
+    nickname: member.nickname,
     kind: member.kind,
     trust: Math.round(member.trust * 100) / 100,
     trust_level: trustLabel(member.trust),
     status: member.status,
     is_user: member.isUser,
     bond: member.bond,
+    parent_id: member.parentId,
+    timezone: member.timezone,
+    locale: member.locale,
+    location: member.location,
+    address: member.address,
+    pronouns: member.pronouns,
+    birthday: member.birthday,
     first_contact: relativeTime(member.firstContact, now),
     last_contact: relativeTime(member.lastContact, now),
+    tags,
+    fields: dataFields,
+    links: formattedLinks,
     contacts: contacts.map(formatContact),
     recent_interactions: interactions.map((ix) => formatInteraction(ix, now)),
   };

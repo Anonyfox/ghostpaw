@@ -2,6 +2,8 @@ import { ok, strictEqual } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
 import { type DatabaseHandle, openTestDatabase } from "../../lib/index.ts";
 import { addContact } from "./add_contact.ts";
+import { setField } from "./fields.ts";
+import { addLink } from "./links.ts";
 import { meetMember } from "./meet_member.ts";
 import { noteInteraction } from "./note_interaction.ts";
 import { initPackTables } from "./schema.ts";
@@ -59,5 +61,19 @@ describe("senseMember", () => {
     const detail = senseMember(db, m.id)!;
     strictEqual(detail.contacts[0].type, "email");
     strictEqual(detail.contacts[1].type, "telegram");
+  });
+
+  it("includes fields and links", () => {
+    const m = meetMember(db, { name: "E", kind: "human" });
+    const org = meetMember(db, { name: "Acme", kind: "group" });
+    setField(db, m.id, "client");
+    setField(db, m.id, "billing_rate", "100/hr");
+    addLink(db, m.id, org.id, "works-at", "CTO");
+
+    const detail = senseMember(db, m.id)!;
+    strictEqual(detail.fields.length, 2);
+    strictEqual(detail.links.length, 1);
+    strictEqual(detail.links[0].label, "works-at");
+    strictEqual(detail.links[0].role, "CTO");
   });
 });

@@ -2,12 +2,12 @@ import { ok, strictEqual, throws } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
+import { awakenSoul } from "./awaken_soul.ts";
 import { createSoul } from "./create_soul.ts";
-import { retireSoul } from "./retire_soul.ts";
 import { ensureMandatorySouls } from "./ensure_mandatory_souls.ts";
 import { listDormantSouls } from "./list_dormant_souls.ts";
 import { listSouls } from "./list_souls.ts";
-import { awakenSoul } from "./awaken_soul.ts";
+import { retireSoul } from "./retire_soul.ts";
 import { initSoulsTables } from "./schema.ts";
 
 let db: DatabaseHandle;

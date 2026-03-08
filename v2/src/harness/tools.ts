@@ -7,7 +7,6 @@ import type { DatabaseHandle } from "../lib/index.ts";
 import { createBashTool } from "../tools/bash.ts";
 import { createCalcTool } from "../tools/calc.ts";
 import { createCheckRunTool } from "../tools/check_run.ts";
-import { createCostCheckTool, createCostSummaryTool } from "../tools/cost/index.ts";
 import {
   createGetConfigTool,
   createListConfigTool,
@@ -15,6 +14,7 @@ import {
   createSetConfigTool,
   createUndoConfigTool,
 } from "../tools/config/index.ts";
+import { createCostCheckTool, createCostSummaryTool } from "../tools/cost/index.ts";
 import { createDatetimeTool } from "../tools/datetime.ts";
 import { createDelegateTool } from "../tools/delegate.ts";
 import { createEditTool } from "../tools/edit.ts";

@@ -1,5 +1,6 @@
 const KIND_STYLES: Record<string, string> = {
   human: "bg-info",
+  group: "bg-info bg-opacity-50",
   agent: "bg-success",
   ghostpaw: "bg-primary",
   service: "bg-warning text-dark",

@@ -1,6 +1,12 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initPackTables, meetMember, noteInteraction } from "../../core/pack/index.ts";
+import {
+  addLink,
+  initPackTables,
+  meetMember,
+  noteInteraction,
+  setField,
+} from "../../core/pack/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createPackSenseTool } from "./sense.ts";
@@ -77,6 +83,41 @@ describe("pack_sense tool", () => {
     const result = (await execute({ member: "Ghost" })) as { error: string };
     ok(result.error.includes("not found"));
     ok(result.error.includes("pack_sense"));
+  });
+
+  it("filters overview by field tag", async () => {
+    const a = meetMember(db, { name: "Alice", kind: "human" });
+    meetMember(db, { name: "Bob", kind: "human" });
+    setField(db, a.id, "vip");
+
+    const result = (await execute({ field: "vip" })) as {
+      members: FormattedMemberSummary[];
+    };
+    strictEqual(result.members.length, 1);
+    strictEqual(result.members[0].name, "Alice");
+  });
+
+  it("filters overview by group_id", async () => {
+    const acme = meetMember(db, { name: "Acme", kind: "group" });
+    const alice = meetMember(db, { name: "Alice", kind: "human" });
+    meetMember(db, { name: "Bob", kind: "human" });
+    addLink(db, alice.id, acme.id, "works-at");
+
+    const result = (await execute({ group_id: acme.id })) as {
+      members: FormattedMemberSummary[];
+    };
+    strictEqual(result.members.length, 1);
+    strictEqual(result.members[0].name, "Alice");
+  });
+
+  it("returns note when filter matches nothing", async () => {
+    meetMember(db, { name: "Alice", kind: "human" });
+    const result = (await execute({ field: "nonexistent" })) as {
+      members: FormattedMemberSummary[];
+      note: string;
+    };
+    strictEqual(result.members.length, 0);
+    ok(result.note.includes("filter"));
   });
 
   it("has a name and description", () => {

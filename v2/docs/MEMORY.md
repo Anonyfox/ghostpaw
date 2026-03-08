@@ -68,7 +68,7 @@ At 10,000 memories this completes in under 10ms. At 50,000 it stays under 20ms. 
 
 ## Configuration
 
-Eight knobs control memory behavior at runtime. All are tunable through the agent's config tools, the CLI, or the web UI — no restart required. See [CONFIG.md](CONFIG.md) for the full configuration system. The agent can adjust these during reflection to tune its own effectiveness based on observed behavior.
+Eight knobs control memory behavior at runtime. All are tunable through the agent's config tools, the CLI, or the web UI — no restart required. See [Config](features/CONFIG.md) for the full configuration system. The agent can adjust these during reflection to tune its own effectiveness based on observed behavior.
 
 | Key | Default | What it does |
 |-----|---------|-------------|

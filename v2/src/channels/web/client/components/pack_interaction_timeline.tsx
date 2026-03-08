@@ -1,4 +1,5 @@
 import type { PackInteractionInfo } from "../../shared/pack_types.ts";
+import { relativeTime } from "../relative_time.ts";
 
 interface PackInteractionTimelineProps {
   interactions: PackInteractionInfo[];
@@ -11,20 +12,9 @@ const KIND_COLORS: Record<string, string> = {
   gift: "bg-info",
   milestone: "bg-primary",
   observation: "bg-secondary",
+  transaction: "bg-info",
+  activity: "bg-success",
 };
-
-function relativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  return `${months}mo ago`;
-}
 
 export function PackInteractionTimeline({ interactions }: PackInteractionTimelineProps) {
   if (interactions.length === 0) {
@@ -52,7 +42,13 @@ export function PackInteractionTimeline({ interactions }: PackInteractionTimelin
                 <span class="small">{ix.summary}</span>
               </div>
               <small class="text-body-tertiary text-nowrap ms-2">
-                {relativeTime(ix.createdAt)}
+                {ix.occurredAt != null && ix.occurredAt !== ix.createdAt
+                  ? new Date(ix.occurredAt).toLocaleDateString(undefined, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })
+                  : relativeTime(ix.createdAt)}
               </small>
             </div>
             <div

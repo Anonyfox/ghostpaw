@@ -8,6 +8,7 @@ export function rowToInteraction(row: Record<string, unknown>): PackInteraction 
     summary: row.summary as string,
     significance: row.significance as number,
     sessionId: (row.session_id as number | null) ?? null,
+    occurredAt: (row.occurred_at as number | null) ?? null,
     createdAt: row.created_at as number,
   };
 }

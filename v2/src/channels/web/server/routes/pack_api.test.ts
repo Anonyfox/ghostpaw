@@ -1,11 +1,13 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
+import { setField } from "../../../../core/pack/fields.ts";
 import {
   addContact,
   initPackTables,
   meetMember,
   noteInteraction,
 } from "../../../../core/pack/index.ts";
+import { addLink } from "../../../../core/pack/links.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { openTestDatabase } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";
@@ -55,8 +57,9 @@ describe("pack API", () => {
       strictEqual(data.counts.total, 0);
     });
 
-    it("returns seeded members", () => {
-      meetMember(db, { name: "Alice", kind: "human" });
+    it("returns members with nickname and tags", () => {
+      const m = meetMember(db, { name: "Alice", kind: "human", nickname: "Ali" });
+      setField(db, m.id, "client");
       meetMember(db, { name: "Bob", kind: "agent" });
       const res = mockRes();
       const ctx = { req: { url: "/api/pack" }, res, params: {} } as unknown as RouteContext;
@@ -64,7 +67,8 @@ describe("pack API", () => {
       strictEqual(res.status, 200);
       const data = JSON.parse(res.body);
       strictEqual(data.members.length, 2);
-      ok(data.members[0].trustLevel);
+      ok(data.members.some((m: { nickname: string }) => m.nickname === "Ali"));
+      ok(data.members.some((m: { tags: string[] }) => m.tags.includes("client")));
     });
   });
 
@@ -88,14 +92,24 @@ describe("pack API", () => {
       strictEqual(res.status, 404);
     });
 
-    it("returns detail with contacts for existing member", () => {
-      const member = meetMember(db, { name: "Alice", kind: "human", bond: "A close ally." });
+    it("returns full detail with fields, links, and contacts", () => {
+      const member = meetMember(db, {
+        name: "Alice",
+        kind: "human",
+        bond: "A close ally.",
+        nickname: "Ali",
+        timezone: "Europe/Berlin",
+      });
       noteInteraction(db, {
         memberId: member.id,
         kind: "conversation",
         summary: "Talked about plans",
       });
       addContact(db, { memberId: member.id, type: "email", value: "alice@test.com" });
+      setField(db, member.id, "client");
+      setField(db, member.id, "billing_rate", "100/hr");
+      const org = meetMember(db, { name: "Acme", kind: "group" });
+      addLink(db, member.id, org.id, "works-at");
 
       const res = mockRes();
       const ctx = { req: {}, res, params: { id: String(member.id) } } as unknown as RouteContext;
@@ -103,10 +117,13 @@ describe("pack API", () => {
       strictEqual(res.status, 200);
       const data = JSON.parse(res.body);
       strictEqual(data.name, "Alice");
+      strictEqual(data.nickname, "Ali");
+      strictEqual(data.timezone, "Europe/Berlin");
       strictEqual(data.interactions.length, 1);
       strictEqual(data.contacts.length, 1);
-      strictEqual(data.contacts[0].type, "email");
-      strictEqual(data.isUser, false);
+      strictEqual(data.fields.length, 2);
+      strictEqual(data.links.length, 1);
+      strictEqual(data.links[0].targetName, "Acme");
       ok(data.trustLevel);
     });
   });
@@ -143,61 +160,6 @@ describe("pack API", () => {
       const data = JSON.parse(res.body);
       strictEqual(data.contacts.length, 1);
       strictEqual(data.contacts[0].type, "telegram");
-    });
-  });
-
-  describe("removeContact", () => {
-    it("removes an existing contact", () => {
-      const member = meetMember(db, { name: "Dave", kind: "human" });
-      const { contact } = addContact(db, { memberId: member.id, type: "email", value: "d@t.com" });
-      const res = mockRes();
-      const ctx = {
-        req: {},
-        res,
-        params: { contactId: String(contact.id) },
-      } as unknown as RouteContext;
-      handlers.removeContact(ctx);
-      strictEqual(res.status, 200);
-    });
-
-    it("returns 404 for nonexistent contact", () => {
-      const res = mockRes();
-      const ctx = {
-        req: {},
-        res,
-        params: { contactId: "999" },
-      } as unknown as RouteContext;
-      handlers.removeContact(ctx);
-      strictEqual(res.status, 404);
-    });
-  });
-
-  describe("lookupContact", () => {
-    it("finds member by contact", () => {
-      const member = meetMember(db, { name: "Find", kind: "human" });
-      addContact(db, { memberId: member.id, type: "github", value: "findme" });
-      const res = mockRes();
-      const ctx = {
-        req: {},
-        res,
-        params: { type: "github", value: "findme" },
-      } as unknown as RouteContext;
-      handlers.lookupContact(ctx);
-      strictEqual(res.status, 200);
-      const data = JSON.parse(res.body);
-      strictEqual(data.found, true);
-      strictEqual(data.member.name, "Find");
-    });
-
-    it("returns 404 when not found", () => {
-      const res = mockRes();
-      const ctx = {
-        req: {},
-        res,
-        params: { type: "email", value: "nobody@no.com" },
-      } as unknown as RouteContext;
-      handlers.lookupContact(ctx);
-      strictEqual(res.status, 404);
     });
   });
 });

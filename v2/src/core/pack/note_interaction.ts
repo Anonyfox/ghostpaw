@@ -8,7 +8,9 @@ export function noteInteraction(db: DatabaseHandle, input: NoteInput): PackInter
     throw new Error("memberId must be a positive integer.");
   }
 
-  const member = db.prepare("SELECT id FROM pack_members WHERE id = ?").get(input.memberId);
+  const member = db
+    .prepare("SELECT id, last_contact FROM pack_members WHERE id = ?")
+    .get(input.memberId) as { id: number; last_contact: number } | undefined;
   if (!member) {
     throw new Error(`Pack member with id ${input.memberId} not found.`);
   }
@@ -26,16 +28,28 @@ export function noteInteraction(db: DatabaseHandle, input: NoteInput): PackInter
 
   const significance = Math.max(0, Math.min(1, input.significance ?? 0.5));
   const now = Date.now();
+  const occurredAt = input.occurredAt ?? null;
+
+  const contactTime =
+    occurredAt !== null && occurredAt < now ? Math.max(occurredAt, member.last_contact) : now;
 
   db.exec("BEGIN");
   try {
     db.prepare(
-      `INSERT INTO pack_interactions (member_id, kind, summary, significance, session_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run(input.memberId, input.kind, summary, significance, input.sessionId ?? null, now);
+      `INSERT INTO pack_interactions (member_id, kind, summary, significance, session_id, occurred_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      input.memberId,
+      input.kind,
+      summary,
+      significance,
+      input.sessionId ?? null,
+      occurredAt,
+      now,
+    );
 
     db.prepare("UPDATE pack_members SET last_contact = ?, updated_at = ? WHERE id = ?").run(
-      now,
+      contactTime,
       now,
       input.memberId,
     );

@@ -1,25 +1,17 @@
 import { useEffect, useState } from "preact/hooks";
 import { Link, useParams } from "wouter-preact";
-import type { PackMemberDetailResponse } from "../../shared/pack_types.ts";
+import type {
+  PackContactInfo,
+  PackFieldInfo,
+  PackLinkInfo,
+  PackMemberDetailResponse,
+} from "../../shared/pack_types.ts";
 import { apiGet } from "../api_get.ts";
-import { apiPatch } from "../api_patch.ts";
+import { PackCommandBox } from "../components/pack_command_box.tsx";
 import { PackInteractionTimeline } from "../components/pack_interaction_timeline.tsx";
 import { PackKindBadge } from "../components/pack_kind_badge.tsx";
-import { PackNoteForm } from "../components/pack_note_form.tsx";
 import { PackTrustPips } from "../components/pack_trust_pips.tsx";
-
-function relativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  return `${months}mo ago`;
-}
+import { relativeTime } from "../relative_time.ts";
 
 function formatDate(ts: number): string {
   return new Date(ts).toLocaleDateString(undefined, {
@@ -35,6 +27,146 @@ const STATUS_BADGES: Record<string, string> = {
   lost: "bg-danger",
 };
 
+function ProfileCard({ member }: { member: PackMemberDetailResponse }) {
+  return (
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Profile</h5>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="mb-2 small">
+              <span class="text-body-secondary">Kind:</span> <PackKindBadge kind={member.kind} />
+            </div>
+            {member.parentName && (
+              <div class="mb-2 small">
+                <span class="text-body-secondary">Parent:</span> {member.parentName}
+              </div>
+            )}
+            {member.timezone && (
+              <div class="mb-2 small">
+                <span class="text-body-secondary">Timezone:</span> {member.timezone}
+              </div>
+            )}
+            {member.locale && (
+              <div class="mb-2 small">
+                <span class="text-body-secondary">Locale:</span> {member.locale}
+              </div>
+            )}
+            {member.location && (
+              <div class="mb-2 small">
+                <span class="text-body-secondary">Location:</span> {member.location}
+              </div>
+            )}
+            {member.address && (
+              <div class="mb-2 small">
+                <span class="text-body-secondary">Address:</span> {member.address}
+              </div>
+            )}
+            {member.pronouns && (
+              <div class="mb-2 small">
+                <span class="text-body-secondary">Pronouns:</span> {member.pronouns}
+              </div>
+            )}
+            {member.birthday && (
+              <div class="mb-2 small">
+                <span class="text-body-secondary">Birthday:</span> {member.birthday}
+              </div>
+            )}
+          </div>
+          <div class="col-md-6">
+            <div class="mb-2 small">
+              <span class="text-body-secondary">First contact:</span>{" "}
+              {formatDate(member.firstContact)}
+            </div>
+            <div class="mb-2 small">
+              <span class="text-body-secondary">Last contact:</span>{" "}
+              {relativeTime(member.lastContact)}
+            </div>
+            <div class="mb-2 small">
+              <span class="text-body-secondary">Created:</span> {formatDate(member.createdAt)}
+            </div>
+            <div class="mb-2 small">
+              <span class="text-body-secondary">Updated:</span> {relativeTime(member.updatedAt)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TagsCard({ tags }: { tags: string[] }) {
+  if (tags.length === 0) return null;
+  return (
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Tags</h5>
+        <div class="d-flex flex-wrap gap-1">
+          {tags.map((t) => (
+            <span key={t} class="badge bg-info bg-opacity-25 text-info">
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FieldsCard({ fields }: { fields: PackFieldInfo[] }) {
+  if (fields.length === 0) return null;
+  return (
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Fields</h5>
+        {fields.map((f) => (
+          <div key={f.key} class="mb-1 small">
+            <span class="text-body-secondary">{f.key}:</span> {f.value}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LinksCard({ links }: { links: PackLinkInfo[] }) {
+  if (links.length === 0) return null;
+  return (
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Links</h5>
+        {links.map((l) => (
+          <div key={l.id} class="mb-1 small">
+            <span class="text-body-secondary">{l.label}</span> &rarr;{" "}
+            <Link href={`/pack/${l.targetId}`} class="text-info text-decoration-none">
+              {l.targetName}
+            </Link>
+            {l.role && <span class="text-muted ms-1">({l.role})</span>}
+            {!l.active && <span class="badge bg-secondary ms-1">former</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ContactsCard({ contacts }: { contacts: PackContactInfo[] }) {
+  if (contacts.length === 0) return null;
+  return (
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Contacts</h5>
+        {contacts.map((c) => (
+          <div key={c.id} class="mb-1 small">
+            <span class="text-body-secondary">{c.type}:</span> {c.value}
+            {c.label && <span class="text-muted ms-1">({c.label})</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function PackDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params?.id);
@@ -42,20 +174,10 @@ export function PackDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [editingBond, setEditingBond] = useState(false);
-  const [bondValue, setBondValue] = useState("");
-  const [editingTrust, setEditingTrust] = useState(false);
-  const [trustValue, setTrustValue] = useState(0.5);
-  const [editingStatus, setEditingStatus] = useState(false);
-  const [statusValue, setStatusValue] = useState("active");
-
   const load = async () => {
     try {
       const data = await apiGet<PackMemberDetailResponse>(`/api/pack/${id}`);
       setMember(data);
-      setBondValue(data.bond);
-      setTrustValue(data.trust);
-      setStatusValue(data.status);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load member.");
     } finally {
@@ -67,38 +189,11 @@ export function PackDetailPage() {
     load();
   }, [id]);
 
-  const saveBond = async () => {
-    try {
-      await apiPatch(`/api/pack/${id}`, { bond: bondValue });
-      setEditingBond(false);
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update bond.");
-    }
-  };
-
-  const saveTrust = async () => {
-    try {
-      await apiPatch(`/api/pack/${id}`, { trust: trustValue });
-      setEditingTrust(false);
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update trust.");
-    }
-  };
-
-  const saveStatus = async () => {
-    try {
-      await apiPatch(`/api/pack/${id}`, { status: statusValue });
-      setEditingStatus(false);
-      load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update status.");
-    }
-  };
-
   if (loading) return <p class="text-muted">Loading...</p>;
   if (!member) return <p class="text-danger">{error ?? "Member not found."}</p>;
+
+  const tags = (member.fields ?? []).filter((f) => f.value === null).map((f) => f.key);
+  const dataFields = (member.fields ?? []).filter((f) => f.value !== null);
 
   return (
     <div>
@@ -110,7 +205,10 @@ export function PackDetailPage() {
 
       <div class="d-flex justify-content-between align-items-start mt-3 mb-3">
         <div>
-          <h3 class="mb-1">{member.name}</h3>
+          <h3 class="mb-1">
+            {member.name}
+            {member.nickname && <small class="text-muted ms-2">"{member.nickname}"</small>}
+          </h3>
           <div class="d-flex align-items-center gap-2">
             <PackKindBadge kind={member.kind} />
             <span class={`badge ${STATUS_BADGES[member.status] ?? "bg-secondary"}`}>
@@ -126,169 +224,33 @@ export function PackDetailPage() {
         </div>
       </div>
 
-      {/* Bond Narrative */}
       <div class="card mb-4">
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start">
-            <h5 class="card-title">Bond</h5>
-            {!editingBond && (
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-info"
-                onClick={() => setEditingBond(true)}
-              >
-                Edit
-              </button>
-            )}
-          </div>
-          {editingBond ? (
-            <div>
-              <textarea
-                class="form-control mb-2"
-                rows={4}
-                value={bondValue}
-                onInput={(e) => setBondValue((e.target as HTMLTextAreaElement).value)}
-              />
-              <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-info" onClick={saveBond}>
-                  Save
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-secondary"
-                  onClick={() => setEditingBond(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div class="mt-2" style="white-space: pre-wrap;">
-              {member.bond || <em class="text-muted">No bond narrative yet.</em>}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Details Panel */}
-      <div class="card mb-4">
-        <div class="card-body">
-          <h5 class="card-title">Details</h5>
-          <div class="row g-3">
-            <div class="col-md-6">
-              <div class="mb-3">
-                <span class="form-label small text-body-secondary d-block">Trust</span>
-                {editingTrust ? (
-                  <div class="d-flex align-items-center gap-2">
-                    <input
-                      type="range"
-                      class="form-range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={trustValue}
-                      onInput={(e) => setTrustValue(Number((e.target as HTMLInputElement).value))}
-                    />
-                    <small class="text-body-tertiary" style="min-width: 3em;">
-                      {trustValue.toFixed(2)}
-                    </small>
-                    <button type="button" class="btn btn-sm btn-info" onClick={saveTrust}>
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-outline-secondary"
-                      onClick={() => setEditingTrust(false)}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    class="d-flex align-items-center gap-2 btn btn-link p-0 text-decoration-none"
-                    onClick={() => setEditingTrust(true)}
-                  >
-                    <PackTrustPips trust={member.trust} />
-                    <small class="text-body-tertiary">{(member.trust * 100).toFixed(0)}%</small>
-                  </button>
-                )}
-              </div>
-
-              <div class="mb-3">
-                <span class="form-label small text-body-secondary d-block">Status</span>
-                {editingStatus ? (
-                  <div class="d-flex align-items-center gap-2">
-                    <select
-                      class="form-select form-select-sm"
-                      style="width: auto;"
-                      value={statusValue}
-                      onChange={(e) => setStatusValue((e.target as HTMLSelectElement).value)}
-                    >
-                      <option value="active">active</option>
-                      <option value="dormant">dormant</option>
-                      <option value="lost">lost</option>
-                    </select>
-                    <button type="button" class="btn btn-sm btn-info" onClick={saveStatus}>
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-outline-secondary"
-                      onClick={() => setEditingStatus(false)}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    class="btn btn-link p-0 text-decoration-none"
-                    onClick={() => setEditingStatus(true)}
-                  >
-                    <span class={`badge ${STATUS_BADGES[member.status] ?? "bg-secondary"}`}>
-                      {member.status}
-                    </span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div class="col-md-6">
-              <div class="mb-2 small">
-                <span class="text-body-secondary">Kind:</span> <PackKindBadge kind={member.kind} />
-              </div>
-              <div class="mb-2 small">
-                <span class="text-body-secondary">First contact:</span>{" "}
-                {formatDate(member.firstContact)}
-              </div>
-              <div class="mb-2 small">
-                <span class="text-body-secondary">Last contact:</span>{" "}
-                {relativeTime(member.lastContact)}
-              </div>
-              <div class="mb-2 small">
-                <span class="text-body-secondary">Created:</span> {formatDate(member.createdAt)}
-              </div>
-              <div class="mb-2 small">
-                <span class="text-body-secondary">Updated:</span> {relativeTime(member.updatedAt)}
-              </div>
-            </div>
+          <h5 class="card-title">Bond</h5>
+          <div class="mt-2" style="white-space: pre-wrap;">
+            {member.bond || <em class="text-muted">No bond narrative yet.</em>}
           </div>
         </div>
       </div>
 
-      {/* Note Form */}
-      <div class="mb-4">
-        <PackNoteForm memberId={id} onNoted={load} />
-      </div>
+      <ProfileCard member={member} />
+      <TagsCard tags={tags} />
+      <FieldsCard fields={dataFields} />
+      <LinksCard links={member.links ?? []} />
+      <ContactsCard contacts={member.contacts ?? []} />
 
-      {/* Interaction Timeline */}
       <div class="card mb-4">
         <div class="card-body">
           <h5 class="card-title mb-3">Interaction Journal</h5>
           <PackInteractionTimeline interactions={member.interactions} />
         </div>
       </div>
+
+      <PackCommandBox
+        memberId={id}
+        onSuccess={load}
+        placeholder={`e.g. 'set timezone to Europe/Berlin' or 'add tag vip'`}
+      />
     </div>
   );
 }

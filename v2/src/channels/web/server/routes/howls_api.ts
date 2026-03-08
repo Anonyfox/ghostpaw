@@ -1,10 +1,6 @@
 import { getHistory } from "../../../../core/chat/index.ts";
 import type { HowlStatus } from "../../../../core/howl/index.ts";
-import {
-  countPendingHowls,
-  getHowl,
-  listHowls,
-} from "../../../../core/howl/index.ts";
+import { countPendingHowls, getHowl, listHowls } from "../../../../core/howl/index.ts";
 import { processHowlDismiss, processHowlReply } from "../../../../harness/howl/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { readJsonBody } from "../body_parser.ts";

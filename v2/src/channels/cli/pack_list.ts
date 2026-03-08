@@ -29,7 +29,7 @@ export default defineCommand({
     },
     kind: {
       type: "string",
-      description: "Filter by kind: human, ghostpaw, agent, service, other",
+      description: "Filter by kind: human, group, ghostpaw, agent, service, other",
     },
     limit: {
       type: "string",
@@ -65,7 +65,8 @@ export default defineCommand({
       for (const m of members) {
         const id = String(m.id).padStart(5);
         const dot = trustDot(m.trust);
-        const name = m.name.length > 18 ? `${m.name.slice(0, 17)}…` : m.name.padEnd(18);
+        const label = m.nickname ? `${m.name} "${m.nickname}"` : m.name;
+        const name = label.length > 18 ? `${label.slice(0, 17)}…` : label.padEnd(18);
         const kind = m.kind.padEnd(10);
         const trust = m.trust.toFixed(2).padStart(5);
         const status = m.status.padEnd(8);

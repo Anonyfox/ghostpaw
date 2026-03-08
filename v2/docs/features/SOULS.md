@@ -287,7 +287,7 @@ This is full recursive self-improvement — bounded by the same provenance gates
 
 ## Configuration
 
-The soul system is tunable through the config system (`ghostpaw config set`):
+The soul system is tunable through the [config system](CONFIG.md) (`ghostpaw config set`):
 
 | Key | Default | What it controls |
 |-----|---------|-----------------|

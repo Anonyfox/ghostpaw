@@ -19,6 +19,7 @@ const CHANNELS = ["web", "telegram", "delegate", "system", "cli"] as const;
 
 const PURPOSE_LABELS: Record<string, string> = {
   chat: "Chat",
+  command: "Command",
   delegate: "Delegation",
   train: "Training",
   scout: "Scouting",

@@ -9,15 +9,15 @@ describe("pack", () => {
     ok(meta?.description);
   });
 
-  it("has subcommands", () => {
+  it("has read-only subcommands", () => {
     const subs = cmd.subCommands as Record<string, unknown>;
     ok(subs.list);
     ok(subs.show);
-    ok(subs.meet);
-    ok(subs.bond);
-    ok(subs.note);
     ok(subs.history);
     ok(subs.count);
+    strictEqual(subs.meet, undefined);
+    strictEqual(subs.bond, undefined);
+    strictEqual(subs.note, undefined);
   });
 
   it("has a default run function", () => {

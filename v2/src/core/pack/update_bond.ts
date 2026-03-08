@@ -4,6 +4,16 @@ import type { PackMember, UpdateBondInput } from "./types.ts";
 import { MEMBER_STATUSES } from "./types.ts";
 import { validateMemberName } from "./validate_member_name.ts";
 
+const UNIVERSAL_FIELDS = [
+  "nickname",
+  "timezone",
+  "locale",
+  "location",
+  "address",
+  "pronouns",
+  "birthday",
+] as const;
+
 export function updateBond(db: DatabaseHandle, id: number, input: UpdateBondInput): PackMember {
   const existing = db.prepare("SELECT * FROM pack_members WHERE id = ?").get(id) as
     | Record<string, unknown>
@@ -48,6 +58,13 @@ export function updateBond(db: DatabaseHandle, id: number, input: UpdateBondInpu
   if (input.isUser !== undefined) {
     sets.push("is_user = ?");
     params.push(input.isUser ? 1 : 0);
+  }
+
+  for (const field of UNIVERSAL_FIELDS) {
+    if (input[field] !== undefined) {
+      sets.push(`${field} = ?`);
+      params.push(input[field]?.trim() || null);
+    }
   }
 
   if (sets.length === 0) {

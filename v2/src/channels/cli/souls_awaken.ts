@@ -46,10 +46,7 @@ export default defineCommand({
     await withRunDb((db) => {
       const soul = findDormantSoul(db, soulArg);
       if (!soul) {
-        console.error(
-          style.boldRed("error".padStart(10)),
-          ` Dormant soul "${soulArg}" not found.`,
-        );
+        console.error(style.boldRed("error".padStart(10)), ` Dormant soul "${soulArg}" not found.`);
         process.exitCode = 1;
         return;
       }

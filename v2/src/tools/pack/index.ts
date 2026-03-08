@@ -5,6 +5,7 @@ import { createContactAddTool } from "./contact_add.ts";
 import { createContactListTool } from "./contact_list.ts";
 import { createContactLookupTool } from "./contact_lookup.ts";
 import { createContactRemoveTool } from "./contact_remove.ts";
+import { createPackLinkTool } from "./link.ts";
 import { createPackMeetTool } from "./meet.ts";
 import { createPackMergeTool } from "./merge.ts";
 import { createPackNoteTool } from "./note.ts";
@@ -16,6 +17,7 @@ export function createPackTools(db: DatabaseHandle): Tool[] {
     createPackMeetTool(db),
     createPackBondTool(db),
     createPackNoteTool(db),
+    createPackLinkTool(db),
     createContactAddTool(db),
     createContactRemoveTool(db),
     createContactListTool(db),

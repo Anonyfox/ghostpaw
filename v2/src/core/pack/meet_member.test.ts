@@ -85,4 +85,53 @@ describe("meetMember", () => {
     meetMember(db, { name: "First", kind: "human", isUser: true });
     throws(() => meetMember(db, { name: "Second", kind: "human", isUser: true }));
   });
+
+  it("stores universal columns", () => {
+    const member = meetMember(db, {
+      name: "Sarah",
+      kind: "human",
+      nickname: "S",
+      timezone: "Europe/Berlin",
+      locale: "de-DE",
+      location: "Berlin",
+      address: "123 Main St",
+      pronouns: "she/her",
+      birthday: "1990-05-15",
+    });
+    strictEqual(member.nickname, "S");
+    strictEqual(member.timezone, "Europe/Berlin");
+    strictEqual(member.locale, "de-DE");
+    strictEqual(member.location, "Berlin");
+    strictEqual(member.address, "123 Main St");
+    strictEqual(member.pronouns, "she/her");
+    strictEqual(member.birthday, "1990-05-15");
+  });
+
+  it("stores parentId", () => {
+    const parent = meetMember(db, { name: "Acme Corp", kind: "group" });
+    const child = meetMember(db, { name: "Acme EU", kind: "group", parentId: parent.id });
+    strictEqual(child.parentId, parent.id);
+  });
+
+  it("creates initial tags via tags array", () => {
+    const member = meetMember(db, { name: "Client1", kind: "human", tags: ["client", "vip"] });
+    const rows = db
+      .prepare("SELECT key FROM pack_fields WHERE member_id = ? ORDER BY key")
+      .all(member.id) as { key: string }[];
+    strictEqual(rows.length, 2);
+    strictEqual(rows[0].key, "client");
+    strictEqual(rows[1].key, "vip");
+  });
+
+  it("accepts group kind", () => {
+    const m = meetMember(db, { name: "Book Club", kind: "group" });
+    strictEqual(m.kind, "group");
+  });
+
+  it("universal columns default to null", () => {
+    const member = meetMember(db, { name: "Plain", kind: "human" });
+    strictEqual(member.nickname, null);
+    strictEqual(member.timezone, null);
+    strictEqual(member.parentId, null);
+  });
 });

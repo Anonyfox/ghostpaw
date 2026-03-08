@@ -1,5 +1,6 @@
 export const SESSION_PURPOSES = [
   "chat",
+  "command",
   "delegate",
   "train",
   "scout",

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "preact/hooks";
 import { apiGet } from "../api_get.ts";
 import { apiPost } from "../api_post.ts";
 import { RenderMarkdown } from "../components/render_markdown.tsx";
+import { relativeTime } from "../relative_time.ts";
 
 interface HowlSummary {
   id: number;
@@ -29,17 +30,6 @@ interface HistoryMessage {
   role: string;
   content: string;
   createdAt: number;
-}
-
-function relativeTime(ms: number): string {
-  const elapsed = Date.now() - ms;
-  const minutes = Math.floor(elapsed / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
 }
 
 function UrgencyBadge({ urgency }: { urgency: string }) {
@@ -241,9 +231,7 @@ function HowlHistoryDetail({ howlId, onBack }: { howlId: number; onBack: () => v
             <span class="text-muted small ms-auto">{relativeTime(howl.createdAt)}</span>
           </div>
           <RenderMarkdown content={howl.message} />
-          <div class="text-muted small mt-2">
-            Origin session #{howl.originSessionId}
-          </div>
+          <div class="text-muted small mt-2">Origin session #{howl.originSessionId}</div>
         </div>
       </div>
       {messages.length > 0 && (

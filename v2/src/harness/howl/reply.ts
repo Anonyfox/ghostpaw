@@ -1,4 +1,5 @@
 import type { ChatFactory } from "../../core/chat/chat_instance.ts";
+import type { TurnResult } from "../../core/chat/index.ts";
 import {
   addMessage,
   closeSession,
@@ -6,7 +7,6 @@ import {
   executeTurn,
   getSession,
 } from "../../core/chat/index.ts";
-import type { TurnResult } from "../../core/chat/index.ts";
 import { getHowl, updateHowlStatus } from "../../core/howl/index.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";

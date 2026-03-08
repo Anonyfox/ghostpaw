@@ -13,6 +13,8 @@ function kindDot(kind: string): string {
     gift: style.cyan,
     milestone: style.boldCyan,
     observation: style.dim,
+    transaction: style.yellow,
+    activity: style.green,
   };
   return (map[kind] ?? style.dim)("●");
 }
@@ -38,7 +40,7 @@ export default defineCommand({
     kind: {
       type: "string",
       description:
-        "Filter by kind: conversation, correction, conflict, gift, milestone, observation",
+        "Filter by kind: conversation, correction, conflict, gift, milestone, observation, transaction, activity",
     },
     limit: {
       type: "string",

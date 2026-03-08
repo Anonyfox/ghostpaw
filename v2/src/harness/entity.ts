@@ -37,8 +37,7 @@ export function createEntity(options: EntityOptions): Entity {
   function buildTurnArgs(sessionId: number, content: string, opts?: EntityTurnOptions) {
     const model = resolveModel(db, opts?.model);
     const systemPrompt =
-      opts?.systemPrompt ??
-      assembleContext(db, workspace, { soulId: opts?.soulId });
+      opts?.systemPrompt ?? assembleContext(db, workspace, { soulId: opts?.soulId });
     const isWarden = opts?.soulId === MANDATORY_SOUL_IDS.warden;
     const isChamberlain = opts?.soulId === MANDATORY_SOUL_IDS.chamberlain;
     const isMentor = opts?.soulId === MANDATORY_SOUL_IDS.mentor;

@@ -130,4 +130,54 @@ describe("noteInteraction", () => {
       /positive integer/,
     );
   });
+
+  it("accepts transaction kind", () => {
+    const m = meetMember(db, { name: "I", kind: "human" });
+    const i = noteInteraction(db, {
+      memberId: m.id,
+      kind: "transaction",
+      summary: "Invoice paid.",
+    });
+    strictEqual(i.kind, "transaction");
+  });
+
+  it("accepts activity kind", () => {
+    const m = meetMember(db, { name: "J", kind: "human" });
+    const i = noteInteraction(db, {
+      memberId: m.id,
+      kind: "activity",
+      summary: "Workshop attended.",
+    });
+    strictEqual(i.kind, "activity");
+  });
+
+  it("stores occurredAt and uses it for last_contact when in the past", () => {
+    const m = meetMember(db, { name: "K", kind: "human" });
+    const pastTime = Date.now() - 86_400_000;
+    const i = noteInteraction(db, {
+      memberId: m.id,
+      kind: "milestone",
+      summary: "Opened business.",
+      occurredAt: pastTime,
+    });
+    strictEqual(i.occurredAt, pastTime);
+    const updated = getMember(db, m.id)!;
+    ok(updated.lastContact >= pastTime);
+  });
+
+  it("ignores future occurredAt for last_contact", () => {
+    const m = meetMember(db, { name: "L", kind: "human" });
+    const before = Date.now();
+    const futureTime = before + 86_400_000;
+    const i = noteInteraction(db, {
+      memberId: m.id,
+      kind: "milestone",
+      summary: "Planned event.",
+      occurredAt: futureTime,
+    });
+    strictEqual(i.occurredAt, futureTime);
+    const updated = getMember(db, m.id)!;
+    ok(updated.lastContact >= before);
+    ok(updated.lastContact < futureTime);
+  });
 });

@@ -8,6 +8,7 @@ import { PackBondCard } from "./pack_bond_card.tsx";
 const activeMember: PackMemberInfo = {
   id: 1,
   name: "Alice",
+  nickname: null,
   kind: "human",
   trust: 0.7,
   trustLevel: "solid",
@@ -15,6 +16,7 @@ const activeMember: PackMemberInfo = {
   bondExcerpt: "Trusted friend and collaborator.",
   lastContact: Date.now() - 60_000,
   interactionCount: 5,
+  tags: [],
 };
 
 describe("PackBondCard", () => {

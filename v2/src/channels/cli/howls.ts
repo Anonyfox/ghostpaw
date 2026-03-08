@@ -1,11 +1,7 @@
 import { defineCommand } from "citty";
 import { getHistory } from "../../core/chat/index.ts";
 import type { HowlStatus } from "../../core/howl/index.ts";
-import {
-  countPendingHowls,
-  getHowl,
-  listHowls,
-} from "../../core/howl/index.ts";
+import { countPendingHowls, getHowl, listHowls } from "../../core/howl/index.ts";
 import { processHowlDismiss, processHowlReply } from "../../harness/howl/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
@@ -42,7 +38,9 @@ const howlShow = defineCommand({
       console.log(`  ${style.dim("Urgency:")} ${howl.urgency}`);
       console.log(`  ${style.dim("Status:")}  ${howl.status}`);
       console.log(`  ${style.dim("Channel:")} ${howl.channel ?? "none"}`);
-      console.log(`  ${style.dim("Origin:")}  session #${howl.originSessionId}${howl.originMessageId ? ` msg #${howl.originMessageId}` : ""}`);
+      console.log(
+        `  ${style.dim("Origin:")}  session #${howl.originSessionId}${howl.originMessageId ? ` msg #${howl.originMessageId}` : ""}`,
+      );
       console.log(`  ${style.dim("Created:")} ${new Date(howl.createdAt).toLocaleString()}`);
       if (howl.respondedAt) {
         console.log(`  ${style.dim("Responded:")} ${new Date(howl.respondedAt).toLocaleString()}`);
@@ -157,15 +155,17 @@ export default defineCommand({
       for (const h of howls) {
         const age = formatAge(h.createdAt);
         const badge =
-          h.status === "pending"
-            ? style.cyan(`[${h.status}]`)
-            : style.dim(`[${h.status}]`);
+          h.status === "pending" ? style.cyan(`[${h.status}]`) : style.dim(`[${h.status}]`);
         const urgency = h.urgency === "high" ? style.cyan(" !") : "";
-        console.log(`  ${style.dim(`#${h.id}`)} ${badge}${urgency} ${h.message}  ${style.dim(age)}`);
+        console.log(
+          `  ${style.dim(`#${h.id}`)} ${badge}${urgency} ${h.message}  ${style.dim(age)}`,
+        );
       }
       const pending = countPendingHowls(db);
       if (pending > 0) {
-        console.log(style.dim(`\n  ${pending} pending howl(s). Use 'howls show <id>' or 'howls reply <id>'.`));
+        console.log(
+          style.dim(`\n  ${pending} pending howl(s). Use 'howls show <id>' or 'howls reply <id>'.`),
+        );
       }
     });
   },

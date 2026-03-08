@@ -11,6 +11,7 @@ const EXPECTED_TOOL_NAMES = [
   "contact_lookup",
   "contact_remove",
   "pack_bond",
+  "pack_link",
   "pack_meet",
   "pack_merge",
   "pack_note",
@@ -27,9 +28,9 @@ describe("createPackTools", () => {
 
   afterEach(() => db.close());
 
-  it("returns 9 tools", () => {
+  it("returns 10 tools", () => {
     const tools = createPackTools(db);
-    strictEqual(tools.length, 9);
+    strictEqual(tools.length, 10);
   });
 
   it("returns the expected tool names", () => {

@@ -46,6 +46,43 @@ export function mergeMember(db: DatabaseHandle, keepId: number, mergeId: number)
       }
     }
 
+    // Migrate fields: keep survivor's version on conflict
+    const mergeFields = db
+      .prepare("SELECT key, value, updated_at FROM pack_fields WHERE member_id = ?")
+      .all(mergeId) as { key: string; value: string | null; updated_at: number }[];
+
+    for (const f of mergeFields) {
+      const existing = db
+        .prepare("SELECT 1 FROM pack_fields WHERE member_id = ? AND key = ?")
+        .get(keepId, f.key);
+      if (!existing) {
+        db.prepare(
+          "INSERT INTO pack_fields (member_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ).run(keepId, f.key, f.value, f.updated_at);
+      }
+    }
+    db.prepare("DELETE FROM pack_fields WHERE member_id = ?").run(mergeId);
+
+    // Migrate links: reparent from merge→target to keep→target, skip conflicts
+    const mergeLinks = db
+      .prepare(
+        "SELECT id, target_id, label, role, active, created_at, updated_at FROM pack_links WHERE member_id = ?",
+      )
+      .all(mergeId) as Record<string, unknown>[];
+
+    for (const l of mergeLinks) {
+      const conflict = db
+        .prepare("SELECT 1 FROM pack_links WHERE member_id = ? AND target_id = ? AND label = ?")
+        .get(keepId, l.target_id, l.label);
+      if (!conflict) {
+        db.prepare("UPDATE pack_links SET member_id = ? WHERE id = ?").run(keepId, l.id);
+      } else {
+        db.prepare("DELETE FROM pack_links WHERE id = ?").run(l.id);
+      }
+    }
+    // Also reparent links pointing TO the merged member
+    db.prepare("UPDATE pack_links SET target_id = ? WHERE target_id = ?").run(keepId, mergeId);
+
     const firstContact = Math.min(keep.firstContact, merge.firstContact);
     const lastContact = Math.max(keep.lastContact, merge.lastContact);
     const trust = Math.max(keep.trust, merge.trust);

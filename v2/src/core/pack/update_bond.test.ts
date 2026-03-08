@@ -85,4 +85,27 @@ describe("updateBond", () => {
     const m = meetMember(db, { name: "K", kind: "human" });
     throws(() => updateBond(db, m.id, { name: "" }), /non-empty/);
   });
+
+  it("updates universal columns", () => {
+    const m = meetMember(db, { name: "J", kind: "human" });
+    const updated = updateBond(db, m.id, {
+      nickname: "Jay",
+      timezone: "America/New_York",
+      location: "NYC",
+      pronouns: "they/them",
+      birthday: "1995-12-25",
+    });
+    strictEqual(updated.nickname, "Jay");
+    strictEqual(updated.timezone, "America/New_York");
+    strictEqual(updated.location, "NYC");
+    strictEqual(updated.pronouns, "they/them");
+    strictEqual(updated.birthday, "1995-12-25");
+  });
+
+  it("clears a universal column with empty string", () => {
+    const m = meetMember(db, { name: "L", kind: "human", timezone: "Europe/Berlin" });
+    strictEqual(m.timezone, "Europe/Berlin");
+    const updated = updateBond(db, m.id, { timezone: "" });
+    strictEqual(updated.timezone, null);
+  });
 });

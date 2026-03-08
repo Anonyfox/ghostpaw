@@ -57,6 +57,7 @@ const EXPECTED_WARDEN_TOOLS = [
   "datetime",
   "forget",
   "pack_bond",
+  "pack_link",
   "pack_meet",
   "pack_merge",
   "pack_note",
@@ -170,7 +171,20 @@ describe("createEntityToolSets", () => {
   it("allToolsWithMentor includes shared tools but not coordinator-only tools", () => {
     const sets = createEntityToolSets(mockConfig());
     const allNames = new Set(sets.allToolsWithMentor.map((t) => t.name));
-    for (const shared of ["read", "write", "edit", "ls", "grep", "bash", "web_fetch", "web_search", "mcp", "calc", "datetime", "sense"]) {
+    for (const shared of [
+      "read",
+      "write",
+      "edit",
+      "ls",
+      "grep",
+      "bash",
+      "web_fetch",
+      "web_search",
+      "mcp",
+      "calc",
+      "datetime",
+      "sense",
+    ]) {
       ok(allNames.has(shared), `${shared} should be in allToolsWithMentor`);
     }
     ok(!allNames.has("howl"), "howl should not be in allToolsWithMentor (coordinator-only)");
@@ -202,7 +216,20 @@ describe("createEntityToolSets", () => {
   it("allToolsWithTrainer includes shared tools but not coordinator-only tools", () => {
     const sets = createEntityToolSets(mockConfig());
     const allNames = new Set(sets.allToolsWithTrainer.map((t) => t.name));
-    for (const shared of ["read", "write", "edit", "ls", "grep", "bash", "web_fetch", "web_search", "mcp", "calc", "datetime", "sense"]) {
+    for (const shared of [
+      "read",
+      "write",
+      "edit",
+      "ls",
+      "grep",
+      "bash",
+      "web_fetch",
+      "web_search",
+      "mcp",
+      "calc",
+      "datetime",
+      "sense",
+    ]) {
       ok(allNames.has(shared), `${shared} should be in allToolsWithTrainer`);
     }
     ok(!allNames.has("howl"), "howl should not be in allToolsWithTrainer (coordinator-only)");
@@ -273,6 +300,7 @@ describe("createEntityToolSets", () => {
       "pack_sense",
       "pack_meet",
       "pack_bond",
+      "pack_link",
       "pack_note",
       "pack_merge",
       "contact_add",

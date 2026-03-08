@@ -5,6 +5,7 @@ export type TrustLevel = "deep" | "solid" | "growing" | "shallow";
 export interface PackMemberInfo {
   id: number;
   name: string;
+  nickname: string | null;
   kind: string;
   trust: number;
   trustLevel: TrustLevel;
@@ -12,6 +13,7 @@ export interface PackMemberInfo {
   bondExcerpt: string;
   lastContact: number;
   interactionCount: number;
+  tags: string[];
 }
 
 export interface PackContactInfo {
@@ -21,27 +23,53 @@ export interface PackContactInfo {
   label: string | null;
 }
 
+export interface PackFieldInfo {
+  key: string;
+  value: string | null;
+}
+
+export interface PackLinkInfo {
+  id: number;
+  targetId: number;
+  targetName: string;
+  label: string;
+  role: string | null;
+  active: boolean;
+}
+
 export interface PackInteractionInfo {
   id: number;
   kind: string;
   summary: string;
   significance: number;
+  occurredAt: number | null;
   createdAt: number;
 }
 
 export interface PackMemberDetailResponse {
   id: number;
   name: string;
+  nickname: string | null;
   kind: string;
   bond: string;
   trust: number;
   trustLevel: TrustLevel;
   status: string;
   isUser: boolean;
+  parentId: number | null;
+  parentName: string | null;
+  timezone: string | null;
+  locale: string | null;
+  location: string | null;
+  address: string | null;
+  pronouns: string | null;
+  birthday: string | null;
   firstContact: number;
   lastContact: number;
   createdAt: number;
   updatedAt: number;
+  fields: PackFieldInfo[];
+  links: PackLinkInfo[];
   contacts: PackContactInfo[];
   interactions: PackInteractionInfo[];
 }
@@ -56,6 +84,43 @@ export interface PackStatsResponse {
   dormant: number;
   lost: number;
   total: number;
+}
+
+export interface PackDriftInfo {
+  memberId: number;
+  name: string;
+  trust: number;
+  tier: "deep" | "solid" | "growing";
+  daysSilent: number;
+}
+
+export interface PackLandmarkInfo {
+  type: "birthday" | "anniversary";
+  memberId: number;
+  name: string;
+  date: string;
+  daysAway: number;
+  yearsAgo?: number;
+  summary?: string;
+}
+
+export interface PackPatrolResponse {
+  drift: PackDriftInfo[];
+  landmarks: PackLandmarkInfo[];
+  stats: {
+    activeMembers: number;
+    dormantMembers: number;
+    recentInteractions: number;
+    averageTrust: number;
+  };
+  generatedAt: number;
+}
+
+export interface PackCommandResponse {
+  response: string;
+  cost: number;
+  sessionId: number;
+  acted: boolean;
 }
 
 export function trustLevel(trust: number): TrustLevel {

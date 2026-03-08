@@ -2,7 +2,8 @@ import { useEffect, useState } from "preact/hooks";
 import type { PackListResponse } from "../../shared/pack_types.ts";
 import { apiGet } from "../api_get.ts";
 import { PackBondCard } from "../components/pack_bond_card.tsx";
-import { PackMeetForm } from "../components/pack_meet_form.tsx";
+import { PackCommandBox } from "../components/pack_command_box.tsx";
+import { PackPatrolPanel } from "../components/pack_patrol_panel.tsx";
 
 type Tab = "confidants" | "lost";
 
@@ -16,7 +17,7 @@ export function PackPage() {
       const res = await apiGet<PackListResponse>("/api/pack");
       setData(res);
     } catch {
-      // handled gracefully
+      // Silently degrade — the page renders empty state instead of crashing
     } finally {
       setLoading(false);
     }
@@ -62,6 +63,10 @@ export function PackPage() {
         </ul>
       </div>
 
+      <PackCommandBox onSuccess={load} />
+
+      <PackPatrolPanel />
+
       <div class="d-flex gap-4 mb-4 text-muted small">
         <span>
           {counts.total} Confidant{counts.total !== 1 ? "s" : ""}
@@ -77,9 +82,6 @@ export function PackPage() {
               <PackBondCard member={m} />
             </div>
           ))}
-          <div class="col-md-6 col-lg-4">
-            <PackMeetForm onCreated={load} />
-          </div>
         </div>
       )}
 

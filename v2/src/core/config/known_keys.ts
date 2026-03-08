@@ -25,7 +25,8 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
     defaultValue: 80,
     category: "cost",
     label: "Warning Threshold (%)",
-    description: "Percentage of daily dollar budget (max_cost_per_day) that triggers a warning (0-100).",
+    description:
+      "Percentage of daily dollar budget (max_cost_per_day) that triggers a warning (0-100).",
     validate: (v) => typeof v === "number" && v >= 0 && v <= 100,
   },
   {

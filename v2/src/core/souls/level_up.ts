@@ -90,7 +90,14 @@ export function levelUp(db: DatabaseHandle, soulId: number, plan: LevelUpPlan): 
           `INSERT INTO soul_traits (soul_id, principle, provenance, generation, status, created_at, updated_at)
            VALUES (?, ?, ?, ?, 'active', ?, ?)`,
         )
-        .run(soulId, group.mergedPrinciple.trim(), group.mergedProvenance.trim(), newLevel, now, now);
+        .run(
+          soulId,
+          group.mergedPrinciple.trim(),
+          group.mergedProvenance.trim(),
+          newLevel,
+          now,
+          now,
+        );
 
       const mergedId = Number(lastInsertRowid);
       mergedIds.push(mergedId);

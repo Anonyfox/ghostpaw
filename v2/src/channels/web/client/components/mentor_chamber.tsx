@@ -4,10 +4,10 @@ import type { MentorActionResponse } from "../../shared/mentor_types.ts";
 import type { LevelInfo, SoulDetailResponse } from "../../shared/soul_types.ts";
 import { apiPost } from "../api_post.ts";
 import { MentorActionCard } from "./mentor_action_card.tsx";
-import { MentorLevelUpResult } from "./mentor_level_up_result.tsx";
 import { MentorLevelUpConfirm } from "./mentor_level_up_confirm.tsx";
-import { MentorResponse } from "./mentor_response.tsx";
+import { MentorLevelUpResult } from "./mentor_level_up_result.tsx";
 import { MentorRefineInput } from "./mentor_refine_input.tsx";
+import { MentorResponse } from "./mentor_response.tsx";
 
 type Action = "review" | "refine" | "levelUp" | null;
 type Phase = "idle" | "input" | "confirm" | "loading" | "result";

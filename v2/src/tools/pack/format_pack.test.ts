@@ -7,7 +7,6 @@ import {
   formatMemberDetail,
   formatMemberSummary,
   relativeTime,
-  trustLabel,
 } from "./format_pack.ts";
 
 const NOW = 1_700_000_000_000;
@@ -16,11 +15,19 @@ function makeMember(overrides: Partial<PackMember> = {}): PackMember {
   return {
     id: 1,
     name: "Alice",
+    nickname: null,
     kind: "human",
     bond: "A trusted partner.",
     trust: 0.75,
     status: "active",
     isUser: false,
+    parentId: null,
+    timezone: null,
+    locale: null,
+    location: null,
+    address: null,
+    pronouns: null,
+    birthday: null,
     firstContact: NOW - 86_400_000 * 42,
     lastContact: NOW - 7_200_000,
     createdAt: NOW - 86_400_000 * 42,
@@ -37,6 +44,7 @@ function makeInteraction(overrides: Partial<PackInteraction> = {}): PackInteract
     summary: "Discussed project restructuring.",
     significance: 0.7,
     sessionId: null,
+    occurredAt: null,
     createdAt: NOW - 7_200_000,
     ...overrides,
   };
@@ -53,13 +61,6 @@ function makeContact(overrides: Partial<PackContact> = {}): PackContact {
     ...overrides,
   };
 }
-
-describe("trustLabel", () => {
-  it("returns deep for >= 0.8", () => strictEqual(trustLabel(0.9), "deep"));
-  it("returns solid for >= 0.6", () => strictEqual(trustLabel(0.7), "solid"));
-  it("returns growing for >= 0.3", () => strictEqual(trustLabel(0.4), "growing"));
-  it("returns shallow for < 0.3", () => strictEqual(trustLabel(0.1), "shallow"));
-});
 
 describe("relativeTime", () => {
   it("returns just now for < 1 minute", () => {
@@ -87,6 +88,7 @@ describe("formatMemberSummary", () => {
     const s = formatMemberSummary(makeMember(), 5, NOW);
     strictEqual(s.id, 1);
     strictEqual(s.name, "Alice");
+    strictEqual(s.nickname, null);
     strictEqual(s.trust_level, "solid");
     strictEqual(s.last_contact, "2h ago");
     strictEqual(s.interactions, 5);
@@ -126,7 +128,12 @@ describe("formatInteraction", () => {
 describe("formatMemberDetail", () => {
   it("includes all fields, contacts, and interactions", () => {
     const contacts = [makeContact()];
-    const d = formatMemberDetail(makeMember(), [makeInteraction()], NOW, contacts);
+    const d = formatMemberDetail({
+      member: makeMember(),
+      interactions: [makeInteraction()],
+      now: NOW,
+      contacts,
+    });
     strictEqual(d.name, "Alice");
     strictEqual(d.trust_level, "solid");
     strictEqual(d.is_user, false);
@@ -137,8 +144,37 @@ describe("formatMemberDetail", () => {
     strictEqual(d.contacts[0].type, "email");
   });
 
-  it("defaults to empty contacts array", () => {
-    const d = formatMemberDetail(makeMember(), [], NOW);
+  it("defaults to empty contacts, fields, links", () => {
+    const d = formatMemberDetail({ member: makeMember(), interactions: [], now: NOW });
     strictEqual(d.contacts.length, 0);
+    strictEqual(d.tags.length, 0);
+    strictEqual(d.fields.length, 0);
+    strictEqual(d.links.length, 0);
+  });
+
+  it("splits tags and keyed fields", () => {
+    const d = formatMemberDetail({
+      member: makeMember(),
+      interactions: [],
+      fields: [
+        { key: "client", value: null, updatedAt: NOW },
+        { key: "billing_rate", value: "100/hr", updatedAt: NOW },
+      ],
+      now: NOW,
+    });
+    strictEqual(d.tags.length, 1);
+    strictEqual(d.tags[0], "client");
+    strictEqual(d.fields.length, 1);
+    strictEqual(d.fields[0].key, "billing_rate");
+  });
+
+  it("includes universal columns", () => {
+    const d = formatMemberDetail({
+      member: makeMember({ timezone: "Europe/Berlin", nickname: "Ali" }),
+      interactions: [],
+      now: NOW,
+    });
+    strictEqual(d.timezone, "Europe/Berlin");
+    strictEqual(d.nickname, "Ali");
   });
 });

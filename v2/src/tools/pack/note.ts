@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { INTERACTION_KINDS, noteInteraction } from "../../core/pack/index.ts";
+import { countInteractions, INTERACTION_KINDS, noteInteraction } from "../../core/pack/index.ts";
 import type { InteractionKind } from "../../core/pack/types.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatInteraction } from "./format_pack.ts";
@@ -17,13 +17,19 @@ class PackNoteParams extends Schema {
     optional: true,
     description:
       "Type of interaction: 'conversation', 'correction', 'conflict', 'gift', " +
-      "'milestone', or 'observation'. Default: 'conversation'.",
+      "'milestone', 'observation', 'transaction', or 'activity'. Default: 'conversation'.",
   });
   significance = Schema.Number({
     optional: true,
     description:
       "How significant was this interaction, from 0 (trivial) to 1 (life-changing). " +
       "Default: 0.5.",
+  });
+  occurred_at = Schema.String({
+    optional: true,
+    description:
+      "Date when this event actually happened, if different from today (YYYY-MM-DD). " +
+      "Use for historical milestones, past transactions, or events with a known date.",
   });
 }
 
@@ -41,11 +47,13 @@ export function createPackNoteTool(db: DatabaseHandle) {
         summary,
         kind,
         significance,
+        occurred_at: occurredAtStr,
       } = args as {
         member: string;
         summary: string;
         kind?: InteractionKind;
         significance?: number;
+        occurred_at?: string;
       };
 
       if (!memberRef || !memberRef.trim()) {
@@ -65,19 +73,25 @@ export function createPackNoteTool(db: DatabaseHandle) {
         };
       }
 
+      let occurredAt: number | undefined;
+      if (occurredAtStr) {
+        const parsed = Date.parse(occurredAtStr);
+        if (Number.isNaN(parsed)) {
+          return { error: `Invalid date "${occurredAtStr}". Use YYYY-MM-DD format.` };
+        }
+        occurredAt = parsed;
+      }
+
       try {
         const ix = noteInteraction(db, {
           memberId: resolved.id,
           kind: kind ?? "conversation",
           summary: summary.trim(),
           significance: significance !== undefined ? Math.max(0, Math.min(1, significance)) : 0.5,
+          occurredAt,
         });
 
-        const ixCount = (
-          db
-            .prepare("SELECT COUNT(*) AS c FROM pack_interactions WHERE member_id = ?")
-            .get(resolved.id) as { c: number }
-        ).c;
+        const ixCount = countInteractions(db, resolved.id);
 
         return {
           interaction: formatInteraction(ix),

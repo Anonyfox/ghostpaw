@@ -1,6 +1,8 @@
 import { ok, strictEqual } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
 import { type DatabaseHandle, openTestDatabase } from "../../lib/index.ts";
+import { setField } from "./fields.ts";
+import { addLink } from "./links.ts";
 import { listMembers } from "./list_members.ts";
 import { meetMember } from "./meet_member.ts";
 import { initPackTables } from "./schema.ts";
@@ -66,18 +68,63 @@ describe("listMembers", () => {
     strictEqual(result[0].interactionCount, 2);
   });
 
-  it("returns summary shape, not full member", () => {
-    meetMember(db, { name: "Shape", kind: "human" });
+  it("returns summary shape with nickname", () => {
+    meetMember(db, { name: "Shape", kind: "human", nickname: "S" });
     const result = listMembers(db);
     const keys = Object.keys(result[0]);
     ok(keys.includes("id"));
     ok(keys.includes("name"));
+    ok(keys.includes("nickname"));
     ok(keys.includes("kind"));
     ok(keys.includes("trust"));
     ok(keys.includes("status"));
     ok(keys.includes("lastContact"));
     ok(keys.includes("interactionCount"));
     ok(!keys.includes("bond"));
-    ok(!keys.includes("metadata"));
+    strictEqual(result[0].nickname, "S");
+  });
+
+  it("filters by field tag", () => {
+    const a = meetMember(db, { name: "A", kind: "human" });
+    meetMember(db, { name: "B", kind: "human" });
+    setField(db, a.id, "vip");
+    const result = listMembers(db, { field: "vip" });
+    strictEqual(result.length, 1);
+    strictEqual(result[0].name, "A");
+  });
+
+  it("filters by groupId", () => {
+    const org = meetMember(db, { name: "Acme", kind: "group" });
+    const a = meetMember(db, { name: "A", kind: "human" });
+    meetMember(db, { name: "B", kind: "human" });
+    addLink(db, a.id, org.id, "works-at");
+    const result = listMembers(db, { groupId: org.id });
+    strictEqual(result.length, 1);
+    strictEqual(result[0].name, "A");
+  });
+
+  it("searches by name", () => {
+    meetMember(db, { name: "Alice Walker", kind: "human" });
+    meetMember(db, { name: "Bob Smith", kind: "human" });
+    const result = listMembers(db, { search: "alice" });
+    strictEqual(result.length, 1);
+    strictEqual(result[0].name, "Alice Walker");
+  });
+
+  it("searches by nickname", () => {
+    meetMember(db, { name: "Robert", kind: "human", nickname: "Bobby" });
+    meetMember(db, { name: "Jane", kind: "human" });
+    const result = listMembers(db, { search: "Bobby" });
+    strictEqual(result.length, 1);
+    strictEqual(result[0].name, "Robert");
+  });
+
+  it("searches by field key", () => {
+    const a = meetMember(db, { name: "Client", kind: "human" });
+    meetMember(db, { name: "Other", kind: "human" });
+    setField(db, a.id, "enterprise");
+    const result = listMembers(db, { search: "enterprise" });
+    strictEqual(result.length, 1);
+    strictEqual(result[0].name, "Client");
   });
 });

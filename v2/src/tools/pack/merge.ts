@@ -17,8 +17,8 @@ export function createPackMergeTool(db: DatabaseHandle) {
     name: "pack_merge",
     description:
       "Merge two pack members that represent the same being. The 'keep' member survives " +
-      "with combined interactions, contacts, bond narratives, and the higher trust. " +
-      "The 'merge' member is marked 'lost'.",
+      "with combined interactions, contacts, fields, links, bond narratives, and the higher trust. " +
+      "The 'merge' member is marked 'lost'. No information is destroyed.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new PackMergeParams() as any,
     execute: async ({ args }) => {

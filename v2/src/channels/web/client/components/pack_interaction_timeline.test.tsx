@@ -28,9 +28,17 @@ describe("PackInteractionTimeline", () => {
         kind: "conversation",
         summary: "Talked plans",
         significance: 0.5,
+        occurredAt: null,
         createdAt: Date.now(),
       },
-      { id: 2, kind: "gift", summary: "Shared resource", significance: 0.8, createdAt: Date.now() },
+      {
+        id: 2,
+        kind: "gift",
+        summary: "Shared resource",
+        significance: 0.8,
+        occurredAt: null,
+        createdAt: Date.now(),
+      },
     ];
     render(<PackInteractionTimeline interactions={interactions} />, dom.container);
     assert.ok(dom.container.textContent?.includes("Talked plans"));

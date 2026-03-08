@@ -1,23 +1,11 @@
 import { Link } from "wouter-preact";
 import type { PackMemberInfo } from "../../shared/pack_types.ts";
+import { relativeTime } from "../relative_time.ts";
 import { PackKindBadge } from "./pack_kind_badge.tsx";
 import { PackTrustPips } from "./pack_trust_pips.tsx";
 
 interface PackBondCardProps {
   member: PackMemberInfo;
-}
-
-function relativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  return `${months}mo ago`;
 }
 
 function statusCardClass(status: string): string {
@@ -41,6 +29,7 @@ export function PackBondCard({ member }: PackBondCardProps) {
             >
               {member.name}
             </Link>
+            {member.nickname && <small class="text-muted ms-1">"{member.nickname}"</small>}
           </h6>
           <PackKindBadge kind={member.kind} />
         </div>
@@ -51,6 +40,16 @@ export function PackBondCard({ member }: PackBondCardProps) {
 
         {member.bondExcerpt && (
           <p class="card-text small text-body-secondary mb-2">{member.bondExcerpt}</p>
+        )}
+
+        {member.tags && member.tags.length > 0 && (
+          <div class="d-flex flex-wrap gap-1 mb-2">
+            {member.tags.map((t) => (
+              <span key={t} class="badge bg-info bg-opacity-25 text-info" style="font-size: 0.7em;">
+                {t}
+              </span>
+            ))}
+          </div>
         )}
 
         <div class="d-flex justify-content-between align-items-center text-body-tertiary small">

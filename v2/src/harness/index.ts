@@ -20,6 +20,8 @@ export { buildLevelUpPrompt } from "./mentor_level_up_prompt.ts";
 export { buildRefinePrompt } from "./mentor_refine_prompt.ts";
 export { buildReviewPrompt } from "./mentor_review_prompt.ts";
 export { resolveModel } from "./model.ts";
+export type { CommandInput, CommandResult } from "./oneshots/execute_command.ts";
+export { executeCommand } from "./oneshots/execute_command.ts";
 export { handlePostSession } from "./post_session.ts";
 export type { EntityToolSets, EntityToolsConfig } from "./tools.ts";
 export { createEntityToolSets } from "./tools.ts";

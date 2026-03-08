@@ -1,5 +1,6 @@
 import { Link } from "wouter-preact";
 import type { SessionInfo, SessionStatus } from "../../shared/session_types.ts";
+import { relativeTime } from "../relative_time.ts";
 
 interface Props {
   session: SessionInfo;
@@ -11,18 +12,6 @@ function statusColor(status: SessionStatus): string {
   if (status === "open") return "text-success";
   if (status === "distilled") return "text-info";
   return "text-secondary";
-}
-
-function relativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const secs = Math.floor(diff / 1000);
-  if (secs < 60) return "just now";
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
 }
 
 function fmtTokens(n: number): string {

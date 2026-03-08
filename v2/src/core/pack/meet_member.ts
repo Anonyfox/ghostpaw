@@ -1,4 +1,5 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
+import { setField } from "./fields.ts";
 import { rowToMember } from "./row_to_member.ts";
 import type { MeetInput, PackMember } from "./types.ts";
 import { MEMBER_KINDS } from "./types.ts";
@@ -19,11 +20,39 @@ export function meetMember(db: DatabaseHandle, input: MeetInput): PackMember {
 
   const { lastInsertRowid } = db
     .prepare(
-      `INSERT INTO pack_members (name, kind, bond, trust, status, is_user, first_contact, last_contact, created_at, updated_at)
-       VALUES (?, ?, ?, 0.5, 'active', ?, ?, ?, ?, ?)`,
+      `INSERT INTO pack_members
+       (name, nickname, kind, bond, trust, status, is_user, parent_id,
+        timezone, locale, location, address, pronouns, birthday,
+        first_contact, last_contact, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 0.5, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(name, input.kind, bond, isUser, now, now, now, now);
+    .run(
+      name,
+      input.nickname?.trim() || null,
+      input.kind,
+      bond,
+      isUser,
+      input.parentId ?? null,
+      input.timezone?.trim() || null,
+      input.locale?.trim() || null,
+      input.location?.trim() || null,
+      input.address?.trim() || null,
+      input.pronouns?.trim() || null,
+      input.birthday?.trim() || null,
+      now,
+      now,
+      now,
+      now,
+    );
 
-  const row = db.prepare("SELECT * FROM pack_members WHERE id = ?").get(lastInsertRowid);
+  const memberId = Number(lastInsertRowid);
+
+  if (input.tags && input.tags.length > 0) {
+    for (const tag of input.tags) {
+      if (tag.trim()) setField(db, memberId, tag);
+    }
+  }
+
+  const row = db.prepare("SELECT * FROM pack_members WHERE id = ?").get(memberId);
   return rowToMember(row as Record<string, unknown>);
 }

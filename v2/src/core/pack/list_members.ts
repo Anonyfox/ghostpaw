@@ -9,12 +9,37 @@ export function listMembers(
   const params: unknown[] = [];
 
   if (options.status) {
-    conditions.push("m.status = ?");
-    params.push(options.status);
+    if (Array.isArray(options.status)) {
+      const placeholders = options.status.map(() => "?").join(", ");
+      conditions.push(`m.status IN (${placeholders})`);
+      params.push(...options.status);
+    } else {
+      conditions.push("m.status = ?");
+      params.push(options.status);
+    }
   }
   if (options.kind) {
     conditions.push("m.kind = ?");
     params.push(options.kind);
+  }
+  if (options.field) {
+    conditions.push("EXISTS (SELECT 1 FROM pack_fields WHERE member_id = m.id AND key = ?)");
+    params.push(options.field.trim().toLowerCase());
+  }
+  if (options.groupId) {
+    conditions.push(
+      "EXISTS (SELECT 1 FROM pack_links WHERE member_id = m.id AND target_id = ? AND active = 1)",
+    );
+    params.push(options.groupId);
+  }
+  if (options.search) {
+    const pattern = `%${options.search}%`;
+    conditions.push(
+      `(m.name LIKE ? OR m.nickname LIKE ? OR m.bond LIKE ?
+        OR EXISTS (SELECT 1 FROM pack_fields WHERE member_id = m.id
+          AND (key LIKE ? OR value LIKE ?)))`,
+    );
+    params.push(pattern, pattern, pattern, pattern, pattern);
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
@@ -23,12 +48,10 @@ export function listMembers(
 
   const rows = db
     .prepare(
-      `SELECT m.id, m.name, m.kind, m.trust, m.status, m.last_contact,
-              COUNT(i.id) AS interaction_count
+      `SELECT m.id, m.name, m.nickname, m.kind, m.trust, m.status, m.last_contact,
+              (SELECT COUNT(*) FROM pack_interactions WHERE member_id = m.id) AS interaction_count
        FROM pack_members m
-       LEFT JOIN pack_interactions i ON i.member_id = m.id
        ${where}
-       GROUP BY m.id
        ORDER BY m.last_contact DESC
        LIMIT ? OFFSET ?`,
     )
@@ -37,6 +60,7 @@ export function listMembers(
   return rows.map((row) => ({
     id: row.id as number,
     name: row.name as string,
+    nickname: (row.nickname as string | null) ?? null,
     kind: row.kind as MemberKind,
     trust: row.trust as number,
     status: row.status as MemberStatus,

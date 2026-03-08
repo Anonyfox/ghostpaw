@@ -3,7 +3,9 @@ import { beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { addContact } from "./add_contact.ts";
+import { setField } from "./fields.ts";
 import { getMember } from "./get_member.ts";
+import { addLink } from "./links.ts";
 import { listContacts } from "./list_contacts.ts";
 import { meetMember } from "./meet_member.ts";
 import { mergeMember } from "./merge_member.ts";
@@ -129,5 +131,42 @@ describe("mergeMember", () => {
 
     const result = mergeMember(db, keep.id, merge.id);
     strictEqual(result.bond, "Original.");
+  });
+
+  it("migrates fields from merged member to survivor", () => {
+    const keep = meetMember(db, { name: "Alice", kind: "human" });
+    const merge = meetMember(db, { name: "Alexander", kind: "human" });
+    setField(db, keep.id, "client");
+    setField(db, merge.id, "vip");
+    setField(db, merge.id, "client");
+
+    mergeMember(db, keep.id, merge.id);
+
+    const fields = db
+      .prepare("SELECT key FROM pack_fields WHERE member_id = ? ORDER BY key")
+      .all(keep.id) as { key: string }[];
+    strictEqual(fields.length, 2);
+    strictEqual(fields[0].key, "client");
+    strictEqual(fields[1].key, "vip");
+
+    const mergedFields = db
+      .prepare("SELECT key FROM pack_fields WHERE member_id = ?")
+      .all(merge.id) as { key: string }[];
+    strictEqual(mergedFields.length, 0);
+  });
+
+  it("migrates links from merged member to survivor", () => {
+    const keep = meetMember(db, { name: "Alice", kind: "human" });
+    const merge = meetMember(db, { name: "Alexander", kind: "human" });
+    const org = meetMember(db, { name: "Acme", kind: "group" });
+    addLink(db, merge.id, org.id, "works-at");
+
+    mergeMember(db, keep.id, merge.id);
+
+    const links = db
+      .prepare("SELECT member_id, label FROM pack_links WHERE member_id = ?")
+      .all(keep.id) as { member_id: number; label: string }[];
+    strictEqual(links.length, 1);
+    strictEqual(links[0].label, "works-at");
   });
 });

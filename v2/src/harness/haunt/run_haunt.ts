@@ -21,7 +21,6 @@ import { assembleHauntContext } from "./haunt_context.ts";
 import { buildHauntPrompt, TEXT_ONLY_CONTINUATION, WRAP_UP } from "./haunt_prompt.ts";
 import type { ConsolidationResult, HauntResult, RunHauntOptions } from "./types.ts";
 
-
 const MAX_TOOL_ITERATIONS = 200;
 
 function aggregateUsage(results: TurnResult[]): TurnResult["usage"] {
