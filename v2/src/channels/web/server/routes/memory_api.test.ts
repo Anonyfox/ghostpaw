@@ -107,29 +107,6 @@ describe("memory API", () => {
     });
   });
 
-  describe("confirm", () => {
-    it("bumps confidence", () => {
-      const mem = seedMemory(db, "Confirmable memory");
-      const res = mockRes();
-      const ctx = { req: {}, res, params: { id: String(mem.id) } } as unknown as RouteContext;
-      handlers.confirm(ctx);
-      strictEqual(res.status, 200);
-      const data = JSON.parse(res.body);
-      ok(data.confidence >= mem.confidence);
-      strictEqual(data.evidenceCount, 2);
-    });
-  });
-
-  describe("forget", () => {
-    it("self-supersedes a memory", () => {
-      const mem = seedMemory(db, "Forgettable memory");
-      const res = mockRes();
-      const ctx = { req: {}, res, params: { id: String(mem.id) } } as unknown as RouteContext;
-      handlers.forget(ctx);
-      strictEqual(res.status, 200);
-    });
-  });
-
   describe("search", () => {
     it("returns empty results for empty query", () => {
       const res = mockRes();
@@ -142,6 +119,12 @@ describe("memory API", () => {
       strictEqual(res.status, 200);
       const data = JSON.parse(res.body);
       strictEqual(data.memories.length, 0);
+    });
+  });
+
+  describe("command", () => {
+    it("exposes a command handler", () => {
+      strictEqual(typeof handlers.command, "function");
     });
   });
 });

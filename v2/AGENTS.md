@@ -11,7 +11,7 @@ If you are working on a specific system, also read its spec:
 | System | Spec | Status | What it covers |
 |--------|------|--------|----------------|
 | Souls | `docs/features/SOULS.md` | **Implemented** | Evolutionary identity, traits, refinement, level-up |
-| Memory | `docs/MEMORY.md` | **Implemented** | Belief-based storage, recall, embeddings, confidence decay |
+| Memory | `docs/features/MEMORY.md` | **Implemented** | Belief-based storage, recall, embeddings, confidence decay |
 | Settings | `docs/features/SETTINGS.md` | **Implemented** | Secrets, configuration, scheduling — chamberlain-managed infrastructure |
 | Haunting | `docs/HAUNT.md` | **Implemented** | Haunt cycle, scheduled via builtin scheduler |
 | Quests | `docs/QUESTS.md` | **Implemented** | Unified task/event/calendar system, temporal awareness, Quest Board |
@@ -78,7 +78,7 @@ The entity composition layer. `createEntity` wires core modules into a working a
 | `tui/` | **Working** | Full terminal UI — alt-screen, streaming, scroll, tool status. Default when TTY. |
 | `web/` | **Working** | Preact SPA + Bootstrap. Dashboard, chat (WebSocket), sessions, souls, memories, settings, costs, training. Password-protected. |
 | `telegram/` | **Working** | grammY long-polling, background delegation notifications. |
-| `cli/` | **Working** | Full subcommand tree: run, secrets, config, souls, memory, sessions, skills, costs, distill, train, scout, schedules, service. |
+| `cli/` | **Working** | Full subcommand tree: run, secrets, config, souls, memory (list/search/show + warden commands), pack (list/show/history/count/patrol + warden commands), sessions, skills, costs, distill, train, scout, schedules, service. |
 | Daemon | **Working** | No-TTY mode: web + telegram until SIGTERM. |
 
 ### Additional systems

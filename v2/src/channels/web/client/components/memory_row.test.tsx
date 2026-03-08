@@ -25,49 +25,18 @@ function makeMemory(overrides?: Partial<MemoryInfo>): MemoryInfo {
 
 describe("MemoryRow", () => {
   it("renders claim text", () => {
-    const html = render(
-      <MemoryRow
-        memory={makeMemory()}
-        isExpanded={false}
-        onToggle={noop}
-        onConfirm={noop}
-        onForget={noop}
-        selectMode={false}
-        selected={false}
-        onSelect={noop}
-      />,
-    );
+    const html = render(<MemoryRow memory={makeMemory()} isExpanded={false} onToggle={noop} />);
     ok(html.includes("User prefers dark mode"));
   });
 
   it("renders strength dot", () => {
-    const html = render(
-      <MemoryRow
-        memory={makeMemory()}
-        isExpanded={false}
-        onToggle={noop}
-        onConfirm={noop}
-        onForget={noop}
-        selectMode={false}
-        selected={false}
-        onSelect={noop}
-      />,
-    );
+    const html = render(<MemoryRow memory={makeMemory()} isExpanded={false} onToggle={noop} />);
     ok(html.includes("text-success"));
   });
 
   it("renders category badge", () => {
     const html = render(
-      <MemoryRow
-        memory={makeMemory({ category: "fact" })}
-        isExpanded={false}
-        onToggle={noop}
-        onConfirm={noop}
-        onForget={noop}
-        selectMode={false}
-        selected={false}
-        onSelect={noop}
-      />,
+      <MemoryRow memory={makeMemory({ category: "fact" })} isExpanded={false} onToggle={noop} />,
     );
     ok(html.includes("bg-info"));
     ok(html.includes("fact"));
@@ -75,50 +44,22 @@ describe("MemoryRow", () => {
 
   it("shows evidence count", () => {
     const html = render(
-      <MemoryRow
-        memory={makeMemory({ evidenceCount: 5 })}
-        isExpanded={false}
-        onToggle={noop}
-        onConfirm={noop}
-        onForget={noop}
-        selectMode={false}
-        selected={false}
-        onSelect={noop}
-      />,
+      <MemoryRow memory={makeMemory({ evidenceCount: 5 })} isExpanded={false} onToggle={noop} />,
     );
     ok(html.includes("5x confirmed"));
-  });
-
-  it("renders checkbox in select mode", () => {
-    const html = render(
-      <MemoryRow
-        memory={makeMemory()}
-        isExpanded={false}
-        onToggle={noop}
-        onConfirm={noop}
-        onForget={noop}
-        selectMode={true}
-        selected={false}
-        onSelect={noop}
-      />,
-    );
-    ok(html.includes("form-check-input"));
   });
 
   it("truncates long claims", () => {
     const longClaim = "A".repeat(200);
     const html = render(
-      <MemoryRow
-        memory={makeMemory({ claim: longClaim })}
-        isExpanded={false}
-        onToggle={noop}
-        onConfirm={noop}
-        onForget={noop}
-        selectMode={false}
-        selected={false}
-        onSelect={noop}
-      />,
+      <MemoryRow memory={makeMemory({ claim: longClaim })} isExpanded={false} onToggle={noop} />,
     );
     ok(html.includes("..."));
+  });
+
+  it("does not render mutation buttons", () => {
+    const html = render(<MemoryRow memory={makeMemory()} isExpanded={false} onToggle={noop} />);
+    ok(!html.includes("Confirm"));
+    ok(!html.includes("Forget"));
   });
 });

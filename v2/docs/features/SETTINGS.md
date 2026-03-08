@@ -89,7 +89,7 @@ Those systems tune ephemeral per-run parameters. Ghostpaw goes further: config c
 
 ### System and Custom Keys
 
-Ghostpaw ships known system keys with type, default, and validation constraints in code — no database seeding required. If no override exists, the code default applies. Each feature documents its own keys: [Souls](SOULS.md#configuration), [Memory](../MEMORY.md#configuration), [Howl](../HOWL.md#rate-limiting). Any unlisted key is custom — type inferred, no restrictions beyond type correctness. Skills and agents persist preferences (`review.style = thorough`, `deploy.target = staging`) with the same history, attribution, and undo.
+Ghostpaw ships known system keys with type, default, and validation constraints in code — no database seeding required. If no override exists, the code default applies. Each feature documents its own keys: [Souls](SOULS.md#configuration), [Memory](MEMORY.md#configuration), [Howl](../HOWL.md#rate-limiting). Any unlisted key is custom — type inferred, no restrictions beyond type correctness. Skills and agents persist preferences (`review.style = thorough`, `deploy.target = staging`) with the same history, attribution, and undo.
 
 ### Managing Config
 

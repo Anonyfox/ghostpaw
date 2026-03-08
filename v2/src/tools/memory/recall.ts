@@ -18,9 +18,8 @@ export function createRecallTool(db: DatabaseHandle) {
     description:
       "Search memories for relevant beliefs. Returns top matches ranked by relevance, " +
       "confidence, and freshness, each with an ID, claim text, confidence score, " +
-      "source, and category. Most memory retrieval happens automatically before " +
-      "you respond — only use this for targeted follow-up searches when you need " +
-      "something specific. Use the returned memory IDs with revise (to update) " +
+      "source, and category. Always recall before remembering to check for duplicates " +
+      "or contradictions. Use the returned memory IDs with revise (to update) " +
       "or forget (to invalidate).",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new RecallParams() as any,

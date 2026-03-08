@@ -7,9 +7,8 @@ import type {
   MemoryStatsResponse,
 } from "../../shared/memory_types.ts";
 import { apiGet } from "../api_get.ts";
-import { apiPost } from "../api_post.ts";
 import { DistillBanner } from "../components/distill_banner.tsx";
-import { MemoryAddForm } from "../components/memory_add_form.tsx";
+import { MemoryCommandBox } from "../components/memory_command_box.tsx";
 import { MemoryDetail } from "../components/memory_detail.tsx";
 import { MemoryRow } from "../components/memory_row.tsx";
 import { MemoryStatsBar } from "../components/memory_stats_bar.tsx";
@@ -28,11 +27,6 @@ export function MemoriesPage() {
   const [staleOnly, setStaleOnly] = useState(false);
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [mergeText, setMergeText] = useState("");
-  const [showMerge, setShowMerge] = useState(false);
   const [distillStatus, setDistillStatus] = useState<DistillStatusResponse | null>(null);
 
   const fetchDistillStatus = useCallback(() => {
@@ -120,101 +114,22 @@ export function MemoriesPage() {
     setSort("stalest");
   }, []);
 
-  const handleConfirm = useCallback(
-    (id: number) => {
-      apiPost<MemoryInfo>(`/api/memories/${id}/confirm`)
-        .then((updated) => {
-          setMemories((prev) => prev.map((m) => (m.id === id ? updated : m)));
-          fetchStats();
-        })
-        .catch(() => {});
-    },
-    [fetchStats],
-  );
-
-  const handleForget = useCallback(
-    (id: number) => {
-      apiPost(`/api/memories/${id}/forget`)
-        .then(() => {
-          setMemories((prev) => prev.filter((m) => m.id !== id));
-          setTotal((t) => t - 1);
-          setExpandedId(null);
-          fetchStats();
-        })
-        .catch(() => {});
-    },
-    [fetchStats],
-  );
-
   const handleToggleExpand = useCallback((id: number) => {
     setExpandedId((prev) => (prev === id ? null : id));
   }, []);
 
-  const handleUpdated = useCallback(
-    (updated: MemoryInfo) => {
-      fetchList();
-      fetchStats();
-      setExpandedId(updated.id);
-    },
-    [fetchList, fetchStats],
-  );
-
-  const handleCreated = useCallback(
-    (_mem: MemoryInfo) => {
-      setShowAddForm(false);
-      fetchList();
-      fetchStats();
-    },
-    [fetchList, fetchStats],
-  );
-
-  const handleToggleSelect = useCallback(() => {
-    setSelectMode((prev) => {
-      if (prev) {
-        setSelectedIds(new Set());
-        setShowMerge(false);
-      }
-      return !prev;
-    });
-  }, []);
-
-  const handleSelect = useCallback((id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const handleMergeStart = useCallback(() => {
-    const selected = memories.filter((m) => selectedIds.has(m.id));
-    setMergeText(selected.map((m) => m.claim).join("\n\n"));
-    setShowMerge(true);
-  }, [memories, selectedIds]);
-
-  const handleMergeSubmit = useCallback(async () => {
-    if (!mergeText.trim() || selectedIds.size < 2) return;
-    try {
-      await apiPost("/api/memories/merge", {
-        ids: [...selectedIds],
-        claim: mergeText.trim(),
-      });
-      setShowMerge(false);
-      setSelectMode(false);
-      setSelectedIds(new Set());
-      fetchList();
-      fetchStats();
-    } catch {
-      /* handled by API */
-    }
-  }, [mergeText, selectedIds, fetchList, fetchStats]);
+  const refreshAll = useCallback(() => {
+    fetchList();
+    fetchStats();
+  }, [fetchList, fetchStats]);
 
   const isSearching = searchQuery.trim().length > 0;
 
   return (
     <div>
       <h4 class="mb-3 text-body">Memories</h4>
+
+      <MemoryCommandBox onSuccess={refreshAll} />
 
       <DistillBanner status={distillStatus} onComplete={handleDistillComplete} />
 
@@ -238,16 +153,7 @@ export function MemoriesPage() {
           setSort(s);
           setStaleOnly(false);
         }}
-        selectMode={selectMode}
-        onToggleSelect={handleToggleSelect}
-        selectedCount={selectedIds.size}
-        onMerge={handleMergeStart}
-        onAdd={() => setShowAddForm(true)}
       />
-
-      {showAddForm && (
-        <MemoryAddForm onCreated={handleCreated} onCancel={() => setShowAddForm(false)} />
-      )}
 
       {staleOnly && (
         <div class="alert alert-warning py-2 small mb-3">
@@ -283,55 +189,11 @@ export function MemoriesPage() {
                   memory={m}
                   isExpanded={expandedId === m.id}
                   onToggle={handleToggleExpand}
-                  onConfirm={handleConfirm}
-                  onForget={handleForget}
-                  selectMode={selectMode}
-                  selected={selectedIds.has(m.id)}
-                  onSelect={handleSelect}
                   isSearchResult={isSearching}
                 />
-                {expandedId === m.id && !selectMode && (
-                  <MemoryDetail
-                    memoryId={m.id}
-                    onConfirm={handleConfirm}
-                    onForget={handleForget}
-                    onUpdated={handleUpdated}
-                  />
-                )}
+                {expandedId === m.id && <MemoryDetail memoryId={m.id} onSuccess={refreshAll} />}
               </div>
             ))}
-          </div>
-        </div>
-      )}
-
-      {showMerge && (
-        <div class="position-fixed bottom-0 start-0 end-0 bg-body-secondary border-top p-3">
-          <div class="container-fluid" style="max-width: 800px;">
-            <h6 class="text-body mb-2">Merge {selectedIds.size} memories</h6>
-            <textarea
-              class="form-control form-control-sm mb-2"
-              rows={4}
-              placeholder="Write the combined claim..."
-              value={mergeText}
-              onInput={(e) => setMergeText((e.target as HTMLTextAreaElement).value)}
-            />
-            <div class="d-flex gap-2">
-              <button
-                type="button"
-                class="btn btn-sm btn-info"
-                disabled={!mergeText.trim()}
-                onClick={handleMergeSubmit}
-              >
-                Merge
-              </button>
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-secondary"
-                onClick={() => setShowMerge(false)}
-              >
-                Cancel
-              </button>
-            </div>
           </div>
         </div>
       )}

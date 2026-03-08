@@ -22,72 +22,29 @@ interface MemoryRowProps {
   memory: MemoryInfo;
   isExpanded: boolean;
   onToggle: (id: number) => void;
-  onConfirm: (id: number) => void;
-  onForget: (id: number) => void;
-  selectMode: boolean;
-  selected: boolean;
-  onSelect: (id: number) => void;
   isSearchResult?: boolean;
 }
 
-export function MemoryRow({
-  memory,
-  isExpanded,
-  onToggle,
-  onConfirm,
-  onForget,
-  selectMode,
-  selected,
-  onSelect,
-  isSearchResult,
-}: MemoryRowProps) {
+export function MemoryRow({ memory, isExpanded, onToggle, isSearchResult }: MemoryRowProps) {
   const m = memory;
   const searchMem = isSearchResult ? (m as MemorySearchResult) : null;
-
-  const handleClick = () => {
-    if (selectMode) {
-      onSelect(m.id);
-    } else {
-      onToggle(m.id);
-    }
-  };
-
-  const handleConfirm = (e: Event) => {
-    e.stopPropagation();
-    onConfirm(m.id);
-  };
-
-  const handleForget = (e: Event) => {
-    e.stopPropagation();
-    onForget(m.id);
-  };
 
   return (
     // biome-ignore lint/a11y/useSemanticElements: row contains nested interactive elements
     <div
       role="button"
       tabIndex={0}
-      class={`border-bottom py-2 px-2 ${isExpanded ? "bg-body-tertiary" : ""} ${selected ? "bg-info bg-opacity-10" : ""}`}
+      class={`border-bottom py-2 px-2 ${isExpanded ? "bg-body-tertiary" : ""}`}
       style="cursor: pointer;"
-      onClick={handleClick}
+      onClick={() => onToggle(m.id)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          handleClick();
+          onToggle(m.id);
         }
       }}
     >
       <div class="d-flex align-items-start gap-2">
-        {selectMode && (
-          <input
-            type="checkbox"
-            class="form-check-input mt-1"
-            checked={selected}
-            onClick={(e) => e.stopPropagation()}
-            onChange={() => onSelect(m.id)}
-          />
-        )}
-
         <span class="mt-1">
           <MemoryStrengthDot strength={m.strength} />
         </span>
@@ -113,26 +70,6 @@ export function MemoryRow({
             <span class="text-body-tertiary small">{relativeTime(m.verifiedAt)}</span>
             {searchMem && (
               <span class="text-info small">{Math.round(searchMem.similarity * 100)}% match</span>
-            )}
-            {!selectMode && (
-              <div class="ms-auto d-flex gap-1">
-                <button
-                  type="button"
-                  class="btn btn-outline-info btn-sm py-0 px-2"
-                  onClick={handleConfirm}
-                  title="Confirm this memory — bumps confidence and resets freshness"
-                >
-                  Confirm
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-outline-danger btn-sm py-0 px-2"
-                  onClick={handleForget}
-                  title="Forget this memory — excluded from future recall but preserved in history"
-                >
-                  Forget
-                </button>
-              </div>
             )}
           </div>
         </div>

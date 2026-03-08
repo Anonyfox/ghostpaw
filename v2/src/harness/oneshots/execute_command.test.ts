@@ -111,4 +111,20 @@ describe("executeCommand", () => {
     });
     strictEqual(result.acted, false);
   });
+
+  it("pre-loads memory context for targeted memory commands", async () => {
+    const { embedText, storeMemory } = await import("../../core/memory/index.ts");
+    const embedding = embedText("deploy uses port 8080");
+    const mem = storeMemory(db, "deploy uses port 8080", embedding, {
+      source: "explicit",
+      category: "fact",
+    });
+    const result = await executeCommand(db, "test-model", mockFactory("Updated."), {
+      text: "this is outdated, forget it",
+      channel: "web",
+      memoryId: mem.id,
+    });
+    ok(result.response.length > 0);
+    ok(result.sessionId > 0);
+  });
 });

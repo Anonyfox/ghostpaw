@@ -17,11 +17,6 @@ interface MemoryToolbarProps {
   onStrengthChange: (s: string) => void;
   sort: MemorySortOption;
   onSortChange: (s: MemorySortOption) => void;
-  selectMode: boolean;
-  onToggleSelect: () => void;
-  selectedCount: number;
-  onMerge: () => void;
-  onAdd: () => void;
 }
 
 export function MemoryToolbar({
@@ -33,11 +28,6 @@ export function MemoryToolbar({
   onStrengthChange,
   sort,
   onSortChange,
-  selectMode,
-  onToggleSelect,
-  selectedCount,
-  onMerge,
-  onAdd,
 }: MemoryToolbarProps) {
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -100,25 +90,6 @@ export function MemoryToolbar({
         <option value="evidence">Most evidence</option>
         <option value="stalest">Stalest</option>
       </select>
-
-      <div class="ms-auto d-flex gap-2">
-        <button
-          type="button"
-          class={`btn btn-sm ${selectMode ? "btn-info" : "btn-outline-secondary"}`}
-          onClick={onToggleSelect}
-          title="Select memories to merge"
-        >
-          Select
-        </button>
-        {selectMode && selectedCount >= 2 && (
-          <button type="button" class="btn btn-sm btn-outline-info" onClick={onMerge}>
-            Merge {selectedCount}
-          </button>
-        )}
-        <button type="button" class="btn btn-sm btn-outline-info" onClick={onAdd}>
-          + Add
-        </button>
-      </div>
     </div>
   );
 }

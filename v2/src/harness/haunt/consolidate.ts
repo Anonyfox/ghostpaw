@@ -20,7 +20,7 @@ const CONSOLIDATION_INSTRUCTION = `Here is a completed private thinking session.
 First, write a summary (2-5 sentences). What was explored, what was discovered, what shifted.
 
 Then, use your persistence tools:
-- **Memory**: For each potential belief, formulate a clear claim, recall to check for duplicates, then remember (new), revise (correct/confirm existing), or skip. Only genuine discoveries. Hypotheses get confidence 0.4-0.5 with source "inferred". Observed facts get 0.7-0.8 with source "observed".
+- **Memory**: For each potential belief, formulate a clear claim, recall to check for duplicates, then remember (new), revise (correct/confirm existing), or skip. Only genuine discoveries grounded in the session content. Never fabricate claims the session does not support — skip rather than guess. Hypotheses get confidence 0.4-0.5 with source "inferred". Observed facts get 0.7-0.8 with source "observed".
 - **Pack**: If the session mentions interactions with people, update their pack bonds or notes.
 - **Quests**: If the session surfaced tasks or commitments, create or update quests accordingly.
 

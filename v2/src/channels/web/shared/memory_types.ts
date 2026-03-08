@@ -43,3 +43,10 @@ export interface MemorySearchResponse {
 export interface MemoryDetailResponse extends MemoryInfo {
   supersedes: number | null;
 }
+
+export interface MemoryCommandResponse {
+  response: string;
+  cost: number;
+  sessionId: number;
+  acted: boolean;
+}

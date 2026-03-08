@@ -26,7 +26,7 @@ Evolution is the RPG layer of Ghostpaw. Character progression, trait acquisition
 
 Specialized continuity engines that carry state across sessions, channels, and time. Each one answers a different question about the ghost's accumulated world.
 
-**Memory** stores beliefs — what the ghost thinks is true about the world. Confidence scores, evidence-weighted decay, self-healing convergence. Memory answers: *what do I believe, and how sure am I?* See `MEMORY.md`.
+**Memory** stores beliefs — what the ghost thinks is true about the world. Confidence scores, evidence-weighted decay, self-healing convergence. Memory answers: *what do I believe, and how sure am I?* See `features/MEMORY.md`.
 
 **Pack** stores relationships — who the ghost knows and how those bonds work. Trust levels, bond narratives, interaction histories, Theory of Mind through accumulated understanding. Pack answers: *who do I know, and what does our relationship mean?* See `PACK.md`.
 

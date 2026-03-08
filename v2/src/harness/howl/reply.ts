@@ -20,7 +20,7 @@ const MAX_ITERATIONS = 10;
 const REPLY_INSTRUCTION = `The user replied to a howl — a proactive question the ghost sent earlier.
 
 Process this interaction:
-- **Memory**: Extract beliefs from the user's answer. Recall first to check for duplicates, then remember or revise. Use confidence 0.7-0.8 with source "stated" for direct user statements.
+- **Memory**: Extract beliefs from the user's answer. Recall first to check for duplicates, then remember or revise. Use source "explicit" for direct user statements.
 - **Pack**: Note the user's engagement — they chose to reply, which means the topic matters to them. Update the bond if appropriate.
 - **Quests**: If the reply implies a task or commitment, create or update a quest.
 

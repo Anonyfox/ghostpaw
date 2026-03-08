@@ -1,5 +1,6 @@
 import type { ChatFactory } from "../../core/chat/chat_instance.ts";
 import { closeSession, createSession, executeTurn, getHistory } from "../../core/chat/index.ts";
+import { getMemory } from "../../core/memory/index.ts";
 import { renderBond } from "../../core/pack/render_bond.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
@@ -17,6 +18,7 @@ export interface CommandInput {
   text: string;
   channel: "web" | "cli";
   memberId?: number;
+  memoryId?: number;
 }
 
 export interface CommandResult {
@@ -50,6 +52,20 @@ export async function executeCommand(
       const rendered = renderBond(db, input.memberId);
       if (rendered) {
         parts.push("", "## Target Member", "", rendered);
+      }
+    }
+
+    if (input.memoryId) {
+      const mem = getMemory(db, input.memoryId);
+      if (mem) {
+        parts.push(
+          "",
+          "## Target Memory",
+          "",
+          `Memory #${mem.id}: "${mem.claim}"`,
+          `Confidence: ${mem.confidence}, source: ${mem.source}, ` +
+            `category: ${mem.category}, evidence: ${mem.evidenceCount}`,
+        );
       }
     }
 

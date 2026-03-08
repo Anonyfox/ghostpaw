@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from "preact/hooks";
-import type { MemoryDetailResponse, MemoryInfo } from "../../shared/memory_types.ts";
+import { useEffect, useState } from "preact/hooks";
+import type { MemoryDetailResponse } from "../../shared/memory_types.ts";
 import { apiGet } from "../api_get.ts";
-import { apiPatch } from "../api_patch.ts";
 import { relativeTime } from "../relative_time.ts";
+import { MemoryCommandBox } from "./memory_command_box.tsx";
 
 const SOURCE_EXPLANATIONS: Record<string, string> = {
   explicit: "You told the ghost this directly",
@@ -31,16 +31,11 @@ function formatDate(ts: number): string {
 
 interface MemoryDetailProps {
   memoryId: number;
-  onConfirm: (id: number) => void;
-  onForget: (id: number) => void;
-  onUpdated: (updated: MemoryInfo) => void;
+  onSuccess: () => void;
 }
 
-export function MemoryDetail({ memoryId, onConfirm, onForget, onUpdated }: MemoryDetailProps) {
+export function MemoryDetail({ memoryId, onSuccess }: MemoryDetailProps) {
   const [detail, setDetail] = useState<MemoryDetailResponse | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [editText, setEditText] = useState("");
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,30 +43,6 @@ export function MemoryDetail({ memoryId, onConfirm, onForget, onUpdated }: Memor
       .then(setDetail)
       .catch(() => setError("Failed to load memory details."));
   }, [memoryId]);
-
-  const handleEdit = useCallback(() => {
-    if (detail) {
-      setEditText(detail.claim);
-      setEditing(true);
-    }
-  }, [detail]);
-
-  const handleSave = useCallback(async () => {
-    if (!editText.trim()) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const updated = await apiPatch<MemoryInfo>(`/api/memories/${memoryId}`, {
-        claim: editText.trim(),
-      });
-      onUpdated(updated);
-      setEditing(false);
-    } catch {
-      setError("Failed to save correction.");
-    } finally {
-      setSaving(false);
-    }
-  }, [editText, memoryId, onUpdated]);
 
   if (error && !detail) {
     return <div class="p-3 text-danger small">{error}</div>;
@@ -88,36 +59,7 @@ export function MemoryDetail({ memoryId, onConfirm, onForget, onUpdated }: Memor
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => e.stopPropagation()}
     >
-      {editing ? (
-        <div class="mb-3">
-          <textarea
-            class="form-control form-control-sm mb-2"
-            rows={3}
-            value={editText}
-            onInput={(e) => setEditText((e.target as HTMLTextAreaElement).value)}
-          />
-          <div class="d-flex gap-2">
-            <button
-              type="button"
-              class="btn btn-sm btn-info"
-              disabled={saving || !editText.trim()}
-              onClick={handleSave}
-            >
-              {saving ? "Saving..." : "Save correction"}
-            </button>
-            <button
-              type="button"
-              class="btn btn-sm btn-outline-secondary"
-              onClick={() => setEditing(false)}
-            >
-              Cancel
-            </button>
-          </div>
-          {error && <div class="text-danger small mt-1">{error}</div>}
-        </div>
-      ) : (
-        <p class="mb-3 text-body">{detail.claim}</p>
-      )}
+      <p class="mb-3 text-body">{detail.claim}</p>
 
       <div class="row g-3 small">
         <div class="col-sm-6 col-md-4">
@@ -210,34 +152,8 @@ export function MemoryDetail({ memoryId, onConfirm, onForget, onUpdated }: Memor
         </div>
       )}
 
-      <div class="d-flex gap-2 mt-3">
-        <button
-          type="button"
-          class="btn btn-sm btn-outline-info"
-          onClick={() => onConfirm(detail.id)}
-        >
-          Confirm
-        </button>
-        {!editing && (
-          <button type="button" class="btn btn-sm btn-outline-secondary" onClick={handleEdit}>
-            Edit
-          </button>
-        )}
-        <button
-          type="button"
-          class="btn btn-sm btn-outline-danger"
-          onClick={() => {
-            if (
-              confirm(
-                "Forget this memory? It will be excluded from future recall but preserved in history.",
-              )
-            ) {
-              onForget(detail.id);
-            }
-          }}
-        >
-          Forget
-        </button>
+      <div class="mt-3">
+        <MemoryCommandBox memoryId={detail.id} onSuccess={onSuccess} />
       </div>
     </section>
   );

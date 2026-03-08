@@ -1,15 +1,11 @@
 import type { IncomingMessage } from "node:http";
 import { freshness } from "../../../../core/memory/freshness.ts";
 import {
-  confirmMemory,
   countMemories,
-  embedText,
   getMemory,
   listMemories,
   recallMemories,
   staleMemories,
-  storeMemory,
-  supersedeMemories,
 } from "../../../../core/memory/index.ts";
 import type { Memory, RankedMemory } from "../../../../core/memory/types.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
@@ -209,117 +205,40 @@ export function createMemoryApiHandlers(db: DatabaseHandle) {
       json(ctx, 200, detail);
     },
 
-    async store(ctx: RouteContext): Promise<void> {
+    async command(ctx: RouteContext): Promise<void> {
       const body = await parseBody(ctx.req);
       if (!body) {
         json(ctx, 400, { error: "Invalid request body." });
         return;
       }
-      const claim = typeof body.claim === "string" ? body.claim.trim() : "";
-      if (!claim) {
-        json(ctx, 400, { error: "Claim must not be empty." });
+      const text = typeof body.text === "string" ? body.text.trim() : "";
+      if (!text) {
+        json(ctx, 400, { error: "text is required." });
         return;
       }
-      const source = typeof body.source === "string" ? body.source : "explicit";
-      const category = typeof body.category === "string" ? body.category : "custom";
+      const memoryId =
+        typeof body.memoryId === "number" && body.memoryId > 0 ? body.memoryId : undefined;
+
       try {
-        const embedding = embedText(claim);
-        const mem = storeMemory(db, claim, embedding, {
-          source: source as Memory["source"],
-          category: category as Memory["category"],
+        const { executeCommand } = await import("../../../../harness/oneshots/execute_command.ts");
+        const { resolveModel } = await import("../../../../harness/model.ts");
+        const { defaultChatFactory } = await import("../../../../harness/chat_factory.ts");
+
+        const model = resolveModel(db);
+        const result = await executeCommand(db, model, defaultChatFactory, {
+          text,
+          channel: "web",
+          memoryId,
         });
-        json(ctx, 201, toInfo(mem));
-      } catch (err) {
-        json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
-      }
-    },
 
-    confirm(ctx: RouteContext): void {
-      const id = Number(ctx.params.id);
-      if (!Number.isFinite(id) || id < 1) {
-        json(ctx, 400, { error: "Invalid memory ID." });
-        return;
-      }
-      try {
-        const mem = confirmMemory(db, id);
-        json(ctx, 200, toInfo(mem));
-      } catch (err) {
-        json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
-      }
-    },
-
-    forget(ctx: RouteContext): void {
-      const id = Number(ctx.params.id);
-      if (!Number.isFinite(id) || id < 1) {
-        json(ctx, 400, { error: "Invalid memory ID." });
-        return;
-      }
-      try {
-        supersedeMemories(db, [id]);
-        json(ctx, 200, { ok: true });
-      } catch (err) {
-        json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
-      }
-    },
-
-    async correct(ctx: RouteContext): Promise<void> {
-      const id = Number(ctx.params.id);
-      if (!Number.isFinite(id) || id < 1) {
-        json(ctx, 400, { error: "Invalid memory ID." });
-        return;
-      }
-      const body = await parseBody(ctx.req);
-      if (!body) {
-        json(ctx, 400, { error: "Invalid request body." });
-        return;
-      }
-      const claim = typeof body.claim === "string" ? body.claim.trim() : "";
-      if (!claim) {
-        json(ctx, 400, { error: "New claim must not be empty." });
-        return;
-      }
-      try {
-        const old = getMemory(db, id);
-        if (!old) {
-          json(ctx, 404, { error: "Memory not found." });
-          return;
-        }
-        const embedding = embedText(claim);
-        const newMem = storeMemory(db, claim, embedding, {
-          source: old.source,
-          category: old.category,
-          confidence: old.confidence,
+        json(ctx, 200, {
+          response: result.response,
+          cost: result.cost,
+          sessionId: result.sessionId,
+          acted: result.acted,
         });
-        supersedeMemories(db, [id], newMem.id);
-        json(ctx, 200, toInfo(newMem));
       } catch (err) {
-        json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
-      }
-    },
-
-    async merge(ctx: RouteContext): Promise<void> {
-      const body = await parseBody(ctx.req);
-      if (!body) {
-        json(ctx, 400, { error: "Invalid request body." });
-        return;
-      }
-      const ids = Array.isArray(body.ids) ? (body.ids as number[]) : [];
-      const claim = typeof body.claim === "string" ? body.claim.trim() : "";
-      if (ids.length < 2) {
-        json(ctx, 400, { error: "Merge requires at least 2 memory IDs." });
-        return;
-      }
-      if (!claim) {
-        json(ctx, 400, { error: "Merged claim must not be empty." });
-        return;
-      }
-      try {
-        const embedding = embedText(claim);
-        const newMem = storeMemory(db, claim, embedding, { source: "explicit" });
-        supersedeMemories(db, ids, newMem.id);
-        json(ctx, 200, toInfo(newMem));
-      } catch (err) {
-        json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
+        json(ctx, 500, { error: err instanceof Error ? err.message : String(err) });
       }
     },
   };

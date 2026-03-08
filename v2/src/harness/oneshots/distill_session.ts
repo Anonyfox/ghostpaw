@@ -29,7 +29,9 @@ Use your persistence tools:
 - **Pack**: If the conversation mentions interactions with people, update their pack bonds or notes.
 - **Quests**: If tasks or commitments were mentioned, create or update quests accordingly.
 
-Quality: each claim must be self-contained and useful without the original conversation. Include specifics: names, commands, paths, versions. Corrections and updates are highest priority. Skip greetings, status checks, obvious facts, tool noise. Do nothing if routine. Maximum ~5 beliefs per conversation.`;
+Quality: each claim must be self-contained and useful without the original conversation. Include specifics: names, commands, paths, versions. Corrections and updates are highest priority. Skip greetings, status checks, obvious facts, tool noise. Do nothing if routine. Maximum ~5 beliefs per conversation.
+
+Grounding: Only store beliefs directly supported by the conversation. For direct user statements, use source "explicit". For things you observed during the session, use "observed". For reasonable inferences not directly stated, use "inferred" with confidence <=0.5. Never fabricate claims the conversation does not support — skip rather than guess.`;
 
 function skip(reason: string): DistillResult {
   return { skipped: true, reason, toolCalls: {} };
