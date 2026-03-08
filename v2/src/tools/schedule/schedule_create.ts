@@ -8,6 +8,10 @@ class ScheduleCreateParams extends Schema {
   interval_ms = Schema.Number({
     description: "Interval between runs in milliseconds. Minimum 60000 (1 minute).",
   });
+  timeout_ms = Schema.Number({
+    optional: true,
+    description: "Maximum runtime in milliseconds. Job is killed if exceeded. Omit for no timeout.",
+  });
   enabled = Schema.Boolean({
     optional: true,
     description: "Whether the schedule is enabled. Defaults to true.",
@@ -25,10 +29,11 @@ export function createScheduleCreateTool(db: DatabaseHandle) {
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new ScheduleCreateParams() as any,
     execute: async ({ args }) => {
-      const { name, command, interval_ms, enabled } = args as {
+      const { name, command, interval_ms, timeout_ms, enabled } = args as {
         name: string;
         command: string;
         interval_ms: number;
+        timeout_ms?: number;
         enabled?: boolean;
       };
 
@@ -37,6 +42,7 @@ export function createScheduleCreateTool(db: DatabaseHandle) {
         type: "custom",
         command,
         intervalMs: interval_ms,
+        timeoutMs: timeout_ms,
         enabled,
       });
 
@@ -46,6 +52,7 @@ export function createScheduleCreateTool(db: DatabaseHandle) {
           name: schedule.name,
           command: schedule.command,
           intervalMs: schedule.intervalMs,
+          timeoutMs: schedule.timeoutMs,
           enabled: schedule.enabled,
           nextRunAt: new Date(schedule.nextRunAt).toISOString(),
         },

@@ -1,4 +1,4 @@
-import { strictEqual } from "node:assert";
+import { ok, strictEqual } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
@@ -15,15 +15,18 @@ describe("claimSchedule", () => {
     initScheduleTables(db);
   });
 
-  it("claims a due schedule and sets running_pid", () => {
+  it("claims a due schedule and sets running_pid and started_at", () => {
     const s = createSchedule(db, { name: "a", type: "custom", command: "ls", intervalMs: 60_000 });
     const nextRun = s.nextRunAt + s.intervalMs;
+    const before = Date.now();
     const claimed = claimSchedule(db, s.id, s.nextRunAt, nextRun, 9999);
     strictEqual(claimed, true);
 
     const updated = getSchedule(db, s.id)!;
     strictEqual(updated.runningPid, 9999);
     strictEqual(updated.nextRunAt, nextRun);
+    ok(updated.startedAt !== null);
+    ok(updated.startedAt! >= before);
   });
 
   it("fails if next_run_at was already advanced (CAS)", () => {

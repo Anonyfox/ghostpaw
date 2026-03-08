@@ -49,6 +49,16 @@ describe("schedule_create tool", () => {
     );
   });
 
+  it("passes timeout_ms to core", async () => {
+    const result = (await execute({
+      name: "timed",
+      command: "echo hi",
+      interval_ms: 120_000,
+      timeout_ms: 300_000,
+    })) as { created: { timeoutMs: number | null } };
+    strictEqual(result.created.timeoutMs, 300_000);
+  });
+
   it("has a tool name", () => {
     const tool = createScheduleCreateTool(db);
     strictEqual(tool.name, "schedule_create");

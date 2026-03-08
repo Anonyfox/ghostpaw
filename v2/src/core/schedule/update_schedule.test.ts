@@ -71,4 +71,38 @@ describe("updateSchedule", () => {
   it("throws for unknown id", () => {
     throws(() => updateSchedule(db, 999, { enabled: false }), /not found/);
   });
+
+  it("updates timeout_ms", () => {
+    const s = createSchedule(db, {
+      name: "test",
+      type: "custom",
+      command: "ls",
+      intervalMs: 120_000,
+    });
+    const updated = updateSchedule(db, s.id, { timeoutMs: 600_000 });
+    strictEqual(updated.timeoutMs, 600_000);
+  });
+
+  it("clears timeout_ms when set to null", () => {
+    const s = createSchedule(db, {
+      name: "test",
+      type: "custom",
+      command: "ls",
+      intervalMs: 120_000,
+      timeoutMs: 600_000,
+    });
+    const updated = updateSchedule(db, s.id, { timeoutMs: null });
+    strictEqual(updated.timeoutMs, null);
+  });
+
+  it("rejects timeout_ms <= 0", () => {
+    const s = createSchedule(db, {
+      name: "test",
+      type: "custom",
+      command: "ls",
+      intervalMs: 120_000,
+    });
+    throws(() => updateSchedule(db, s.id, { timeoutMs: 0 }), /timeout must be a positive/);
+    throws(() => updateSchedule(db, s.id, { timeoutMs: -5 }), /timeout must be a positive/);
+  });
 });

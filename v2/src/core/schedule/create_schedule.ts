@@ -12,17 +12,21 @@ export function createSchedule(db: DatabaseHandle, input: CreateScheduleInput): 
   if (input.intervalMs < 60_000) {
     throw new Error("Schedule interval must be at least 60000ms (1 minute).");
   }
+  if (input.timeoutMs !== undefined && input.timeoutMs <= 0) {
+    throw new Error("Schedule timeout must be a positive number of milliseconds.");
+  }
 
   const result = db
     .prepare(
-      `INSERT INTO schedules (name, type, command, interval_ms, enabled, next_run_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO schedules (name, type, command, interval_ms, timeout_ms, enabled, next_run_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       input.name.trim(),
       input.type,
       input.command.trim(),
       input.intervalMs,
+      input.timeoutMs ?? null,
       enabled ? 1 : 0,
       nextRunAt,
       now,

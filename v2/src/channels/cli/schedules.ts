@@ -67,9 +67,15 @@ const schedulesShow = defineCommand({
       console.log(
         `  ${style.dim("Interval:")} ${formatInterval(s.intervalMs)} (${s.intervalMs}ms)`,
       );
+      console.log(
+        `  ${style.dim("Timeout:")}  ${s.timeoutMs ? `${formatInterval(s.timeoutMs)} (${s.timeoutMs}ms)` : style.dim("none")}`,
+      );
       console.log(`  ${style.dim("Next run:")} ${new Date(s.nextRunAt).toLocaleString()}`);
       if (s.runningPid !== null) {
         console.log(`  ${style.dim("PID:")}      ${s.runningPid}`);
+        if (s.startedAt) {
+          console.log(`  ${style.dim("Running:")}  ${formatAge(s.startedAt).replace(" ago", "")}`);
+        }
       }
       console.log(`  ${style.dim("Runs:")}     ${s.runCount} total, ${s.failCount} failed`);
       console.log(`  ${style.dim("Last run:")} ${formatAge(s.lastRunAt)}`);
@@ -144,10 +150,8 @@ const schedulesCreate = defineCommand({
   args: {
     name: { type: "positional", description: "Unique schedule name" },
     command: { type: "string", description: "Shell command to run", required: true },
-    interval: {
-      type: "string",
-      description: "Interval in minutes (default: 60)",
-    },
+    interval: { type: "string", description: "Interval in minutes (default: 60)" },
+    timeout: { type: "string", description: "Max runtime in minutes (kills job if exceeded)" },
   },
   async run({ args }) {
     await withRunDb((db) => {
@@ -156,7 +160,9 @@ const schedulesCreate = defineCommand({
       const command = (args.command as string | undefined)?.trim();
       if (!name || !command) {
         console.log(
-          style.dim("  Usage: schedules create <name> --command <cmd> [--interval <min>]"),
+          style.dim(
+            "  Usage: schedules create <name> --command <cmd> [--interval <min>] [--timeout <min>]",
+          ),
         );
         return;
       }
@@ -165,12 +171,18 @@ const schedulesCreate = defineCommand({
         console.log(style.dim("  Interval must be at least 1 minute."));
         return;
       }
+      const timeoutMin = args.timeout ? Number(args.timeout) : undefined;
+      if (timeoutMin !== undefined && (Number.isNaN(timeoutMin) || timeoutMin <= 0)) {
+        console.log(style.dim("  Timeout must be a positive number of minutes."));
+        return;
+      }
       try {
         const s = createSchedule(db, {
           name,
           type: "custom",
           command,
           intervalMs: minutes * 60_000,
+          timeoutMs: timeoutMin ? timeoutMin * 60_000 : undefined,
         });
         console.log(
           `  ${style.cyan("Created")} ${s.name} — runs every ${formatInterval(s.intervalMs)}`,
@@ -183,18 +195,21 @@ const schedulesCreate = defineCommand({
 });
 
 const schedulesUpdate = defineCommand({
-  meta: { name: "update", description: "Update a schedule's interval or command" },
+  meta: { name: "update", description: "Update a schedule's interval, timeout, or command" },
   args: {
     id: { type: "positional", description: "Schedule ID or name" },
     command: { type: "string", description: "New shell command" },
     interval: { type: "string", description: "New interval in minutes" },
+    timeout: { type: "string", description: "New max runtime in minutes (0 to remove)" },
   },
   async run({ args }) {
     await withRunDb((db) => {
       ensureDefaultSchedules(db);
       if (!args.id) {
         console.log(
-          style.dim("  Usage: schedules update <id|name> [--interval <min>] [--command <cmd>]"),
+          style.dim(
+            "  Usage: schedules update <id|name> [--interval <min>] [--timeout <min>] [--command <cmd>]",
+          ),
         );
         return;
       }
@@ -203,7 +218,7 @@ const schedulesUpdate = defineCommand({
         console.log(style.dim(`  Schedule "${args.id}" not found.`));
         return;
       }
-      const changes: { intervalMs?: number; command?: string } = {};
+      const changes: { intervalMs?: number; timeoutMs?: number | null; command?: string } = {};
       if (args.interval) {
         const minutes = Number(args.interval);
         if (Number.isNaN(minutes) || minutes < 1) {
@@ -212,11 +227,19 @@ const schedulesUpdate = defineCommand({
         }
         changes.intervalMs = minutes * 60_000;
       }
+      if (args.timeout) {
+        const minutes = Number(args.timeout);
+        if (Number.isNaN(minutes) || minutes < 0) {
+          console.log(style.dim("  Timeout must be a non-negative number of minutes."));
+          return;
+        }
+        changes.timeoutMs = minutes === 0 ? null : minutes * 60_000;
+      }
       if (args.command) {
         changes.command = (args.command as string).trim();
       }
-      if (!changes.intervalMs && !changes.command) {
-        console.log(style.dim("  Nothing to update. Use --interval or --command."));
+      if (!changes.intervalMs && changes.timeoutMs === undefined && !changes.command) {
+        console.log(style.dim("  Nothing to update. Use --interval, --timeout, or --command."));
         return;
       }
       try {

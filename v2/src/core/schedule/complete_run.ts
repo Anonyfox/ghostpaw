@@ -10,6 +10,7 @@ export function completeRun(
   db.prepare(
     `UPDATE schedules SET
        running_pid = NULL,
+       started_at = NULL,
        last_run_at = ?,
        last_exit_code = ?,
        last_error = ?,

@@ -7,9 +7,11 @@ export interface Schedule {
   type: ScheduleType;
   command: string;
   intervalMs: number;
+  timeoutMs: number | null;
   enabled: boolean;
   nextRunAt: number;
   runningPid: number | null;
+  startedAt: number | null;
   lastRunAt: number | null;
   lastExitCode: number | null;
   lastError: string | null;
@@ -24,11 +26,13 @@ export interface CreateScheduleInput {
   type: ScheduleType;
   command: string;
   intervalMs: number;
+  timeoutMs?: number;
   enabled?: boolean;
 }
 
 export interface UpdateScheduleInput {
   intervalMs?: number;
+  timeoutMs?: number | null;
   enabled?: boolean;
   command?: string;
 }

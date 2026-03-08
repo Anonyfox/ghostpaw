@@ -113,6 +113,26 @@ function spawnJob(
   log.info(`scheduler started ${schedule.name} (pid ${pid})`);
 
   let stderr = "";
+  let timedOut = false;
+  let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+  let killTimer: ReturnType<typeof setTimeout> | null = null;
+
+  if (schedule.timeoutMs !== null) {
+    timeoutTimer = setTimeout(() => {
+      timedOut = true;
+      log.warn(`scheduler timeout ${schedule.name} after ${schedule.timeoutMs}ms, sending SIGTERM`);
+      child.kill("SIGTERM");
+      killTimer = setTimeout(() => {
+        child.kill("SIGKILL");
+      }, 5_000);
+    }, schedule.timeoutMs);
+  }
+
+  function clearTimers(): void {
+    if (timeoutTimer !== null) clearTimeout(timeoutTimer);
+    if (killTimer !== null) clearTimeout(killTimer);
+  }
+
   child.stderr?.on("data", (chunk: Buffer) => {
     stderr += chunk.toString("utf-8");
     if (stderr.length > MAX_STDERR_BYTES * 2) {
@@ -121,6 +141,7 @@ function spawnJob(
   });
 
   child.on("error", (err) => {
+    clearTimers();
     children.delete(schedule.id);
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     log.error(`scheduler error ${schedule.name} (${elapsed}s): ${err.message}`);
@@ -128,9 +149,18 @@ function spawnJob(
   });
 
   child.on("close", (code) => {
+    clearTimers();
     children.delete(schedule.id);
     const exitCode = code ?? -1;
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+    if (timedOut) {
+      const errorText = `job timed out after ${schedule.timeoutMs}ms`;
+      log.warn(`scheduler timeout-killed ${schedule.name} (${elapsed}s)`);
+      completeRun(db, schedule.id, exitCode, errorText);
+      return;
+    }
+
     const errorText = exitCode !== 0 ? stderr.slice(-MAX_STDERR_BYTES).trim() || null : null;
 
     if (exitCode === 0) {

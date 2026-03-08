@@ -52,6 +52,33 @@ describe("schedule_update tool", () => {
     await rejects(() => execute({ id: s.id, command: "other" }), /builtin/);
   });
 
+  it("updates timeout_ms", async () => {
+    const s = createSchedule(db, {
+      name: "a",
+      type: "custom",
+      command: "ls",
+      intervalMs: 120_000,
+    });
+    const result = (await execute({ id: s.id, timeout_ms: 300_000 })) as {
+      updated: { timeoutMs: number | null };
+    };
+    strictEqual(result.updated.timeoutMs, 300_000);
+  });
+
+  it("clears timeout_ms when set to 0", async () => {
+    const s = createSchedule(db, {
+      name: "a",
+      type: "custom",
+      command: "ls",
+      intervalMs: 120_000,
+      timeoutMs: 300_000,
+    });
+    const result = (await execute({ id: s.id, timeout_ms: 0 })) as {
+      updated: { timeoutMs: number | null };
+    };
+    strictEqual(result.updated.timeoutMs, null);
+  });
+
   it("has a tool name", () => {
     const tool = createScheduleUpdateTool(db);
     strictEqual(tool.name, "schedule_update");

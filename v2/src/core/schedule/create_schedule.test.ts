@@ -78,4 +78,50 @@ describe("createSchedule", () => {
       createSchedule(db, { name: "dup", type: "custom", command: "ls", intervalMs: 60_000 }),
     );
   });
+
+  it("stores timeout_ms when provided", () => {
+    const s = createSchedule(db, {
+      name: "timed",
+      type: "custom",
+      command: "ls",
+      intervalMs: 60_000,
+      timeoutMs: 300_000,
+    });
+    strictEqual(s.timeoutMs, 300_000);
+  });
+
+  it("defaults timeout_ms to null", () => {
+    const s = createSchedule(db, {
+      name: "notimed",
+      type: "custom",
+      command: "ls",
+      intervalMs: 60_000,
+    });
+    strictEqual(s.timeoutMs, null);
+  });
+
+  it("rejects timeout_ms <= 0", () => {
+    throws(
+      () =>
+        createSchedule(db, {
+          name: "bad",
+          type: "custom",
+          command: "ls",
+          intervalMs: 60_000,
+          timeoutMs: 0,
+        }),
+      /timeout must be a positive/,
+    );
+    throws(
+      () =>
+        createSchedule(db, {
+          name: "bad2",
+          type: "custom",
+          command: "ls",
+          intervalMs: 60_000,
+          timeoutMs: -1,
+        }),
+      /timeout must be a positive/,
+    );
+  });
 });

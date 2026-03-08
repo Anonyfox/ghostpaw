@@ -15,14 +15,18 @@ describe("completeRun", () => {
     initScheduleTables(db);
   });
 
-  it("clears running_pid and records success", () => {
+  it("clears running_pid and started_at and records success", () => {
     const s = createSchedule(db, { name: "a", type: "custom", command: "ls", intervalMs: 60_000 });
-    db.prepare("UPDATE schedules SET running_pid = 9999 WHERE id = ?").run(s.id);
+    db.prepare("UPDATE schedules SET running_pid = 9999, started_at = ? WHERE id = ?").run(
+      Date.now(),
+      s.id,
+    );
 
     completeRun(db, s.id, 0);
 
     const updated = getSchedule(db, s.id)!;
     strictEqual(updated.runningPid, null);
+    strictEqual(updated.startedAt, null);
     strictEqual(updated.lastExitCode, 0);
     strictEqual(updated.lastError, null);
     strictEqual(updated.runCount, 1);

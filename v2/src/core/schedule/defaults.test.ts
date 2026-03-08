@@ -20,4 +20,11 @@ describe("DEFAULT_SCHEDULES", () => {
       ok(s.intervalMs >= 60_000, `${s.name} interval too short: ${s.intervalMs}`);
     }
   });
+
+  it("all builtins have a positive timeout", () => {
+    for (const s of DEFAULT_SCHEDULES) {
+      ok(s.timeoutMs !== undefined && s.timeoutMs > 0, `${s.name} missing timeout`);
+      ok(s.timeoutMs! < s.intervalMs, `${s.name} timeout should be less than interval`);
+    }
+  });
 });

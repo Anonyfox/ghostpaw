@@ -45,4 +45,16 @@ describe("ensureDefaultSchedules", () => {
     const distill = getScheduleByName(db, "distill")!;
     strictEqual(distill.enabled, true);
   });
+
+  it("haunt has a 10-minute timeout", () => {
+    ensureDefaultSchedules(db);
+    const haunt = getScheduleByName(db, "haunt")!;
+    strictEqual(haunt.timeoutMs, 600_000);
+  });
+
+  it("distill has a 30-minute timeout", () => {
+    ensureDefaultSchedules(db);
+    const distill = getScheduleByName(db, "distill")!;
+    strictEqual(distill.timeoutMs, 1_800_000);
+  });
 });

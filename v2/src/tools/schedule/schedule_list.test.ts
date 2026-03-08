@@ -41,4 +41,18 @@ describe("schedule_list tool", () => {
     strictEqual(result.schedules.length, 1);
     strictEqual(result.schedules[0].type, "custom");
   });
+
+  it("includes timeoutMs in output", async () => {
+    createSchedule(db, {
+      name: "timed",
+      type: "custom",
+      command: "echo",
+      intervalMs: 60_000,
+      timeoutMs: 120_000,
+    });
+    const result = (await execute()) as {
+      schedules: { name: string; timeoutMs: number | null }[];
+    };
+    strictEqual(result.schedules[0].timeoutMs, 120_000);
+  });
 });

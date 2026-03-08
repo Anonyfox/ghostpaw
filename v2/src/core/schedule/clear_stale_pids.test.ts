@@ -1,4 +1,5 @@
-import { strictEqual } from "node:assert";
+import { ok, strictEqual } from "node:assert";
+import { spawn } from "node:child_process";
 import { beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
@@ -33,9 +34,68 @@ describe("clearStalePids", () => {
     strictEqual(updated.failCount, 1);
   });
 
-  it("preserves a live PID (self)", () => {
+  it("preserves a live PID (self) without timeout", () => {
     const s = createSchedule(db, { name: "a", type: "custom", command: "ls", intervalMs: 60_000 });
-    db.prepare("UPDATE schedules SET running_pid = ? WHERE id = ?").run(process.pid, s.id);
+    db.prepare("UPDATE schedules SET running_pid = ?, started_at = ? WHERE id = ?").run(
+      process.pid,
+      Date.now(),
+      s.id,
+    );
+
+    const cleared = clearStalePids(db);
+    strictEqual(cleared, 0);
+
+    const updated = getSchedule(db, s.id)!;
+    strictEqual(updated.runningPid, process.pid);
+  });
+
+  it("kills a live PID that exceeded its timeout", () => {
+    const child = spawn("sleep", ["60"], { stdio: "ignore", detached: false });
+    const childPid = child.pid!;
+    try {
+      const s = createSchedule(db, {
+        name: "slow",
+        type: "custom",
+        command: "ls",
+        intervalMs: 60_000,
+        timeoutMs: 1_000,
+      });
+      db.prepare("UPDATE schedules SET running_pid = ?, started_at = ? WHERE id = ?").run(
+        childPid,
+        Date.now() - 5_000,
+        s.id,
+      );
+
+      const cleared = clearStalePids(db);
+      strictEqual(cleared, 1);
+
+      const updated = getSchedule(db, s.id)!;
+      strictEqual(updated.runningPid, null);
+      strictEqual(updated.startedAt, null);
+      strictEqual(updated.failCount, 1);
+      ok(updated.lastError?.includes("timed out"));
+    } finally {
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        // Already dead from the timeout kill.
+      }
+    }
+  });
+
+  it("preserves a live PID within timeout", () => {
+    const s = createSchedule(db, {
+      name: "fast",
+      type: "custom",
+      command: "ls",
+      intervalMs: 60_000,
+      timeoutMs: 600_000,
+    });
+    db.prepare("UPDATE schedules SET running_pid = ?, started_at = ? WHERE id = ?").run(
+      process.pid,
+      Date.now(),
+      s.id,
+    );
 
     const cleared = clearStalePids(db);
     strictEqual(cleared, 0);
