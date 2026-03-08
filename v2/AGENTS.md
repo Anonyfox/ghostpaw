@@ -12,8 +12,7 @@ If you are working on a specific system, also read its spec:
 |--------|------|--------|----------------|
 | Souls | `docs/features/SOULS.md` | **Implemented** | Evolutionary identity, traits, refinement, level-up |
 | Memory | `docs/MEMORY.md` | **Implemented** | Belief-based storage, recall, embeddings, confidence decay |
-| Secrets | `docs/features/SECRETS.md` | **Implemented** | Secret storage, provider keys, isolation, scrubbing |
-| Config | `docs/features/CONFIG.md` | **Implemented** | Runtime configuration, validation, changelog |
+| Settings | `docs/features/SETTINGS.md` | **Implemented** | Secrets, configuration, scheduling — chamberlain-managed infrastructure |
 | Haunting | `docs/HAUNT.md` | **Implemented** | Haunt cycle, scheduled via builtin scheduler |
 | Quests | `docs/QUESTS.md` | **Implemented** | Unified task/event/calendar system, temporal awareness, Quest Board |
 | Pack | `docs/features/PACK.md` | **Implemented** | Social bonds, Theory of Mind, relational identity |

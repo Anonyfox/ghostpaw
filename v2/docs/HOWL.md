@@ -81,8 +81,8 @@ Two levels:
 
 ## Rate Limiting
 
-- `max_howls_per_day` ([config](features/CONFIG.md), default 3): hard daily cap
-- `howl_cooldown_minutes` ([config](features/CONFIG.md), default 60): minimum time between howls
+- `max_howls_per_day` ([config](features/SETTINGS.md#configuration), default 3): hard daily cap
+- `howl_cooldown_minutes` ([config](features/SETTINGS.md#configuration), default 60): minimum time between howls
 - High-urgency howls bypass cooldown but not the daily cap
 - The howl tool returns an error if limits are exceeded
 
