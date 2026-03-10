@@ -2,12 +2,19 @@ import { Link } from "wouter-preact";
 import type { SoulOverviewInfo } from "../../shared/soul_types.ts";
 import { SoulXpBar } from "./soul_xp_bar.tsx";
 
+interface ShardInfo {
+  count: number;
+  sourceCount: number;
+  crystallizing: boolean;
+}
+
 interface SoulCardProps {
   soul: SoulOverviewInfo;
   traitLimit: number;
   variant?: "hero" | "party" | "custom" | "dormant";
   onRetire?: (id: number) => void;
   onAwaken?: (id: number) => void;
+  shardInfo?: ShardInfo;
 }
 
 export function SoulCard({
@@ -16,6 +23,7 @@ export function SoulCard({
   variant = "custom",
   onRetire,
   onAwaken,
+  shardInfo,
 }: SoulCardProps) {
   const isHero = variant === "hero";
   const isDormant = variant === "dormant";
@@ -71,6 +79,15 @@ export function SoulCard({
             isDormant={isDormant}
           />
         </div>
+        {shardInfo && shardInfo.count > 0 && (
+          <div class="mb-2 small">
+            <span class={shardInfo.crystallizing ? "text-warning" : "text-body-secondary"}>
+              {shardInfo.count} shard{shardInfo.count !== 1 ? "s" : ""} ({shardInfo.sourceCount}{" "}
+              source{shardInfo.sourceCount !== 1 ? "s" : ""})
+              {shardInfo.crystallizing && " — crystallizing"}
+            </span>
+          </div>
+        )}
         <div class="d-flex justify-content-between align-items-center">
           {!soul.isMandatory && !isDormant && onRetire && (
             <button type="button" class="btn btn-outline-danger btn-sm" onClick={handleRetire}>

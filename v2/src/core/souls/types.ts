@@ -11,6 +11,7 @@ export interface Soul {
   createdAt: number;
   updatedAt: number;
   deletedAt: number | null;
+  lastAttunedAt: number | null;
 }
 
 export interface SoulSummary {

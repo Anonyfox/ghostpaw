@@ -10,6 +10,7 @@ import {
   ensureMandatorySouls,
   formatSoulEvidence,
   gatherSoulEvidence,
+  initSoulShardTables,
   initSoulsTables,
   MANDATORY_SOUL_IDS,
 } from "./index.ts";
@@ -17,6 +18,7 @@ import {
 async function setup(): Promise<DatabaseHandle> {
   const db = await openTestDatabase();
   initSoulsTables(db);
+  initSoulShardTables(db);
   initChatTables(db);
   initMemoryTable(db);
   initConfigTable(db);

@@ -1,5 +1,6 @@
 import { defineCommand } from "citty";
 import soulsAddTrait from "./souls_add_trait.ts";
+import soulsAttune from "./souls_attune.ts";
 import soulsAwaken from "./souls_awaken.ts";
 import soulsCreate from "./souls_create.ts";
 import soulsEdit from "./souls_edit.ts";
@@ -14,6 +15,7 @@ import soulsRevertLevelUp from "./souls_revert_level_up.ts";
 import soulsRevertTrait from "./souls_revert_trait.ts";
 import soulsReview from "./souls_review.ts";
 import soulsReviseTrait from "./souls_revise_trait.ts";
+import soulsShards from "./souls_shards.ts";
 import soulsShow from "./souls_show.ts";
 
 export default defineCommand({
@@ -33,6 +35,8 @@ export default defineCommand({
     "revise-trait": soulsReviseTrait,
     "revert-trait": soulsRevertTrait,
     "reactivate-trait": soulsReactivateTrait,
+    shards: soulsShards,
+    attune: soulsAttune,
     "generate-description": soulsGenerateDescription,
     "generate-name": soulsGenerateName,
   },

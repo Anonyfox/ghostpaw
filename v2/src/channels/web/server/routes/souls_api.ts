@@ -1,15 +1,18 @@
 import {
   awakenSoul,
   createSoul,
+  crystallizationReadiness,
   getLevelHistory,
   getSoul,
   getTraitLimit,
   isMandatorySoulId,
   listDormantSouls,
+  listShards,
   listSouls,
   listTraits,
   retireSoul,
   revertLevelUp,
+  shardCountsPerSoul,
   updateSoul,
 } from "../../../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
@@ -214,6 +217,27 @@ export function createSoulsApiHandlers(db: DatabaseHandle, entityAvailable: bool
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
       }
+    },
+
+    shards(ctx: RouteContext): void {
+      const id = Number(ctx.params.id);
+      if (!Number.isFinite(id) || id < 1) {
+        json(ctx, 400, { error: "Invalid soul ID." });
+        return;
+      }
+      json(ctx, 200, { shards: listShards(db, { soulId: id, status: "pending" }) });
+    },
+
+    shardReadiness(ctx: RouteContext): void {
+      const counts = shardCountsPerSoul(db);
+      const ready = crystallizationReadiness(db);
+      const readySet = new Set(ready.map((r) => r.soulId));
+      json(ctx, 200, {
+        readiness: counts.map((c) => ({
+          ...c,
+          crystallizing: readySet.has(c.soulId),
+        })),
+      });
     },
   };
 }

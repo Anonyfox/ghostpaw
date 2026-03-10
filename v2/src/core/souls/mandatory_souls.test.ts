@@ -1,7 +1,7 @@
 import { deepStrictEqual, ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
 import { DEFAULT_SOULS } from "./defaults.ts";
-import { isMandatorySoulId, MANDATORY_SOUL_IDS, MANDATORY_SOUL_NAMES } from "./mandatory_souls.ts";
+import { MANDATORY_SOUL_IDS, MANDATORY_SOUL_NAMES } from "./mandatory_souls.ts";
 
 describe("MANDATORY_SOUL_IDS", () => {
   it("assigns ghostpaw ID 1", () => {
@@ -48,23 +48,5 @@ describe("MANDATORY_SOUL_NAMES", () => {
     const defaultKeys = Object.keys(DEFAULT_SOULS).sort();
     const mandatoryNames = [...MANDATORY_SOUL_NAMES].sort();
     deepStrictEqual(mandatoryNames, defaultKeys);
-  });
-});
-
-describe("isMandatorySoulId", () => {
-  it("returns true for mandatory IDs", () => {
-    ok(isMandatorySoulId(1));
-    ok(isMandatorySoulId(2));
-    ok(isMandatorySoulId(3));
-    ok(isMandatorySoulId(4));
-    ok(isMandatorySoulId(5));
-    ok(isMandatorySoulId(6));
-  });
-
-  it("returns false for non-mandatory IDs", () => {
-    ok(!isMandatorySoulId(0));
-    ok(!isMandatorySoulId(7));
-    ok(!isMandatorySoulId(100));
-    ok(!isMandatorySoulId(-1));
   });
 });

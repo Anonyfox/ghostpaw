@@ -1,60 +1,16 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { countActiveTraits } from "./count_active_traits.ts";
+import type { DelegationStats } from "./delegation_stats.ts";
 import { getLevelHistory } from "./get_level_history.ts";
 import { getSoulByName } from "./get_soul_by_name.ts";
 import { listTraits } from "./list_traits.ts";
-import type { CostTrend, TraitFitness, WindowedStats } from "./query_fitness_signals.ts";
-import { queryCostTrend, queryTraitFitness, queryWindowedStats } from "./query_fitness_signals.ts";
+import { pendingShardsForSoul } from "./pending_shards_for_soul.ts";
+import { queryCostTrend } from "./query_cost_trend.ts";
+import { queryTraitFitness } from "./query_trait_fitness.ts";
+import { queryWindowedStats } from "./query_windowed_stats.ts";
+import type { LevelSnapshot, SoulEvidence } from "./soul_evidence_types.ts";
 import { getTraitLimit } from "./trait_limit.ts";
-
-export interface DelegationStats {
-  total: number;
-  completed: number;
-  failed: number;
-  avgCostUsd: number;
-  totalCostUsd: number;
-  totalTokensIn: number;
-  totalTokensOut: number;
-}
-
-export interface TraitSnapshot {
-  id: number;
-  principle: string;
-  provenance: string;
-  generation: number;
-  status: string;
-  createdAt: number;
-}
-
-export interface LevelSnapshot {
-  level: number;
-  createdAt: number;
-  traitsConsolidatedCount: number;
-  traitsPromotedCount: number;
-  traitsCarriedCount: number;
-  traitsMergedCount: number;
-}
-
-export interface SoulEvidence {
-  soulId: number;
-  soulName: string;
-  level: number;
-  essence: string;
-  description: string;
-  activeTraitCount: number;
-  traitLimit: number;
-  atCapacity: boolean;
-  delegationStats: DelegationStats;
-  windowedStats: WindowedStats[];
-  traitFitness: TraitFitness[];
-  costTrend: CostTrend;
-  activeTraits: TraitSnapshot[];
-  revertedTraits: TraitSnapshot[];
-  consolidatedTraits: TraitSnapshot[];
-  promotedTraits: TraitSnapshot[];
-  levelHistory: LevelSnapshot[];
-  relatedMemoryCount: number;
-}
+import type { TraitSnapshot } from "./trait_snapshot.ts";
 
 function queryDelegationStats(db: DatabaseHandle, soulId: number): DelegationStats {
   const row = db
@@ -160,5 +116,6 @@ export function gatherSoulEvidence(db: DatabaseHandle, soulName: string): SoulEv
     promotedTraits,
     levelHistory,
     relatedMemoryCount: queryRelatedMemoryCount(db, soulName),
+    pendingShards: pendingShardsForSoul(db, soulId),
   };
 }

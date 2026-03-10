@@ -16,6 +16,7 @@ import { assembleContext } from "./context.ts";
 import { resolveModel } from "./model.ts";
 import type { ChannelNotifyFn } from "./notify_background_complete.ts";
 import { notifyBackgroundComplete } from "./notify_background_complete.ts";
+import { handlePostSession } from "./post_session.ts";
 import type { DelegationOutcome } from "./types.ts";
 
 const DEFAULT_TIMEOUT_MS = 1_800_000;
@@ -203,6 +204,8 @@ function executeAndFinalize(
         result.succeeded ? undefined : result.content,
       );
 
+      handlePostSession(db, childSessionId, model, chatFactory);
+
       if (!result.succeeded) {
         return { error: `Delegation failed: ${result.content}` } as Record<string, unknown>;
       }
@@ -212,6 +215,7 @@ function executeAndFinalize(
       const msg = err instanceof Error ? err.message : String(err);
       try {
         closeSession(db, childSessionId, msg);
+        handlePostSession(db, childSessionId, model, chatFactory);
       } catch {
         /* best-effort */
       }

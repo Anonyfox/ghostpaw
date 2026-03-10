@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { reviseTrait } from "../../core/souls/index.ts";
+import { citeShard, fadeExhaustedShards, reviseTrait } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ReviseTraitParams extends Schema {
@@ -16,6 +16,12 @@ class ReviseTraitParams extends Schema {
     description: "Updated provenance/evidence text. Omit to keep the current provenance unchanged.",
     optional: true,
   });
+  shard_ids = Schema.String({
+    description:
+      "Optional comma-separated soulshard IDs that support this revision (e.g. '12,17'). " +
+      "Shards are cited and may fade after enough citations.",
+    optional: true,
+  });
 }
 
 export function createReviseTraitTool(db: DatabaseHandle) {
@@ -29,10 +35,11 @@ export function createReviseTraitTool(db: DatabaseHandle) {
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new ReviseTraitParams() as any,
     execute: async ({ args }) => {
-      const { trait_id, principle, provenance } = args as {
+      const { trait_id, principle, provenance, shard_ids } = args as {
         trait_id: number;
         principle?: string;
         provenance?: string;
+        shard_ids?: string;
       };
 
       if (typeof trait_id !== "number" || !Number.isFinite(trait_id) || trait_id < 1) {
@@ -47,11 +54,25 @@ export function createReviseTraitTool(db: DatabaseHandle) {
           principle: principle?.trim() || undefined,
           provenance: provenance?.trim() || undefined,
         });
+
+        const shardIdsParsed = (shard_ids ?? "")
+          .split(",")
+          .map((s) => Number.parseInt(s.trim(), 10))
+          .filter((n) => !Number.isNaN(n));
+
+        for (const shardId of shardIdsParsed) {
+          citeShard(db, shardId, revised.id);
+        }
+        if (shardIdsParsed.length > 0) {
+          fadeExhaustedShards(db);
+        }
+
         return {
           revised: true,
           traitId: revised.id,
           principle: revised.principle,
           provenance: revised.provenance,
+          shardsCited: shardIdsParsed.length,
         };
       } catch (err) {
         const detail = err instanceof Error ? err.message : String(err);

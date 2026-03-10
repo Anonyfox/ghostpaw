@@ -11,5 +11,6 @@ export function rowToSoul(row: Record<string, unknown>): Soul {
     createdAt: row.created_at as number,
     updatedAt: row.updated_at as number,
     deletedAt: (row.deleted_at as number | null) ?? null,
+    lastAttunedAt: (row.last_attuned_at as number | null) ?? null,
   };
 }

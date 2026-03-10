@@ -1,4 +1,5 @@
-import type { DelegationStats, SoulEvidence } from "./gather_evidence.ts";
+import type { DelegationStats } from "./delegation_stats.ts";
+import type { SoulEvidence } from "./soul_evidence_types.ts";
 
 function formatSuccessRate(s: DelegationStats): string {
   if (s.total === 0) return "no data";
@@ -137,6 +138,15 @@ export function formatSoulEvidence(evidence: SoulEvidence): string {
 
   lines.push("");
   lines.push(`## Related Memories: ${evidence.relatedMemoryCount}`);
+
+  if (evidence.pendingShards.length > 0) {
+    lines.push("");
+    lines.push(`## Pending Soulshards (${evidence.pendingShards.length})`);
+    for (const s of evidence.pendingShards) {
+      const date = new Date(s.createdAt * 1000).toISOString().slice(0, 10);
+      lines.push(`- [shard=${s.id}] "${s.observation}" (source: ${s.source}, ${date})`);
+    }
+  }
 
   return lines.join("\n");
 }

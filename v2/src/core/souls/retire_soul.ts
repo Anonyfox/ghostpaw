@@ -1,6 +1,6 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { getActiveSoul } from "./get_active_soul.ts";
-import { isMandatorySoulId } from "./mandatory_souls.ts";
+import { isMandatorySoulId } from "./is_mandatory_soul_id.ts";
 
 export function retireSoul(db: DatabaseHandle, id: number): void {
   if (isMandatorySoulId(id)) {

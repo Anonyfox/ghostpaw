@@ -4,9 +4,7 @@ import { listTraits } from "./list_traits.ts";
 import { rowToLevel } from "./row_to_level.ts";
 import type { LevelUpPlan, SoulLevel } from "./types.ts";
 
-export function levelUp(db: DatabaseHandle, soulId: number, plan: LevelUpPlan): SoulLevel {
-  const soul = getActiveSoul(db, soulId);
-
+function validatePlan(db: DatabaseHandle, soulId: number, plan: LevelUpPlan): string {
   if (!plan || typeof plan !== "object") {
     throw new Error("Level-up plan must be an object.");
   }
@@ -72,6 +70,12 @@ export function levelUp(db: DatabaseHandle, soulId: number, plan: LevelUpPlan): 
     }
   }
 
+  return newEssence;
+}
+
+export function levelUp(db: DatabaseHandle, soulId: number, plan: LevelUpPlan): SoulLevel {
+  const soul = getActiveSoul(db, soulId);
+  const newEssence = validatePlan(db, soulId, plan);
   const essenceBefore = soul.essence;
   const newLevel = soul.level + 1;
   const now = Date.now();

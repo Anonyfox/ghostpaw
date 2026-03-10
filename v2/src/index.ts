@@ -25,7 +25,7 @@ import {
   repairSkill,
   validateAllSkills,
 } from "./core/skills/index.ts";
-import { ensureMandatorySouls, initSoulsTables } from "./core/souls/index.ts";
+import { ensureMandatorySouls, initSoulShardTables, initSoulsTables } from "./core/souls/index.ts";
 import { isEntrypoint, openDatabase, suppressWarnings } from "./lib/index.ts";
 import { banner, log } from "./lib/terminal/index.ts";
 
@@ -87,6 +87,7 @@ const main = defineCommand({
     migrateHauntsToSessions(db);
     initMemoryTable(db);
     initSoulsTables(db);
+    initSoulShardTables(db);
     initPackTables(db);
     initHowlTables(db);
     initQuestTables(db);

@@ -23,6 +23,8 @@ export { resolveModel } from "./model.ts";
 export type { CommandInput, CommandResult } from "./oneshots/execute_command.ts";
 export { executeCommand } from "./oneshots/execute_command.ts";
 export { handlePostSession } from "./post_session.ts";
+export type { AttuneResult } from "./run_attune.ts";
+export { runAttune } from "./run_attune.ts";
 export type { StokeResult } from "./stoke.ts";
 export { runStoke, stokePhaseOne, stokePhaseTwoNeeded } from "./stoke.ts";
 export type { EntityToolSets, EntityToolsConfig } from "./tools.ts";

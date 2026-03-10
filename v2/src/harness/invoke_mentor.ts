@@ -1,3 +1,4 @@
+import type { Tool } from "chatoyant";
 import type { TurnResult } from "../core/chat/index.ts";
 import { closeSession, createSession } from "../core/chat/index.ts";
 import { MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
@@ -15,7 +16,7 @@ export async function invokeMentor(
   entity: Entity,
   db: DatabaseHandle,
   prompt: string,
-  options?: { model?: string },
+  options?: { model?: string; tools?: Tool[] },
 ): Promise<MentorResult> {
   const session = createSession(db, `system:mentor:${Date.now()}`, {
     purpose: "system",
@@ -26,6 +27,7 @@ export async function invokeMentor(
     const result = await entity.executeTurn(sessionId, prompt, {
       soulId: MANDATORY_SOUL_IDS.mentor,
       model: options?.model,
+      tools: options?.tools,
     });
     return {
       content: result.content,

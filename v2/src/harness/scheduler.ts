@@ -95,9 +95,10 @@ function spawnJob(
   children: Map<number, ChildProcess>,
 ): void {
   const startTime = Date.now();
+  const cmdParts = schedule.command.split(/\s+/).filter(Boolean);
   const args =
     schedule.type === "builtin"
-      ? [...process.execArgv, process.argv[1], schedule.command, "--workspace", workspace]
+      ? [...process.execArgv, process.argv[1], ...cmdParts, "--workspace", workspace]
       : ["-c", schedule.command];
   const cmd = schedule.type === "builtin" ? process.execPath : "/bin/sh";
 

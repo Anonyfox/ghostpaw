@@ -13,9 +13,3 @@ export type MandatorySoulId = (typeof MANDATORY_SOUL_IDS)[MandatorySoulName];
 export const MANDATORY_SOUL_NAMES: MandatorySoulName[] = Object.keys(
   MANDATORY_SOUL_IDS,
 ) as MandatorySoulName[];
-
-const MANDATORY_ID_SET = new Set<number>(Object.values(MANDATORY_SOUL_IDS));
-
-export function isMandatorySoulId(id: number): boolean {
-  return MANDATORY_ID_SET.has(id);
-}

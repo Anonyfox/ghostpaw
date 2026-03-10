@@ -25,4 +25,12 @@ export const DEFAULT_SCHEDULES: CreateScheduleInput[] = [
     timeoutMs: 300_000,
     enabled: true,
   },
+  {
+    name: "attune",
+    type: "builtin",
+    command: "souls attune",
+    intervalMs: 300_000,
+    timeoutMs: 240_000,
+    enabled: true,
+  },
 ];

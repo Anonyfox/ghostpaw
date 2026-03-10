@@ -24,6 +24,34 @@ The raw material for soul growth is *using the soul*. Every time the coordinator
 
 No two Ghostpaw installations evolve the same way, because no two have the same conversations, the same human, or the same problems. The evidence is always specific. The growth is always grounded.
 
+### Soulshards
+
+Raw XP — delegation stats, cost numbers, success rates — tells the mentor *that* something happened. But it doesn't tell the mentor *what cognitive pattern* caused it. Did the JS Engineer fail because it assumed file contents without reading? Because its delegation prompt lacked deployment context? Because it retried the same approach three times? The numbers can't say.
+
+**Soulshards** are the qualitative layer. Each shard is a one-to-three-sentence behavioral observation about how a soul *thinks* — its judgment, approach, reasoning style, recurring patterns. They accumulate silently during normal operation and crystallize into trait proposals only when the evidence is strong enough.
+
+**Where shards come from.** Four sources, all marginal cost:
+
+- **Session distillation** — the warden already consolidates every completed session. A single instruction line asks it to note cognitive patterns alongside the skill fragments it already produces. Zero additional LLM calls.
+- **Haunt consolidation** — same mechanism during background memory maintenance.
+- **Quest turn-in** — shards from quests arrive sealed (hidden) and are revealed at turn-in, like loot from a quest bag. Deferred until the quest system ships.
+- **Delegation outcomes** — pure code, zero tokens. When a delegation session closes with a failure or notable cost signal, the system drops a structural shard attributed to both the specialist and the coordinator. This captures the cooperative coevolutionary signal for free.
+
+**Multi-soul attribution.** Unlike skill fragments (which route 1:1 to a skill domain), soulshards carry N:M attribution. A single observation like "the coordinator's delegation prompts lacked Docker context, causing the JS Engineer to make incorrect assumptions" is attributed to both souls via a junction table. The attribution uses the session graph — which souls participated, which delegated to which — not semantic similarity. Structural, not inferential. Zero additional tokens.
+
+**Crystallization.** Shards don't feed trait proposals one-by-one. They accumulate until a crystallization threshold is crossed: at least 3 shards from 2+ different sources, with an age spread exceeding one day. This maps to three research findings: evidence accumulation thresholds in the anterior cingulate cortex (Nature 2025), blocked training outperforming interleaved learning for schema formation (Nature 2024), and insight events producing stronger memory traces when preceded by an incubation period (Nature Communications 2025). The threshold is configurable (`soul_shard_crystallization_threshold`, default 3), but the source diversity and age spread requirements are hardcoded as research-backed invariants.
+
+**The attunement cycle.** A background job (`attune`, default every 5 minutes, 4-minute timeout) runs in two phases, structurally parallel to the skills `stoke` cycle:
+
+- **Phase 1** (pure SQL, zero tokens) — expires old shards (120 days, longer than skill fragments because cognitive patterns are slower), enforces the shard cap (75), fades exhausted shards, and runs the crystallization readiness query. If no soul crosses the threshold, the cycle ends here. Four SQL queries, ~1ms, every tick.
+- **Phase 2** (conditional LLM, one soul max) — takes the single highest-readiness soul, pre-gathers its full evidence report (quantitative stats + pending shards), and invokes the mentor with targeted tools (`propose_trait`, `revise_trait`, `revert_trait`). One soul per cycle — blocked training research shows single-schema updates outperform interleaved multi-schema updates. The mentor acts only on strong evidence clusters and passes if the shards don't converge.
+
+**Cost gate.** After Phase 2 runs for a soul, the system stamps `last_attuned_at` on that soul. The crystallization readiness query only returns a soul if at least one pending shard was created *after* that timestamp — meaning new evidence has arrived since the last review. This ensures LLM tokens are spent exactly once per evidence cluster, regardless of how frequently the job ticks. A soul that was just attuned won't re-enter readiness until genuinely new observations accumulate. The attune job can safely run at high frequency (every 5 minutes) because 99%+ of ticks execute only Phase 1: pure SQL, zero tokens, sub-millisecond. This is not a heartbeat that burns tokens on every tick — it is a code-only readiness check with a conditional, gated LLM invocation.
+
+**Fading, not consuming.** When a shard is cited as provenance in a trait proposal, a citation record links them. After being cited by 2 different traits (across any souls), the shard fades — it stops appearing in future evidence reports but its historical record persists. This bounds each observation's contribution while allowing the same shard to serve multiple souls. Scientifically: the same prediction error triggers diminishing schema updates after initial incorporation (Nature Reviews Neuroscience 2024).
+
+**How this differs from skill fragments.** Skill fragments are procedural observations ("the user prefers kebab-case imports") that route 1:1 to a skill domain. Soulshards are cognitive observations ("the engineer re-reads files three times before editing") that resonate across multiple souls. Fragments are consumed by training. Shards fade after citation. Fragments count toward a simple threshold. Shards require source diversity and temporal spread. The two systems share a structural pattern (silent accumulation → background maintenance → conditional specialist invocation) but serve fundamentally different purposes: skills encode *what to do*, souls encode *how to think*.
+
 ### The XP Bar
 
 Each soul has a trait limit — a configurable cap on how many active traits it can hold at once (default: 10). This is not arbitrary. Research across 19 LLMs and 7 model families measured effectiveness dropping from 78% with one constraint to 33% with four or more stacked constraints. Too many equipped abilities and they start canceling each other out.
@@ -143,6 +171,10 @@ The souls don't just work in parallel — they shape each other. When the coordi
 
 Delegation outcomes flow the other direction too. When the JS Engineer consistently succeeds at certain task types, that's evidence for the coordinator's routing judgment. When it fails, the coordinator learns to include more context or choose a different specialist. The whole system coevolves: better routing produces better specialist outcomes, better outcomes produce richer evidence, richer evidence produces better souls.
 
+**Soulshards are the mechanism through which this cooperative signal flows.** A delegation outcome produces a structural shard attributed to *both* the coordinator and the specialist — pure code, zero tokens. When the JS Engineer fails at a deployment task, the shard captures "Delegation failed: missing Docker context in task description" and attributes it to both souls. During the attunement cycle, that shard appears in both souls' evidence reports. The coordinator might develop a trait about including deployment context in delegation prompts. The engineer might develop a trait about asking for clarification when context is ambiguous. Both improvements happen from the same observation, and the improvement of one reshapes the fitness landscape for the other.
+
+This is a [documented exception to the No Free Lunch theorem](https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20060007558.pdf): in cooperative coevolution, genuine free lunches exist because agents improve each other's optimization landscapes. The coordinator's better routing means the specialist receives better-scoped tasks, which means the specialist produces better outcomes, which means the coordinator has richer evidence for routing. The coupling is not overhead — it is the mathematical advantage. Single-agent improvement hits NFL limits. Cooperative multi-agent improvement provably exceeds them.
+
 ## The Research
 
 Every design decision in the soul system traces to peer-reviewed research. The key findings:
@@ -177,7 +209,15 @@ Every design decision in the soul system traces to peer-reviewed research. The k
 
 - **Memetic algorithms (local search + global restructuring) achieve exponential speedup** over pure evolutionary approaches on structured problems — polynomial time vs superpolynomial. The trait-addition + level-up dual mode is exactly this structure. ([Memetic algorithm research](https://eprints.whiterose.ac.uk/id/eprint/162048/))
 
-- **Cooperative coevolutionary self-play is a documented exception to the No Free Lunch theorem** — genuine free lunches exist when agents cooperate to improve each other. The coordinator-specialist feedback loop is this dynamic. ([Coevolutionary free lunch](https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20060007558.pdf))
+- **Cooperative coevolutionary self-play is a documented exception to the No Free Lunch theorem** — genuine free lunches exist when agents cooperate to improve each other. The coordinator-specialist feedback loop, mediated by soulshards with shared attribution, is this dynamic. ([Coevolutionary free lunch](https://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20060007558.pdf))
+
+- **Evidence accumulation in the anterior cingulate cortex** follows a threshold model: decisions improve discontinuously once sufficient evidence has accumulated, not linearly with each new observation. The crystallization threshold for soulshards mirrors this — trait proposals only trigger after a meaningful evidence cluster forms. ([Nature 2025](https://www.nature.com/))
+
+- **Blocked training outperforms interleaved training** for schema formation when learning multiple complex categories. One soul per attunement cycle (blocked) rather than touching all ready souls (interleaved) produces stronger trait formation. ([Nature 2024](https://www.nature.com/))
+
+- **Insight events preceded by an incubation period produce stronger memory traces** than immediate solutions, with crystallization of disparate observations into coherent schemas. The age-spread requirement on soulshards (>1 day) enforces this incubation. ([Nature Communications 2025](https://www.nature.com/ncomms/))
+
+- **Schema formation through prediction errors** follows diminishing returns: the same error triggers progressively smaller schema updates after initial incorporation. This is why soulshards fade after 2 citations — the observation's contribution diminishes naturally. ([Nature Reviews Neuroscience 2024](https://www.nature.com/nrn/))
 
 ### Soul Collaboration
 
@@ -292,6 +332,7 @@ The soul system is tunable through the [config system](SETTINGS.md#configuration
 | Key | Default | What it controls |
 |-----|---------|-----------------|
 | `soul_trait_limit` | `10` | Active traits per soul before level-up is unlocked. Research suggests 5–10. Raise for reasoning models that handle more constraints effectively. Lower for cheaper models that benefit from tighter focus. |
+| `soul_shard_crystallization_threshold` | `3` | Minimum pending soulshards from 2+ sources before the attunement cycle proposes a trait change. Source diversity and age spread (>1 day) are hardcoded research-backed invariants, not configurable. |
 
 Model selection for mentor operations uses the workspace's default model. The mentor is a soul like any other — it uses whatever model the system is configured to use for the soul it's currently wearing.
 
@@ -321,6 +362,8 @@ All commands are under `ghostpaw souls`:
 | `revise-trait <id>` | Update an existing trait's principle or provenance |
 | `revert-trait <id>` | Remove a trait (marks as reverted, preserves history) |
 | `reactivate-trait <id>` | Reactivate a previously reverted trait |
+| `shards` | List pending soulshards with soul attribution and source |
+| `attune` | Manually trigger the attunement cycle |
 | `generate-name` | LLM-generated name for a new soul |
 | `generate-description` | LLM-generated description from a soul's essence |
 
@@ -328,8 +371,8 @@ All commands are under `ghostpaw souls`:
 
 The web UI provides a visual dashboard for the soul system:
 
-- **Souls page** — all souls listed as cards with level, description, and XP bar showing trait capacity
-- **Soul detail** — full rendered content, active traits with provenance, level-up history, trait history by status
+- **Souls page** — all souls listed as cards with level, description, XP bar showing trait capacity, and shard count with crystallization readiness indicator
+- **Soul detail** — full rendered content, active traits with provenance, level-up history, trait history by status, pending soulshards grouped by source
 - **Mentor chamber** — trigger review, refinement, or level-up from the browser with real-time feedback
 - **Training page** — trigger mentor and trainer cycles with model selection
 

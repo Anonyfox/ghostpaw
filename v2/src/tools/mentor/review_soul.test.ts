@@ -3,7 +3,11 @@ import { describe, it } from "node:test";
 import { initChatTables } from "../../core/chat/index.ts";
 import { initConfigTable } from "../../core/config/index.ts";
 import { initMemoryTable } from "../../core/memory/index.ts";
-import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
+import {
+  ensureMandatorySouls,
+  initSoulShardTables,
+  initSoulsTables,
+} from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createReviewSoulTool } from "./review_soul.ts";
@@ -11,6 +15,7 @@ import { createReviewSoulTool } from "./review_soul.ts";
 async function setup(): Promise<DatabaseHandle> {
   const db = await openTestDatabase();
   initSoulsTables(db);
+  initSoulShardTables(db);
   initChatTables(db);
   initMemoryTable(db);
   initConfigTable(db);

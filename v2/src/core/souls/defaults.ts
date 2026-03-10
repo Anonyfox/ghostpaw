@@ -16,18 +16,7 @@
  * delegation to a single specialist.
  */
 
-export interface DefaultTrait {
-  principle: string;
-  provenance: string;
-}
-
-export interface DefaultSoul {
-  slug: string;
-  name: string;
-  essence: string;
-  description: string;
-  traits: DefaultTrait[];
-}
+import type { DefaultSoul } from "./default_soul_types.ts";
 
 export const DEFAULT_SOULS: Record<string, DefaultSoul> = {
   ghostpaw: {

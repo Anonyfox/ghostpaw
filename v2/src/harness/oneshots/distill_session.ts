@@ -12,6 +12,7 @@ import {
 import { formatConversation } from "../../core/memory/format_conversation.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
+import { createDropSoulshardTool } from "../../tools/souls/drop_soulshard.ts";
 import { createDropFragmentTool } from "../../tools/trainer/drop_fragment.ts";
 import { assembleContext } from "../context.ts";
 import type { DistillResult, DistillToolCalls } from "../distill_types.ts";
@@ -34,7 +35,9 @@ Quality: each claim must be self-contained and useful without the original conve
 
 Grounding: Only store beliefs directly supported by the conversation. For direct user statements, use source "explicit". For things you observed during the session, use "observed". For reasonable inferences not directly stated, use "inferred" with confidence <=0.5. Never fabricate claims the conversation does not support — skip rather than guess.
 
-- **Skill fragments**: If the conversation reveals a pattern, workaround, or recurring correction that could improve a skill, use drop_fragment to stash a brief observation. Only genuine skill-relevant signals — skip if nothing applies.`;
+- **Skill fragments**: If the conversation reveals a pattern, workaround, or recurring correction that could improve a skill, use drop_fragment to stash a brief observation. Only genuine skill-relevant signals — skip if nothing applies.
+
+- **Soulshards**: If the conversation reveals a cognitive pattern about a soul's judgment or approach (not procedural — that's a skill fragment), use drop_soulshard naming the relevant soul(s). Example: "the JS Engineer consistently re-reads files before editing" or "the coordinator's delegation prompts lack deployment context." Skip if nothing applies.`;
 
 function skip(reason: string): DistillResult {
   return { skipped: true, reason, toolCalls: {} };
@@ -96,6 +99,7 @@ export async function distillSession(
     const tools = [
       ...createWardenTools(db),
       createDropFragmentTool(db, { source: "session", sourceId: String(sessionId) }),
+      createDropSoulshardTool(db, { source: "session", sourceId: String(sessionId) }),
     ];
 
     const systemPrompt = assembleContext(db, "", {

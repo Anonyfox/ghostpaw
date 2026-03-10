@@ -128,6 +128,16 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
     validate: (v) => typeof v === "number" && Number.isInteger(v) && v >= 1,
   },
   {
+    key: "soul_shard_crystallization_threshold",
+    type: "integer",
+    defaultValue: 3,
+    category: "souls",
+    label: "Shard Crystallization Threshold",
+    description:
+      "Minimum pending soulshards (from 2+ sources, >1 day spread) before the attunement cycle proposes a trait change.",
+    validate: (v) => typeof v === "number" && Number.isInteger(v) && v >= 1,
+  },
+  {
     key: "haunt_consolidation_model",
     type: "string",
     defaultValue: "",

@@ -8,22 +8,32 @@ import { SoulCreateForm } from "../components/soul_create_form.tsx";
 
 type Tab = "active" | "dormant";
 
+interface ShardReadinessEntry {
+  soulId: number;
+  count: number;
+  sourceCount: number;
+  crystallizing: boolean;
+}
+
 export function SoulsPage() {
   const [tab, setTab] = useState<Tab>("active");
   const [souls, setSouls] = useState<SoulsListResponse["souls"]>([]);
   const [dormant, setDormant] = useState<SoulsListResponse["souls"]>([]);
   const [traitLimit, setTraitLimit] = useState(10);
+  const [shardReadiness, setShardReadiness] = useState<ShardReadinessEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
-      const [activeRes, dormantRes] = await Promise.all([
+      const [activeRes, dormantRes, readinessRes] = await Promise.all([
         apiGet<SoulsListResponse>("/api/souls"),
         apiGet<SoulsListResponse>("/api/souls/dormant"),
+        apiGet<{ readiness: ShardReadinessEntry[] }>("/api/souls/shard-readiness"),
       ]);
       setSouls(activeRes.souls);
       setDormant(dormantRes.souls);
       setTraitLimit(activeRes.traitLimit);
+      setShardReadiness(readinessRes.readiness);
     } catch {
       // handled gracefully
     } finally {
@@ -106,7 +116,12 @@ export function SoulsPage() {
 
           {heroSoul && (
             <div class="mb-4">
-              <SoulCard soul={heroSoul} traitLimit={traitLimit} variant="hero" />
+              <SoulCard
+                soul={heroSoul}
+                traitLimit={traitLimit}
+                variant="hero"
+                shardInfo={shardReadiness.find((r) => r.soulId === heroSoul.id)}
+              />
             </div>
           )}
 
@@ -116,7 +131,12 @@ export function SoulsPage() {
               <div class="row g-3">
                 {partySouls.map((s) => (
                   <div class="col-md-6 col-lg-4" key={s.id}>
-                    <SoulCard soul={s} traitLimit={traitLimit} variant="party" />
+                    <SoulCard
+                      soul={s}
+                      traitLimit={traitLimit}
+                      variant="party"
+                      shardInfo={shardReadiness.find((r) => r.soulId === s.id)}
+                    />
                   </div>
                 ))}
               </div>
@@ -133,6 +153,7 @@ export function SoulsPage() {
                     traitLimit={traitLimit}
                     variant="custom"
                     onRetire={handleRetire}
+                    shardInfo={shardReadiness.find((r) => r.soulId === s.id)}
                   />
                 </div>
               ))}

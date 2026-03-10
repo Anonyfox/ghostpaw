@@ -10,8 +10,8 @@ export function createScheduleDeleteTool(db: DatabaseHandle) {
   return createTool({
     name: "schedule_delete",
     description:
-      "Delete a custom scheduled job. Builtin schedules (haunt, distill, stoke) cannot be deleted — " +
-      "disable them with schedule_update instead.",
+      "Delete a custom scheduled job. Builtin schedules (haunt, distill, stoke, attune) cannot be " +
+      "deleted — disable them with schedule_update instead.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new ScheduleDeleteParams() as any,
     execute: async ({ args }) => {

@@ -15,7 +15,11 @@ import {
   loadSecretsIntoEnv,
   syncProviderKeys,
 } from "../../core/secrets/index.ts";
-import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
+import {
+  ensureMandatorySouls,
+  initSoulShardTables,
+  initSoulsTables,
+} from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openDatabase } from "../../lib/index.ts";
 
@@ -28,6 +32,7 @@ export async function withRunDb<T>(fn: (db: DatabaseHandle) => T | Promise<T>): 
   migrateHauntsToSessions(db);
   initMemoryTable(db);
   initSoulsTables(db);
+  initSoulShardTables(db);
   initPackTables(db);
   initHowlTables(db);
   initQuestTables(db);

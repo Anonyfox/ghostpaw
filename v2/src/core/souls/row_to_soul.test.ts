@@ -121,6 +121,7 @@ describe("rowToSoul", () => {
       "description",
       "essence",
       "id",
+      "lastAttunedAt",
       "level",
       "name",
       "slug",
