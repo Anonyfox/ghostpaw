@@ -4,7 +4,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { resetGitAvailableCache } from "../../core/skills/git.ts";
-import { checkpoint, initSkillEventsTables } from "../../core/skills/index.ts";
+import {
+  checkpoint,
+  dropSkillFragment,
+  initSkillEventsTables,
+  initSkillFragmentsTables,
+} from "../../core/skills/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/open_test_database.ts";
 import { handleSkills } from "./handle_skills.ts";
@@ -16,6 +21,7 @@ beforeEach(async () => {
   resetGitAvailableCache();
   db = await openTestDatabase();
   initSkillEventsTables(db);
+  initSkillFragmentsTables(db);
   workspace = mkdtempSync(join(tmpdir(), "ghostpaw-tg-skills-"));
   mkdirSync(join(workspace, "skills"), { recursive: true });
   process.env.GHOSTPAW_WORKSPACE = workspace;
@@ -61,5 +67,32 @@ describe("handleSkills", () => {
     await handleSkills(deps, 123);
     strictEqual(sent.includes("*deploy*"), true);
     strictEqual(sent.includes("Apprentice"), true);
+  });
+
+  it("appends fragment summary when fragments exist", async () => {
+    dropSkillFragment(db, "quest", "q-1", "Retry pattern observed");
+    dropSkillFragment(db, "session", "s-1", "Import convention noted");
+
+    const dir = join(workspace, "skills", "deploy");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "SKILL.md"),
+      "---\nname: deploy\ndescription: Deploy stuff.\n---\n# deploy",
+    );
+    checkpoint(workspace, ["deploy"], "init");
+
+    let sent = "";
+    const deps = {
+      db,
+      isAllowed: () => true,
+      sendMessage: async (_: number, text: string) => {
+        sent = text;
+      },
+    };
+    await handleSkills(deps, 123);
+    strictEqual(sent.includes("*Fragments*"), true);
+    strictEqual(sent.includes("2 pending"), true);
+    strictEqual(sent.includes("quest"), true);
+    strictEqual(sent.includes("session"), true);
   });
 });

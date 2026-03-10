@@ -16,13 +16,14 @@ describe("buildTrainProposePrompt", () => {
     strictEqual(prompt.includes("recall to search memories about: deploy"), true);
   });
 
-  it("includes fragments when provided", () => {
+  it("includes fragments with IDs when provided", () => {
     const prompt = buildTrainProposePrompt("deploy", "# Deploy", [
-      "User prefers zero-downtime deploys",
-      "Rollback needed after env var issue",
+      { id: 5, observation: "User prefers zero-downtime deploys" },
+      { id: 9, observation: "Rollback needed after env var issue" },
     ]);
     strictEqual(prompt.includes("Pending fragments (2 observations"), true);
-    strictEqual(prompt.includes("User prefers zero-downtime deploys"), true);
+    strictEqual(prompt.includes("[id=5] User prefers zero-downtime deploys"), true);
+    strictEqual(prompt.includes("[id=9] Rollback needed after env var issue"), true);
     strictEqual(prompt.includes("absorbing relevant fragments"), true);
   });
 });

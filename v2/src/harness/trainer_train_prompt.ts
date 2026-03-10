@@ -1,14 +1,19 @@
+export interface FragmentRef {
+  id: number;
+  observation: string;
+}
+
 export function buildTrainProposePrompt(
   skillName: string,
   skillContent: string,
-  fragments?: string[],
+  fragments?: FragmentRef[],
 ): string {
   const fragmentSection =
     fragments && fragments.length > 0
       ? [
           "",
           `Pending fragments (${fragments.length} observations from other subsystems):`,
-          ...fragments.map((f, i) => `  ${i + 1}. ${f}`),
+          ...fragments.map((f) => `  [id=${f.id}] ${f.observation}`),
           "",
           "Consider absorbing relevant fragments into this skill during improvement.",
         ]
@@ -55,7 +60,7 @@ export function buildTrainExecutePrompt(
   const extra = guidance?.trim() ? `\n\nAdditional user guidance: ${guidance.trim()}` : "";
   const absorbNote =
     fragmentIds && fragmentIds.length > 0
-      ? `\n6. Mark absorbed fragments (IDs: ${fragmentIds.join(", ")}) if their content was incorporated.`
+      ? `\n6. Use absorb_fragment to mark each incorporated fragment (IDs: ${fragmentIds.join(", ")}).`
       : "";
 
   return [

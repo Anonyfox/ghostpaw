@@ -1,3 +1,4 @@
+import type { Tool } from "chatoyant";
 import type { TurnResult } from "../core/chat/index.ts";
 import { closeSession, createSession } from "../core/chat/index.ts";
 import { MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
@@ -23,7 +24,7 @@ export async function invokeTrainer(
   entity: Entity,
   db: DatabaseHandle,
   prompt: string,
-  options?: { model?: string; purpose?: string },
+  options?: { model?: string; purpose?: string; tools?: Tool[] },
 ): Promise<TrainerResult> {
   const session = createSession(db, `system:trainer:${Date.now()}`, {
     purpose: (options?.purpose ?? "system") as "system",
@@ -34,6 +35,7 @@ export async function invokeTrainer(
     const result = await entity.executeTurn(sessionId, prompt, {
       soulId: MANDATORY_SOUL_IDS.trainer,
       model: options?.model,
+      tools: options?.tools,
     });
     return {
       content: result.content,

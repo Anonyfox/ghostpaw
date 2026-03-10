@@ -138,10 +138,11 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
       }
 
       const frags = pendingFragments(db);
-      const fragTexts = frags.length > 0 ? frags.map((f) => f.observation) : undefined;
+      const fragRefs =
+        frags.length > 0 ? frags.map((f) => ({ id: f.id, observation: f.observation })) : undefined;
 
       try {
-        const prompt = buildTrainProposePrompt(name, content, fragTexts);
+        const prompt = buildTrainProposePrompt(name, content, fragRefs);
         const result = await invokeTrainerPropose(ent, db, prompt, { purpose: "train" });
         const options = parseTrainerOptions(result.content);
         json(ctx, 200, {
@@ -186,8 +187,11 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
       const desc = selected?.description ?? String(guidance ?? "");
       const extra = typeof guidance === "string" ? guidance : undefined;
 
+      const execFrags = pendingFragments(db);
+      const execFragIds = execFrags.length > 0 ? execFrags.map((f) => f.id) : undefined;
+
       try {
-        const prompt = buildTrainExecutePrompt(name, title, desc, extra);
+        const prompt = buildTrainExecutePrompt(name, title, desc, extra, execFragIds);
         const result = await invokeTrainerExecute(ent, db, sessionId, prompt);
 
         let newRank: number | undefined;

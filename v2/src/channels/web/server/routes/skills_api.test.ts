@@ -20,6 +20,9 @@ describe("skills_api", () => {
     ok(typeof handlers.list === "function");
     ok(typeof handlers.detail === "function");
     ok(typeof handlers.validate === "function");
+    ok(typeof handlers.fragments === "function");
+    ok(typeof handlers.approve === "function");
+    ok(typeof handlers.dismiss === "function");
   });
 
   it("detail returns 400 when name is missing", () => {

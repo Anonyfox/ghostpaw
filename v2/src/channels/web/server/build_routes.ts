@@ -70,7 +70,7 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
   const mentor = createMentorApiHandlers(config.db, config.entity);
   const trainer = createTrainerApiHandlers(config.db, config.entity);
   const quests = createQuestsApiHandlers(config.db);
-  const skills = createSkillsApiHandlers(config.db);
+  const skills = createSkillsApiHandlers(config.db, config.entity);
 
   return {
     checkSession: auth.checkSession,
@@ -121,8 +121,11 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("POST", "/api/trainer/train/execute", trainer.trainExecute, true),
       createRoute("POST", "/api/trainer/stoke", trainer.stoke, true),
       createRoute("GET", "/api/skills", skills.list, true),
+      createRoute("GET", "/api/skills/fragments", skills.fragments, true),
       createRoute("GET", "/api/skills/health", skills.health, true),
       createRoute("GET", "/api/skills/proposals", skills.proposals, true),
+      createRoute("POST", "/api/skills/proposals/:id/approve", skills.approve, true),
+      createRoute("POST", "/api/skills/proposals/:id/dismiss", skills.dismiss, true),
       createRoute("GET", "/api/skills/:name", skills.detail, true),
       createRoute("POST", "/api/skills/:name/validate", skills.validate, true),
       createRoute("GET", "/api/memories", memories.list, true),

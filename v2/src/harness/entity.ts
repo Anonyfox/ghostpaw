@@ -42,15 +42,17 @@ export function createEntity(options: EntityOptions): Entity {
     const isChamberlain = opts?.soulId === MANDATORY_SOUL_IDS.chamberlain;
     const isMentor = opts?.soulId === MANDATORY_SOUL_IDS.mentor;
     const isTrainer = opts?.soulId === MANDATORY_SOUL_IDS.trainer;
-    const tools = isWarden
-      ? toolSets.wardenTools
-      : isChamberlain
-        ? toolSets.chamberlainTools
-        : isMentor
-          ? toolSets.allToolsWithMentor
-          : isTrainer
-            ? toolSets.allToolsWithTrainer
-            : toolSets.baseTools;
+    const tools =
+      opts?.tools ??
+      (isWarden
+        ? toolSets.wardenTools
+        : isChamberlain
+          ? toolSets.chamberlainTools
+          : isMentor
+            ? toolSets.allToolsWithMentor
+            : isTrainer
+              ? toolSets.allToolsWithTrainer
+              : toolSets.baseTools);
     const compactionThreshold = (getConfig(db, "compaction_threshold") as number | null) ?? 200_000;
     const turnInput = {
       sessionId,

@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { defineCommand } from "citty";
 import {
+  fragmentCountsBySource,
   listSkills,
   pendingChanges,
   pendingFragmentCount,
@@ -30,7 +31,15 @@ export default defineCommand({
       console.log(`  Total ranks:     ${totalRanks}`);
       console.log(`  Average rank:    ${avgRank}`);
       console.log(`  Pending changes: ${changes.totalChanges}`);
-      console.log(`  Fragments:       ${fragCount} pending`);
+      const fragSources = fragmentCountsBySource(db);
+      const srcBreakdown = Object.entries(fragSources)
+        .filter(([, c]) => c.pending > 0)
+        .map(([src, c]) => `${c.pending} ${src}`)
+        .join(", ");
+      const fragLabel = srcBreakdown
+        ? `${fragCount} pending (${srcBreakdown})`
+        : `${fragCount} pending`;
+      console.log(`  Fragments:       ${fragLabel}`);
       console.log(`  Proposals:       ${proposals.length} queued`);
 
       if (health) {

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import type {
+  FragmentSourceSummary,
+  SkillFragmentInfo,
   SkillHealthInfo,
   SkillProposalInfo,
   SkillSummaryInfo,
@@ -7,6 +9,7 @@ import type {
 } from "../../shared/trainer_types.ts";
 import { apiGet } from "../api_get.ts";
 import { apiPost } from "../api_post.ts";
+import { FragmentStash } from "../components/fragment_stash.tsx";
 import { RewardMenu } from "../components/reward_menu.tsx";
 import { SkillDetailModal } from "../components/skill_detail_modal.tsx";
 import { SkillInventory } from "../components/skill_inventory.tsx";
@@ -17,6 +20,8 @@ export function TrainingGroundsPage() {
   const [skills, setSkills] = useState<SkillSummaryInfo[]>([]);
   const [health, setHealth] = useState<SkillHealthInfo | null>(null);
   const [proposals, setProposals] = useState<SkillProposalInfo[]>([]);
+  const [fragments, setFragments] = useState<SkillFragmentInfo[]>([]);
+  const [fragmentSources, setFragmentSources] = useState<FragmentSourceSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
@@ -24,16 +29,21 @@ export function TrainingGroundsPage() {
 
   const loadData = async () => {
     try {
-      const [s, sk, h, p] = await Promise.all([
+      const [s, sk, h, p, fragData] = await Promise.all([
         apiGet<TrainerStatusResponse>("/api/trainer/status"),
         apiGet<SkillSummaryInfo[]>("/api/skills"),
         apiGet<SkillHealthInfo | null>("/api/skills/health").catch(() => null),
         apiGet<SkillProposalInfo[]>("/api/skills/proposals").catch(() => []),
+        apiGet<{ fragments: SkillFragmentInfo[]; sources: FragmentSourceSummary[] }>(
+          "/api/skills/fragments",
+        ).catch(() => ({ fragments: [], sources: [] })),
       ]);
       setStatus(s);
       setSkills(sk);
       setHealth(h);
       setProposals(p ?? []);
+      setFragments(fragData.fragments);
+      setFragmentSources(fragData.sources);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load data.");
     } finally {
@@ -109,6 +119,12 @@ export function TrainingGroundsPage() {
       />
 
       <SkillInventory skills={skills} onSelectSkill={setSelectedSkill} />
+
+      <FragmentStash
+        fragments={fragments}
+        sources={fragmentSources}
+        onSkillClick={setSelectedSkill}
+      />
 
       {selectedSkill && (
         <SkillDetailModal

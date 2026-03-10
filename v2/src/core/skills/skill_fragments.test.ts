@@ -7,7 +7,9 @@ import {
   dropSkillFragment,
   enforceFragmentCap,
   expireStaleFragments,
+  fragmentCountsBySource,
   initSkillFragmentsTables,
+  listFragments,
   pendingFragmentCount,
   pendingFragments,
 } from "./skill_fragments.ts";
@@ -100,6 +102,63 @@ describe("expireStaleFragments", () => {
     strictEqual(pendingFragmentCount(db), 1);
     const frags = pendingFragments(db);
     strictEqual(frags[0].observation, "fresh obs");
+  });
+});
+
+describe("listFragments", () => {
+  it("returns pending and absorbed fragments excluding expired", () => {
+    dropSkillFragment(db, "quest", "q-1", "obs 1");
+    dropSkillFragment(db, "session", "s-1", "obs 2");
+    absorbFragment(db, 1, "deploy");
+    const frags = listFragments(db);
+    strictEqual(frags.length, 2);
+    const statuses = frags.map((f) => f.status);
+    strictEqual(statuses.includes("absorbed"), true);
+    strictEqual(statuses.includes("pending"), true);
+  });
+
+  it("filters by status when provided", () => {
+    dropSkillFragment(db, "quest", null, "obs 1");
+    dropSkillFragment(db, "quest", null, "obs 2");
+    absorbFragment(db, 1, "deploy");
+    const absorbed = listFragments(db, { status: "absorbed" });
+    strictEqual(absorbed.length, 1);
+    strictEqual(absorbed[0].consumedBy, "deploy");
+  });
+
+  it("respects limit", () => {
+    for (let i = 0; i < 5; i++) dropSkillFragment(db, "quest", null, `obs ${i}`);
+    const frags = listFragments(db, { limit: 2 });
+    strictEqual(frags.length, 2);
+  });
+
+  it("excludes expired fragments by default", () => {
+    db.prepare(
+      "INSERT INTO skill_fragments (source, observation, status, created_at) VALUES (?, ?, 'pending', ?)",
+    ).run("quest", "old obs", Math.floor(Date.now() / 1000) - 100 * 86400);
+    expireStaleFragments(db, 90);
+    const frags = listFragments(db);
+    strictEqual(frags.length, 0);
+  });
+});
+
+describe("fragmentCountsBySource", () => {
+  it("groups counts by source and status", () => {
+    dropSkillFragment(db, "quest", "q-1", "obs 1");
+    dropSkillFragment(db, "quest", "q-2", "obs 2");
+    dropSkillFragment(db, "session", "s-1", "obs 3");
+    absorbFragment(db, 1, "deploy");
+
+    const counts = fragmentCountsBySource(db);
+    strictEqual(counts.quest?.pending, 1);
+    strictEqual(counts.quest?.absorbed, 1);
+    strictEqual(counts.session?.pending, 1);
+    strictEqual(counts.session?.absorbed, 0);
+  });
+
+  it("returns empty object when no fragments", () => {
+    const counts = fragmentCountsBySource(db);
+    deepStrictEqual(counts, {});
   });
 });
 

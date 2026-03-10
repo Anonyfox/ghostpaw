@@ -82,3 +82,20 @@ export interface SkillProposalInfo {
   status: "pending" | "approved" | "dismissed";
   createdAt: number;
 }
+
+export interface SkillFragmentInfo {
+  id: number;
+  source: string;
+  sourceId: string | null;
+  observation: string;
+  domain: string | null;
+  status: "pending" | "absorbed" | "expired";
+  consumedBy: string | null;
+  createdAt: number;
+}
+
+export interface FragmentSourceSummary {
+  source: string;
+  pending: number;
+  absorbed: number;
+}

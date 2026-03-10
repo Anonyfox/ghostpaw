@@ -34,6 +34,7 @@ export {
 export type { TrainerOption } from "./trainer_parse_options.ts";
 export { parseTrainerOptions } from "./trainer_parse_options.ts";
 export { buildStokePrompt } from "./trainer_stoke_prompt.ts";
+export type { FragmentRef } from "./trainer_train_prompt.ts";
 export {
   buildTrainExecutePrompt,
   buildTrainProposePrompt,

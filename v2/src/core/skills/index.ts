@@ -20,13 +20,20 @@ export {
   readinessForAll,
   skillReadiness,
 } from "./skill_events.ts";
-export type { FragmentSource, FragmentStatus, SkillFragment } from "./skill_fragments.ts";
+export type {
+  FragmentSource,
+  FragmentStatus,
+  SkillFragment,
+  SourceCounts,
+} from "./skill_fragments.ts";
 export {
   absorbFragment,
   dropSkillFragment,
   enforceFragmentCap,
   expireStaleFragments,
+  fragmentCountsBySource,
   initSkillFragmentsTables,
+  listFragments,
   pendingFragmentCount,
   pendingFragments,
 } from "./skill_fragments.ts";

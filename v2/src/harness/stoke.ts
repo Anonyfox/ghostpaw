@@ -14,8 +14,11 @@ import {
 } from "../core/skills/index.ts";
 import { readinessForAll } from "../core/skills/skill_events.ts";
 import type { SkillHealthData } from "../core/skills/skill_health.ts";
+import { pendingProposals } from "../core/skills/skill_health.ts";
 import { skillTier } from "../core/skills/skill_tier.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
+import { createRecallTool } from "../tools/memory/recall.ts";
+import { createStokeTools } from "../tools/trainer/index.ts";
 import { invokeTrainer } from "./invoke_trainer.ts";
 import { buildStokePrompt } from "./trainer_stoke_prompt.ts";
 import type { Entity } from "./types.ts";
@@ -103,14 +106,16 @@ export async function stokePhaseTwo(
 ): Promise<{ costUsd: number }> {
   const frags = pendingFragments(db);
   const fragSummary = frags
-    .map((f, i) => `${i + 1}. ${f.observation}${f.domain ? ` (domain: ${f.domain})` : ""}`)
+    .map((f) => `[id=${f.id}] ${f.observation}${f.domain ? ` (domain: ${f.domain})` : ""}`)
     .join("\n");
 
   const index = formatSkillIndex(buildSkillIndex(workspace));
   const prompt = buildStokePrompt(fragSummary, index);
 
+  const stokeTools = [...createStokeTools(db), createRecallTool(db)];
   const result = await invokeTrainer(entity, db, prompt, {
     purpose: "stoke",
+    tools: stokeTools,
   });
 
   return { costUsd: result.cost.estimatedUsd };
@@ -133,6 +138,8 @@ export async function runStoke(
     const p2 = await stokePhaseTwo(entity, db, workspace);
     phaseTwoRan = true;
     phaseTwoCostUsd = p2.costUsd;
+    health.proposalsQueued = pendingProposals(db).length;
+    writeSkillHealth(db, health);
   }
 
   return { health, phaseOneMs, phaseTwoRan, phaseTwoCostUsd };

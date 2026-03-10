@@ -87,6 +87,7 @@ const MENTOR_TOOL_NAMES = [
 ];
 
 const TRAINER_TOOL_NAMES = [
+  "absorb_fragment",
   "checkpoint_skills",
   "create_skill",
   "review_skills",
@@ -235,9 +236,9 @@ describe("createEntityToolSets", () => {
     ok(!allNames.has("howl"), "howl should not be in allToolsWithTrainer (coordinator-only)");
   });
 
-  it("trainerTools has exactly 7 tools", () => {
+  it("trainerTools has exactly 8 tools", () => {
     const sets = createEntityToolSets(mockConfig());
-    strictEqual(sets.trainerTools.length, 7);
+    strictEqual(sets.trainerTools.length, 8);
     const names = sets.trainerTools.map((t) => t.name).sort();
     deepStrictEqual(names, TRAINER_TOOL_NAMES);
   });

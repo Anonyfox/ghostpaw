@@ -1,5 +1,9 @@
 import { resolve } from "node:path";
-import { listSkills } from "../../core/skills/index.ts";
+import {
+  fragmentCountsBySource,
+  listSkills,
+  pendingFragmentCount,
+} from "../../core/skills/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 export interface HandleSkillsDeps {
@@ -31,6 +35,16 @@ export async function handleSkills(deps: HandleSkillsDeps, chatId: number): Prom
     return `${dot} *${s.name}* — ${s.tier} (${s.rank})\n  ${s.description}`;
   });
 
-  const header = `*Skills* (${skills.length})\n\n`;
-  await deps.sendMessage(chatId, header + lines.join("\n\n"));
+  let msg = `*Skills* (${skills.length})\n\n${lines.join("\n\n")}`;
+
+  const fragTotal = pendingFragmentCount(deps.db);
+  if (fragTotal > 0) {
+    const counts = fragmentCountsBySource(deps.db);
+    const srcLines = Object.entries(counts)
+      .filter(([, c]) => c.pending > 0)
+      .map(([src, c]) => `❔ ${c.pending} from ${src}`);
+    msg += `\n\n*Fragments* (${fragTotal} pending)\n${srcLines.join("\n")}`;
+  }
+
+  await deps.sendMessage(chatId, msg);
 }

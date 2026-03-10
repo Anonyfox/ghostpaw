@@ -58,14 +58,14 @@ export default defineCommand({
       }
 
       const frags = pendingFragments(db);
-      const fragTexts = frags.map((f) => f.observation);
+      const fragRefs = frags.map((f) => ({ id: f.id, observation: f.observation }));
 
       console.log(style.dim(`Reviewing: ${name}...`));
 
       const proposePrompt = buildTrainProposePrompt(
         name,
         content,
-        fragTexts.length > 0 ? fragTexts : undefined,
+        fragRefs.length > 0 ? fragRefs : undefined,
       );
       const proposal = await invokeTrainerPropose(entity, db, proposePrompt, {
         model,
@@ -99,7 +99,8 @@ export default defineCommand({
 
       const rankBefore = skillRank(workspace, name);
 
-      const executePrompt = buildTrainExecutePrompt(name, title, desc, choice.guidance);
+      const fragIds = frags.length > 0 ? frags.map((f) => f.id) : undefined;
+      const executePrompt = buildTrainExecutePrompt(name, title, desc, choice.guidance, fragIds);
       const result = await invokeTrainerExecute(entity, db, proposal.sessionId, executePrompt, {
         model,
       });

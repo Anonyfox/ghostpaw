@@ -1,3 +1,4 @@
+import type { Tool } from "chatoyant";
 import type { ChatFactory, ToolCallInfo, ToolResultInfo, TurnResult } from "../core/chat/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 
@@ -20,6 +21,7 @@ export interface EntityOptions {
 export interface EntityTurnOptions {
   model?: string;
   soulId?: number;
+  tools?: Tool[];
   systemPrompt?: string;
   maxIterations?: number;
   temperature?: number;

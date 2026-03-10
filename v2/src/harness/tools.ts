@@ -2,7 +2,10 @@ import type { Tool } from "chatoyant";
 import type { ChatFactory } from "../core/chat/index.ts";
 import { getSession } from "../core/chat/index.ts";
 import { getSecret } from "../core/secrets/index.ts";
+import { parseFrontmatter } from "../core/skills/parse_frontmatter.ts";
 import { logSkillEvent } from "../core/skills/skill_events.ts";
+import { skillRank } from "../core/skills/skill_rank.ts";
+import { skillTier } from "../core/skills/skill_tier.ts";
 import { listSouls, MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { createBashTool } from "../tools/bash.ts";
@@ -116,9 +119,44 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
           try {
             logSkillEvent(db, match[1], "read");
           } catch {
-            // best-effort, don't block reads
+            // best-effort
           }
         }
+      },
+      onContent: (filePath, content) => {
+        const match = filePath.match(SKILL_PATH_RE);
+        if (!match) return content;
+
+        const name = match[1];
+        try {
+          const rank = skillRank(workspace, name);
+          const { tier } = skillTier(rank);
+
+          if (tier === "Master") {
+            const { frontmatter, body } = parseFrontmatter(content);
+            const summaryMatch = body.match(
+              /^(##\s+(?:Summary|Compiled Summary|Overview)[^\n]*\n[\s\S]*?)(?=\n##\s|\n*$)/m,
+            );
+            if (summaryMatch) {
+              const totalLines = content.split("\n").length;
+              const fmBlock = frontmatter
+                ? `---\nname: ${frontmatter.name}\ndescription: ${frontmatter.description}\n---\n\n`
+                : "";
+              return `${fmBlock}${summaryMatch[1].trim()}\n\n(Master-tier compiled view. Full content: ${totalLines} lines.)`;
+            }
+          }
+
+          if (tier === "Expert") {
+            const { frontmatter } = parseFrontmatter(content);
+            if (frontmatter?.allowedTools) {
+              return `${content}\n\n<!-- Expert-tier restriction: only use these tools when following this skill: ${frontmatter.allowedTools} -->`;
+            }
+          }
+        } catch {
+          // best-effort
+        }
+
+        return content;
       },
     }),
     createWriteTool(workspace),

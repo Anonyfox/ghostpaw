@@ -61,8 +61,9 @@ export async function handleTrain(
   try {
     const entity = createEntity({ db: deps.db, workspace });
     const frags = pendingFragments(deps.db);
-    const fragTexts = frags.length > 0 ? frags.map((f) => f.observation) : undefined;
-    const prompt = buildTrainProposePrompt(name, content, fragTexts);
+    const fragRefs =
+      frags.length > 0 ? frags.map((f) => ({ id: f.id, observation: f.observation })) : undefined;
+    const prompt = buildTrainProposePrompt(name, content, fragRefs);
     const result = await invokeTrainerPropose(entity, deps.db, prompt, { purpose: "train" });
     const options = parseTrainerOptions(result.content);
 

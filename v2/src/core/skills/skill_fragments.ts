@@ -89,6 +89,44 @@ export function enforceFragmentCap(db: DatabaseHandle, cap = 50): void {
   ).run(count - cap);
 }
 
+export function listFragments(
+  db: DatabaseHandle,
+  opts?: { status?: FragmentStatus; limit?: number },
+): SkillFragment[] {
+  const limit = opts?.limit ?? 100;
+  const sql = opts?.status
+    ? "SELECT * FROM skill_fragments WHERE status = ? ORDER BY created_at DESC LIMIT ?"
+    : "SELECT * FROM skill_fragments WHERE status != 'expired' ORDER BY created_at DESC LIMIT ?";
+  const rows = opts?.status ? db.prepare(sql).all(opts.status, limit) : db.prepare(sql).all(limit);
+  return rows.map(toFragment);
+}
+
+export interface SourceCounts {
+  pending: number;
+  absorbed: number;
+}
+
+export function fragmentCountsBySource(
+  db: DatabaseHandle,
+): Partial<Record<FragmentSource, SourceCounts>> {
+  const rows = db
+    .prepare(
+      `SELECT source, status, COUNT(*) AS cnt FROM skill_fragments
+       WHERE status IN ('pending', 'absorbed')
+       GROUP BY source, status`,
+    )
+    .all() as { source: string; status: string; cnt: number }[];
+
+  const result: Partial<Record<FragmentSource, SourceCounts>> = {};
+  for (const row of rows) {
+    const src = row.source as FragmentSource;
+    if (!result[src]) result[src] = { pending: 0, absorbed: 0 };
+    if (row.status === "pending") result[src]!.pending = row.cnt;
+    else if (row.status === "absorbed") result[src]!.absorbed = row.cnt;
+  }
+  return result;
+}
+
 function toFragment(row: Record<string, unknown>): SkillFragment {
   return {
     id: row.id as number,

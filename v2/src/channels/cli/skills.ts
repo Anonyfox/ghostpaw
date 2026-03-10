@@ -1,6 +1,7 @@
 import { defineCommand } from "citty";
 import skillsCheckpoint from "./skills_checkpoint.ts";
 import skillsCreate from "./skills_create.ts";
+import skillsFragments from "./skills_fragments.ts";
 import skillsList from "./skills_list.ts";
 import skillsRepair from "./skills_repair.ts";
 import skillsShow from "./skills_show.ts";
@@ -15,6 +16,7 @@ export default defineCommand({
     list: skillsList,
     show: skillsShow,
     status: skillsStatus,
+    fragments: skillsFragments,
     checkpoint: skillsCheckpoint,
     validate: skillsValidate,
     repair: skillsRepair,
