@@ -42,10 +42,12 @@ describe("listSkills", () => {
     strictEqual(list[1].name, "testing");
   });
 
-  it("shows rank 0 for skills without git history", () => {
+  it("shows rank 0 and Uncheckpointed tier for skills without git history", () => {
     makeSkill("deploy");
     const list = listSkills(workspace);
     strictEqual(list[0].rank, 0);
+    strictEqual(list[0].tier, "Uncheckpointed");
+    strictEqual(list[0].readiness, "grey");
   });
 
   it("shows correct rank after checkpoints", () => {

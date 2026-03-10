@@ -6,12 +6,21 @@ interface SkillCardProps {
   onClick: () => void;
 }
 
+const READINESS_COLOR: Record<string, string> = {
+  grey: "#6c757d",
+  green: "#198754",
+  yellow: "#ffc107",
+  orange: "#fd7e14",
+};
+
 export function SkillCard({ skill, onClick }: SkillCardProps) {
   const borderClass = skill.hasPendingChanges
     ? "border-warning"
     : skill.rank >= 5
       ? "border-info"
       : "border-secondary";
+
+  const dotColor = READINESS_COLOR[skill.readiness] ?? READINESS_COLOR.grey;
 
   return (
     <button
@@ -22,8 +31,11 @@ export function SkillCard({ skill, onClick }: SkillCardProps) {
     >
       <div class="card-body d-flex flex-column">
         <div class="d-flex justify-content-between align-items-start mb-1">
-          <h6 class="card-title mb-0">{skill.name}</h6>
-          <SkillRankBadge rank={skill.rank} />
+          <div class="d-flex align-items-center gap-2">
+            <span style={`color: ${dotColor}; font-size: 0.6rem;`}>●</span>
+            <h6 class="card-title mb-0">{skill.name}</h6>
+          </div>
+          <SkillRankBadge rank={skill.rank} tier={skill.tier} />
         </div>
         <p
           class="card-text text-muted small flex-grow-1 mb-2"
@@ -33,7 +45,7 @@ export function SkillCard({ skill, onClick }: SkillCardProps) {
         </p>
         <div class="d-flex justify-content-between align-items-center">
           <span class="text-muted" style="font-size: 0.75rem;">
-            {skill.fileCount} file{skill.fileCount !== 1 ? "s" : ""}
+            {skill.tier} · {skill.fileCount} file{skill.fileCount !== 1 ? "s" : ""}
           </span>
           {skill.hasPendingChanges && (
             <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">

@@ -11,7 +11,7 @@ import { TrainerInput } from "./trainer_input.tsx";
 import { TrainerOptionsPicker } from "./trainer_options_picker.tsx";
 import { TrainerResponse } from "./trainer_response.tsx";
 
-type Action = "scout" | "train" | null;
+type Action = "create" | "train" | null;
 type Phase = "idle" | "input" | "proposing" | "options" | "executing" | "result";
 
 interface TrainerWorkshopProps {
@@ -23,12 +23,12 @@ interface TrainerWorkshopProps {
 }
 
 const PROPOSING_TEXT: Record<string, string> = {
-  scout: "The Trainer is analyzing skill gaps...",
+  create: "The Trainer is analyzing skill gaps...",
   train: "The Trainer is reviewing this skill...",
 };
 
 const EXECUTING_TEXT: Record<string, string> = {
-  scout: "The Trainer is creating the new skill...",
+  create: "The Trainer is creating the new skill...",
   train: "The Trainer is applying the improvement...",
 };
 
@@ -69,13 +69,13 @@ export function TrainerWorkshop({
     setError(null);
   };
 
-  const runPropose = async (act: "scout" | "train", value?: string) => {
+  const runPropose = async (act: "create" | "train", value?: string) => {
     setError(null);
     setPhase("proposing");
     try {
       const endpoint =
-        act === "scout" ? "/api/trainer/scout/propose" : "/api/trainer/train/propose";
-      const body = act === "scout" ? (value ? { direction: value } : {}) : { skillName: value };
+        act === "create" ? "/api/trainer/create/propose" : "/api/trainer/train/propose";
+      const body = act === "create" ? (value ? { topic: value } : {}) : { skillName: value };
       const res = await apiPost<TrainerProposalResponse>(endpoint, body);
       setOptions(res.options);
       setSessionId(res.sessionId);
@@ -94,7 +94,7 @@ export function TrainerWorkshop({
     setPhase("executing");
     try {
       const endpoint =
-        action === "scout" ? "/api/trainer/scout/execute" : "/api/trainer/train/execute";
+        action === "create" ? "/api/trainer/create/execute" : "/api/trainer/train/execute";
       const body: Record<string, unknown> = { sessionId };
       if (optionId) body.optionId = optionId;
       if (guidance) body.guidance = guidance;
@@ -116,9 +116,9 @@ export function TrainerWorkshop({
     }
   };
 
-  const handleScoutStart = () => {
+  const handleCreateStart = () => {
     setError(null);
-    setAction("scout");
+    setAction("create");
     setPhase("input");
     setResult(null);
   };
@@ -131,8 +131,8 @@ export function TrainerWorkshop({
   };
 
   const handleInputSubmit = (value: string) => {
-    if (action === "scout") {
-      runPropose("scout", value || undefined);
+    if (action === "create") {
+      runPropose("create", value || undefined);
     } else if (action === "train") {
       setTrainSkillName(value);
       runPropose("train", value);
@@ -148,7 +148,7 @@ export function TrainerWorkshop({
   };
 
   const loadingText =
-    phase === "proposing" ? PROPOSING_TEXT[action ?? "scout"] : EXECUTING_TEXT[action ?? "scout"];
+    phase === "proposing" ? PROPOSING_TEXT[action ?? "create"] : EXECUTING_TEXT[action ?? "create"];
 
   const workshopBorder = pendingChanges > 0 ? "border-warning" : "border-info";
 
@@ -174,12 +174,12 @@ export function TrainerWorkshop({
         <div class="row g-3 mb-0">
           <div class="col-md-6">
             <TrainerActionCard
-              title="Scout"
+              title="Create"
               description="Discover and create new skills from gaps and opportunities"
-              buttonLabel="Scout"
+              buttonLabel="Create"
               disabled={!trainerAvailable || busy}
-              active={action === "scout"}
-              onClick={handleScoutStart}
+              active={action === "create"}
+              onClick={handleCreateStart}
             />
           </div>
           <div class="col-md-6">
@@ -227,6 +227,9 @@ export function TrainerWorkshop({
             content={result.content}
             succeeded={result.succeeded}
             cost={{ totalUsd: totalCost }}
+            skillName={result.skillName}
+            newRank={result.newRank}
+            newTier={result.newTier}
             onClose={reset}
           />
         )}

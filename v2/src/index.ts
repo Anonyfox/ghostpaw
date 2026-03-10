@@ -17,6 +17,10 @@ import {
   checkpoint,
   ensureDefaults,
   initHistory,
+  initSkillEventsTables,
+  initSkillFragmentsTables,
+  initSkillHealthTables,
+  logSkillEvent,
   repairFlatFile,
   repairSkill,
   validateAllSkills,
@@ -42,9 +46,7 @@ const subCommands = {
   haunt: () => import("./channels/cli/haunt.ts").then((m) => m.default),
   howls: () => import("./channels/cli/howls.ts").then((m) => m.default),
   quests: () => import("./channels/cli/quests.ts").then((m) => m.default),
-  train: () => import("./channels/cli/train.ts").then((m) => m.default),
   schedules: () => import("./channels/cli/schedules.ts").then((m) => m.default),
-  scout: () => import("./channels/cli/scout.ts").then((m) => m.default),
   service: () => import("./channels/cli/service.ts").then((m) => m.default),
 };
 
@@ -89,6 +91,9 @@ const main = defineCommand({
     initHowlTables(db);
     initQuestTables(db);
     initScheduleTables(db);
+    initSkillEventsTables(db);
+    initSkillFragmentsTables(db);
+    initSkillHealthTables(db);
     recoverOrphanedSessions(db);
     ensureMandatorySouls(db);
     ensureDefaultSchedules(db);
@@ -111,7 +116,10 @@ const main = defineCommand({
     }
     initHistory(workspace);
     if (created.length > 0) {
-      checkpoint(workspace, created, "bootstrap: initial version");
+      for (const name of created) {
+        logSkillEvent(db, name, "created");
+      }
+      checkpoint(workspace, created, "bootstrap: initial version", db);
     }
 
     const { notifySession } = await import("./channels/web/server/routes/chat_ws.ts");

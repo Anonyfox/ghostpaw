@@ -1,4 +1,19 @@
-export function buildTrainProposePrompt(skillName: string, skillContent: string): string {
+export function buildTrainProposePrompt(
+  skillName: string,
+  skillContent: string,
+  fragments?: string[],
+): string {
+  const fragmentSection =
+    fragments && fragments.length > 0
+      ? [
+          "",
+          `Pending fragments (${fragments.length} observations from other subsystems):`,
+          ...fragments.map((f, i) => `  ${i + 1}. ${f}`),
+          "",
+          "Consider absorbing relevant fragments into this skill during improvement.",
+        ]
+      : [];
+
   return [
     `Review and analyze improvements for skill: ${skillName}`,
     "",
@@ -6,6 +21,7 @@ export function buildTrainProposePrompt(skillName: string, skillContent: string)
     "---",
     skillContent,
     "---",
+    ...fragmentSection,
     "",
     "Steps:",
     "1. Use skill_history to see this skill's evolution and past checkpoints.",
@@ -34,8 +50,13 @@ export function buildTrainExecutePrompt(
   optionTitle: string,
   optionDescription: string,
   guidance?: string,
+  fragmentIds?: number[],
 ): string {
   const extra = guidance?.trim() ? `\n\nAdditional user guidance: ${guidance.trim()}` : "";
+  const absorbNote =
+    fragmentIds && fragmentIds.length > 0
+      ? `\n6. Mark absorbed fragments (IDs: ${fragmentIds.join(", ")}) if their content was incorporated.`
+      : "";
 
   return [
     `Improve skill "${skillName}" with this specific improvement:`,
@@ -54,6 +75,7 @@ export function buildTrainExecutePrompt(
     "   - Keep skills under 80 lines; split if needed",
     "4. Run validate_skills to verify structural correctness.",
     "5. Use checkpoint_skills to commit the improvement.",
+    absorbNote,
     "",
     "CRITICAL: The improvement MUST be checkpointed before you finish.",
     "Only checkpoint if the change genuinely improves reliability in practice.",

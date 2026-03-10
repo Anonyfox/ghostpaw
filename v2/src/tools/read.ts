@@ -61,7 +61,11 @@ function detectAnomalies(raw: string, filePath: string): string[] {
   return warnings;
 }
 
-export function createReadTool(workspace: string) {
+export interface ReadToolOptions {
+  onRead?: (relativePath: string) => void;
+}
+
+export function createReadTool(workspace: string, options?: ReadToolOptions) {
   return createTool({
     name: "read",
     description:
@@ -109,6 +113,8 @@ export function createReadTool(workspace: string) {
           bytes: Buffer.byteLength(raw, "utf-8"),
         };
       }
+
+      options?.onRead?.(filePath);
 
       const allLines = raw.split("\n");
       const totalLines = allLines.length;

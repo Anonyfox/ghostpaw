@@ -4,11 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { createSkill } from "./create_skill.ts";
+import { resetGitAvailableCache } from "./git.ts";
 import { parseSkill } from "./parse_skill.ts";
+import { skillRank } from "./skill_rank.ts";
 
 let workspace: string;
 
 beforeEach(() => {
+  resetGitAvailableCache();
   workspace = mkdtempSync(join(tmpdir(), "ghostpaw-create-skill-"));
   mkdirSync(join(workspace, "skills"), { recursive: true });
 });
@@ -18,7 +21,7 @@ afterEach(() => {
 });
 
 describe("createSkill", () => {
-  it("creates a basic skill", () => {
+  it("creates a basic skill at rank 1", () => {
     const skill = createSkill(workspace, {
       name: "deploy",
       description: "Deploy the app.",
@@ -27,6 +30,7 @@ describe("createSkill", () => {
     strictEqual(skill.name, "deploy");
     strictEqual(skill.description, "Deploy the app.");
     strictEqual(existsSync(join(workspace, "skills", "deploy", "SKILL.md")), true);
+    strictEqual(skillRank(workspace, "deploy"), 1);
   });
 
   it("creates optional subdirectories", () => {

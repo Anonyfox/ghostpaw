@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { defineCommand } from "citty";
-import { listSkills } from "../../core/skills/index.ts";
+import { listSkills, pendingFragments, skillRank } from "../../core/skills/index.ts";
 import {
   buildTrainExecutePrompt,
   buildTrainProposePrompt,
@@ -10,6 +10,7 @@ import {
   invokeTrainerPropose,
   parseTrainerOptions,
 } from "../../harness/index.ts";
+import { formatRankUp } from "../../lib/format_rankup.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { promptChoice, promptSkillPick } from "./prompt_choice.ts";
 import { withRunDb } from "./with_run_db.ts";
@@ -33,9 +34,9 @@ export default defineCommand({
       let skillName = (args._ ?? []).join(" ") || (args.skill as string | undefined) || undefined;
 
       if (!skillName?.trim()) {
-        const skills = listSkills(workspace);
+        const skills = listSkills(workspace, db);
         if (skills.length === 0) {
-          console.log(style.dim("No skills found. Run `ghostpaw scout` to create one."));
+          console.log(style.dim("No skills found. Run `ghostpaw skills create` to create one."));
           return;
         }
         const names = skills.map((s) => s.name);
@@ -56,9 +57,16 @@ export default defineCommand({
         return;
       }
 
+      const frags = pendingFragments(db);
+      const fragTexts = frags.map((f) => f.observation);
+
       console.log(style.dim(`Reviewing: ${name}...`));
 
-      const proposePrompt = buildTrainProposePrompt(name, content);
+      const proposePrompt = buildTrainProposePrompt(
+        name,
+        content,
+        fragTexts.length > 0 ? fragTexts : undefined,
+      );
       const proposal = await invokeTrainerPropose(entity, db, proposePrompt, {
         model,
         purpose: "train",
@@ -89,6 +97,8 @@ export default defineCommand({
 
       console.log(style.dim(`Improving: ${title}...`));
 
+      const rankBefore = skillRank(workspace, name);
+
       const executePrompt = buildTrainExecutePrompt(name, title, desc, choice.guidance);
       const result = await invokeTrainerExecute(entity, db, proposal.sessionId, executePrompt, {
         model,
@@ -102,6 +112,12 @@ export default defineCommand({
 
       console.log();
       console.log(result.content);
+
+      const rankAfter = skillRank(workspace, name);
+      if (rankAfter > rankBefore) {
+        console.log(`\x1b[36m  ▲ ${formatRankUp(name, rankAfter)}!\x1b[0m`);
+      }
+
       console.log();
       const totalCost = proposal.cost.estimatedUsd + result.cost.estimatedUsd;
       console.log(style.dim(`Total cost: $${totalCost.toFixed(4)}`));

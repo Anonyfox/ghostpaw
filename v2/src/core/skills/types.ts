@@ -33,6 +33,8 @@ export interface SkillSummary {
   name: string;
   description: string;
   rank: number;
+  tier: string;
+  readiness: "grey" | "green" | "yellow" | "orange";
   hasPendingChanges: boolean;
   fileCount: number;
   bodyLines: number;

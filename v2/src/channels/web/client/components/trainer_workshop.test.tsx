@@ -16,9 +16,9 @@ describe("TrainerWorkshop", () => {
     ok(html.includes("Workshop"));
   });
 
-  it("renders two action cards (Scout and Train)", () => {
+  it("renders two action cards (Create and Train)", () => {
     const html = render(<TrainerWorkshop {...base} />);
-    ok(html.includes("Scout"));
+    ok(html.includes("Create"));
     ok(html.includes("Train"));
   });
 

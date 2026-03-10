@@ -1,5 +1,6 @@
 import { createTool, Schema } from "chatoyant";
 import { completeQuest, getQuest } from "../../core/quests/index.ts";
+import { dropSkillFragment } from "../../core/skills/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatQuest } from "./format_quest.ts";
 
@@ -52,6 +53,17 @@ export function createQuestDoneTool(db: DatabaseHandle) {
             occurrence: result,
             note: "Occurrence recorded. Recurring quest remains active.",
           };
+        }
+
+        try {
+          dropSkillFragment(
+            db,
+            "quest",
+            String(id),
+            `Quest completed: "${result.title}". ${result.description ?? ""}`.trim(),
+          );
+        } catch {
+          // best-effort, don't block completion
         }
 
         return { quest: formatQuest(result) };

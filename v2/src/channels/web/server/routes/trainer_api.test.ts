@@ -27,25 +27,26 @@ function mockCtx(params: Record<string, string> = {}) {
 describe("trainer_api", () => {
   it("creates all expected handler functions", () => {
     const handlers = createTrainerApiHandlers(null as never, undefined);
-    ok(typeof handlers.scoutPropose === "function");
-    ok(typeof handlers.scoutExecute === "function");
+    ok(typeof handlers.createPropose === "function");
+    ok(typeof handlers.createExecute === "function");
     ok(typeof handlers.trainPropose === "function");
     ok(typeof handlers.trainExecute === "function");
+    ok(typeof handlers.stoke === "function");
     ok(typeof handlers.status === "function");
   });
 
-  it("scoutPropose returns 503 when entity is undefined", async () => {
+  it("createPropose returns 503 when entity is undefined", async () => {
     const handlers = createTrainerApiHandlers(null as never, undefined);
     const { ctx, status, json } = mockCtx();
-    await handlers.scoutPropose(ctx);
+    await handlers.createPropose(ctx);
     strictEqual(status(), 503);
     ok(json().error.includes("not available"));
   });
 
-  it("scoutExecute returns 503 when entity is undefined", async () => {
+  it("createExecute returns 503 when entity is undefined", async () => {
     const handlers = createTrainerApiHandlers(null as never, undefined);
     const { ctx, status, json } = mockCtx();
-    await handlers.scoutExecute(ctx);
+    await handlers.createExecute(ctx);
     strictEqual(status(), 503);
     ok(json().error.includes("not available"));
   });

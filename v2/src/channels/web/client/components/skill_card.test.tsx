@@ -8,6 +8,8 @@ const base: SkillSummaryInfo = {
   name: "deploy",
   description: "Deploy the application to production",
   rank: 3,
+  tier: "Journeyman",
+  readiness: "grey",
   hasPendingChanges: false,
   fileCount: 4,
   bodyLines: 30,

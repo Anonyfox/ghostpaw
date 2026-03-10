@@ -1,7 +1,6 @@
-export function buildScoutProposePrompt(direction?: string): string {
-  const dir = direction?.trim();
-  const focus = dir
-    ? `Focus area: ${dir}\n\nSearch memories and experience related to: ${dir}`
+export function buildCreateProposePrompt(topic?: string): string {
+  const focus = topic?.trim()
+    ? `Focus area: ${topic.trim()}\n\nSearch memories and experience related to: ${topic.trim()}`
     : "Search memories for: repeated frustrations, manual workarounds, workflow gaps, capability needs";
 
   return [
@@ -31,7 +30,7 @@ export function buildScoutProposePrompt(direction?: string): string {
   ].join("\n");
 }
 
-export function buildScoutExecutePrompt(
+export function buildCreateExecutePrompt(
   optionTitle: string,
   optionDescription: string,
   guidance?: string,
@@ -39,7 +38,7 @@ export function buildScoutExecutePrompt(
   const extra = guidance?.trim() ? `\n\nAdditional user guidance: ${guidance.trim()}` : "";
 
   return [
-    `Create a new skill based on this scouted direction:`,
+    `Create a new skill based on this direction:`,
     "",
     `Title: ${optionTitle}`,
     `Rationale: ${optionDescription}`,
@@ -53,10 +52,8 @@ export function buildScoutExecutePrompt(
     "   - A one-line description",
     "   - A procedure body that names specific tools, includes failure paths, and is testable",
     "4. Run validate_skills to verify structural correctness.",
-    "5. Use checkpoint_skills to commit the new skill.",
     "",
-    "CRITICAL: The skill MUST be checkpointed before you finish.",
-    "A skill at rank 0 is unfinished. Checkpoint to establish rank 1.",
+    "The skill is auto-checkpointed to rank 1 on creation.",
     "",
     "Report: the skill name, what it covers, and its new rank.",
   ].join("\n");

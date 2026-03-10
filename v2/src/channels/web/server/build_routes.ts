@@ -70,7 +70,7 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
   const mentor = createMentorApiHandlers(config.db, config.entity);
   const trainer = createTrainerApiHandlers(config.db, config.entity);
   const quests = createQuestsApiHandlers(config.db);
-  const skills = createSkillsApiHandlers();
+  const skills = createSkillsApiHandlers(config.db);
 
   return {
     checkSession: auth.checkSession,
@@ -115,11 +115,14 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("POST", "/api/souls/:id/refine", mentor.refine, true),
       createRoute("POST", "/api/souls/:id/level-up", mentor.levelUp, true),
       createRoute("GET", "/api/trainer/status", trainer.status, true),
-      createRoute("POST", "/api/trainer/scout/propose", trainer.scoutPropose, true),
-      createRoute("POST", "/api/trainer/scout/execute", trainer.scoutExecute, true),
+      createRoute("POST", "/api/trainer/create/propose", trainer.createPropose, true),
+      createRoute("POST", "/api/trainer/create/execute", trainer.createExecute, true),
       createRoute("POST", "/api/trainer/train/propose", trainer.trainPropose, true),
       createRoute("POST", "/api/trainer/train/execute", trainer.trainExecute, true),
+      createRoute("POST", "/api/trainer/stoke", trainer.stoke, true),
       createRoute("GET", "/api/skills", skills.list, true),
+      createRoute("GET", "/api/skills/health", skills.health, true),
+      createRoute("GET", "/api/skills/proposals", skills.proposals, true),
       createRoute("GET", "/api/skills/:name", skills.detail, true),
       createRoute("POST", "/api/skills/:name/validate", skills.validate, true),
       createRoute("GET", "/api/memories", memories.list, true),

@@ -1,22 +1,22 @@
 import { createTool, Schema } from "chatoyant";
 import { listSkills, pendingChanges } from "../../core/skills/index.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ReviewSkillsParams extends Schema {}
 
-export function createReviewSkillsTool(workspace: string) {
+export function createReviewSkillsTool(workspace: string, db?: DatabaseHandle) {
   return createTool({
     name: "review_skills",
     description:
       "Gather a comprehensive overview of all skills. Returns every skill with its name, " +
-      "description, rank, pending changes, file count, and body size. Also includes aggregate " +
-      "stats: total skills, total ranks, average rank, and which skills have uncommitted changes. " +
-      "Always call this BEFORE checkpoint, rollback, or any skill modification to understand " +
-      "current state.",
+      "description, rank, tier, readiness color, pending changes, file count, and body size. " +
+      "Also includes aggregate stats. Always call this BEFORE checkpoint, rollback, or any " +
+      "skill modification to understand current state.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new ReviewSkillsParams() as any,
     async execute() {
       try {
-        const skills = listSkills(workspace);
+        const skills = listSkills(workspace, db);
         const changes = pendingChanges(workspace);
         const totalRanks = skills.reduce((sum, s) => sum + s.rank, 0);
         const avgRank = skills.length > 0 ? totalRanks / skills.length : 0;
@@ -31,6 +31,8 @@ export function createReviewSkillsTool(workspace: string) {
             name: s.name,
             description: s.description,
             rank: s.rank,
+            tier: s.tier,
+            readiness: s.readiness,
             hasPendingChanges: s.hasPendingChanges,
             fileCount: s.fileCount,
             bodyLines: s.bodyLines,

@@ -3,11 +3,14 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
+import { checkpoint } from "./checkpoint.ts";
+import { resetGitAvailableCache } from "./git.ts";
 import { buildSkillIndex, formatSkillIndex } from "./skill_index.ts";
 
 let workspace: string;
 
 beforeEach(() => {
+  resetGitAvailableCache();
   workspace = mkdtempSync(join(tmpdir(), "ghostpaw-index-"));
 });
 
@@ -29,9 +32,10 @@ describe("buildSkillIndex", () => {
     deepStrictEqual(buildSkillIndex(workspace), []);
   });
 
-  it("returns entries for valid skills", () => {
+  it("returns entries for checkpointed skills", () => {
     makeSkill("deploy", "Deploy the app.");
     makeSkill("testing", "Run tests.");
+    checkpoint(workspace, ["deploy", "testing"], "init");
     const entries = buildSkillIndex(workspace);
     strictEqual(entries.length, 2);
     strictEqual(entries[0].name, "deploy");
@@ -39,10 +43,20 @@ describe("buildSkillIndex", () => {
     strictEqual(entries[1].name, "testing");
   });
 
+  it("excludes uncheckpointed (rank 0) skills", () => {
+    makeSkill("visible", "Visible skill.");
+    checkpoint(workspace, ["visible"], "init");
+    makeSkill("invisible", "Not checkpointed.");
+    const entries = buildSkillIndex(workspace);
+    strictEqual(entries.length, 1);
+    strictEqual(entries[0].name, "visible");
+  });
+
   it("uses '(no description)' for skills without description", () => {
     const dir = join(workspace, "skills", "nodesc");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "SKILL.md"), "---\nname: nodesc\n---\n");
+    checkpoint(workspace, ["nodesc"], "init");
     const entries = buildSkillIndex(workspace);
     strictEqual(entries[0].description, "(no description)");
   });
@@ -51,6 +65,7 @@ describe("buildSkillIndex", () => {
     const dir = join(workspace, "skills", "legacy");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "SKILL.md"), "# My Great Skill\n\nBody.");
+    checkpoint(workspace, ["legacy"], "init");
     const entries = buildSkillIndex(workspace);
     strictEqual(entries[0].description, "My Great Skill");
   });

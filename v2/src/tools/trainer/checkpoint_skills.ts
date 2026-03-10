@@ -1,5 +1,6 @@
 import { createTool, Schema } from "chatoyant";
 import { checkpoint } from "../../core/skills/index.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 class CheckpointSkillsParams extends Schema {
   skills = Schema.String({
@@ -12,7 +13,7 @@ class CheckpointSkillsParams extends Schema {
   });
 }
 
-export function createCheckpointSkillsTool(workspace: string) {
+export function createCheckpointSkillsTool(workspace: string, db?: DatabaseHandle) {
   return createTool({
     name: "checkpoint_skills",
     description:
@@ -43,7 +44,7 @@ export function createCheckpointSkillsTool(workspace: string) {
       }
 
       try {
-        return checkpoint(workspace, names, message.trim());
+        return checkpoint(workspace, names, message.trim(), db);
       } catch (err) {
         return { error: err instanceof Error ? err.message : String(err) };
       }

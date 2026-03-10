@@ -2,10 +2,21 @@ interface TrainerResponseProps {
   content: string;
   succeeded: boolean;
   cost: { totalUsd: number };
+  skillName?: string;
+  newRank?: number;
+  newTier?: string;
   onClose: () => void;
 }
 
-export function TrainerResponse({ content, succeeded, cost, onClose }: TrainerResponseProps) {
+export function TrainerResponse({
+  content,
+  succeeded,
+  cost,
+  skillName,
+  newRank,
+  newTier,
+  onClose,
+}: TrainerResponseProps) {
   const costStr = `$${cost.totalUsd.toFixed(2)}`;
 
   return (
@@ -21,6 +32,12 @@ export function TrainerResponse({ content, succeeded, cost, onClose }: TrainerRe
           Close
         </button>
       </div>
+      {succeeded && newRank != null && newTier && (
+        <div class="alert alert-info py-1 px-2 small mb-2">
+          <strong>▲</strong> {skillName ?? "Skill"} reached <strong>{newTier}</strong> (rank{" "}
+          {newRank})
+        </div>
+      )}
       <div class="text-body small" style="white-space: pre-wrap;">
         {content}
       </div>

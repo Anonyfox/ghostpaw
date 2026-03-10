@@ -1,9 +1,12 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import type { DatabaseHandle } from "../../lib/index.ts";
 import { allSkillRanks } from "./all_skill_ranks.ts";
 import { discoverSkills } from "./discover_skills.ts";
 import { parseFrontmatter } from "./parse_frontmatter.ts";
 import { pendingChanges } from "./pending_changes.ts";
+import { readinessForAll } from "./skill_events.ts";
+import { skillTier } from "./skill_tier.ts";
 import type { SkillSummary } from "./types.ts";
 
 function countFiles(dirPath: string): number {
@@ -31,13 +34,14 @@ function countFiles(dirPath: string): number {
   return count;
 }
 
-export function listSkills(workspace: string): SkillSummary[] {
+export function listSkills(workspace: string, db?: DatabaseHandle): SkillSummary[] {
   const names = discoverSkills(workspace);
   if (names.length === 0) return [];
 
   const ranks = allSkillRanks(workspace);
   const changes = pendingChanges(workspace);
   const changedSet = new Set(changes.skills.map((s) => s.name));
+  const readiness = db ? readinessForAll(db, names) : null;
 
   const summaries: SkillSummary[] = [];
 
@@ -55,12 +59,15 @@ export function listSkills(workspace: string): SkillSummary[] {
       // use defaults
     }
 
+    const rank = ranks[name] ?? 0;
     const fileCount = countFiles(join(workspace, "skills", name));
 
     summaries.push({
       name,
       description,
-      rank: ranks[name] ?? 0,
+      rank,
+      tier: skillTier(rank).tier,
+      readiness: readiness?.[name]?.color ?? "grey",
       hasPendingChanges: changedSet.has(name),
       fileCount,
       bodyLines,

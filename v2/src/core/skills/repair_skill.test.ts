@@ -92,7 +92,8 @@ describe("repairSkill", () => {
     );
     const result = repairSkill(workspace, "valid");
     strictEqual(result.actions.length, 0);
-    strictEqual(result.remainingIssues.length, 0);
+    const blocking = result.remainingIssues.filter((i) => i.severity !== "info");
+    strictEqual(blocking.length, 0);
   });
 
   it("reports remaining non-fixable issues", () => {

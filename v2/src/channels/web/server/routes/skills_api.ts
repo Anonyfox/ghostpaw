@@ -2,10 +2,15 @@ import { resolve } from "node:path";
 import {
   getSkill,
   listSkills,
+  pendingProposals,
+  readSkillHealth,
   skillPendingChanges,
   skillRank,
+  skillReadiness,
+  skillTier,
   validateSkill,
 } from "../../../../core/skills/index.ts";
+import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";
 
 function json(ctx: RouteContext, status: number, data: unknown): void {
@@ -13,13 +18,13 @@ function json(ctx: RouteContext, status: number, data: unknown): void {
   ctx.res.end(JSON.stringify(data));
 }
 
-export function createSkillsApiHandlers() {
+export function createSkillsApiHandlers(db: DatabaseHandle) {
   const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
 
   return {
     list(ctx: RouteContext): void {
       try {
-        const skills = listSkills(workspace);
+        const skills = listSkills(workspace, db);
         json(ctx, 200, skills);
       } catch (err) {
         json(ctx, 500, { error: err instanceof Error ? err.message : String(err) });
@@ -41,6 +46,8 @@ export function createSkillsApiHandlers() {
         }
 
         const rank = skillRank(workspace, name);
+        const { tier } = skillTier(rank);
+        const readiness = skillReadiness(db, name);
         const pending = skillPendingChanges(workspace, name);
         const validation = validateSkill(workspace, name);
 
@@ -49,6 +56,8 @@ export function createSkillsApiHandlers() {
           description: skill.description,
           body: skill.body,
           rank,
+          tier,
+          readiness: readiness.color,
           hasPendingChanges: pending.totalChanges > 0,
           files: skill.files,
           validation: {
@@ -75,6 +84,24 @@ export function createSkillsApiHandlers() {
       try {
         const result = validateSkill(workspace, name);
         json(ctx, 200, result);
+      } catch (err) {
+        json(ctx, 500, { error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+
+    health(ctx: RouteContext): void {
+      try {
+        const health = readSkillHealth(db);
+        json(ctx, 200, health ?? { error: "No health data yet. Run stoke first." });
+      } catch (err) {
+        json(ctx, 500, { error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+
+    proposals(ctx: RouteContext): void {
+      try {
+        const proposals = pendingProposals(db);
+        json(ctx, 200, proposals);
       } catch (err) {
         json(ctx, 500, { error: err instanceof Error ? err.message : String(err) });
       }

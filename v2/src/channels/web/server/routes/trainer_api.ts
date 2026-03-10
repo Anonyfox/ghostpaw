@@ -4,17 +4,22 @@ import {
   allSkillRanks,
   listSkills,
   pendingChanges,
+  pendingFragmentCount,
+  pendingFragments,
   skillRank,
+  skillTier,
 } from "../../../../core/skills/index.ts";
+import { pendingProposals } from "../../../../core/skills/skill_health.ts";
 import type { Entity } from "../../../../harness/index.ts";
 import {
-  buildScoutExecutePrompt,
-  buildScoutProposePrompt,
+  buildCreateExecutePrompt,
+  buildCreateProposePrompt,
   buildTrainExecutePrompt,
   buildTrainProposePrompt,
   invokeTrainerExecute,
   invokeTrainerPropose,
   parseTrainerOptions,
+  runStoke,
 } from "../../../../harness/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { readJsonBody } from "../body_parser.ts";
@@ -37,7 +42,7 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
   const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
 
   return {
-    async scoutPropose(ctx: RouteContext): Promise<void> {
+    async createPropose(ctx: RouteContext): Promise<void> {
       const ent = requireEntity(ctx);
       if (!ent) return;
 
@@ -48,12 +53,12 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
         body = {};
       }
 
-      const { direction } = (body ?? {}) as Record<string, unknown>;
-      const dir = typeof direction === "string" && direction.trim() ? direction.trim() : undefined;
+      const { topic } = (body ?? {}) as Record<string, unknown>;
+      const dir = typeof topic === "string" && topic.trim() ? topic.trim() : undefined;
 
       try {
-        const prompt = buildScoutProposePrompt(dir);
-        const result = await invokeTrainerPropose(ent, db, prompt, { purpose: "scout" });
+        const prompt = buildCreateProposePrompt(dir);
+        const result = await invokeTrainerPropose(ent, db, prompt, { purpose: "create" });
         const options = parseTrainerOptions(result.content);
         json(ctx, 200, {
           options,
@@ -66,7 +71,7 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
       }
     },
 
-    async scoutExecute(ctx: RouteContext): Promise<void> {
+    async createExecute(ctx: RouteContext): Promise<void> {
       const ent = requireEntity(ctx);
       if (!ent) return;
 
@@ -93,7 +98,7 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
       const extra = typeof guidance === "string" ? guidance : undefined;
 
       try {
-        const prompt = buildScoutExecutePrompt(title, desc, extra);
+        const prompt = buildCreateExecutePrompt(title, desc, extra);
         const result = await invokeTrainerExecute(ent, db, sessionId, prompt);
         json(ctx, 200, {
           content: result.content,
@@ -132,8 +137,11 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
         return;
       }
 
+      const frags = pendingFragments(db);
+      const fragTexts = frags.length > 0 ? frags.map((f) => f.observation) : undefined;
+
       try {
-        const prompt = buildTrainProposePrompt(name, content);
+        const prompt = buildTrainProposePrompt(name, content, fragTexts);
         const result = await invokeTrainerPropose(ent, db, prompt, { purpose: "train" });
         const options = parseTrainerOptions(result.content);
         json(ctx, 200, {
@@ -183,10 +191,12 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
         const result = await invokeTrainerExecute(ent, db, sessionId, prompt);
 
         let newRank: number | undefined;
+        let newTier: string | undefined;
         try {
           newRank = skillRank(workspace, name);
+          newTier = skillTier(newRank).tier;
         } catch {
-          /* non-critical */
+          // non-critical
         }
 
         json(ctx, 200, {
@@ -195,7 +205,20 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
           cost: { totalUsd: result.cost.estimatedUsd },
           skillName: name,
           newRank,
+          newTier,
         });
+      } catch (err) {
+        json(ctx, 500, { error: err instanceof Error ? err.message : String(err) });
+      }
+    },
+
+    async stoke(ctx: RouteContext): Promise<void> {
+      const ent = requireEntity(ctx);
+      if (!ent) return;
+
+      try {
+        const result = await runStoke(ent, db, workspace);
+        json(ctx, 200, result);
       } catch (err) {
         json(ctx, 500, { error: err instanceof Error ? err.message : String(err) });
       }
@@ -203,17 +226,21 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
 
     async status(ctx: RouteContext): Promise<void> {
       try {
-        const skills = listSkills(workspace);
+        const skills = listSkills(workspace, db);
         const ranks = allSkillRanks(workspace);
         const pending = pendingChanges(workspace);
         const totalRanks = Object.values(ranks).reduce((a, b) => a + b, 0);
         const pendingCount = pending.skills.filter((p) => p.totalChanges > 0).length;
+        const fragCount = pendingFragmentCount(db);
+        const proposalCount = pendingProposals(db).length;
 
         json(ctx, 200, {
           skillCount: skills.length,
           totalRanks,
           pendingChanges: pendingCount,
           trainerAvailable: entity != null,
+          fragmentCount: fragCount,
+          proposalCount,
         });
       } catch (err) {
         json(ctx, 500, { error: err instanceof Error ? err.message : String(err) });

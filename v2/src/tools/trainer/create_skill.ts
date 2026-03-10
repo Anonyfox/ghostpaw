@@ -1,5 +1,6 @@
 import { createTool, Schema } from "chatoyant";
 import { createSkill } from "../../core/skills/index.ts";
+import type { DatabaseHandle } from "../../lib/index.ts";
 
 class CreateSkillParams extends Schema {
   name = Schema.String({
@@ -17,14 +18,13 @@ class CreateSkillParams extends Schema {
   });
 }
 
-export function createCreateSkillTool(workspace: string) {
+export function createCreateSkillTool(workspace: string, db?: DatabaseHandle) {
   return createTool({
     name: "create_skill",
     description:
       "Scaffold a new skill folder with a properly structured SKILL.md. " +
       "Creates skills/<name>/SKILL.md with YAML frontmatter and the provided body. " +
-      "The skill starts at rank 0. Use checkpoint_skills after validating the content " +
-      "in a real session to earn rank 1.",
+      "The skill is auto-checkpointed to rank 1 (Apprentice) immediately.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new CreateSkillParams() as any,
     async execute({ args }) {
@@ -38,15 +38,16 @@ export function createCreateSkillTool(workspace: string) {
       if (!description?.trim()) return { error: "description is required." };
 
       try {
-        const skill = createSkill(workspace, {
-          name: name.trim(),
-          description: description.trim(),
-          body: body?.trim(),
-        });
+        const skill = createSkill(
+          workspace,
+          { name: name.trim(), description: description.trim(), body: body?.trim() },
+          db,
+        );
         return {
           created: true,
           name: skill.name,
           path: `skills/${skill.name}/SKILL.md`,
+          rank: 1,
         };
       } catch (err) {
         return { error: err instanceof Error ? err.message : String(err) };

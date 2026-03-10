@@ -9,6 +9,7 @@ import {
 import type { Memory } from "../../core/memory/index.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
+import { createDropFragmentTool } from "../../tools/trainer/drop_fragment.ts";
 import { assembleContext } from "../context.ts";
 import { createWardenTools } from "../tools.ts";
 import type { ConsolidationResult } from "./types.ts";
@@ -25,6 +26,8 @@ Then, use your persistence tools:
 - **Quests**: If the session surfaced tasks or commitments, create or update quests accordingly.
 
 Maximum ~5 memories per session. Do nothing if the session was routine.
+
+- **Skill fragments**: If the session reveals a pattern, workaround, or recurring correction that could improve a skill, use drop_fragment to stash a brief observation. Only genuine skill-relevant signals — skip if nothing applies.
 
 If this session surfaced a genuine question for the user — real curiosity worth exploring together — write it after "HIGHLIGHT:" on its own line, playfully, as their companion. Skip this unless it would make them want to reply.`;
 
@@ -86,7 +89,10 @@ export async function consolidateHaunt(
   const systemSessionId = systemSession.id as number;
 
   try {
-    const tools = createWardenTools(db);
+    const tools = [
+      ...createWardenTools(db),
+      createDropFragmentTool(db, { source: "session", sourceId: String(hauntSessionId) }),
+    ];
 
     const content =
       `${CONSOLIDATION_INSTRUCTION}\n\nJournal from private session:\n\n${rawJournal}` +

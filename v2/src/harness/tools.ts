@@ -2,6 +2,7 @@ import type { Tool } from "chatoyant";
 import type { ChatFactory } from "../core/chat/index.ts";
 import { getSession } from "../core/chat/index.ts";
 import { getSecret } from "../core/secrets/index.ts";
+import { logSkillEvent } from "../core/skills/skill_events.ts";
 import { listSouls, MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { createBashTool } from "../tools/bash.ts";
@@ -40,7 +41,7 @@ import {
   createSetSecretTool,
 } from "../tools/secrets/index.ts";
 import { createSenseTool } from "../tools/sense.ts";
-import { createTrainerTools } from "../tools/trainer/index.ts";
+import { createStokeTools, createTrainerTools } from "../tools/trainer/index.ts";
 import { createWebFetchTool } from "../tools/web_fetch.ts";
 import { createWebSearchTool } from "../tools/web_search/index.ts";
 import { createWriteTool } from "../tools/write.ts";
@@ -61,6 +62,7 @@ export interface EntityToolSets {
   chamberlainTools: Tool[];
   mentorTools: Tool[];
   trainerTools: Tool[];
+  stokeTools: Tool[];
   allToolsWithMentor: Tool[];
   allToolsWithTrainer: Tool[];
   shutdown(): Promise<void>;
@@ -104,8 +106,21 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     resolveSecret: (name) => getSecret(db, name) ?? process.env[name] ?? null,
   });
 
+  const SKILL_PATH_RE = /^skills\/([^/]+)\/SKILL\.md$/;
+
   const sharedTools: Tool[] = [
-    createReadTool(workspace),
+    createReadTool(workspace, {
+      onRead: (filePath) => {
+        const match = filePath.match(SKILL_PATH_RE);
+        if (match) {
+          try {
+            logSkillEvent(db, match[1], "read");
+          } catch {
+            // best-effort, don't block reads
+          }
+        }
+      },
+    }),
     createWriteTool(workspace),
     createEditTool(workspace),
     createLsTool(workspace),
@@ -133,7 +148,8 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
   const chamberlainOnlyTools = createChamberlainTools(db);
 
   const mentorOnly = createMentorTools(db);
-  const trainerOnly = createTrainerTools(workspace);
+  const trainerOnly = createTrainerTools(workspace, db);
+  const stokeOnly = createStokeTools(db);
 
   const specialists = listSouls(db)
     .filter((s) => s.id !== MANDATORY_SOUL_IDS.ghostpaw)
@@ -165,6 +181,7 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     chamberlainTools: chamberlainOnlyTools,
     mentorTools: mentorOnly,
     trainerTools: trainerOnly,
+    stokeTools: [...stokeOnly, createRecallTool(db)],
     allToolsWithMentor,
     allToolsWithTrainer,
     shutdown: () => mcp.shutdown(),

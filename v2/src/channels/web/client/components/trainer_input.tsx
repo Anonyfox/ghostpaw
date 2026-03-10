@@ -2,7 +2,7 @@ import { useRef } from "preact/hooks";
 import type { SkillSummaryInfo } from "../../shared/trainer_types.ts";
 
 interface TrainerInputProps {
-  mode: "scout" | "train";
+  mode: "create" | "train";
   skills?: SkillSummaryInfo[];
   onSubmit: (value: string) => void;
   onCancel: () => void;
@@ -10,9 +10,9 @@ interface TrainerInputProps {
 }
 
 const CONFIG = {
-  scout: {
-    placeholder: "Scouting direction (optional — leave empty for friction mining)",
-    submitLabel: "Begin Scouting",
+  create: {
+    placeholder: "Focus topic (optional — leave empty for friction mining)",
+    submitLabel: "Begin Exploration",
     required: false,
   },
   train: {
@@ -52,7 +52,7 @@ export function TrainerInput({
           <option value="">Select a skill...</option>
           {skills.map((s) => (
             <option key={s.name} value={s.name}>
-              {s.name} (Rank {s.rank})
+              {s.name} ({s.tier}, Rank {s.rank})
             </option>
           ))}
         </select>

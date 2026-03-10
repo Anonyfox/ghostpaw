@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { allSkillRanks } from "./all_skill_ranks.ts";
 import { parseFrontmatter } from "./parse_frontmatter.ts";
 import type { SkillIndexEntry } from "./types.ts";
 
@@ -13,6 +14,7 @@ export function buildSkillIndex(workspace: string): SkillIndexEntry[] {
   const skillsDir = join(workspace, "skills");
   if (!existsSync(skillsDir)) return [];
 
+  const ranks = allSkillRanks(workspace);
   const entries: SkillIndexEntry[] = [];
   let dirNames: string[];
   try {
@@ -32,6 +34,8 @@ export function buildSkillIndex(workspace: string): SkillIndexEntry[] {
       continue;
     }
     if (!isDir) continue;
+
+    if ((ranks[dirName] ?? 0) === 0) continue;
 
     const skillMd = join(dirPath, "SKILL.md");
     if (!existsSync(skillMd)) continue;

@@ -1,11 +1,18 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { DatabaseHandle } from "../../lib/index.ts";
+import { checkpoint } from "./checkpoint.ts";
 import { parseSkill } from "./parse_skill.ts";
+import { logSkillEvent } from "./skill_events.ts";
 import type { CreateSkillInput, Skill } from "./types.ts";
 
 const VALID_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-export function createSkill(workspace: string, input: CreateSkillInput): Skill {
+export function createSkill(
+  workspace: string,
+  input: CreateSkillInput,
+  db?: DatabaseHandle,
+): Skill {
   if (!VALID_NAME.test(input.name)) {
     throw new Error(
       `Invalid skill name "${input.name}": must be lowercase alphanumeric with hyphens only.`,
@@ -32,6 +39,13 @@ export function createSkill(workspace: string, input: CreateSkillInput): Skill {
   }
   if (input.references) {
     mkdirSync(join(skillDir, "references"), { recursive: true });
+  }
+
+  checkpoint(workspace, [input.name], `created: ${input.name}`);
+
+  if (db) {
+    logSkillEvent(db, input.name, "created");
+    logSkillEvent(db, input.name, "checkpoint");
   }
 
   const skill = parseSkill(workspace, input.name);

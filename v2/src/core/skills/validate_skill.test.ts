@@ -3,11 +3,13 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
+import { resetGitAvailableCache } from "./git.ts";
 import { validateAllSkills, validateSkill } from "./validate_skill.ts";
 
 let workspace: string;
 
 beforeEach(() => {
+  resetGitAvailableCache();
   workspace = mkdtempSync(join(tmpdir(), "ghostpaw-validate-"));
   mkdirSync(join(workspace, "skills"), { recursive: true });
 });
@@ -26,11 +28,14 @@ function makeSkill(name: string, content?: string): void {
 }
 
 describe("validateSkill", () => {
-  it("reports no issues for a valid skill", () => {
+  it("reports valid with only tier hints for a rank-0 skill", () => {
     makeSkill("deploy");
     const result = validateSkill(workspace, "deploy");
     strictEqual(result.valid, true);
-    strictEqual(result.issues.length, 0);
+    strictEqual(
+      result.issues.every((i) => i.severity === "info"),
+      true,
+    );
   });
 
   it("detects missing-skill-md", () => {

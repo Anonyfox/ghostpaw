@@ -9,6 +9,8 @@ import { initHowlTables } from "../core/howl/index.ts";
 import { initMemoryTable } from "../core/memory/index.ts";
 import { initPackTables } from "../core/pack/index.ts";
 import { initQuestTables } from "../core/quests/index.ts";
+import { resetGitAvailableCache } from "../core/skills/git.ts";
+import { checkpoint, initHistory } from "../core/skills/index.ts";
 import { ensureMandatorySouls, initSoulsTables, MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
@@ -18,6 +20,7 @@ let db: DatabaseHandle;
 let workspace: string;
 
 beforeEach(async () => {
+  resetGitAvailableCache();
   db = await openTestDatabase();
   initChatTables(db);
   initSoulsTables(db);
@@ -28,12 +31,15 @@ beforeEach(async () => {
   initHowlTables(db);
   ensureMandatorySouls(db);
   workspace = mkdtempSync(join(tmpdir(), "ghostpaw-ctx-"));
+  historyInitialized = false;
 });
 
 afterEach(() => {
   db.close();
   rmSync(workspace, { recursive: true, force: true });
 });
+
+let historyInitialized = false;
 
 function makeSkill(name: string, description: string): void {
   const dir = join(workspace, "skills", name);
@@ -43,6 +49,11 @@ function makeSkill(name: string, description: string): void {
     `---\nname: ${name}\ndescription: ${description}\n---\n\n# ${name}\n`,
     "utf-8",
   );
+  if (!historyInitialized) {
+    initHistory(workspace);
+    historyInitialized = true;
+  }
+  checkpoint(workspace, [name], `test: create ${name}`);
 }
 
 describe("assembleContext", () => {

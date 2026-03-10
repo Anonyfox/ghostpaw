@@ -17,4 +17,12 @@ export const DEFAULT_SCHEDULES: CreateScheduleInput[] = [
     timeoutMs: 1_800_000,
     enabled: true,
   },
+  {
+    name: "stoke",
+    type: "builtin",
+    command: "skills stoke",
+    intervalMs: 86_400_000,
+    timeoutMs: 300_000,
+    enabled: true,
+  },
 ];

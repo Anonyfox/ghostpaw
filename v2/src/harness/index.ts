@@ -23,14 +23,17 @@ export { resolveModel } from "./model.ts";
 export type { CommandInput, CommandResult } from "./oneshots/execute_command.ts";
 export { executeCommand } from "./oneshots/execute_command.ts";
 export { handlePostSession } from "./post_session.ts";
+export type { StokeResult } from "./stoke.ts";
+export { runStoke, stokePhaseOne, stokePhaseTwoNeeded } from "./stoke.ts";
 export type { EntityToolSets, EntityToolsConfig } from "./tools.ts";
 export { createEntityToolSets } from "./tools.ts";
+export {
+  buildCreateExecutePrompt,
+  buildCreateProposePrompt,
+} from "./trainer_create_prompt.ts";
 export type { TrainerOption } from "./trainer_parse_options.ts";
 export { parseTrainerOptions } from "./trainer_parse_options.ts";
-export {
-  buildScoutExecutePrompt,
-  buildScoutProposePrompt,
-} from "./trainer_scout_prompt.ts";
+export { buildStokePrompt } from "./trainer_stoke_prompt.ts";
 export {
   buildTrainExecutePrompt,
   buildTrainProposePrompt,

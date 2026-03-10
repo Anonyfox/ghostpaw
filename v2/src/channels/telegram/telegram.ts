@@ -4,6 +4,8 @@ import { registerChannel, unregisterChannel } from "../../lib/channel_registry.t
 import type { HandleMessageDeps } from "./handle_message.ts";
 import { handleMessage } from "./handle_message.ts";
 import { handleReset } from "./handle_reset.ts";
+import { handleSkills } from "./handle_skills.ts";
+import { handleTrain } from "./handle_train.ts";
 import { sessionKeyForChat } from "./session_key.ts";
 import type { ReactionEmoji, TelegramChannel, TelegramChannelConfig } from "./types.ts";
 
@@ -70,6 +72,17 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
   bot.command("reset", async (ctx) => {
     const chatId = ctx.chat.id;
     await handleReset({ db, isAllowed, sendMessage }, chatId);
+  });
+
+  bot.command("skills", async (ctx) => {
+    const chatId = ctx.chat.id;
+    await handleSkills({ db, isAllowed, sendMessage }, chatId);
+  });
+
+  bot.command("train", async (ctx) => {
+    const chatId = ctx.chat.id;
+    const skillName = ctx.match?.trim() || undefined;
+    await handleTrain({ db, isAllowed, sendMessage }, chatId, skillName);
   });
 
   bot.on("message:text", async (ctx) => {

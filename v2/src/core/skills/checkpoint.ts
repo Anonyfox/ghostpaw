@@ -1,11 +1,18 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import type { DatabaseHandle } from "../../lib/index.ts";
 import { git, hasHistory, workTree } from "./git.ts";
 import { initHistory } from "./init_history.ts";
 import { assertSafeSkillName } from "./safe_name.ts";
+import { logSkillEvent } from "./skill_events.ts";
 import type { CheckpointResult } from "./types.ts";
 
-export function checkpoint(workspace: string, skills: string[], message: string): CheckpointResult {
+export function checkpoint(
+  workspace: string,
+  skills: string[],
+  message: string,
+  db?: DatabaseHandle,
+): CheckpointResult {
   if (skills.length === 0) {
     return { committed: false, skills: [], message };
   }
@@ -44,6 +51,12 @@ export function checkpoint(workspace: string, skills: string[], message: string)
   const result = git(workspace, ["commit", "-m", message]);
   if (!result.ok) {
     return { committed: false, skills: [], message };
+  }
+
+  if (db) {
+    for (const name of committedSkills) {
+      logSkillEvent(db, name, "checkpoint");
+    }
   }
 
   const hashResult = git(workspace, ["rev-parse", "--short", "HEAD"]);

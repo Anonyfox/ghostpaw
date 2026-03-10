@@ -1,6 +1,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { parseFrontmatter } from "./parse_frontmatter.ts";
+import { skillRank } from "./skill_rank.ts";
+import { skillTier } from "./skill_tier.ts";
 import type { ValidationIssue, ValidationResult } from "./types.ts";
 
 const VALID_DIR_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -91,12 +93,90 @@ function validateSingleSkill(workspace: string, name: string): ValidationResult 
     issues.push(issue("warning", "git-artifact", `.git file found inside skills/${name}/.`, true));
   }
 
+  checkTierRequirements(workspace, name, body, issues);
+
   return {
     name,
     path: `skills/${name}`,
     valid: issues.every((i) => i.severity !== "error"),
     issues,
   };
+}
+
+const FAILURE_HEADING = /^#{1,3}\s.*(fail|error|recover|fallback|rollback)/im;
+const EDGE_CASE_HEADING = /^#{1,3}\s.*(edge|caveat|limit|corner|gotcha|warning)/im;
+const SUMMARY_HEADING = /^#{1,3}\s.*(summar|compiled|quick.?ref|tl;?dr)/im;
+
+function checkTierRequirements(
+  workspace: string,
+  name: string,
+  body: string,
+  issues: ValidationIssue[],
+): void {
+  const rank = skillRank(workspace, name);
+  const { tier } = skillTier(rank);
+
+  if (tier === "Apprentice" || tier === "Uncheckpointed") {
+    if (!FAILURE_HEADING.test(body)) {
+      issues.push(
+        issue(
+          "info",
+          "tier-next-journeyman",
+          "Next tier (Journeyman): add a failure/recovery section.",
+          false,
+        ),
+      );
+    }
+  }
+
+  if (tier === "Journeyman") {
+    if (!FAILURE_HEADING.test(body)) {
+      issues.push(
+        issue(
+          "info",
+          "tier-req-journeyman",
+          "Journeyman requires a failure/recovery section.",
+          false,
+        ),
+      );
+    }
+    if (!EDGE_CASE_HEADING.test(body)) {
+      issues.push(
+        issue(
+          "info",
+          "tier-next-expert",
+          "Next tier (Expert): add an edge cases/caveats section.",
+          false,
+        ),
+      );
+    }
+  }
+
+  if (tier === "Expert") {
+    if (!EDGE_CASE_HEADING.test(body)) {
+      issues.push(
+        issue("info", "tier-req-expert", "Expert requires an edge cases/caveats section.", false),
+      );
+    }
+    if (!SUMMARY_HEADING.test(body)) {
+      issues.push(
+        issue(
+          "info",
+          "tier-next-master",
+          "Next tier (Master): add a compiled execution summary.",
+          false,
+        ),
+      );
+    }
+  }
+
+  if (tier === "Master") {
+    if (!SUMMARY_HEADING.test(body)) {
+      issues.push(
+        issue("info", "tier-req-master", "Master requires a compiled execution summary.", false),
+      );
+    }
+  }
 }
 
 export function validateSkill(workspace: string, name: string): ValidationResult {

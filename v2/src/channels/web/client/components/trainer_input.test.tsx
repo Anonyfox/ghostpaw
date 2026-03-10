@@ -4,18 +4,20 @@ import { render } from "preact-render-to-string";
 import { TrainerInput } from "./trainer_input.tsx";
 
 describe("TrainerInput", () => {
-  it("scout mode renders textarea with direction placeholder", () => {
-    const html = render(<TrainerInput mode="scout" onSubmit={() => {}} onCancel={() => {}} />);
-    ok(html.includes("Scouting direction"));
-    ok(html.includes("Begin Scouting"));
+  it("create mode renders textarea with topic placeholder", () => {
+    const html = render(<TrainerInput mode="create" onSubmit={() => {}} onCancel={() => {}} />);
+    ok(html.includes("Focus topic"));
+    ok(html.includes("Begin Exploration"));
   });
 
   it("train mode with skills renders a select", () => {
-    const skills = [
+    const skills: import("../../shared/trainer_types.ts").SkillSummaryInfo[] = [
       {
         name: "deploy",
         description: "Deploy",
         rank: 3,
+        tier: "Journeyman",
+        readiness: "grey",
         hasPendingChanges: false,
         fileCount: 2,
         bodyLines: 20,
@@ -24,6 +26,8 @@ describe("TrainerInput", () => {
         name: "testing",
         description: "Test",
         rank: 1,
+        tier: "Apprentice",
+        readiness: "grey",
         hasPendingChanges: false,
         fileCount: 1,
         bodyLines: 10,
@@ -34,7 +38,6 @@ describe("TrainerInput", () => {
     );
     ok(html.includes("Select a skill"));
     ok(html.includes("deploy"));
-    ok(html.includes("Rank 3"));
     ok(html.includes("Analyze Skill"));
   });
 
@@ -44,13 +47,13 @@ describe("TrainerInput", () => {
   });
 
   it("renders cancel button", () => {
-    const html = render(<TrainerInput mode="scout" onSubmit={() => {}} onCancel={() => {}} />);
+    const html = render(<TrainerInput mode="create" onSubmit={() => {}} onCancel={() => {}} />);
     ok(html.includes("Cancel"));
   });
 
   it("disables inputs when disabled prop is true", () => {
     const html = render(
-      <TrainerInput mode="scout" onSubmit={() => {}} onCancel={() => {}} disabled={true} />,
+      <TrainerInput mode="create" onSubmit={() => {}} onCancel={() => {}} disabled={true} />,
     );
     ok(html.includes("disabled"));
   });

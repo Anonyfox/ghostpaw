@@ -15,6 +15,9 @@ export interface TrainerExecuteResponse {
   content: string;
   succeeded: boolean;
   cost: { totalUsd: number };
+  skillName?: string;
+  newRank?: number;
+  newTier?: string;
 }
 
 export interface TrainerStatusResponse {
@@ -22,12 +25,16 @@ export interface TrainerStatusResponse {
   totalRanks: number;
   pendingChanges: number;
   trainerAvailable: boolean;
+  fragmentCount: number;
+  proposalCount: number;
 }
 
 export interface SkillSummaryInfo {
   name: string;
   description: string;
   rank: number;
+  tier: string;
+  readiness: "grey" | "green" | "yellow" | "orange";
   hasPendingChanges: boolean;
   fileCount: number;
   bodyLines: number;
@@ -38,6 +45,8 @@ export interface SkillDetailInfo {
   description: string;
   body: string;
   rank: number;
+  tier: string;
+  readiness: "grey" | "green" | "yellow" | "orange";
   hasPendingChanges: boolean;
   files: {
     scripts: string[];
@@ -49,4 +58,27 @@ export interface SkillDetailInfo {
     valid: boolean;
     issues: { severity: string; code: string; message: string }[];
   };
+}
+
+export interface SkillHealthInfo {
+  computedAt: number;
+  totalSkills: number;
+  rankDistribution: Record<string, number>;
+  staleSkills: string[];
+  dormantSkills: string[];
+  oversizedSkills: string[];
+  pendingFragments: number;
+  expiredFragments: number;
+  repairsApplied: number;
+  proposalsQueued: number;
+  explored: boolean;
+}
+
+export interface SkillProposalInfo {
+  id: number;
+  title: string;
+  rationale: string;
+  fragmentIds: string;
+  status: "pending" | "approved" | "dismissed";
+  createdAt: number;
 }
