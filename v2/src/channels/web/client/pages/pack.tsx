@@ -3,6 +3,7 @@ import type { PackListResponse } from "../../shared/pack_types.ts";
 import { apiGet } from "../api_get.ts";
 import { PackBondCard } from "../components/pack_bond_card.tsx";
 import { PackCommandBox } from "../components/pack_command_box.tsx";
+import { PackMergePreviewPanel } from "../components/pack_merge_preview_panel.tsx";
 import { PackPatrolPanel } from "../components/pack_patrol_panel.tsx";
 
 type Tab = "confidants" | "lost";
@@ -11,10 +12,21 @@ export function PackPage() {
   const [tab, setTab] = useState<Tab>("confidants");
   const [data, setData] = useState<PackListResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [field, setField] = useState("");
+  const [group, setGroup] = useState("");
 
-  const load = async () => {
+  const load = async (filters?: { search?: string; field?: string; group?: string }) => {
+    const nextSearch = filters?.search ?? search;
+    const nextField = filters?.field ?? field;
+    const nextGroup = filters?.group ?? group;
     try {
-      const res = await apiGet<PackListResponse>("/api/pack");
+      const params = new URLSearchParams();
+      if (nextSearch.trim()) params.set("search", nextSearch.trim());
+      if (nextField.trim()) params.set("field", nextField.trim());
+      if (nextGroup.trim()) params.set("group", nextGroup.trim());
+      const query = params.toString();
+      const res = await apiGet<PackListResponse>(`/api/pack${query ? `?${query}` : ""}`);
       setData(res);
     } catch {
       // Silently degrade — the page renders empty state instead of crashing
@@ -66,6 +78,66 @@ export function PackPage() {
       <PackCommandBox onSuccess={load} />
 
       <PackPatrolPanel />
+      <PackMergePreviewPanel />
+
+      <form
+        class="card mb-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setLoading(true);
+          load();
+        }}
+      >
+        <div class="card-body">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-5">
+              <label class="form-label small text-body-secondary">Search</label>
+              <input
+                class="form-control form-control-sm"
+                value={search}
+                onInput={(event) => setSearch((event.currentTarget as HTMLInputElement).value)}
+                placeholder="name, bond, field..."
+              />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small text-body-secondary">Field</label>
+              <input
+                class="form-control form-control-sm"
+                value={field}
+                onInput={(event) => setField((event.currentTarget as HTMLInputElement).value)}
+                placeholder="vip"
+              />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small text-body-secondary">Group ID</label>
+              <input
+                class="form-control form-control-sm"
+                value={group}
+                onInput={(event) => setGroup((event.currentTarget as HTMLInputElement).value)}
+                placeholder="12"
+              />
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+              <button class="btn btn-sm btn-outline-info flex-fill" type="submit">
+                Apply
+              </button>
+              <button
+                class="btn btn-sm btn-outline-secondary flex-fill"
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setField("");
+                  setGroup("");
+                  setLoading(true);
+                  void load({ search: "", field: "", group: "" });
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
 
       <div class="d-flex gap-4 mb-4 text-muted small">
         <span>

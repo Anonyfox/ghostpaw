@@ -15,6 +15,21 @@ beforeEach(async () => {
   initPackTables(db);
 });
 
+function seedInteractionHistory(memberId: number, timestamps: number[]): void {
+  for (const timestamp of timestamps) {
+    db.prepare(
+      `INSERT INTO pack_interactions (member_id, kind, summary, significance, session_id, occurred_at, created_at)
+       VALUES (?, 'conversation', ?, 0.5, NULL, ?, ?)`,
+    ).run(memberId, `touch-${timestamp}`, timestamp, timestamp);
+  }
+  const lastTimestamp = timestamps[timestamps.length - 1];
+  db.prepare("UPDATE pack_members SET last_contact = ?, updated_at = ? WHERE id = ?").run(
+    lastTimestamp,
+    lastTimestamp,
+    memberId,
+  );
+}
+
 describe("detectDrift", () => {
   it("returns nothing for an empty pack", () => {
     const alerts = detectDrift(db);
@@ -31,6 +46,8 @@ describe("detectDrift", () => {
     assert.strictEqual(alerts.length, 1);
     assert.strictEqual(alerts[0].tier, "deep");
     assert.strictEqual(alerts[0].daysSilent, 15);
+    assert.strictEqual(alerts[0].source, "fallback");
+    assert.strictEqual(alerts[0].thresholdDays, 14);
   });
 
   it("does not alert for deep bond within 14 days", () => {
@@ -63,6 +80,45 @@ describe("detectDrift", () => {
     const alerts = detectDrift(db, now);
     assert.strictEqual(alerts.length, 1);
     assert.strictEqual(alerts[0].tier, "growing");
+  });
+
+  it("uses cadence-aware thresholds when interaction rhythm is established", () => {
+    const now = 100 * DAY;
+    meetMember(db, { name: "Rhythmic", kind: "human" });
+    updateBond(db, 1, { trust: 0.4 });
+    seedInteractionHistory(1, [now - 41 * DAY, now - 34 * DAY, now - 27 * DAY, now - 20 * DAY]);
+
+    const alerts = detectDrift(db, now);
+    assert.strictEqual(alerts.length, 1);
+    assert.strictEqual(alerts[0].source, "cadence");
+    assert.strictEqual(alerts[0].baselineDays, 7);
+    assert.strictEqual(alerts[0].thresholdDays, 18);
+  });
+
+  it("falls back to trust thresholds when interaction history is sparse", () => {
+    const now = 100 * DAY;
+    meetMember(db, { name: "Sparse", kind: "human" });
+    updateBond(db, 1, { trust: 0.4 });
+    seedInteractionHistory(1, [now - 100 * DAY, now - 50 * DAY]);
+
+    const alerts = detectDrift(db, now);
+    assert.strictEqual(alerts.length, 0);
+
+    db.prepare("UPDATE pack_members SET last_contact = ? WHERE id = 1").run(now - 65 * DAY);
+    const fallbackAlerts = detectDrift(db, now);
+    assert.strictEqual(fallbackAlerts.length, 1);
+    assert.strictEqual(fallbackAlerts[0].source, "fallback");
+    assert.strictEqual(fallbackAlerts[0].thresholdDays, 60);
+  });
+
+  it("relaxes cadence thresholds for bursty relationships", () => {
+    const now = 100 * DAY;
+    meetMember(db, { name: "Bursty", kind: "human" });
+    updateBond(db, 1, { trust: 0.65 });
+    seedInteractionHistory(1, [now - 61 * DAY, now - 49 * DAY, now - 47 * DAY, now - 35 * DAY]);
+
+    const alerts = detectDrift(db, now);
+    assert.strictEqual(alerts.length, 0);
   });
 
   it("ignores shallow bonds", () => {

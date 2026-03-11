@@ -125,6 +125,14 @@ describe("mergeMember", () => {
     throws(() => mergeMember(db, keep.id, merge.id), /already lost/);
   });
 
+  it("rejects merging into a lost member", () => {
+    const keep = meetMember(db, { name: "Alice", kind: "human" });
+    const merge = meetMember(db, { name: "Alexander", kind: "human" });
+    db.prepare("UPDATE pack_members SET status = 'lost' WHERE id = ?").run(keep.id);
+
+    throws(() => mergeMember(db, keep.id, merge.id), /is lost/);
+  });
+
   it("preserves kept member bond when merged member has empty bond", () => {
     const keep = meetMember(db, { name: "Alice", kind: "human", bond: "Original." });
     const merge = meetMember(db, { name: "Alexander", kind: "human" });
@@ -168,5 +176,180 @@ describe("mergeMember", () => {
       .all(keep.id) as { member_id: number; label: string }[];
     strictEqual(links.length, 1);
     strictEqual(links[0].label, "works-at");
+  });
+
+  it("preserves canonical member fields from the merged member when survivor lacks them", () => {
+    const keep = meetMember(db, { name: "Alice", kind: "human" });
+    const merge = meetMember(db, {
+      name: "Alexander",
+      kind: "human",
+      nickname: "Alex",
+      timezone: "Europe/Berlin",
+      locale: "de-DE",
+      location: "Berlin",
+      address: "Example Street 1",
+      pronouns: "he/him",
+      birthday: "1990-03-18",
+    });
+
+    const result = mergeMember(db, keep.id, merge.id);
+    strictEqual(result.nickname, "Alex");
+    strictEqual(result.timezone, "Europe/Berlin");
+    strictEqual(result.locale, "de-DE");
+    strictEqual(result.location, "Berlin");
+    strictEqual(result.address, "Example Street 1");
+    strictEqual(result.pronouns, "he/him");
+    strictEqual(result.birthday, "1990-03-18");
+  });
+
+  it("keeps survivor canonical fields when merged member has null values", () => {
+    const keep = meetMember(db, {
+      name: "Alice",
+      kind: "human",
+      nickname: "Al",
+      timezone: "UTC",
+      locale: "en-US",
+      location: "Remote",
+      address: "Main Street 1",
+      pronouns: "she/her",
+      birthday: "1992-01-05",
+    });
+    const merge = meetMember(db, { name: "Alexander", kind: "human" });
+
+    const result = mergeMember(db, keep.id, merge.id);
+    strictEqual(result.nickname, "Al");
+    strictEqual(result.timezone, "UTC");
+    strictEqual(result.locale, "en-US");
+    strictEqual(result.location, "Remote");
+    strictEqual(result.address, "Main Street 1");
+    strictEqual(result.pronouns, "she/her");
+    strictEqual(result.birthday, "1992-01-05");
+  });
+
+  it("prefers fresher canonical member fields when both sides have values", () => {
+    const keep = meetMember(db, {
+      name: "Alice",
+      kind: "human",
+      timezone: "UTC",
+      location: "Old Town",
+    });
+    const merge = meetMember(db, {
+      name: "Alexander",
+      kind: "human",
+      timezone: "Europe/Berlin",
+      location: "Berlin",
+    });
+    db.prepare("UPDATE pack_members SET updated_at = ? WHERE id = ?").run(100, keep.id);
+    db.prepare("UPDATE pack_members SET updated_at = ? WHERE id = ?").run(200, merge.id);
+
+    const result = mergeMember(db, keep.id, merge.id);
+    strictEqual(result.timezone, "Europe/Berlin");
+    strictEqual(result.location, "Berlin");
+  });
+
+  it("merges conflicting field values by preferring the fresher entry", () => {
+    const keep = meetMember(db, { name: "Alice", kind: "human" });
+    const merge = meetMember(db, { name: "Alexander", kind: "human" });
+    setField(db, keep.id, "billing_rate", "100/hr");
+    setField(db, merge.id, "billing_rate", "150/hr");
+    db.prepare("UPDATE pack_fields SET updated_at = ? WHERE member_id = ? AND key = ?").run(
+      100,
+      keep.id,
+      "billing_rate",
+    );
+    db.prepare("UPDATE pack_fields SET updated_at = ? WHERE member_id = ? AND key = ?").run(
+      200,
+      merge.id,
+      "billing_rate",
+    );
+
+    mergeMember(db, keep.id, merge.id);
+
+    const row = db
+      .prepare("SELECT value FROM pack_fields WHERE member_id = ? AND key = ?")
+      .get(keep.id, "billing_rate") as { value: string };
+    strictEqual(row.value, "150/hr");
+  });
+
+  it("reparents child members pointing at the merged member", () => {
+    const keep = meetMember(db, { name: "Acme", kind: "group" });
+    const merge = meetMember(db, { name: "Acme Europe", kind: "group" });
+    const child = meetMember(db, {
+      name: "Backend Team",
+      kind: "group",
+      parentId: merge.id,
+    });
+
+    mergeMember(db, keep.id, merge.id);
+
+    const updatedChild = getMember(db, child.id);
+    strictEqual(updatedChild?.parentId, keep.id);
+  });
+
+  it("reparents incoming links and removes collisions safely", () => {
+    const keep = meetMember(db, { name: "Alice", kind: "human" });
+    const merge = meetMember(db, { name: "Alexander", kind: "human" });
+    const other = meetMember(db, { name: "Manager", kind: "human" });
+    addLink(db, other.id, keep.id, "manages");
+    addLink(db, other.id, merge.id, "manages");
+
+    mergeMember(db, keep.id, merge.id);
+
+    const links = db
+      .prepare(
+        "SELECT member_id, target_id, label FROM pack_links WHERE member_id = ? ORDER BY target_id, label",
+      )
+      .all(other.id) as { member_id: number; target_id: number; label: string }[];
+    strictEqual(links.length, 1);
+    strictEqual(links[0].target_id, keep.id);
+    strictEqual(links[0].label, "manages");
+  });
+
+  it("removes self-links created by merge reparenting", () => {
+    const keep = meetMember(db, { name: "Alice", kind: "human" });
+    const merge = meetMember(db, { name: "Alexander", kind: "human" });
+    addLink(db, keep.id, merge.id, "knows");
+    addLink(db, merge.id, keep.id, "knows");
+
+    mergeMember(db, keep.id, merge.id);
+
+    const links = db
+      .prepare("SELECT COUNT(*) AS count FROM pack_links WHERE member_id = ? OR target_id = ?")
+      .get(keep.id, keep.id) as { count: number };
+    strictEqual(links.count, 0);
+  });
+
+  it("rolls back the merge when a later step fails", () => {
+    const keep = meetMember(db, { name: "Alice", kind: "human" });
+    const merge = meetMember(db, { name: "Alexander", kind: "human" });
+    noteInteraction(db, { memberId: merge.id, kind: "conversation", summary: "talked" });
+    addContact(db, { memberId: merge.id, type: "email", value: "alex@example.com" });
+    db.exec(`
+      CREATE TRIGGER abort_pack_member_update
+      BEFORE UPDATE OF first_contact ON pack_members
+      WHEN NEW.id = ${keep.id}
+      BEGIN
+        SELECT RAISE(ABORT, 'boom');
+      END;
+    `);
+
+    throws(() => mergeMember(db, keep.id, merge.id), /boom/);
+
+    const interactionRows = db
+      .prepare("SELECT member_id FROM pack_interactions ORDER BY id")
+      .all() as { member_id: number }[];
+    strictEqual(interactionRows.length, 1);
+    strictEqual(interactionRows[0].member_id, merge.id);
+
+    const contactRows = db
+      .prepare("SELECT member_id FROM pack_contacts ORDER BY id")
+      .all() as { member_id: number }[];
+    strictEqual(contactRows.length, 1);
+    strictEqual(contactRows[0].member_id, merge.id);
+
+    const keepAfter = getMember(db, keep.id);
+    const mergeAfter = getMember(db, merge.id);
+    strictEqual(keepAfter?.status, "active");
+    strictEqual(mergeAfter?.status, "active");
   });
 });

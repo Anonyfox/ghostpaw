@@ -70,6 +70,24 @@ describe("pack API", () => {
       ok(data.members.some((m: { nickname: string }) => m.nickname === "Ali"));
       ok(data.members.some((m: { tags: string[] }) => m.tags.includes("client")));
     });
+
+    it("applies field and search filters", () => {
+      const alice = meetMember(db, { name: "Alice", kind: "human", bond: "VIP client" });
+      setField(db, alice.id, "vip");
+      meetMember(db, { name: "Bob", kind: "human", bond: "friend" });
+
+      const res = mockRes();
+      const ctx = {
+        req: { url: "/api/pack?field=vip&search=client" },
+        res,
+        params: {},
+      } as unknown as RouteContext;
+      handlers.list(ctx);
+      strictEqual(res.status, 200);
+      const data = JSON.parse(res.body);
+      strictEqual(data.members.length, 1);
+      strictEqual(data.members[0].name, "Alice");
+    });
   });
 
   describe("stats", () => {
@@ -125,6 +143,61 @@ describe("pack API", () => {
       strictEqual(data.links.length, 1);
       strictEqual(data.links[0].targetName, "Acme");
       ok(data.trustLevel);
+    });
+  });
+
+  describe("patrol", () => {
+    it("returns compact patrol items", () => {
+      const member = meetMember(db, { name: "Alice", kind: "human", birthday: "1992-03-12" });
+      db.prepare("UPDATE pack_members SET trust = ?, last_contact = ? WHERE id = ?").run(
+        0.9,
+        new Date(2026, 1, 20).getTime(),
+        member.id,
+      );
+      noteInteraction(db, {
+        memberId: member.id,
+        kind: "conflict",
+        summary: "rough patch",
+        occurredAt: new Date(2026, 2, 8).getTime(),
+      });
+
+      const res = mockRes();
+      const ctx = {
+        req: { url: "/api/pack/patrol" },
+        res,
+        params: {},
+      } as unknown as RouteContext;
+      handlers.patrol(ctx);
+      strictEqual(res.status, 200);
+      const data = JSON.parse(res.body);
+      ok(Array.isArray(data.patrol));
+      ok(data.patrol.length >= 1);
+    });
+  });
+
+  describe("mergePreview", () => {
+    it("returns merge preview details", () => {
+      const keep = meetMember(db, { name: "Alice", kind: "human", timezone: "UTC" });
+      const merge = meetMember(db, { name: "Alexander", kind: "human", timezone: "Europe/Berlin" });
+      setField(db, keep.id, "client", "yes");
+      setField(db, merge.id, "client", "priority");
+      const manager = meetMember(db, { name: "Manager", kind: "human" });
+      addLink(db, manager.id, keep.id, "manages");
+      addLink(db, manager.id, merge.id, "manages");
+
+      const res = mockRes();
+      const ctx = {
+        req: { url: `/api/pack/merge-preview?keep=${keep.id}&merge=${merge.id}` },
+        res,
+        params: {},
+      } as unknown as RouteContext;
+      handlers.mergePreview(ctx);
+      strictEqual(res.status, 200);
+      const data = JSON.parse(res.body);
+      strictEqual(data.keepMember.name, "Alice");
+      strictEqual(data.mergeMember.name, "Alexander");
+      ok(Array.isArray(data.memberChoices));
+      ok(Array.isArray(data.linkConflicts));
     });
   });
 

@@ -1,4 +1,5 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
+import { normalizeContactValue } from "./normalize_contact_value.ts";
 import { rowToMember } from "./row_to_member.ts";
 import type { ContactType, PackMember } from "./types.ts";
 import { CONTACT_TYPES } from "./types.ts";
@@ -12,8 +13,8 @@ export function lookupContact(
     throw new Error(`Invalid contact type "${type}". Must be one of: ${CONTACT_TYPES.join(", ")}.`);
   }
 
-  const trimmed = value.trim();
-  if (!trimmed) {
+  const normalizedValue = normalizeContactValue(type, value);
+  if (!normalizedValue) {
     throw new Error("Contact value must not be empty.");
   }
 
@@ -21,9 +22,9 @@ export function lookupContact(
     .prepare(
       `SELECT m.* FROM pack_members m
        JOIN pack_contacts c ON c.member_id = m.id
-       WHERE c.type = ? AND c.value = ?`,
+       WHERE c.type = ? AND c.value = ? AND m.status != 'lost'`,
     )
-    .get(type, trimmed) as Record<string, unknown> | undefined;
+    .get(type, normalizedValue) as Record<string, unknown> | undefined;
 
   return row ? rowToMember(row) : null;
 }

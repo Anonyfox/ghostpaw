@@ -12,6 +12,7 @@ import type { DatabaseHandle } from "../../lib/index.ts";
 import { createDropSoulshardTool } from "../../tools/souls/drop_soulshard.ts";
 import { createDropFragmentTool } from "../../tools/trainer/drop_fragment.ts";
 import { assembleContext } from "../context.ts";
+import { formatPackPatrol } from "../format_pack_patrol.ts";
 import { createWardenTools } from "../tools.ts";
 import type { ConsolidationResult } from "./types.ts";
 
@@ -98,9 +99,14 @@ export async function consolidateHaunt(
       createDropSoulshardTool(db, { source: "haunt", sourceId: String(hauntSessionId) }),
     ];
 
-    const content =
-      `${CONSOLIDATION_INSTRUCTION}\n\nJournal from private session:\n\n${rawJournal}` +
-      formatSeededMemoriesForConsolidation(seededMemories);
+    const patrol = formatPackPatrol(db);
+    const content = [
+      CONSOLIDATION_INSTRUCTION,
+      patrol,
+      `Journal from private session:\n\n${rawJournal}${formatSeededMemoriesForConsolidation(seededMemories)}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
 
     const systemPrompt = assembleContext(db, "", {
       soulId: MANDATORY_SOUL_IDS.warden,

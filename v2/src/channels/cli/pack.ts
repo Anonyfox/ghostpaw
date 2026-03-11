@@ -7,9 +7,132 @@ import { style } from "../../lib/terminal/index.ts";
 import packCount from "./pack_count.ts";
 import packHistory from "./pack_history.ts";
 import packList from "./pack_list.ts";
+import packMergePreview from "./pack_merge_preview.ts";
 import packPatrol from "./pack_patrol.ts";
 import packShow from "./pack_show.ts";
 import { withRunDb } from "./with_run_db.ts";
+
+const PACK_SUBCOMMANDS = ["list", "merge-preview", "show", "history", "count", "patrol"] as const;
+type PackSubcommand = (typeof PACK_SUBCOMMANDS)[number];
+
+interface ParsedPackInvocation {
+  model?: string;
+  options: Record<string, string | boolean>;
+  positionals: string[];
+}
+
+function optionString(
+  options: Record<string, string | boolean>,
+  key: string,
+): string | undefined {
+  const value = options[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function parsePackInvocation(argv: string[]): ParsedPackInvocation {
+  const packIndex = argv.indexOf("pack");
+  const tokens = packIndex >= 0 ? argv.slice(packIndex + 1) : [];
+  const options: Record<string, string | boolean> = {};
+  const positionals: string[] = [];
+  let model: string | undefined;
+
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (token === "-m" || token === "--model") {
+      model = tokens[index + 1];
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--")) {
+      const [rawKey, inlineValue] = token.slice(2).split("=", 2);
+      if (inlineValue !== undefined) {
+        options[rawKey] = inlineValue;
+        continue;
+      }
+      const next = tokens[index + 1];
+      if (next && !next.startsWith("-")) {
+        options[rawKey] = next;
+        index += 1;
+      } else {
+        options[rawKey] = true;
+      }
+      continue;
+    }
+    if (!token.startsWith("-")) {
+      positionals.push(token);
+    }
+  }
+
+  return { model, options, positionals };
+}
+
+async function runSubcommand(
+  subcommand: PackSubcommand,
+  parsed: ParsedPackInvocation,
+): Promise<void> {
+  const positionals = parsed.positionals.slice(1);
+
+  if (subcommand === "list") {
+    await packList.run?.({
+      args: {
+        status: optionString(parsed.options, "status"),
+        kind: optionString(parsed.options, "kind"),
+        field: optionString(parsed.options, "field"),
+        group: optionString(parsed.options, "group"),
+        search: optionString(parsed.options, "search"),
+        limit: optionString(parsed.options, "limit"),
+        model: parsed.model,
+        _: positionals,
+      },
+    } as never);
+    return;
+  }
+
+  if (subcommand === "merge-preview") {
+    await packMergePreview.run?.({
+      args: {
+        keep: optionString(parsed.options, "keep") ?? positionals[0],
+        merge: optionString(parsed.options, "merge") ?? positionals[1],
+        _: positionals,
+      },
+    } as never);
+    return;
+  }
+
+  if (subcommand === "show") {
+    await packShow.run?.({
+      args: {
+        member: positionals[0],
+        _: positionals,
+      },
+    } as never);
+    return;
+  }
+
+  if (subcommand === "history") {
+    await packHistory.run?.({
+      args: {
+        member: positionals[0],
+        kind: optionString(parsed.options, "kind"),
+        limit: optionString(parsed.options, "limit"),
+        _: positionals,
+      },
+    } as never);
+    return;
+  }
+
+  if (subcommand === "count") {
+    await packCount.run?.({ args: { _: [] } } as never);
+    return;
+  }
+
+  await packPatrol.run?.({
+    args: {
+      days: optionString(parsed.options, "days"),
+      _: positionals,
+    },
+  } as never);
+}
 
 function trustDot(trust: number): string {
   if (trust >= 0.7) return style.green("●");
@@ -75,14 +198,14 @@ export default defineCommand({
       description: "Model override for commands",
     },
   },
-  subCommands: {
-    list: packList,
-    show: packShow,
-    history: packHistory,
-    count: packCount,
-    patrol: packPatrol,
-  },
   async run({ args }) {
+    const parsed = parsePackInvocation(process.argv.slice(2));
+    const rawSubcommand = parsed.positionals[0];
+    if (rawSubcommand && PACK_SUBCOMMANDS.includes(rawSubcommand as PackSubcommand)) {
+      await runSubcommand(rawSubcommand as PackSubcommand, parsed);
+      return;
+    }
+
     const positionals = (args._ ?? []) as string[];
 
     if (positionals.length === 0) {

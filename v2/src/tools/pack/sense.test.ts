@@ -120,6 +120,30 @@ describe("pack_sense tool", () => {
     ok(result.note.includes("filter"));
   });
 
+  it("returns patrol digest with compact items", async () => {
+    const member = meetMember(db, { name: "Alice", kind: "human", birthday: "1992-03-12" });
+    noteInteraction(db, {
+      memberId: member.id,
+      kind: "conflict",
+      summary: "rough patch",
+      occurredAt: new Date(2026, 2, 8).getTime(),
+    });
+    db.prepare("UPDATE pack_members SET trust = ?, last_contact = ? WHERE id = ?").run(
+      0.9,
+      new Date(2026, 1, 20).getTime(),
+      member.id,
+    );
+
+    const result = (await execute({ patrol: true })) as {
+      patrol: { kind: string; name: string; summary: string }[];
+      drift: { threshold_days: number; source: string }[];
+    };
+    ok(result.patrol.length >= 1);
+    ok(result.patrol.some((item) => item.kind === "repair" || item.kind === "landmark"));
+    ok(result.drift.every((item) => item.threshold_days > 0));
+    ok(result.drift.every((item) => item.source === "fallback" || item.source === "cadence"));
+  });
+
   it("has a name and description", () => {
     const tool = createPackSenseTool(db);
     strictEqual(tool.name, "pack_sense");

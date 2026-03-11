@@ -187,6 +187,9 @@ export interface DriftAlert {
   trust: number;
   tier: TrustTier;
   daysSilent: number;
+  thresholdDays: number;
+  source: "fallback" | "cadence";
+  baselineDays?: number;
 }
 
 export interface Landmark {
@@ -199,9 +202,17 @@ export interface Landmark {
   summary?: string;
 }
 
+export interface PackPatrolItem {
+  kind: "repair" | "reconnect" | "landmark";
+  memberId: number;
+  name: string;
+  summary: string;
+}
+
 export interface PackDigest {
   drift: DriftAlert[];
   landmarks: Landmark[];
+  patrol: PackPatrolItem[];
   stats: {
     activeMembers: number;
     recentInteractions: number;

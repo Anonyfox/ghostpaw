@@ -21,6 +21,7 @@ describe("packDigest", () => {
     const d = packDigest(db);
     assert.deepStrictEqual(d.drift, []);
     assert.deepStrictEqual(d.landmarks, []);
+    assert.deepStrictEqual(d.patrol, []);
     assert.strictEqual(d.stats.activeMembers, 0);
     assert.strictEqual(d.stats.recentInteractions, 0);
   });
@@ -33,12 +34,15 @@ describe("packDigest", () => {
     db.prepare("UPDATE pack_members SET last_contact = ? WHERE id = 1").run(now - 20 * DAY);
 
     meetMember(db, { name: "Birthday", kind: "human", birthday: "1992-03-15" });
+    updateBond(db, 2, { trust: 0.75 });
+    db.prepare("UPDATE pack_members SET last_contact = ? WHERE id = 2").run(now - 20 * DAY);
 
     const d = packDigest(db, 14, now);
     assert.strictEqual(d.drift.length, 1);
     assert.strictEqual(d.drift[0].name, "Drifter");
     assert.strictEqual(d.landmarks.length, 1);
     assert.strictEqual(d.landmarks[0].name, "Birthday");
+    assert.strictEqual(d.patrol.length, 2);
     assert.strictEqual(d.stats.activeMembers, 2);
   });
 
@@ -64,5 +68,25 @@ describe("packDigest", () => {
     assert.strictEqual(d.stats.averageTrust, 0.7);
     assert.strictEqual(d.stats.activeMembers, 2);
     assert.strictEqual(d.stats.dormantMembers, 1);
+  });
+
+  it("includes compact patrol maintenance items", () => {
+    const now = new Date(2026, 2, 10).getTime();
+    meetMember(db, { name: "Repair", kind: "human" });
+    updateBond(db, 1, { trust: 0.9 });
+    db.prepare(
+      `INSERT INTO pack_interactions (member_id, kind, summary, significance, session_id, occurred_at, created_at)
+       VALUES (?, 'conflict', 'rough patch', 0.5, NULL, ?, ?)`,
+    ).run(1, now - 2 * DAY, now - 2 * DAY);
+    db.prepare("UPDATE pack_members SET last_contact = ? WHERE id = 1").run(now - 2 * DAY);
+
+    meetMember(db, { name: "Birthday", kind: "human", birthday: "1992-03-12" });
+    updateBond(db, 2, { trust: 0.75 });
+    db.prepare("UPDATE pack_members SET last_contact = ? WHERE id = 2").run(now - 15 * DAY);
+
+    const digest = packDigest(db, 14, now);
+    assert.strictEqual(digest.patrol.length, 2);
+    assert.strictEqual(digest.patrol[0].kind, "repair");
+    assert.strictEqual(digest.patrol[1].kind, "landmark");
   });
 });

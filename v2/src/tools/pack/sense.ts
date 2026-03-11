@@ -86,6 +86,9 @@ export function createPackSenseTool(db: DatabaseHandle) {
             trust: d.trust,
             tier: d.tier,
             days_silent: d.daysSilent,
+            threshold_days: d.thresholdDays,
+            source: d.source,
+            ...(d.baselineDays !== undefined ? { baseline_days: d.baselineDays } : {}),
           })),
           landmarks: digest.landmarks.map((l) => ({
             name: l.name,
@@ -94,6 +97,11 @@ export function createPackSenseTool(db: DatabaseHandle) {
             days_away: l.daysAway,
             ...(l.yearsAgo !== undefined ? { years_ago: l.yearsAgo } : {}),
             ...(l.summary ? { summary: l.summary } : {}),
+          })),
+          patrol: digest.patrol.map((item) => ({
+            kind: item.kind,
+            name: item.name,
+            summary: item.summary,
           })),
           stats: {
             active: digest.stats.activeMembers,

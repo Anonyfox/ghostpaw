@@ -27,9 +27,9 @@ export function PackPatrolPanel() {
   if (loading) return null;
   if (!data) return null;
 
+  const hasPatrol = data.patrol.length > 0;
   const hasDrift = data.drift.length > 0;
   const hasLandmarks = data.landmarks.length > 0;
-  if (!hasDrift && !hasLandmarks) return null;
 
   return (
     <div class="card mb-4 border-info border-opacity-25">
@@ -37,6 +37,20 @@ export function PackPatrolPanel() {
         <h6 class="card-title text-info mb-3" style="font-size: 0.85rem;">
           Patrol
         </h6>
+
+        {hasPatrol && (
+          <div class="mb-3">
+            <div class="text-body-secondary small mb-1">Top maintenance items</div>
+            {data.patrol.map((item) => (
+              <div key={`${item.kind}-${item.memberId}`} class="small mb-1">
+                <Link href={`/pack/${item.memberId}`} class="text-info text-decoration-none">
+                  {item.name}
+                </Link>
+                <span class="text-body-tertiary ms-2">{item.summary}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {hasDrift && (
           <div class="mb-3">
@@ -60,7 +74,7 @@ export function PackPatrolPanel() {
         )}
 
         {hasLandmarks && (
-          <div>
+          <div class={hasPatrol || hasDrift ? "" : "mb-2"}>
             <div class="text-body-secondary small mb-1">Upcoming</div>
             {data.landmarks.map((l) => (
               <div
@@ -83,6 +97,10 @@ export function PackPatrolPanel() {
               </div>
             ))}
           </div>
+        )}
+
+        {!hasPatrol && !hasDrift && !hasLandmarks && (
+          <div class="small text-body-tertiary">All clear. No urgent pack maintenance signals.</div>
         )}
       </div>
     </div>

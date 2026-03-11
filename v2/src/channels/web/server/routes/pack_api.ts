@@ -8,6 +8,7 @@ import {
   listInteractions,
   listMembers,
   packDigest,
+  previewMergeMember,
   resolveNames,
   senseMember,
 } from "../../../../core/pack/index.ts";
@@ -23,6 +24,7 @@ import type {
   PackFieldInfo,
   PackInteractionInfo,
   PackLinkInfo,
+  PackMergePreviewResponse,
   PackMemberInfo,
 } from "../../shared/pack_types.ts";
 import { trustLevel } from "../../shared/pack_types.ts";
@@ -56,14 +58,68 @@ function bondExcerpt(bond: string, maxLen = 120): string {
 }
 
 export function createPackApiHandlers(db: DatabaseHandle) {
+  function buildMemberInfo(memberId: number): PackMemberInfo {
+    const row = db
+      .prepare(
+        `SELECT
+           m.id,
+           m.name,
+           m.nickname,
+           m.kind,
+           m.trust,
+           m.status,
+           m.bond,
+           m.last_contact,
+           COUNT(i.id) AS interaction_count
+         FROM pack_members m
+         LEFT JOIN pack_interactions i ON i.member_id = m.id
+         WHERE m.id = ?
+         GROUP BY m.id`,
+      )
+      .get(memberId) as
+      | {
+          id: number;
+          name: string;
+          nickname: string | null;
+          kind: string;
+          trust: number;
+          status: string;
+          bond: string;
+          last_contact: number;
+          interaction_count: number;
+        }
+      | undefined;
+    if (!row) {
+      throw new Error(`Pack member ${memberId} not found.`);
+    }
+    const tags = getMemberTags(db, [memberId]).get(memberId) ?? [];
+    return {
+      id: row.id,
+      name: row.name,
+      nickname: row.nickname,
+      kind: row.kind,
+      trust: row.trust,
+      trustLevel: trustLevel(row.trust),
+      status: row.status,
+      bondExcerpt: bondExcerpt(row.bond),
+      lastContact: row.last_contact,
+      interactionCount: row.interaction_count,
+      tags,
+    };
+  }
+
   return {
     list(ctx: RouteContext): void {
       const qs = parseQuery(ctx.req.url);
       const status = (qs.get("status") as MemberStatus) || undefined;
       const kind = (qs.get("kind") as MemberKind) || undefined;
+      const field = qs.get("field") || undefined;
+      const rawGroupId = qs.get("group") ? Number(qs.get("group")) : undefined;
+      const groupId = Number.isInteger(rawGroupId) ? rawGroupId : undefined;
+      const search = qs.get("search") || undefined;
       const limit = Math.min(500, Math.max(1, Number(qs.get("limit")) || 100));
 
-      const summaries = listMembers(db, { status, kind, limit });
+      const summaries = listMembers(db, { status, kind, field, groupId, search, limit });
       const memberIds = summaries.map((s) => s.id);
 
       const bondMap = getMemberBonds(db, memberIds);
@@ -99,9 +155,46 @@ export function createPackApiHandlers(db: DatabaseHandle) {
       json(ctx, 200, {
         drift: digest.drift,
         landmarks: digest.landmarks,
+        patrol: digest.patrol,
         stats: digest.stats,
         generatedAt: digest.generatedAt,
       });
+    },
+
+    mergePreview(ctx: RouteContext): void {
+      const qs = parseQuery(ctx.req.url);
+      const keepId = Number(qs.get("keep"));
+      const mergeId = Number(qs.get("merge"));
+      if (!Number.isFinite(keepId) || keepId < 1 || !Number.isFinite(mergeId) || mergeId < 1) {
+        json(ctx, 400, { error: "keep and merge query parameters are required." });
+        return;
+      }
+
+      try {
+        const preview = previewMergeMember(db, keepId, mergeId);
+        const involvedIds = [
+          ...new Set(
+            preview.linkConflicts.flatMap((conflict) => [conflict.memberId, conflict.targetId]),
+          ),
+        ];
+        const nameMap = resolveNames(db, involvedIds);
+        const response: PackMergePreviewResponse = {
+          keepMember: buildMemberInfo(preview.keepMember.id),
+          mergeMember: buildMemberInfo(preview.mergeMember.id),
+          memberChoices: preview.memberChoices,
+          overlappingContacts: preview.overlappingContacts,
+          fieldConflicts: preview.fieldConflicts,
+          linkConflicts: preview.linkConflicts.map((conflict) => ({
+            ...conflict,
+            memberName: nameMap.get(conflict.memberId) ?? `#${conflict.memberId}`,
+            targetName: nameMap.get(conflict.targetId) ?? `#${conflict.targetId}`,
+          })),
+          interactions: preview.interactions,
+        };
+        json(ctx, 200, response);
+      } catch (err) {
+        json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
+      }
     },
 
     detail(ctx: RouteContext): void {

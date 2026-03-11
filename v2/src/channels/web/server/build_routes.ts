@@ -138,6 +138,7 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("GET", "/api/pack", pack.list, true),
       createRoute("GET", "/api/pack/stats", pack.stats, true),
       createRoute("GET", "/api/pack/patrol", pack.patrol, true),
+      createRoute("GET", "/api/pack/merge-preview", pack.mergePreview, true),
       createRoute("POST", "/api/pack/command", pack.command, true),
       createRoute("GET", "/api/pack/:id", pack.detail, true),
       createRoute("GET", "/api/pack/:id/interactions", pack.interactions, true),

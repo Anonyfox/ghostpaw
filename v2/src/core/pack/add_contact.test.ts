@@ -51,6 +51,15 @@ describe("addContact", () => {
     strictEqual(result.conflict.existingMemberId, alice.id);
   });
 
+  it("detects conflicts after canonicalization", () => {
+    const alice = meetMember(db, { name: "Alice", kind: "human" });
+    const bob = meetMember(db, { name: "Bob", kind: "human" });
+    addContact(db, { memberId: alice.id, type: "telegram", value: "AliceWolf" });
+    const result = addContact(db, { memberId: bob.id, type: "telegram", value: "alicewolf" });
+    ok(result.conflict !== null);
+    strictEqual(result.conflict.existingMemberId, alice.id);
+  });
+
   it("trims whitespace from value", () => {
     const member = meetMember(db, { name: "Alice", kind: "human" });
     const result = addContact(db, {
@@ -59,6 +68,26 @@ describe("addContact", () => {
       value: "  alice@example.com  ",
     });
     strictEqual(result.contact.value, "alice@example.com");
+  });
+
+  it("canonicalizes email addresses to lowercase", () => {
+    const member = meetMember(db, { name: "Alice", kind: "human" });
+    const result = addContact(db, {
+      memberId: member.id,
+      type: "email",
+      value: "Alice@Example.COM",
+    });
+    strictEqual(result.contact.value, "alice@example.com");
+  });
+
+  it("canonicalizes handle-style contacts to lowercase", () => {
+    const member = meetMember(db, { name: "Alice", kind: "human" });
+    const result = addContact(db, {
+      memberId: member.id,
+      type: "telegram",
+      value: "AliceWolf",
+    });
+    strictEqual(result.contact.value, "alicewolf");
   });
 
   it("stores null label when not provided", () => {

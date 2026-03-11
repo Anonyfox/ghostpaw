@@ -24,6 +24,21 @@ describe("pack list", () => {
     strictEqual(args.limit?.type, "string");
   });
 
+  it("has optional field flag", () => {
+    const args = cmd.args as Record<string, { type: string }>;
+    strictEqual(args.field?.type, "string");
+  });
+
+  it("has optional group flag", () => {
+    const args = cmd.args as Record<string, { type: string }>;
+    strictEqual(args.group?.type, "string");
+  });
+
+  it("has optional search flag", () => {
+    const args = cmd.args as Record<string, { type: string }>;
+    strictEqual(args.search?.type, "string");
+  });
+
   it("has a run function", () => {
     ok(typeof cmd.run === "function");
   });

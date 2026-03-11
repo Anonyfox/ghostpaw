@@ -22,6 +22,7 @@ import {
   MIN_CONVERSATION_LENGTH,
   MIN_SUBSTANTIVE_MESSAGES,
 } from "../distill_types.ts";
+import { formatPackPatrol } from "../format_pack_patrol.ts";
 import { createWardenTools } from "../tools.ts";
 
 const DISTILL_INSTRUCTION = `Here is a completed conversation. Extract what is worth preserving long-term.
@@ -106,7 +107,8 @@ export async function distillSession(
       soulId: MANDATORY_SOUL_IDS.warden,
     });
 
-    const content = `${DISTILL_INSTRUCTION}\n\n${formatted}`;
+    const patrol = formatPackPatrol(db);
+    const content = [DISTILL_INSTRUCTION, patrol, formatted].filter(Boolean).join("\n\n");
 
     const result = await executeTurn(
       {

@@ -31,6 +31,18 @@ export default defineCommand({
       type: "string",
       description: "Filter by kind: human, group, ghostpaw, agent, service, other",
     },
+    field: {
+      type: "string",
+      description: "Filter by tag or field key (for example: client, vip)",
+    },
+    group: {
+      type: "string",
+      description: "Filter by linked group member ID",
+    },
+    search: {
+      type: "string",
+      description: "Keyword search across names, bond narrative, and fields",
+    },
     limit: {
       type: "string",
       description: "Maximum members to show (default: 50)",
@@ -39,11 +51,15 @@ export default defineCommand({
   async run({ args }) {
     await withRunDb((db) => {
       const limit = args.limit ? Number.parseInt(args.limit as string, 10) : 50;
+      const groupId = args.group ? Number.parseInt(args.group as string, 10) : undefined;
       const counts = countMembers(db);
 
       const members = listMembers(db, {
         status: args.status as MemberStatus | undefined,
         kind: args.kind as MemberKind | undefined,
+        field: (args.field as string | undefined)?.trim() || undefined,
+        groupId: Number.isInteger(groupId) ? groupId : undefined,
+        search: (args.search as string | undefined)?.trim() || undefined,
         limit,
       });
 

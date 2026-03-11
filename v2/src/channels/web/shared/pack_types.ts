@@ -92,6 +92,9 @@ export interface PackDriftInfo {
   trust: number;
   tier: "deep" | "solid" | "growing";
   daysSilent: number;
+  thresholdDays: number;
+  source: "fallback" | "cadence";
+  baselineDays?: number;
 }
 
 export interface PackLandmarkInfo {
@@ -104,9 +107,17 @@ export interface PackLandmarkInfo {
   summary?: string;
 }
 
+export interface PackPatrolItemInfo {
+  kind: "repair" | "reconnect" | "landmark";
+  memberId: number;
+  name: string;
+  summary: string;
+}
+
 export interface PackPatrolResponse {
   drift: PackDriftInfo[];
   landmarks: PackLandmarkInfo[];
+  patrol: PackPatrolItemInfo[];
   stats: {
     activeMembers: number;
     dormantMembers: number;
@@ -114,6 +125,55 @@ export interface PackPatrolResponse {
     averageTrust: number;
   };
   generatedAt: number;
+}
+
+export interface PackMergePreviewChoice {
+  field: string;
+  keepValue: string | number | null;
+  mergeValue: string | number | null;
+  chosenValue: string | number | null;
+  chosenSource: "keep" | "merge" | "same";
+}
+
+export interface PackMergePreviewFieldConflict {
+  key: string;
+  keepValue: string | null;
+  mergeValue: string | null;
+  chosenValue: string | null;
+  chosenSource: "keep" | "merge" | "same";
+}
+
+export interface PackMergePreviewContact {
+  type: string;
+  value: string;
+  keepLabel: string | null;
+  mergeLabel: string | null;
+}
+
+export interface PackMergePreviewLinkConflict {
+  direction: "outgoing" | "incoming";
+  memberId: number;
+  memberName: string;
+  targetId: number;
+  targetName: string;
+  label: string;
+  resolution: "keep" | "delete-self";
+}
+
+export interface PackMergePreviewResponse {
+  keepMember: PackMemberInfo;
+  mergeMember: PackMemberInfo;
+  memberChoices: PackMergePreviewChoice[];
+  overlappingContacts: PackMergePreviewContact[];
+  fieldConflicts: PackMergePreviewFieldConflict[];
+  linkConflicts: PackMergePreviewLinkConflict[];
+  interactions: {
+    keepCount: number;
+    mergeCount: number;
+    combinedCount: number;
+    earliestAt: number | null;
+    latestAt: number | null;
+  };
 }
 
 export interface PackCommandResponse {

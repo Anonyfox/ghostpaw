@@ -1,5 +1,6 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { detectDrift } from "./detect_drift.ts";
+import { detectPatrol } from "./detect_patrol.ts";
 import type { PackDigest } from "./types.ts";
 import { upcomingLandmarks } from "./upcoming_landmarks.ts";
 
@@ -12,6 +13,7 @@ export function packDigest(
 ): PackDigest {
   const drift = detectDrift(db, now);
   const landmarks = upcomingLandmarks(db, daysAhead, now);
+  const patrol = detectPatrol(db, drift, landmarks, now);
 
   const counts = db
     .prepare(
@@ -30,6 +32,7 @@ export function packDigest(
   return {
     drift,
     landmarks,
+    patrol,
     stats: {
       activeMembers: counts.active ?? 0,
       dormantMembers: counts.dormant ?? 0,

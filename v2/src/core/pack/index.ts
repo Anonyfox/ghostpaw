@@ -4,6 +4,7 @@ export { countInteractions } from "./count_interactions.ts";
 export type { MemberCounts } from "./count_members.ts";
 export { countMembers } from "./count_members.ts";
 export { detectDrift } from "./detect_drift.ts";
+export { detectPatrol } from "./detect_patrol.ts";
 export {
   findMembersByField,
   listFields,
@@ -28,6 +29,15 @@ export { listMembers } from "./list_members.ts";
 export { lookupContact } from "./lookup_contact.ts";
 export { meetMember } from "./meet_member.ts";
 export { mergeMember } from "./merge_member.ts";
+export {
+  previewMergeMember,
+  type MergeContactOverlap,
+  type MergeFieldConflict,
+  type MergeInteractionPreview,
+  type MergeLinkConflict,
+  type MergeMemberChoice,
+  type MergeMemberPreview,
+} from "./merge_member_preview.ts";
 export { noteInteraction } from "./note_interaction.ts";
 export { packDigest } from "./pack_digest.ts";
 export { removeContact } from "./remove_contact.ts";
@@ -63,6 +73,7 @@ export type {
   PackLink,
   PackMember,
   PackMemberSummary,
+  PackPatrolItem,
   TrustTier,
   UpdateBondInput,
 } from "./types.ts";
