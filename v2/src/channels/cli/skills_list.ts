@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { defineCommand } from "citty";
-import { listSkills } from "../../core/skills/index.ts";
+import { listSkills } from "../../core/skills/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 
 const READINESS_DOT: Record<string, string> = {

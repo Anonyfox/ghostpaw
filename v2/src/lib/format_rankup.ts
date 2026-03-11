@@ -1,4 +1,4 @@
-import { skillTier } from "../core/skills/skill_tier.ts";
+import { skillTier } from "../core/skills/api/read/index.ts";
 
 export function formatRankUp(skillName: string, newRank: number): string {
   const { tier } = skillTier(newRank);

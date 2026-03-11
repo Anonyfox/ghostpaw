@@ -2,7 +2,7 @@ import { ok, strictEqual } from "node:assert";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initHistory } from "../../core/skills/index.ts";
+import { initHistory } from "../../core/skills/runtime/index.ts";
 import { createCheckpointSkillsTool } from "./checkpoint_skills.ts";
 
 let workspace: string;

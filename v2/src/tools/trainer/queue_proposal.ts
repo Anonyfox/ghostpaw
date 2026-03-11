@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { queueProposal } from "../../core/skills/skill_health.ts";
+import { queueProposal } from "../../core/skills/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class QueueProposalParams extends Schema {

@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { defineCommand } from "citty";
-import { checkpoint } from "../../core/skills/index.ts";
+import { checkpointSkills } from "../../harness/public/skills.ts";
 import { style } from "../../lib/terminal/index.ts";
 
 export default defineCommand({
@@ -22,7 +22,7 @@ export default defineCommand({
     }
 
     try {
-      const result = checkpoint(workspace, names, args.message as string);
+      const result = checkpointSkills(workspace, names, args.message as string);
       if (result.committed) {
         console.log(
           style.cyan(`Checkpoint ${result.commitHash ?? ""}: ${result.skills.join(", ")}`),

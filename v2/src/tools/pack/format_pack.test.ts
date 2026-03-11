@@ -1,6 +1,6 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { PackContact, PackInteraction, PackMember } from "../../core/pack/types.ts";
+import type { PackContact, PackInteraction, PackMember } from "../../core/pack/api/types.ts";
 import {
   formatContact,
   formatInteraction,

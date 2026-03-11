@@ -1,10 +1,10 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { DatabaseHandle } from "../../lib/index.ts";
+import { logSkillEvent } from "./api/write/events.ts";
 import { git, hasHistory, workTree } from "./git.ts";
 import { initHistory } from "./init_history.ts";
 import { assertSafeSkillName } from "./safe_name.ts";
-import { logSkillEvent } from "./skill_events.ts";
 import type { CheckpointResult } from "./types.ts";
 
 export function checkpoint(

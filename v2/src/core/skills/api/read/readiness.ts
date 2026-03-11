@@ -1,41 +1,10 @@
-import type { DatabaseHandle } from "../../lib/index.ts";
-
-export type SkillEventType = "read" | "checkpoint" | "created" | "retired";
+import type { DatabaseHandle } from "../../../../lib/index.ts";
 
 export type ReadinessColor = "grey" | "green" | "yellow" | "orange";
 
 export interface SkillReadiness {
   color: ReadinessColor;
   readsSinceCheckpoint: number;
-}
-
-export function initSkillEventsTables(db: DatabaseHandle): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS skill_events (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      skill      TEXT    NOT NULL,
-      event      TEXT    NOT NULL,
-      session_id TEXT,
-      ts         INTEGER DEFAULT (unixepoch())
-    )
-  `);
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_skill_events_skill
-    ON skill_events(skill, event, id)
-  `);
-}
-
-export function logSkillEvent(
-  db: DatabaseHandle,
-  skill: string,
-  event: SkillEventType,
-  sessionId?: string,
-): void {
-  db.prepare("INSERT INTO skill_events (skill, event, session_id) VALUES (?, ?, ?)").run(
-    skill,
-    event,
-    sessionId ?? null,
-  );
 }
 
 export function skillReadiness(db: DatabaseHandle, name: string): SkillReadiness {
@@ -50,7 +19,7 @@ export function skillReadiness(db: DatabaseHandle, name: string): SkillReadiness
     )
     .get(name, name) as { reads: number } | undefined;
 
-  const reads = (row?.reads as number) ?? 0;
+  const reads = row?.reads ?? 0;
   return { color: readinessColor(reads), readsSinceCheckpoint: reads };
 }
 

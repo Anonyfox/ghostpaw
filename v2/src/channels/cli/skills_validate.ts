@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { defineCommand } from "citty";
-import { validateAllSkills } from "../../core/skills/index.ts";
+import { validateAllSkills } from "../../core/skills/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 
 export default defineCommand({

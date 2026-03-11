@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DatabaseHandle } from "../../lib/index.ts";
+import { logSkillEvent } from "./api/write/events.ts";
 import { checkpoint } from "./checkpoint.ts";
 import { parseSkill } from "./parse_skill.ts";
-import { logSkillEvent } from "./skill_events.ts";
 import type { CreateSkillInput, Skill } from "./types.ts";
 
 const VALID_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;

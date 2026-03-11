@@ -1,5 +1,6 @@
 import { createTool, Schema } from "chatoyant";
-import { repairFlatFile, repairSkill, validateAllSkills } from "../../core/skills/index.ts";
+import { validateAllSkills } from "../../core/skills/api/read/index.ts";
+import { repairFlatFile, repairSkill } from "../../core/skills/api/write/index.ts";
 
 class ValidateSkillsParams extends Schema {}
 

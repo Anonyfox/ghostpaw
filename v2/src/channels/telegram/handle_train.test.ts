@@ -3,8 +3,11 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { resetGitAvailableCache } from "../../core/skills/git.ts";
-import { initSkillEventsTables, initSkillFragmentsTables } from "../../core/skills/index.ts";
+import {
+  initSkillEventsTables,
+  initSkillFragmentsTables,
+  resetGitAvailableCache,
+} from "../../core/skills/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/open_test_database.ts";
 import { handleTrain } from "./handle_train.ts";

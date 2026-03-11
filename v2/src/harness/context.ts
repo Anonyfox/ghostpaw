@@ -1,4 +1,4 @@
-import { buildSkillIndex, formatSkillIndex } from "../core/skills/index.ts";
+import { buildSkillIndex, formatSkillIndex } from "../core/skills/api/read/index.ts";
 import { MANDATORY_SOUL_IDS, renderSoul } from "../core/souls/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 

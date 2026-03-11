@@ -6,10 +6,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 const srcRoot = path.join(projectRoot, "src");
 
-const NAMESPACED_CORE_FEATURES = new Set(["pack"]);
+const NAMESPACED_CORE_FEATURES = new Set(["pack", "skills"]);
 const RUNTIME_IMPORTERS = new Set([
   "src/index.ts",
   "src/channels/cli/with_run_db.ts",
+]);
+const WRITE_IMPORT_ALLOWLIST = new Set([
+  "src/harness/tools.ts",
+  "src/harness/stoke.ts",
+  "src/harness/public/skills.ts",
 ]);
 
 function toPosix(filePath) {
@@ -75,6 +80,8 @@ function checkImport(importer, imported) {
     return errors;
   }
 
+  const importerIsTest = isTestFile(importer.relativePath);
+
   if (importer.layer === "channels" && imported.layer === "tools") {
     errors.push("channels/ must not import tools/ directly");
   }
@@ -92,14 +99,23 @@ function checkImport(importer, imported) {
     errors.push("cross-subsystem imports into core internal/ are forbidden");
   }
 
-  if (namespace === "runtime" && !sameCoreSubsystem && !RUNTIME_IMPORTERS.has(importer.relativePath)) {
+  if (
+    namespace === "runtime" &&
+    !sameCoreSubsystem &&
+    !importerIsTest &&
+    !RUNTIME_IMPORTERS.has(importer.relativePath)
+  ) {
     errors.push("core runtime/ may only be imported by explicit bootstrap/composition paths");
   }
 
   if (namespace === "api" && apiSection === "write") {
-    const allowed = sameCoreSubsystem || importer.layer === "tools";
+    const allowed =
+      sameCoreSubsystem ||
+      importer.layer === "tools" ||
+      importerIsTest ||
+      WRITE_IMPORT_ALLOWLIST.has(importer.relativePath);
     if (!allowed) {
-      errors.push("core api/write/ may only be imported by tools/");
+      errors.push("core api/write/ may only be imported by tools/ or approved harness flows");
     }
   }
 
@@ -119,7 +135,7 @@ function checkImport(importer, imported) {
 
 const files = walk(srcRoot)
   .map((filePath) => toPosix(path.relative(projectRoot, filePath)))
-  .filter((relativePath) => (relativePath.endsWith(".ts") || relativePath.endsWith(".tsx")) && !isTestFile(relativePath));
+  .filter((relativePath) => relativePath.endsWith(".ts") || relativePath.endsWith(".tsx"));
 
 const violations = [];
 

@@ -1,20 +1,22 @@
 import {
   buildSkillIndex,
-  enforceFragmentCap,
-  expireStaleFragments,
   formatSkillIndex,
   listSkills,
   pendingFragmentCount,
   pendingFragments,
-  repairFlatFile,
-  repairSkill,
+  pendingProposals,
+  readinessForAll,
+  type SkillHealthData,
+  skillTier,
   validateAllSkills,
-  writeSkillHealth,
-} from "../core/skills/index.ts";
-import { readinessForAll } from "../core/skills/skill_events.ts";
-import type { SkillHealthData } from "../core/skills/skill_health.ts";
-import { pendingProposals } from "../core/skills/skill_health.ts";
-import { skillTier } from "../core/skills/skill_tier.ts";
+} from "../core/skills/api/read/index.ts";
+import {
+  enforceFragmentCap as enforceFragmentCapWrite,
+  expireStaleFragments as expireStaleFragmentsWrite,
+  repairFlatFile as repairFlatFileWrite,
+  repairSkill as repairSkillWrite,
+  writeSkillHealth as writeSkillHealthWrite,
+} from "../core/skills/api/write/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { createRecallTool } from "../tools/memory/recall.ts";
 import { createStokeTools } from "../tools/trainer/index.ts";
@@ -35,17 +37,17 @@ export function stokePhaseOne(workspace: string, db: DatabaseHandle): SkillHealt
   for (const v of validations) {
     if (!v.valid && v.issues.some((i) => i.autoFixable)) {
       if (v.issues.some((i) => i.code === "flat-file")) {
-        repairFlatFile(workspace, v.name);
+        repairFlatFileWrite(workspace, v.name);
       } else {
-        repairSkill(workspace, v.name);
+        repairSkillWrite(workspace, v.name);
       }
       repairsApplied++;
     }
   }
 
-  expireStaleFragments(db, 90);
+  expireStaleFragmentsWrite(db, 90);
   const expiredCount = 0;
-  enforceFragmentCap(db, 50);
+  enforceFragmentCapWrite(db, 50);
 
   const skills = listSkills(workspace, db);
   const names = skills.map((s) => s.name);
@@ -84,7 +86,7 @@ export function stokePhaseOne(workspace: string, db: DatabaseHandle): SkillHealt
     explored: false,
   };
 
-  writeSkillHealth(db, health);
+  writeSkillHealthWrite(db, health);
   return health;
 }
 
@@ -151,7 +153,7 @@ export async function runStoke(
     phaseTwoCostUsd = p2.costUsd;
     health.explored = true;
     health.proposalsQueued = pendingProposals(db).length;
-    writeSkillHealth(db, health);
+    writeSkillHealthWrite(db, health);
   }
 
   return { health, phaseOneMs, phaseTwoRan, phaseTwoCostUsd };

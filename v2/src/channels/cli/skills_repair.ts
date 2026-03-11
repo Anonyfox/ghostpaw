@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { defineCommand } from "citty";
-import { repairFlatFile, repairSkill, validateSkill } from "../../core/skills/index.ts";
+import { validateSkill } from "../../core/skills/api/read/index.ts";
+import { repairSkillEntry } from "../../harness/public/skills.ts";
 import { style } from "../../lib/terminal/index.ts";
 
 export default defineCommand({
@@ -18,7 +19,7 @@ export default defineCommand({
     const name = args.name as string;
 
     try {
-      const result = args.flat ? repairFlatFile(workspace, name) : repairSkill(workspace, name);
+      const result = repairSkillEntry(workspace, name, Boolean(args.flat));
 
       if (result.actions.length === 0) {
         console.log(style.dim("No repairs needed."));

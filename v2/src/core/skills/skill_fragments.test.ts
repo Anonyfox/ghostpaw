@@ -3,16 +3,18 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/open_test_database.ts";
 import {
+  fragmentCountsBySource,
+  listFragments,
+  pendingFragmentCount,
+  pendingFragments,
+} from "./api/read/fragments.ts";
+import {
   absorbFragment,
   dropSkillFragment,
   enforceFragmentCap,
   expireStaleFragments,
-  fragmentCountsBySource,
-  initSkillFragmentsTables,
-  listFragments,
-  pendingFragmentCount,
-  pendingFragments,
-} from "./skill_fragments.ts";
+} from "./api/write/fragments.ts";
+import { initSkillFragmentsTables } from "./runtime/fragments.ts";
 
 let db: DatabaseHandle;
 

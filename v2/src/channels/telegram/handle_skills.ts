@@ -3,7 +3,7 @@ import {
   fragmentCountsBySource,
   listSkills,
   pendingFragmentCount,
-} from "../../core/skills/index.ts";
+} from "../../core/skills/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 export interface HandleSkillsDeps {

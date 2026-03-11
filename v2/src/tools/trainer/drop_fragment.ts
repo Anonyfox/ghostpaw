@@ -1,6 +1,6 @@
 import { createTool, Schema } from "chatoyant";
-import type { FragmentSource } from "../../core/skills/index.ts";
-import { dropSkillFragment } from "../../core/skills/index.ts";
+import type { FragmentSource } from "../../core/skills/api/types.ts";
+import { dropSkillFragment } from "../../core/skills/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class DropFragmentParams extends Schema {

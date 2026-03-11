@@ -3,17 +3,18 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { resetGitAvailableCache } from "../core/skills/git.ts";
 import {
-  dropSkillFragment,
+  pendingFragmentCount,
+  readSkillHealth,
+  type SkillHealthData,
+} from "../core/skills/api/read/index.ts";
+import { dropSkillFragment, writeSkillHealth } from "../core/skills/api/write/index.ts";
+import {
   initSkillEventsTables,
   initSkillFragmentsTables,
   initSkillHealthTables,
-  pendingFragmentCount,
-  readSkillHealth,
-  writeSkillHealth,
-} from "../core/skills/index.ts";
-import type { SkillHealthData } from "../core/skills/skill_health.ts";
+  resetGitAvailableCache,
+} from "../core/skills/runtime/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/open_test_database.ts";
 import { stokePhaseOne, stokePhaseTwoNeeded } from "./stoke.ts";

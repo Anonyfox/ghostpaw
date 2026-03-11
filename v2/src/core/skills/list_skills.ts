@@ -2,10 +2,10 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { allSkillRanks } from "./all_skill_ranks.ts";
+import { readinessForAll } from "./api/read/readiness.ts";
 import { discoverSkills } from "./discover_skills.ts";
 import { parseFrontmatter } from "./parse_frontmatter.ts";
 import { pendingChanges } from "./pending_changes.ts";
-import { readinessForAll } from "./skill_events.ts";
 import { skillTier } from "./skill_tier.ts";
 import type { SkillSummary } from "./types.ts";
 

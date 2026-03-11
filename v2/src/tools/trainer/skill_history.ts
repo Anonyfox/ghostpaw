@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { skillHistory } from "../../core/skills/index.ts";
+import { skillHistory } from "../../core/skills/api/read/index.ts";
 
 class SkillHistoryParams extends Schema {
   name = Schema.String({

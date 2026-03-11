@@ -1,26 +1,21 @@
-import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import {
   allSkillRanks,
   listSkills,
   pendingChanges,
   pendingFragmentCount,
-  pendingFragments,
-  skillRank,
-  skillTier,
-} from "../../../../core/skills/index.ts";
-import { pendingProposals } from "../../../../core/skills/skill_health.ts";
+  pendingProposals,
+} from "../../../../core/skills/api/read/index.ts";
 import type { Entity } from "../../../../harness/index.ts";
 import {
   buildCreateExecutePrompt,
   buildCreateProposePrompt,
-  buildTrainExecutePrompt,
-  buildTrainProposePrompt,
   invokeTrainerExecute,
   invokeTrainerPropose,
   parseTrainerOptions,
   runStoke,
 } from "../../../../harness/index.ts";
+import { executeSkillTraining, proposeSkillTraining } from "../../../../harness/public/skills.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { readJsonBody } from "../body_parser.ts";
 import type { RouteContext } from "../types.ts";
@@ -129,27 +124,17 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
       }
 
       const name = skillName.trim();
-      let content: string;
       try {
-        content = readFileSync(join(workspace, "skills", name, "SKILL.md"), "utf-8");
-      } catch {
-        json(ctx, 404, { error: `Skill "${name}" not found.` });
-        return;
-      }
-
-      const frags = pendingFragments(db);
-      const fragRefs =
-        frags.length > 0 ? frags.map((f) => ({ id: f.id, observation: f.observation })) : undefined;
-
-      try {
-        const prompt = buildTrainProposePrompt(name, content, fragRefs);
-        const result = await invokeTrainerPropose(ent, db, prompt, { purpose: "train" });
-        const options = parseTrainerOptions(result.content);
+        const result = await proposeSkillTraining(ent, db, workspace, name);
+        if (!result.ok) {
+          json(ctx, 404, { error: result.error });
+          return;
+        }
         json(ctx, 200, {
-          options,
-          rawContent: result.content,
+          options: result.options,
+          rawContent: result.rawContent,
           sessionId: result.sessionId,
-          cost: { totalUsd: result.cost.estimatedUsd },
+          cost: { totalUsd: result.costUsd },
         });
       } catch (err) {
         json(ctx, 500, { error: err instanceof Error ? err.message : String(err) });
@@ -179,37 +164,27 @@ export function createTrainerApiHandlers(db: DatabaseHandle, entity: Entity | un
       }
 
       const name = skillName.trim();
-      const options = parseTrainerOptions(
-        ((body as Record<string, unknown>)._rawContent as string) ?? "",
-      );
-      const selected = options.find((o) => o.id === String(optionId));
-      const title = selected?.title ?? String(guidance ?? "Improve skill");
-      const desc = selected?.description ?? String(guidance ?? "");
       const extra = typeof guidance === "string" ? guidance : undefined;
 
-      const execFrags = pendingFragments(db);
-      const execFragIds = execFrags.length > 0 ? execFrags.map((f) => f.id) : undefined;
-
       try {
-        const prompt = buildTrainExecutePrompt(name, title, desc, extra, execFragIds);
-        const result = await invokeTrainerExecute(ent, db, sessionId, prompt);
-
-        let newRank: number | undefined;
-        let newTier: string | undefined;
-        try {
-          newRank = skillRank(workspace, name);
-          newTier = skillTier(newRank).tier;
-        } catch {
-          // non-critical
-        }
+        const result = await executeSkillTraining(
+          ent,
+          db,
+          workspace,
+          sessionId,
+          name,
+          ((body as Record<string, unknown>)._rawContent as string) ?? "",
+          typeof optionId === "string" ? optionId : undefined,
+          extra,
+        );
 
         json(ctx, 200, {
           content: result.content,
           succeeded: result.succeeded,
-          cost: { totalUsd: result.cost.estimatedUsd },
+          cost: { totalUsd: result.costUsd },
           skillName: name,
-          newRank,
-          newTier,
+          newRank: result.newRank,
+          newTier: result.newTier,
         });
       } catch (err) {
         json(ctx, 500, { error: err instanceof Error ? err.message : String(err) });

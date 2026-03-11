@@ -11,15 +11,9 @@ import {
   skillReadiness,
   skillTier,
   validateSkill,
-} from "../../../../core/skills/index.ts";
-import { approveProposal, dismissProposal } from "../../../../core/skills/skill_health.ts";
+} from "../../../../core/skills/api/read/index.ts";
 import type { Entity } from "../../../../harness/index.ts";
-import {
-  buildCreateExecutePrompt,
-  buildCreateProposePrompt,
-  invokeTrainerExecute,
-  invokeTrainerPropose,
-} from "../../../../harness/index.ts";
+import { approveSkillProposal, dismissSkillProposal } from "../../../../harness/public/skills.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";
 
@@ -151,32 +145,14 @@ export function createSkillsApiHandlers(db: DatabaseHandle, entity?: Entity) {
           json(ctx, 404, { error: `Proposal ${id} not found or already resolved.` });
           return;
         }
-
-        approveProposal(db, id);
-
-        const proposePrompt = buildCreateProposePrompt(proposal.title);
-        const proposeResult = await invokeTrainerPropose(entity, db, proposePrompt, {
-          purpose: "create",
-        });
-
-        const executePrompt = buildCreateExecutePrompt(
-          proposal.title,
-          proposal.rationale,
-          `Create this skill based on proposal: ${proposal.rationale}`,
-        );
-        const result = await invokeTrainerExecute(
-          entity,
-          db,
-          proposeResult.sessionId,
-          executePrompt,
-        );
+        const result = await approveSkillProposal(entity, db, id);
 
         json(ctx, 200, {
           approved: true,
           proposalId: id,
           content: result.content,
           succeeded: result.succeeded,
-          cost: { totalUsd: proposeResult.cost.estimatedUsd + result.cost.estimatedUsd },
+          cost: { totalUsd: result.costUsd },
         });
       } catch (err) {
         json(ctx, 500, { error: err instanceof Error ? err.message : String(err) });
@@ -191,7 +167,7 @@ export function createSkillsApiHandlers(db: DatabaseHandle, entity?: Entity) {
       }
 
       try {
-        dismissProposal(db, id);
+        dismissSkillProposal(db, id);
         json(ctx, 200, { dismissed: true, proposalId: id });
       } catch (err) {
         json(ctx, 500, { error: err instanceof Error ? err.message : String(err) });

@@ -14,17 +14,11 @@ import { initQuestTables } from "./core/quests/index.ts";
 import { ensureDefaultSchedules, initScheduleTables } from "./core/schedule/index.ts";
 import { initSecretsTable, loadSecretsIntoEnv, syncProviderKeys } from "./core/secrets/index.ts";
 import {
-  checkpoint,
-  ensureDefaults,
-  initHistory,
+  bootstrapSkills,
   initSkillEventsTables,
   initSkillFragmentsTables,
   initSkillHealthTables,
-  logSkillEvent,
-  repairFlatFile,
-  repairSkill,
-  validateAllSkills,
-} from "./core/skills/index.ts";
+} from "./core/skills/runtime/index.ts";
 import { ensureMandatorySouls, initSoulShardTables, initSoulsTables } from "./core/souls/index.ts";
 import { isEntrypoint, openDatabase, suppressWarnings } from "./lib/index.ts";
 import { banner, log } from "./lib/terminal/index.ts";
@@ -104,24 +98,8 @@ const main = defineCommand({
     const { ensureReady } = await import("./channels/cli/ensure_ready.ts");
     await ensureReady(db);
 
-    const created = ensureDefaults(workspace);
+    const created = bootstrapSkills(workspace, db);
     if (created.length > 0) log.info(`bootstrapped ${created.length} default skills`);
-    for (const v of validateAllSkills(workspace)) {
-      if (!v.valid && v.issues.some((i) => i.autoFixable)) {
-        if (v.issues.some((i) => i.code === "flat-file")) {
-          repairFlatFile(workspace, v.name);
-        } else {
-          repairSkill(workspace, v.name);
-        }
-      }
-    }
-    initHistory(workspace);
-    if (created.length > 0) {
-      for (const name of created) {
-        logSkillEvent(db, name, "created");
-      }
-      checkpoint(workspace, created, "bootstrap: initial version", db);
-    }
 
     const { notifySession } = await import("./channels/web/server/routes/chat_ws.ts");
     const { getSession } = await import("./core/chat/index.ts");

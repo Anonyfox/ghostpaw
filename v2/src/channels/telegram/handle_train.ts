@@ -1,12 +1,7 @@
-import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
-import { listSkills, pendingFragments } from "../../core/skills/index.ts";
-import {
-  buildTrainProposePrompt,
-  createEntity,
-  invokeTrainerPropose,
-  parseTrainerOptions,
-} from "../../harness/index.ts";
+import { resolve } from "node:path";
+import { getSkillMarkdown, listSkills } from "../../core/skills/api/read/index.ts";
+import { createEntity, parseTrainerOptions } from "../../harness/index.ts";
+import { proposeSkillTraining } from "../../harness/public/skills.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 export interface HandleTrainDeps {
@@ -48,10 +43,7 @@ export async function handleTrain(
   }
 
   const name = skillName.trim();
-  let content: string;
-  try {
-    content = readFileSync(join(workspace, "skills", name, "SKILL.md"), "utf-8");
-  } catch {
+  if (getSkillMarkdown(workspace, name) == null) {
     await deps.sendMessage(chatId, `Skill "${name}" not found.`);
     return;
   }
@@ -60,12 +52,13 @@ export async function handleTrain(
 
   try {
     const entity = createEntity({ db: deps.db, workspace });
-    const frags = pendingFragments(deps.db);
-    const fragRefs =
-      frags.length > 0 ? frags.map((f) => ({ id: f.id, observation: f.observation })) : undefined;
-    const prompt = buildTrainProposePrompt(name, content, fragRefs);
-    const result = await invokeTrainerPropose(entity, deps.db, prompt, { purpose: "train" });
-    const options = parseTrainerOptions(result.content);
+    const result = await proposeSkillTraining(entity, deps.db, workspace, name);
+    if (!result.ok) {
+      await deps.sendMessage(chatId, result.error);
+      return;
+    }
+    const options =
+      result.options.length > 0 ? result.options : parseTrainerOptions(result.rawContent);
 
     if (options.length === 0) {
       await deps.sendMessage(chatId, "No improvements identified.");
@@ -77,7 +70,7 @@ export async function handleTrain(
       .join("\n\n");
     await deps.sendMessage(
       chatId,
-      `*Training proposals for ${name}:*\n\n${formatted}\n\nCost: $${result.cost.estimatedUsd.toFixed(4)}`,
+      `*Training proposals for ${name}:*\n\n${formatted}\n\nCost: $${result.costUsd.toFixed(4)}`,
     );
   } catch (err) {
     await deps.sendMessage(

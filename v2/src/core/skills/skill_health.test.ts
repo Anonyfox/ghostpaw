@@ -2,16 +2,15 @@ import { deepStrictEqual, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/open_test_database.ts";
-import type { SkillHealthData } from "./skill_health.ts";
+import type { SkillHealthData } from "./api/read/health.ts";
+import { pendingProposals, readSkillHealth } from "./api/read/index.ts";
 import {
   approveProposal,
   dismissProposal,
-  initSkillHealthTables,
-  pendingProposals,
   queueProposal,
-  readSkillHealth,
   writeSkillHealth,
-} from "./skill_health.ts";
+} from "./api/write/index.ts";
+import { initSkillHealthTables } from "./runtime/health.ts";
 
 let db: DatabaseHandle;
 

@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { checkpoint } from "../../core/skills/index.ts";
+import { checkpoint } from "../../core/skills/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class CheckpointSkillsParams extends Schema {

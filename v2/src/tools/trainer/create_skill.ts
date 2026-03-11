@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { createSkill } from "../../core/skills/index.ts";
+import { createSkill } from "../../core/skills/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class CreateSkillParams extends Schema {

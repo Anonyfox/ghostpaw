@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { listSkills, pendingChanges } from "../../core/skills/index.ts";
+import { listSkills, pendingChanges } from "../../core/skills/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ReviewSkillsParams extends Schema {}

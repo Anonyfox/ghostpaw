@@ -7,7 +7,7 @@ import {
   pendingFragmentCount,
   pendingProposals,
   readSkillHealth,
-} from "../../core/skills/index.ts";
+} from "../../core/skills/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 

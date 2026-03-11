@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { absorbFragment } from "../../core/skills/index.ts";
+import { absorbFragment } from "../../core/skills/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class AbsorbFragmentParams extends Schema {

@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { skillDiff } from "../../core/skills/index.ts";
+import { skillDiff } from "../../core/skills/api/read/index.ts";
 
 class SkillDiffParams extends Schema {
   name = Schema.String({

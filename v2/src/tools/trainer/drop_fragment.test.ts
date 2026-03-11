@@ -1,6 +1,7 @@
 import { strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initSkillFragmentsTables, pendingFragmentCount } from "../../core/skills/index.ts";
+import { pendingFragmentCount } from "../../core/skills/api/read/index.ts";
+import { initSkillFragmentsTables } from "../../core/skills/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/open_test_database.ts";
 import { createDropFragmentTool } from "./drop_fragment.ts";

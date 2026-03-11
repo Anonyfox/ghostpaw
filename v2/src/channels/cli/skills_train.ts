@@ -1,15 +1,8 @@
-import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { defineCommand } from "citty";
-import { listSkills, pendingFragments, skillRank } from "../../core/skills/index.ts";
-import {
-  buildTrainExecutePrompt,
-  buildTrainProposePrompt,
-  createEntity,
-  invokeTrainerExecute,
-  invokeTrainerPropose,
-  parseTrainerOptions,
-} from "../../harness/index.ts";
+import { listSkills, skillRank } from "../../core/skills/api/read/index.ts";
+import { createEntity, parseTrainerOptions } from "../../harness/index.ts";
+import { executeSkillTraining, proposeSkillTraining } from "../../harness/public/skills.ts";
 import { formatRankUp } from "../../lib/format_rankup.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { promptChoice, promptSkillPick } from "./prompt_choice.ts";
@@ -48,40 +41,21 @@ export default defineCommand({
       }
 
       const name = skillName.trim();
-      let content: string;
-      try {
-        content = readFileSync(join(workspace, "skills", name, "SKILL.md"), "utf-8");
-      } catch {
-        console.error(style.boldRed("error".padStart(10)), ` Skill "${name}" not found.`);
-        process.exitCode = 1;
-        return;
-      }
-
-      const frags = pendingFragments(db);
-      const fragRefs = frags.map((f) => ({ id: f.id, observation: f.observation }));
 
       console.log(style.dim(`Reviewing: ${name}...`));
 
-      const proposePrompt = buildTrainProposePrompt(
-        name,
-        content,
-        fragRefs.length > 0 ? fragRefs : undefined,
-      );
-      const proposal = await invokeTrainerPropose(entity, db, proposePrompt, {
-        model,
-        purpose: "train",
-      });
-
-      if (!proposal.succeeded) {
-        console.error(style.boldRed("error".padStart(10)), ` Analysis failed: ${proposal.content}`);
+      const proposal = await proposeSkillTraining(entity, db, workspace, name, model);
+      if (!proposal.ok) {
+        console.error(style.boldRed("error".padStart(10)), ` ${proposal.error}`);
         process.exitCode = 1;
         return;
       }
 
-      const options = parseTrainerOptions(proposal.content);
+      const options =
+        proposal.options.length > 0 ? proposal.options : parseTrainerOptions(proposal.rawContent);
       if (options.length === 0) {
         console.log(style.dim("No improvements identified."));
-        console.log(style.dim(`Cost: $${proposal.cost.estimatedUsd.toFixed(4)}`));
+        console.log(style.dim(`Cost: $${proposal.costUsd.toFixed(4)}`));
         return;
       }
 
@@ -93,17 +67,22 @@ export default defineCommand({
 
       const selected = options.find((o) => o.id === choice.optionId);
       const title = selected?.title ?? choice.guidance ?? "Improve skill";
-      const desc = selected?.description ?? choice.guidance ?? "";
 
       console.log(style.dim(`Improving: ${title}...`));
 
       const rankBefore = skillRank(workspace, name);
 
-      const fragIds = frags.length > 0 ? frags.map((f) => f.id) : undefined;
-      const executePrompt = buildTrainExecutePrompt(name, title, desc, choice.guidance, fragIds);
-      const result = await invokeTrainerExecute(entity, db, proposal.sessionId, executePrompt, {
+      const result = await executeSkillTraining(
+        entity,
+        db,
+        workspace,
+        proposal.sessionId,
+        name,
+        proposal.rawContent,
+        choice.optionId,
+        choice.guidance,
         model,
-      });
+      );
 
       if (!result.succeeded) {
         console.error(style.boldRed("error".padStart(10)), ` Training failed: ${result.content}`);
@@ -114,13 +93,13 @@ export default defineCommand({
       console.log();
       console.log(result.content);
 
-      const rankAfter = skillRank(workspace, name);
+      const rankAfter = result.newRank ?? skillRank(workspace, name);
       if (rankAfter > rankBefore) {
         console.log(`\x1b[36m  ▲ ${formatRankUp(name, rankAfter)}!\x1b[0m`);
       }
 
       console.log();
-      const totalCost = proposal.cost.estimatedUsd + result.cost.estimatedUsd;
+      const totalCost = proposal.costUsd + result.costUsd;
       console.log(style.dim(`Total cost: $${totalCost.toFixed(4)}`));
     });
   },

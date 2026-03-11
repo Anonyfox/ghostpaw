@@ -2,12 +2,9 @@ import { deepStrictEqual, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/open_test_database.ts";
-import {
-  initSkillEventsTables,
-  logSkillEvent,
-  readinessForAll,
-  skillReadiness,
-} from "./skill_events.ts";
+import { readinessForAll, skillReadiness } from "./api/read/readiness.ts";
+import { logSkillEvent } from "./api/write/events.ts";
+import { initSkillEventsTables } from "./runtime/events.ts";
 
 let db: DatabaseHandle;
 

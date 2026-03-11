@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { rollback } from "../../core/skills/index.ts";
+import { rollback } from "../../core/skills/api/write/index.ts";
 
 class RollbackSkillParams extends Schema {
   name = Schema.String({

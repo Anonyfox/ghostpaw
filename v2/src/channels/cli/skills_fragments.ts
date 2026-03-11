@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { fragmentCountsBySource, listFragments } from "../../core/skills/index.ts";
+import { fragmentCountsBySource, listFragments } from "../../core/skills/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
