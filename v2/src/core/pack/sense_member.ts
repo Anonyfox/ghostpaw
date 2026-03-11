@@ -1,9 +1,9 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { rowToContact } from "./row_to_contact.ts";
-import { rowToField } from "./row_to_field.ts";
-import { rowToInteraction } from "./row_to_interaction.ts";
-import { rowToLink } from "./row_to_link.ts";
-import { rowToMember } from "./row_to_member.ts";
+import { rowToContact } from "./internal/rows/row_to_contact.ts";
+import { rowToField } from "./internal/rows/row_to_field.ts";
+import { rowToInteraction } from "./internal/rows/row_to_interaction.ts";
+import { rowToLink } from "./internal/rows/row_to_link.ts";
+import { rowToMember } from "./internal/rows/row_to_member.ts";
 import type { MemberDetail } from "./types.ts";
 
 const DEFAULT_INTERACTION_LIMIT = 20;

@@ -1,5 +1,5 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { rowToMember } from "./row_to_member.ts";
+import { rowToMember } from "./internal/rows/row_to_member.ts";
 import type { PackMember, UpdateBondInput } from "./types.ts";
 import { MEMBER_STATUSES } from "./types.ts";
 import { validateMemberName } from "./validate_member_name.ts";

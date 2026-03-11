@@ -1,10 +1,10 @@
 import type { ChatFactory } from "../../core/chat/chat_instance.ts";
 import { closeSession, createSession, executeTurn, getHistory } from "../../core/chat/index.ts";
 import { getMemory } from "../../core/memory/index.ts";
-import { renderBond } from "../../core/pack/render_bond.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { assembleContext } from "../context.ts";
+import { renderPackBond } from "../internal/render_pack_bond.ts";
 import { createWardenTools } from "../tools.ts";
 
 const COMMAND_PREFIX = `You are handling a direct command. Execute it using your tools.
@@ -49,7 +49,7 @@ export async function executeCommand(
     const parts: string[] = [COMMAND_PREFIX];
 
     if (input.memberId) {
-      const rendered = renderBond(db, input.memberId);
+      const rendered = renderPackBond(db, input.memberId);
       if (rendered) {
         parts.push("", "## Target Member", "", rendered);
       }

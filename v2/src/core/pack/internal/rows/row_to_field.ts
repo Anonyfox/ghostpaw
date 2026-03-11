@@ -1,4 +1,4 @@
-import type { PackField } from "./types.ts";
+import type { PackField } from "../../types.ts";
 
 export function rowToField(row: Record<string, unknown>): PackField {
   return {

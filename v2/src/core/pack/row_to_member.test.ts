@@ -1,6 +1,6 @@
 import { deepStrictEqual, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import { rowToMember } from "./row_to_member.ts";
+import { rowToMember } from "./internal/rows/row_to_member.ts";
 
 describe("rowToMember", () => {
   it("maps a database row to a PackMember", () => {

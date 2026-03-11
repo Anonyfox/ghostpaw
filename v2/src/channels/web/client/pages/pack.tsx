@@ -91,8 +91,11 @@ export function PackPage() {
         <div class="card-body">
           <div class="row g-2 align-items-end">
             <div class="col-md-5">
-              <label class="form-label small text-body-secondary">Search</label>
+              <label class="form-label small text-body-secondary" for="pack-search">
+                Search
+              </label>
               <input
+                id="pack-search"
                 class="form-control form-control-sm"
                 value={search}
                 onInput={(event) => setSearch((event.currentTarget as HTMLInputElement).value)}
@@ -100,8 +103,11 @@ export function PackPage() {
               />
             </div>
             <div class="col-md-3">
-              <label class="form-label small text-body-secondary">Field</label>
+              <label class="form-label small text-body-secondary" for="pack-field">
+                Field
+              </label>
               <input
+                id="pack-field"
                 class="form-control form-control-sm"
                 value={field}
                 onInput={(event) => setField((event.currentTarget as HTMLInputElement).value)}
@@ -109,8 +115,11 @@ export function PackPage() {
               />
             </div>
             <div class="col-md-2">
-              <label class="form-label small text-body-secondary">Group ID</label>
+              <label class="form-label small text-body-secondary" for="pack-group-id">
+                Group ID
+              </label>
               <input
+                id="pack-group-id"
                 class="form-control form-control-sm"
                 value={group}
                 onInput={(event) => setGroup((event.currentTarget as HTMLInputElement).value)}

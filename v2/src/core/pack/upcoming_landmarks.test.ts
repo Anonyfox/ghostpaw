@@ -3,7 +3,7 @@ import { beforeEach, describe, it } from "node:test";
 import { type DatabaseHandle, openTestDatabase } from "../../lib/index.ts";
 import { meetMember } from "./meet_member.ts";
 import { noteInteraction } from "./note_interaction.ts";
-import { initPackTables } from "./schema.ts";
+import { initPackTables } from "./runtime/schema.ts";
 import { upcomingLandmarks } from "./upcoming_landmarks.ts";
 
 let db: DatabaseHandle;

@@ -42,16 +42,22 @@ export function PackMergePreviewPanel() {
         <h6 class="card-title mb-3">Merge Preview</h6>
         <form class="row g-2 align-items-end mb-3" onSubmit={loadPreview}>
           <div class="col-sm-4">
-            <label class="form-label small text-body-secondary">Keep ID</label>
+            <label class="form-label small text-body-secondary" for="pack-merge-preview-keep">
+              Keep ID
+            </label>
             <input
+              id="pack-merge-preview-keep"
               class="form-control form-control-sm"
               value={keep}
               onInput={(event) => setKeep((event.currentTarget as HTMLInputElement).value)}
             />
           </div>
           <div class="col-sm-4">
-            <label class="form-label small text-body-secondary">Merge ID</label>
+            <label class="form-label small text-body-secondary" for="pack-merge-preview-merge">
+              Merge ID
+            </label>
             <input
+              id="pack-merge-preview-merge"
               class="form-control form-control-sm"
               value={merge}
               onInput={(event) => setMerge((event.currentTarget as HTMLInputElement).value)}

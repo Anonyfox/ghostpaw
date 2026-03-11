@@ -5,7 +5,7 @@ import { setField } from "./fields.ts";
 import { addLink } from "./links.ts";
 import { listMembers } from "./list_members.ts";
 import { meetMember } from "./meet_member.ts";
-import { initPackTables } from "./schema.ts";
+import { initPackTables } from "./runtime/schema.ts";
 
 let db: DatabaseHandle;
 

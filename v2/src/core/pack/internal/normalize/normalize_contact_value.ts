@@ -1,4 +1,4 @@
-import type { ContactType } from "./types.ts";
+import type { ContactType } from "../../types.ts";
 
 const LOWERCASE_CONTACT_TYPES = new Set<ContactType>([
   "email",

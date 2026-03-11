@@ -1,6 +1,6 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { setField } from "./fields.ts";
-import { rowToMember } from "./row_to_member.ts";
+import { rowToMember } from "./internal/rows/row_to_member.ts";
 import type { MeetInput, PackMember } from "./types.ts";
 import { MEMBER_KINDS } from "./types.ts";
 import { validateMemberName } from "./validate_member_name.ts";

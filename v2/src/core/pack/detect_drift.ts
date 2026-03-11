@@ -36,7 +36,9 @@ function median(values: number[]): number {
   return sorted[middle];
 }
 
-function cadenceThreshold(timestamps: number[]): { baselineDays: number; thresholdDays: number } | null {
+function cadenceThreshold(
+  timestamps: number[],
+): { baselineDays: number; thresholdDays: number } | null {
   if (timestamps.length < CADENCE_SAMPLE_SIZE) {
     return null;
   }

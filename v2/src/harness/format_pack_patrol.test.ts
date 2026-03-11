@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
-import { initPackTables, meetMember, noteInteraction, updateBond } from "../core/pack/index.ts";
+import { meetMember, noteInteraction, updateBond } from "../core/pack/api/write/index.ts";
+import { initPackTables } from "../core/pack/runtime/index.ts";
 import { type DatabaseHandle, openTestDatabase } from "../lib/index.ts";
 import { formatPackPatrol } from "./format_pack_patrol.ts";
 

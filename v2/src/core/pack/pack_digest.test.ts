@@ -4,7 +4,7 @@ import { type DatabaseHandle, openTestDatabase } from "../../lib/index.ts";
 import { meetMember } from "./meet_member.ts";
 import { noteInteraction } from "./note_interaction.ts";
 import { packDigest } from "./pack_digest.ts";
-import { initPackTables } from "./schema.ts";
+import { initPackTables } from "./runtime/schema.ts";
 import { updateBond } from "./update_bond.ts";
 
 const DAY = 86_400_000;

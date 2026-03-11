@@ -1,6 +1,6 @@
 import { deepStrictEqual, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import { rowToContact } from "./row_to_contact.ts";
+import { rowToContact } from "./internal/rows/row_to_contact.ts";
 
 describe("rowToContact", () => {
   it("maps a database row to a PackContact", () => {

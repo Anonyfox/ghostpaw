@@ -1,5 +1,5 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { rowToField } from "./row_to_field.ts";
+import { rowToField } from "./internal/rows/row_to_field.ts";
 import type { PackField, PackMemberSummary } from "./types.ts";
 
 export function setField(

@@ -5,7 +5,7 @@ import {
   packDigest,
   resolveNames,
   senseMember,
-} from "../../core/pack/index.ts";
+} from "../../core/pack/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatMemberDetail, relativeTime } from "./format_pack.ts";
 import { resolveMember } from "./resolve.ts";

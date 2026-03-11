@@ -1,6 +1,7 @@
 import { strictEqual } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
-import { initPackTables, meetMember } from "../../core/pack/index.ts";
+import { meetMember } from "../../core/pack/api/write/index.ts";
+import { initPackTables } from "../../core/pack/runtime/index.ts";
 import { type DatabaseHandle, openTestDatabase } from "../../lib/index.ts";
 import { resolveMember } from "./resolve_member.ts";
 

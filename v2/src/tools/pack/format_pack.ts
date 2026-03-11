@@ -4,7 +4,7 @@ import type {
   PackInteraction,
   PackLink,
   PackMember,
-} from "../../core/pack/types.ts";
+} from "../../core/pack/api/types.ts";
 import { trustLabel } from "./trust_label.ts";
 import type {
   FormattedContact,

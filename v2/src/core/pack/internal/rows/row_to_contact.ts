@@ -1,4 +1,4 @@
-import type { ContactType, PackContact } from "./types.ts";
+import type { ContactType, PackContact } from "../../types.ts";
 
 export function rowToContact(row: Record<string, unknown>): PackContact {
   return {

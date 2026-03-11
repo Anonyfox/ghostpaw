@@ -1,5 +1,5 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { rowToMember } from "./row_to_member.ts";
+import { rowToMember } from "./internal/rows/row_to_member.ts";
 import type { PackMember } from "./types.ts";
 
 export function getMember(db: DatabaseHandle, id: number): PackMember | null {

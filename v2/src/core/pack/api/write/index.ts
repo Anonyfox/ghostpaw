@@ -1,0 +1,10 @@
+export type { AddContactResult } from "../../add_contact.ts";
+export { addContact } from "../../add_contact.ts";
+export { removeField, setField } from "../../fields.ts";
+export { addLink, deactivateLink, removeLink } from "../../links.ts";
+export { meetMember } from "../../meet_member.ts";
+export { mergeMember } from "../../merge_member.ts";
+export { noteInteraction } from "../../note_interaction.ts";
+export { removeContact } from "../../remove_contact.ts";
+export { updateBond } from "../../update_bond.ts";
+export { validateMemberName } from "../../validate_member_name.ts";

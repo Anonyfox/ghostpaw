@@ -1,6 +1,7 @@
 import { createTool, Schema } from "chatoyant";
-import { MEMBER_STATUSES, removeField, setField, updateBond } from "../../core/pack/index.ts";
-import type { MemberStatus, PackMember, UpdateBondInput } from "../../core/pack/types.ts";
+import { MEMBER_STATUSES } from "../../core/pack/api/constants.ts";
+import type { MemberStatus, PackMember, UpdateBondInput } from "../../core/pack/api/types.ts";
+import { removeField, setField, updateBond } from "../../core/pack/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { resolveMember } from "./resolve.ts";
 import { trustLabel } from "./trust_label.ts";

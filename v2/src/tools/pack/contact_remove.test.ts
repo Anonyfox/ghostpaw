@@ -1,6 +1,8 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { addContact, initPackTables, listContacts, meetMember } from "../../core/pack/index.ts";
+import { listContacts } from "../../core/pack/api/read/index.ts";
+import { addContact, meetMember } from "../../core/pack/api/write/index.ts";
+import { initPackTables } from "../../core/pack/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createContactRemoveTool } from "./contact_remove.ts";

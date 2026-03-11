@@ -1,6 +1,8 @@
 import { createTool, Schema } from "chatoyant";
-import { countInteractions, INTERACTION_KINDS, noteInteraction } from "../../core/pack/index.ts";
-import type { InteractionKind } from "../../core/pack/types.ts";
+import { INTERACTION_KINDS } from "../../core/pack/api/constants.ts";
+import { countInteractions } from "../../core/pack/api/read/index.ts";
+import type { InteractionKind } from "../../core/pack/api/types.ts";
+import { noteInteraction } from "../../core/pack/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatInteraction } from "./format_pack.ts";
 import { resolveMember } from "./resolve.ts";

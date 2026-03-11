@@ -11,21 +11,21 @@ import {
   previewMergeMember,
   resolveNames,
   senseMember,
-} from "../../../../core/pack/index.ts";
+} from "../../../../core/pack/api/read/index.ts";
 import type {
   ContactType,
   InteractionKind,
   MemberKind,
   MemberStatus,
-} from "../../../../core/pack/types.ts";
+} from "../../../../core/pack/api/types.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type {
   PackContactInfo,
   PackFieldInfo,
   PackInteractionInfo,
   PackLinkInfo,
-  PackMergePreviewResponse,
   PackMemberInfo,
+  PackMergePreviewResponse,
 } from "../../shared/pack_types.ts";
 import { trustLevel } from "../../shared/pack_types.ts";
 import { readJsonBody } from "../body_parser.ts";

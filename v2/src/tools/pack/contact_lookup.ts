@@ -1,6 +1,7 @@
 import { createTool, Schema } from "chatoyant";
-import { CONTACT_TYPES, lookupContact } from "../../core/pack/index.ts";
-import type { ContactType } from "../../core/pack/types.ts";
+import { CONTACT_TYPES } from "../../core/pack/api/constants.ts";
+import { lookupContact } from "../../core/pack/api/read/index.ts";
+import type { ContactType } from "../../core/pack/api/types.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ContactLookupParams extends Schema {

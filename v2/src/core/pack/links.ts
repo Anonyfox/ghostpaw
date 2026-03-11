@@ -1,5 +1,5 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { rowToLink } from "./row_to_link.ts";
+import { rowToLink } from "./internal/rows/row_to_link.ts";
 import type { PackLink } from "./types.ts";
 
 export function addLink(

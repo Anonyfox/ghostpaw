@@ -1,5 +1,5 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { rowToContact } from "./row_to_contact.ts";
+import { rowToContact } from "./internal/rows/row_to_contact.ts";
 import type { ListContactsOptions, PackContact } from "./types.ts";
 
 export function listContacts(

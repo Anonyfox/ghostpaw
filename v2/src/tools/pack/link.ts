@@ -1,12 +1,6 @@
 import { createTool, Schema } from "chatoyant";
-import {
-  addLink,
-  deactivateLink,
-  listLinkedMembers,
-  listLinks,
-  removeLink,
-  resolveNames,
-} from "../../core/pack/index.ts";
+import { listLinkedMembers, listLinks, resolveNames } from "../../core/pack/api/read/index.ts";
+import { addLink, deactivateLink, removeLink } from "../../core/pack/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { resolveMember } from "./resolve.ts";
 

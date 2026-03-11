@@ -18,7 +18,16 @@ There is no time pressure here. No token budget. No reward for volume. A week sp
 
 **Every file has a colocated test.** `thing.ts` → `thing.test.ts`. Always. No implementation file exists without its test file. The test file is not an afterthought — it is the specification that came first.
 
-**Folders have a public surface.** Each folder has one `index.ts` that exports exactly what outsiders may use — the folder's public API. This is typically a few types and an entry function. Internal files are private by convention: nothing outside the folder imports them directly. The `index.ts` is the front door; everything else is behind the wall.
+**Folders have explicit public surfaces.** Every folder exposes a deliberate public API, but the path must also encode intent. A simple folder may still use one `index.ts` as its front door. A complex subsystem uses namespace subfolders such as `api/read/`, `api/write/`, `runtime/`, and `internal/`. Outsiders import only the approved public paths. The front door is explicit; everything else stays behind the wall.
+
+**Namespace paths are semantic.** When a subsystem is large enough to need sub-surfaces, use these names with their exact meaning:
+
+- `api/read/` — deterministic, side-effect-free queries safe for cross-subsystem consumption
+- `api/write/` — privileged mutation surface for tools, the warden, or explicitly approved harness flows
+- `runtime/` — bootstrap/setup plumbing such as schema init, defaults, seeds, and integrity checks
+- `internal/` — private implementation details: row mappers, derivation helpers, SQL helpers, normalization, prompt shaping, formatting
+
+These path names are not organization flavor. They are enforceable boundary markers.
 
 **No junk drawers.** No `utils.ts`, `helpers.ts`, `common.ts`, `misc.ts`, `shared.ts`. If a function doesn't have a home, it doesn't have a reason to exist yet. When it does, it gets a named file in the right folder.
 
@@ -118,6 +127,8 @@ This analysis comes BEFORE writing test code. You are not checking boxes. You ar
 
 **One composition root.** There is exactly one place — the application entry point — where real implementations are chosen and wired together. This is the only file that knows about all concrete modules. Everything else receives its dependencies, it doesn't go fetch them.
 
+**Cross-subsystem imports target allowed namespace surfaces only.** The default cross-core import is `api/read/`. Importing another subsystem's `api/write/` is privileged and limited to mutation-capable layers such as `tools/` and explicitly approved harness flows. `runtime/` is for the composition root and bootstrap only. `internal/` is never imported across subsystem boundaries.
+
 ## Interfaces and Abstraction
 
 **Introduce an interface when two implementations exist.** The real one and a test fake count as two. But if a module only ever has one implementation and tests can use it directly (pure logic, no I/O), a direct import is simpler and more honest. Don't pre-abstract.
@@ -167,6 +178,8 @@ These apply to every `core/` module that owns tables.
 ## Cross-Module Communication
 
 **Function calls for synchronous operations.** Module A calls a function exported by Module B's public surface. This is the default and preferred mechanism. Simple, traceable, type-checked.
+
+**Public surface means the path, not just the symbol.** If a caller from another subsystem needs something that currently lives in `internal/`, the answer is not "import it anyway." Promote a deliberate API into `api/read/` or `api/write/`, or move the behavior so the boundary stays honest.
 
 **Callbacks for extension points.** When a lower-level module needs to notify a higher-level one (without depending on it), accept a callback during wiring. The composition root passes it in. This inverts the dependency without an event system.
 
@@ -235,6 +248,8 @@ Always use `npm test` — never raw `node --test`. The test script configures th
 - Event buses or pub/sub (without ARCHITECTURE.md justification)
 - SQL statements outside `core/` or `lib/` (channels, harness, and tools access data through core's public API, never via raw queries)
 - Direct imports into another folder's internal files
+- Direct imports into another subsystem's `runtime/`
+- Cross-core imports into another subsystem's `api/write/` unless the caller is an approved mutation-capable layer
 - Two exports in one file
 - Compatibility shims, legacy adapters, or "old way still works" code
 - Migration logic in schema init functions — schema init is `CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`, nothing else

@@ -5,7 +5,7 @@ import { openTestDatabase } from "../../lib/index.ts";
 import { countInteractions } from "./count_interactions.ts";
 import { meetMember } from "./meet_member.ts";
 import { noteInteraction } from "./note_interaction.ts";
-import { initPackTables } from "./schema.ts";
+import { initPackTables } from "./runtime/schema.ts";
 
 describe("countInteractions", () => {
   let db: DatabaseHandle;

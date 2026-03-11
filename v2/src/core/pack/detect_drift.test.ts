@@ -3,7 +3,7 @@ import { beforeEach, describe, it } from "node:test";
 import { type DatabaseHandle, openTestDatabase } from "../../lib/index.ts";
 import { detectDrift } from "./detect_drift.ts";
 import { meetMember } from "./meet_member.ts";
-import { initPackTables } from "./schema.ts";
+import { initPackTables } from "./runtime/schema.ts";
 import { updateBond } from "./update_bond.ts";
 
 const DAY = 86_400_000;

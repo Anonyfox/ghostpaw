@@ -1,13 +1,13 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { setField } from "../../../../core/pack/fields.ts";
 import {
   addContact,
-  initPackTables,
+  addLink,
   meetMember,
   noteInteraction,
-} from "../../../../core/pack/index.ts";
-import { addLink } from "../../../../core/pack/links.ts";
+  setField,
+} from "../../../../core/pack/api/write/index.ts";
+import { initPackTables } from "../../../../core/pack/runtime/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { openTestDatabase } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";

@@ -4,7 +4,7 @@ import { type DatabaseHandle, openTestDatabase } from "../../lib/index.ts";
 import { listInteractions } from "./list_interactions.ts";
 import { meetMember } from "./meet_member.ts";
 import { noteInteraction } from "./note_interaction.ts";
-import { initPackTables } from "./schema.ts";
+import { initPackTables } from "./runtime/schema.ts";
 
 let db: DatabaseHandle;
 

@@ -1,6 +1,7 @@
 import { createTool, Schema } from "chatoyant";
-import { CONTACT_TYPES, listContacts } from "../../core/pack/index.ts";
-import type { ContactType } from "../../core/pack/types.ts";
+import { CONTACT_TYPES } from "../../core/pack/api/constants.ts";
+import { listContacts } from "../../core/pack/api/read/index.ts";
+import type { ContactType } from "../../core/pack/api/types.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatContact } from "./format_pack.ts";
 import { resolveMember } from "./resolve.ts";

@@ -1,4 +1,4 @@
-import type { ContactType } from "../../../core/pack/types.ts";
+import type { ContactType } from "../../../core/pack/api/types.ts";
 
 export type TrustLevel = "deep" | "solid" | "growing" | "shallow";
 

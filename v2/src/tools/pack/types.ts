@@ -3,7 +3,7 @@ import type {
   InteractionKind,
   MemberKind,
   MemberStatus,
-} from "../../core/pack/types.ts";
+} from "../../core/pack/api/types.ts";
 
 export interface FormattedMemberSummary {
   id: number;

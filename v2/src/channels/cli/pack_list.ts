@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
-import type { MemberKind, MemberStatus } from "../../core/pack/index.ts";
-import { countMembers, listMembers } from "../../core/pack/index.ts";
+import { countMembers, listMembers } from "../../core/pack/api/read/index.ts";
+import type { MemberKind, MemberStatus } from "../../core/pack/api/types.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 

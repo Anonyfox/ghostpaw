@@ -5,7 +5,7 @@ import { openTestDatabase } from "../../lib/index.ts";
 import { setField } from "./fields.ts";
 import { getMemberTags } from "./get_member_tags.ts";
 import { meetMember } from "./meet_member.ts";
-import { initPackTables } from "./schema.ts";
+import { initPackTables } from "./runtime/schema.ts";
 
 describe("getMemberTags", () => {
   let db: DatabaseHandle;

@@ -1,4 +1,4 @@
-import type { MemberKind, MemberStatus, PackMember } from "./types.ts";
+import type { MemberKind, MemberStatus, PackMember } from "../../types.ts";
 
 export function rowToMember(row: Record<string, unknown>): PackMember {
   return {

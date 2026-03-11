@@ -10,7 +10,7 @@ import { listContacts } from "./list_contacts.ts";
 import { meetMember } from "./meet_member.ts";
 import { mergeMember } from "./merge_member.ts";
 import { noteInteraction } from "./note_interaction.ts";
-import { initPackTables } from "./schema.ts";
+import { initPackTables } from "./runtime/schema.ts";
 
 describe("mergeMember", () => {
   let db: DatabaseHandle;
@@ -341,9 +341,9 @@ describe("mergeMember", () => {
     strictEqual(interactionRows.length, 1);
     strictEqual(interactionRows[0].member_id, merge.id);
 
-    const contactRows = db
-      .prepare("SELECT member_id FROM pack_contacts ORDER BY id")
-      .all() as { member_id: number }[];
+    const contactRows = db.prepare("SELECT member_id FROM pack_contacts ORDER BY id").all() as {
+      member_id: number;
+    }[];
     strictEqual(contactRows.length, 1);
     strictEqual(contactRows[0].member_id, merge.id);
 

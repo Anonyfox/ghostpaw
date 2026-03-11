@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { countMembers } from "../../core/pack/index.ts";
+import { countMembers } from "../../core/pack/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 

@@ -1,5 +1,5 @@
-import { getMember, getMemberByName } from "../../core/pack/index.ts";
-import type { PackMember } from "../../core/pack/types.ts";
+import { getMember, getMemberByName } from "../../core/pack/api/read/index.ts";
+import type { PackMember } from "../../core/pack/api/types.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 export function resolveMember(db: DatabaseHandle, ref: string): PackMember | null {

@@ -6,7 +6,6 @@ import {
   listSkills,
   pendingFragmentCount,
   pendingFragments,
-  readSkillHealth,
   repairFlatFile,
   repairSkill,
   validateAllSkills,

@@ -1,5 +1,5 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { rowToInteraction } from "./row_to_interaction.ts";
+import { rowToInteraction } from "./internal/rows/row_to_interaction.ts";
 import type { NoteInput, PackInteraction } from "./types.ts";
 import { INTERACTION_KINDS } from "./types.ts";
 

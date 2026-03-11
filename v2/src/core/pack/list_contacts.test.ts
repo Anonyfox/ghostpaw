@@ -5,7 +5,7 @@ import { openTestDatabase } from "../../lib/index.ts";
 import { addContact } from "./add_contact.ts";
 import { listContacts } from "./list_contacts.ts";
 import { meetMember } from "./meet_member.ts";
-import { initPackTables } from "./schema.ts";
+import { initPackTables } from "./runtime/schema.ts";
 
 describe("listContacts", () => {
   let db: DatabaseHandle;

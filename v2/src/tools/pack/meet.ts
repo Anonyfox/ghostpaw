@@ -1,6 +1,8 @@
 import { createTool, Schema } from "chatoyant";
-import { getMemberByName, MEMBER_KINDS, meetMember } from "../../core/pack/index.ts";
-import type { MemberKind } from "../../core/pack/types.ts";
+import { MEMBER_KINDS } from "../../core/pack/api/constants.ts";
+import { getMemberByName } from "../../core/pack/api/read/index.ts";
+import type { MemberKind } from "../../core/pack/api/types.ts";
+import { meetMember } from "../../core/pack/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatMemberSummary } from "./format_pack.ts";
 

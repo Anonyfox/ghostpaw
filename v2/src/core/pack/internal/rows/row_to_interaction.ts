@@ -1,4 +1,4 @@
-import type { InteractionKind, PackInteraction } from "./types.ts";
+import type { InteractionKind, PackInteraction } from "../../types.ts";
 
 export function rowToInteraction(row: Record<string, unknown>): PackInteraction {
   return {

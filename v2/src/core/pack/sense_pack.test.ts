@@ -2,7 +2,7 @@ import { ok, strictEqual } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
 import { type DatabaseHandle, openTestDatabase } from "../../lib/index.ts";
 import { meetMember } from "./meet_member.ts";
-import { initPackTables } from "./schema.ts";
+import { initPackTables } from "./runtime/schema.ts";
 import { sensePack } from "./sense_pack.ts";
 import { updateBond } from "./update_bond.ts";
 

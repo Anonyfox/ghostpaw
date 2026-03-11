@@ -1,6 +1,6 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { normalizeContactValue } from "./normalize_contact_value.ts";
-import { rowToContact } from "./row_to_contact.ts";
+import { normalizeContactValue } from "./internal/normalize/normalize_contact_value.ts";
+import { rowToContact } from "./internal/rows/row_to_contact.ts";
 import type { AddContactInput, PackContact } from "./types.ts";
 import { CONTACT_TYPES } from "./types.ts";
 

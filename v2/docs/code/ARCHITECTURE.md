@@ -26,6 +26,14 @@ Five layers, strictly ordered. Each layer may depend on layers below it. Never a
 - `harness/` depends on `core/`, `tools/`, and `lib/`. Never on channels. The harness is the ghost in operational form — it composes core modules, registers tools, assembles context, and provides the entity that channels drive.
 - `channels/` depends on `harness/` for entity operations and `core/` for direct data reads (session listing, history retrieval). Never on tools directly.
 
+**Namespace boundary rules:**
+
+- Cross-subsystem `core` imports default to `src/core/<feature>/api/read/**`.
+- `src/core/<feature>/api/write/**` is a privileged mutation surface. It may be imported by `tools/` and by explicitly approved harness orchestration paths, not by arbitrary core callers.
+- `src/core/<feature>/runtime/**` is for startup/bootstrap/composition only.
+- `src/core/<feature>/internal/**` is private to the owning subsystem.
+- The same pattern applies upward as folders grow: `tools/<namespace>/public/**` vs `tools/<namespace>/internal/**`, `harness/public/**` vs `harness/internal/**`, and equivalent channel-local splits.
+
 **Why channels don't depend on tools:** Channels drive the entity, which provides tools to the LLM turn. A channel never calls a tool directly. The channel provides UX, the harness provides the composed entity, and the core turn pipeline handles tool execution.
 
 ## Bootstrap
@@ -35,6 +43,24 @@ A lifecycle phase, not a layer. Before the harness or any channel can run, the s
 ## src/core/
 
 The domain. Every feature is a subfolder. Each subfolder contains everything for that feature: types, logic, default content, tests. Nothing about a feature lives outside its folder.
+
+Complex core features use explicit namespace folders so the import path itself states intent:
+
+```text
+core/<feature>/
+  api/
+    read/
+    write/
+  runtime/
+  internal/
+```
+
+Meaning:
+
+- `api/read/` — deterministic read-only primitives for cross-system consumption
+- `api/write/` — intentional mutation entry points
+- `runtime/` — schema init, defaults, seeds, integrity/bootstrap helpers
+- `internal/` — row mappers, derivation logic, normalization, formatting, private SQL helpers
 
 Features include (not exhaustive — grows as the system grows):
 
@@ -53,7 +79,7 @@ Modules that moved out of `core/`: `models/` → `lib/models/` (stateless provid
 
 Core modules never make discretionary LLM calls. `core/chat` is a special case: its purpose IS to execute the LLM turn pipeline, but it doesn't initiate auxiliary LLM tasks (like summarization or title generation). Those live in `harness/oneshots/`.
 
-Core modules may depend on each other when there's a genuine relationship (e.g. memory recall reads config for tuning parameters). These internal dependencies follow the same rules: import from the public surface (`index.ts`), never reach into internals. Circular dependencies between core modules are still forbidden — if two features need each other, extract the shared concept or use a callback wired at the harness level.
+Core modules may depend on each other when there's a genuine relationship (e.g. memory recall reads config for tuning parameters). These dependencies follow the namespace contract: default to `api/read/`, escalate to `api/write/` only when the caller is explicitly allowed to mutate, never reach into `internal/`, and never import `runtime/` during normal operation. Circular dependencies between core modules are still forbidden — if two features need each other, extract the shared concept or use a callback wired at the harness level.
 
 ## src/tools/
 
@@ -97,6 +123,16 @@ tools/
 
 A tool receives context (session, database handle, configuration) from the harness — it does not import the harness or reach up to channels. Tools depend on core modules for domain operations (the `memory` tool calls into `core/memory/`, the `config` tool calls into `core/config/`).
 
+As tool namespaces grow, the same pattern applies:
+
+```text
+tools/<namespace>/
+  public/
+  internal/
+```
+
+Other layers import tool factories from `public/` only.
+
 ## src/harness/
 
 The ghost in operational form. The harness composes core modules into a working entity — the thing channels actually talk to.
@@ -108,6 +144,18 @@ The ghost in operational form. The harness composes core modules into a working 
 **Oneshots.** `harness/oneshots/` contains fine-tuned, single-purpose LLM calls for semantic tasks that pure code can't handle: title generation, compaction summarization, and (future) classification, extraction, and routing. Each oneshot is individually tuned with its own system prompt, model parameters, and token limits. Use them liberally — ad-hoc LLM calls are an unfair advantage of an AI-first system.
 
 **Orchestration (future).** Complex multi-step operations like haunting, training, and delegation will live in the harness as orchestration modules that compose multiple core operations and oneshots into coherent workflows.
+
+As harness complexity grows, it follows the same naming discipline:
+
+```text
+harness/
+  public/
+  flows/
+  prompts/
+  internal/
+```
+
+Channels should prefer `harness/public/**`. Prompt builders and internal wiring stay out of their reach.
 
 ## src/channels/
 
@@ -141,6 +189,8 @@ Core models these flows as state that channels can drive at their own pace. The 
 
 Web is a channel, structurally. The fact that it ships an embedded Preact SPA for its own API is an implementation detail. The `server/` subfolder handles HTTP, auth, routing, API endpoints. The `client/` subfolder is the Preact frontend — TSX components, Bootstrap CSS, client-side routing. The only acceptable "leak" is that the top-level build configuration knows about the client build (to bundle it into the artifact). This is minor and accepted.
 
+Channels may import `core` read APIs for deterministic inspection surfaces, but they never import `tools/` directly and should prefer `harness/public/**` for entity-driven behavior.
+
 ## src/lib/
 
 Pure utilities. Domain-independent. Standalone. Unit-tested. The only shared code in the entire codebase.
@@ -171,9 +221,9 @@ One SQLite file: `ghostpaw.db`. One connection. Managed in two layers:
 
 **`lib/` provides the connection.** A generic database module that opens the file, sets sane pragmas (WAL mode, foreign keys, journal size, synchronous mode), and exposes the connection handle. This module knows nothing about tables, features, or domain logic. It's pure infrastructure.
 
-**Each feature owns its tables.** `core/chat/` creates and queries the `sessions` and `messages` tables (including cost aggregation queries). `core/memory/` creates and queries the `memories` table. `core/pack/` owns `pack_members`, `pack_interactions`, and `pack_contacts`. `core/schedule/` owns the `schedules` table. Schema creation, queries, migrations — all live inside the feature folder. No ORM, no query builder, no abstraction layer. Hand-tuned SQL, unit-tested.
+**Each feature owns its tables.** `core/chat/` creates and queries the `sessions` and `messages` tables (including cost aggregation queries). `core/memory/` creates and queries the `memories` table. `core/pack/` owns `pack_members`, `pack_interactions`, and `pack_contacts`. `core/schedule/` owns the `schedules` table. Schema creation, queries, migrations — all live inside the feature folder. Runtime table setup belongs under `runtime/`; operational queries and mutations are exposed through `api/read/` and `api/write/`; private SQL helpers stay in `internal/`. No ORM, no query builder, no abstraction layer. Hand-tuned SQL, unit-tested.
 
-**SQL lives in core, nowhere else.** SQL statements (`.prepare()`, `.exec()`, raw `SELECT`/`INSERT`/`UPDATE`/`DELETE`) may only exist inside `core/` and `lib/`. Layers above core access data exclusively through the public API exported from each core module's `index.ts`. Raw SQL in channels, harness, or tools is a boundary violation equivalent to importing internal files. When a layer above core needs data that isn't exposed, the correct response is to add a function to the owning core module — never to write SQL in the caller.
+**SQL lives in core, nowhere else.** SQL statements (`.prepare()`, `.exec()`, raw `SELECT`/`INSERT`/`UPDATE`/`DELETE`) may only exist inside `core/` and `lib/`. Layers above core access data exclusively through approved `api/read/` and `api/write/` surfaces, never by reaching into `internal/` or writing SQL themselves. Raw SQL in channels, harness, or tools is a boundary violation equivalent to importing internal files. When a layer above core needs data that isn't exposed, the correct response is to add a function to the owning core module — never to write SQL in the caller.
 
 **Testing:** `lib/` also provides a test database connection that returns an in-memory (`:memory:`) SQLite instance instead of a WAL-mode on-disk file. Fast, isolated, throwaway. Every feature's tests use this — no test ever touches a real database file. Network calls are mocked — no test ever makes a real HTTP request or LLM API call.
 

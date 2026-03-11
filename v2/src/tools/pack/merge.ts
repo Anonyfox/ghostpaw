@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { mergeMember } from "../../core/pack/index.ts";
+import { mergeMember } from "../../core/pack/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { resolveMember } from "./resolve.ts";
 

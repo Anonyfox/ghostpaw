@@ -4,7 +4,7 @@ import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { getMemberBonds } from "./get_member_bonds.ts";
 import { meetMember } from "./meet_member.ts";
-import { initPackTables } from "./schema.ts";
+import { initPackTables } from "./runtime/schema.ts";
 
 describe("getMemberBonds", () => {
   let db: DatabaseHandle;

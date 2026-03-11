@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import { type DatabaseHandle, openTestDatabase } from "../../lib/index.ts";
 import { detectPatrol } from "./detect_patrol.ts";
-import { initPackTables } from "./schema.ts";
-import type { DriftAlert, Landmark } from "./types.ts";
 import { meetMember } from "./meet_member.ts";
+import { initPackTables } from "./runtime/schema.ts";
+import type { DriftAlert, Landmark } from "./types.ts";
 import { updateBond } from "./update_bond.ts";
 
 const DAY = 86_400_000;

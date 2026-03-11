@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { countMembers, sensePack } from "../../core/pack/index.ts";
+import { countMembers, sensePack } from "../../core/pack/api/read/index.ts";
 import { defaultChatFactory } from "../../harness/chat_factory.ts";
 import { resolveModel } from "../../harness/model.ts";
 import { executeCommand } from "../../harness/oneshots/execute_command.ts";
@@ -21,10 +21,7 @@ interface ParsedPackInvocation {
   positionals: string[];
 }
 
-function optionString(
-  options: Record<string, string | boolean>,
-  key: string,
-): string | undefined {
+function optionString(options: Record<string, string | boolean>, key: string): string | undefined {
   const value = options[key];
   return typeof value === "string" ? value : undefined;
 }

@@ -4,7 +4,7 @@ import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { getMemberName } from "./get_member_name.ts";
 import { meetMember } from "./meet_member.ts";
-import { initPackTables } from "./schema.ts";
+import { initPackTables } from "./runtime/schema.ts";
 
 describe("getMemberName", () => {
   let db: DatabaseHandle;

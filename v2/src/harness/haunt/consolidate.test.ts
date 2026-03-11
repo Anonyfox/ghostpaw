@@ -4,7 +4,7 @@ import type { ChatInstance } from "../../core/chat/chat_instance.ts";
 import { createSession, initChatTables } from "../../core/chat/index.ts";
 import { initHowlTables } from "../../core/howl/index.ts";
 import { initMemoryTable } from "../../core/memory/index.ts";
-import { initPackTables } from "../../core/pack/index.ts";
+import { initPackTables } from "../../core/pack/runtime/index.ts";
 import { initQuestTables } from "../../core/quests/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";

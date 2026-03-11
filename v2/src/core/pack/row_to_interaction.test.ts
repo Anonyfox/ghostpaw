@@ -1,6 +1,6 @@
 import { deepStrictEqual, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import { rowToInteraction } from "./row_to_interaction.ts";
+import { rowToInteraction } from "./internal/rows/row_to_interaction.ts";
 
 describe("rowToInteraction", () => {
   it("maps a database row to a PackInteraction", () => {

@@ -1,4 +1,4 @@
-import type { DatabaseHandle } from "../../lib/index.ts";
+import type { DatabaseHandle } from "../../../lib/index.ts";
 
 export function initPackTables(db: DatabaseHandle): void {
   db.exec(`

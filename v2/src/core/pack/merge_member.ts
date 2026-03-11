@@ -1,5 +1,5 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { rowToMember } from "./row_to_member.ts";
+import { rowToMember } from "./internal/rows/row_to_member.ts";
 import type { PackMember } from "./types.ts";
 
 type MemberTextField =
@@ -74,8 +74,7 @@ function mergeTextValue(
 }
 
 function chooseParentId(keep: PackMember, merge: PackMember): number | null {
-  const keepParent =
-    keep.parentId === keep.id || keep.parentId === merge.id ? null : keep.parentId;
+  const keepParent = keep.parentId === keep.id || keep.parentId === merge.id ? null : keep.parentId;
   const mergeParent =
     merge.parentId === keep.id || merge.parentId === merge.id ? null : merge.parentId;
 
@@ -100,7 +99,11 @@ function mergeRoles(
   return mergeUpdatedAt > keepUpdatedAt ? mergeRole : keepRole;
 }
 
-function mergeLinksOnConflict(db: DatabaseHandle, survivor: PackLinkRow, duplicate: PackLinkRow): void {
+function mergeLinksOnConflict(
+  db: DatabaseHandle,
+  survivor: PackLinkRow,
+  duplicate: PackLinkRow,
+): void {
   const mergedRole = mergeRoles(
     survivor.role,
     duplicate.role,
@@ -119,12 +122,7 @@ function mergeLinksOnConflict(db: DatabaseHandle, survivor: PackLinkRow, duplica
   db.prepare("DELETE FROM pack_links WHERE id = ?").run(duplicate.id);
 }
 
-function moveLink(
-  db: DatabaseHandle,
-  link: PackLinkRow,
-  memberId: number,
-  targetId: number,
-): void {
+function moveLink(db: DatabaseHandle, link: PackLinkRow, memberId: number, targetId: number): void {
   if (memberId === targetId) {
     db.prepare("DELETE FROM pack_links WHERE id = ?").run(link.id);
     return;
@@ -250,12 +248,9 @@ export function mergeMember(db: DatabaseHandle, keepId: number, mergeId: number)
       if (mergedField.preservedConflict) {
         preservedConflicts.push(mergedField.preservedConflict);
       }
-      db.prepare("UPDATE pack_fields SET value = ?, updated_at = ? WHERE member_id = ? AND key = ?").run(
-        mergedField.value,
-        Math.max(existing.updated_at, f.updated_at),
-        keepId,
-        f.key,
-      );
+      db.prepare(
+        "UPDATE pack_fields SET value = ?, updated_at = ? WHERE member_id = ? AND key = ?",
+      ).run(mergedField.value, Math.max(existing.updated_at, f.updated_at), keepId, f.key);
       db.prepare("DELETE FROM pack_fields WHERE member_id = ? AND key = ?").run(mergeId, f.key);
     }
 
@@ -330,10 +325,9 @@ export function mergeMember(db: DatabaseHandle, keepId: number, mergeId: number)
       keepId,
     );
 
-    db.prepare("UPDATE pack_members SET status = 'lost', parent_id = NULL, updated_at = ? WHERE id = ?").run(
-      now,
-      mergeId,
-    );
+    db.prepare(
+      "UPDATE pack_members SET status = 'lost', parent_id = NULL, updated_at = ? WHERE id = ?",
+    ).run(now, mergeId);
 
     db.exec("COMMIT");
   } catch (err) {

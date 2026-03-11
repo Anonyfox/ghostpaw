@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { removeContact } from "../../core/pack/index.ts";
+import { removeContact } from "../../core/pack/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ContactRemoveParams extends Schema {

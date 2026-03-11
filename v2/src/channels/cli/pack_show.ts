@@ -5,7 +5,7 @@ import {
   listFields,
   listInteractions,
   listLinks,
-} from "../../core/pack/index.ts";
+} from "../../core/pack/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { resolveMember } from "./resolve_member.ts";
 import { withRunDb } from "./with_run_db.ts";

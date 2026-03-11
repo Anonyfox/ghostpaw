@@ -1,5 +1,5 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { rowToMember } from "./row_to_member.ts";
+import { rowToMember } from "./internal/rows/row_to_member.ts";
 import type { PackMember } from "./types.ts";
 
 type MemberTextField =
@@ -112,12 +112,14 @@ function chooseTextValue(
   return { chosenValue: keepValue, chosenSource: "keep" };
 }
 
-function chooseParentId(keep: PackMember, merge: PackMember): {
+function chooseParentId(
+  keep: PackMember,
+  merge: PackMember,
+): {
   chosenValue: number | null;
   chosenSource: MergeChoiceSource;
 } {
-  const keepParent =
-    keep.parentId === keep.id || keep.parentId === merge.id ? null : keep.parentId;
+  const keepParent = keep.parentId === keep.id || keep.parentId === merge.id ? null : keep.parentId;
   const mergeParent =
     merge.parentId === keep.id || merge.parentId === merge.id ? null : merge.parentId;
   if (keepParent === mergeParent) {
@@ -145,14 +147,19 @@ function getMemberRow(db: DatabaseHandle, id: number): PackMember {
   return rowToMember(row);
 }
 
-function getLinkConflicts(db: DatabaseHandle, keepId: number, mergeId: number): MergeLinkConflict[] {
+function getLinkConflicts(
+  db: DatabaseHandle,
+  keepId: number,
+  mergeId: number,
+): MergeLinkConflict[] {
   const conflicts: MergeLinkConflict[] = [];
 
   const keepOutgoing = new Set(
     (
-      db
-        .prepare("SELECT target_id, label FROM pack_links WHERE member_id = ?")
-        .all(keepId) as { target_id: number; label: string }[]
+      db.prepare("SELECT target_id, label FROM pack_links WHERE member_id = ?").all(keepId) as {
+        target_id: number;
+        label: string;
+      }[]
     ).map((row) => `${row.target_id}:${row.label}`),
   );
   const mergeOutgoing = db
@@ -182,9 +189,10 @@ function getLinkConflicts(db: DatabaseHandle, keepId: number, mergeId: number): 
 
   const keepIncoming = new Set(
     (
-      db
-        .prepare("SELECT member_id, label FROM pack_links WHERE target_id = ?")
-        .all(keepId) as { member_id: number; label: string }[]
+      db.prepare("SELECT member_id, label FROM pack_links WHERE target_id = ?").all(keepId) as {
+        member_id: number;
+        label: string;
+      }[]
     ).map((row) => `${row.member_id}:${row.label}`),
   );
   const mergeIncoming = db
@@ -300,7 +308,9 @@ export function previewMergeMember(
   const mergeContacts = db
     .prepare("SELECT type, value, label FROM pack_contacts WHERE member_id = ?")
     .all(mergeId) as ContactRow[];
-  const keepContactMap = new Map(keepContacts.map((contact) => [`${contact.type}:${contact.value}`, contact]));
+  const keepContactMap = new Map(
+    keepContacts.map((contact) => [`${contact.type}:${contact.value}`, contact]),
+  );
   const overlappingContacts = mergeContacts
     .filter((contact) => keepContactMap.has(`${contact.type}:${contact.value}`))
     .map((contact) => {

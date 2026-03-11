@@ -1,4 +1,4 @@
-import type { PackLink } from "./types.ts";
+import type { PackLink } from "../../types.ts";
 
 export function rowToLink(row: Record<string, unknown>): PackLink {
   return {

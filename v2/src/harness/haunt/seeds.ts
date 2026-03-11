@@ -7,7 +7,7 @@ import {
   oldestMemory,
   staleMemories,
 } from "../../core/memory/index.ts";
-import { sensePack } from "../../core/pack/index.ts";
+import { sensePack } from "../../core/pack/api/read/index.ts";
 import {
   countQuestsByStatus,
   dueSoonQuests,

@@ -6,7 +6,7 @@ import { setField } from "./fields.ts";
 import { addLink } from "./links.ts";
 import { meetMember } from "./meet_member.ts";
 import { noteInteraction } from "./note_interaction.ts";
-import { initPackTables } from "./schema.ts";
+import { initPackTables } from "./runtime/schema.ts";
 import { senseMember } from "./sense_member.ts";
 
 let db: DatabaseHandle;

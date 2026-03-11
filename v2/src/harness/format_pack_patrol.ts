@@ -1,4 +1,4 @@
-import { packDigest } from "../core/pack/index.ts";
+import { packDigest } from "../core/pack/api/read/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 
 export function formatPackPatrol(db: DatabaseHandle, now: number = Date.now()): string {
