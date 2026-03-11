@@ -1,15 +1,15 @@
-import type { ConfigCategory, ConfigEntry } from "../../core/config/index.ts";
-import { KNOWN_CONFIG_KEYS, listConfig, parseConfigValue } from "../../core/config/index.ts";
+import { listConfigInfo } from "../../core/config/api/read/index.ts";
+import type { ConfigCategory, ConfigInfo } from "../../core/config/api/types.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 
 export function formatConfigList(db: DatabaseHandle, category?: ConfigCategory): string[] {
-  let entries = listConfig(db);
+  let entries = listConfigInfo(db);
   if (category) {
     entries = entries.filter((e) => e.category === category);
   }
 
-  const grouped = new Map<string, ConfigEntry[]>();
+  const grouped = new Map<string, ConfigInfo[]>();
   for (const entry of entries) {
     const cat = entry.category;
     if (!grouped.has(cat)) grouped.set(cat, []);
@@ -21,7 +21,7 @@ export function formatConfigList(db: DatabaseHandle, category?: ConfigCategory):
   for (const [cat, catEntries] of grouped) {
     lines.push(`  ${style.bold(cat)}`);
     for (const entry of catEntries) {
-      const isDefault = entry.id === 0;
+      const isDefault = entry.isDefault;
       const marker = isDefault ? style.dim("\u00B7") : style.green("\u2713");
       const displayValue = formatDisplayValue(entry);
       const keyStr = isDefault ? style.dim(entry.key) : entry.key;
@@ -45,19 +45,12 @@ export function formatConfigList(db: DatabaseHandle, category?: ConfigCategory):
   return lines;
 }
 
-function formatDisplayValue(entry: ConfigEntry): string {
-  const known = KNOWN_CONFIG_KEYS.find((k) => k.key === entry.key);
-  const type = known ? known.type : entry.type;
-  try {
-    const parsed = parseConfigValue(entry.value, type);
-    if (typeof parsed === "string") return `"${parsed}"`;
-    return String(parsed);
-  } catch {
-    return entry.value;
-  }
+function formatDisplayValue(entry: ConfigInfo): string {
+  if (typeof entry.value === "string") return `"${entry.value}"`;
+  return String(entry.value);
 }
 
-function formatMeta(entry: ConfigEntry, isDefault: boolean): string {
+function formatMeta(entry: ConfigInfo, isDefault: boolean): string {
   const parts: string[] = [entry.type];
   if (isDefault) {
     parts.push("default");

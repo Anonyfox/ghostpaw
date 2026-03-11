@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { createSchedule } from "../../core/schedule/index.ts";
+import { createSchedule } from "../../core/schedule/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ScheduleCreateParams extends Schema {

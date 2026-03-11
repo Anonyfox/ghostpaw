@@ -1,6 +1,6 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initConfigTable } from "../core/config/index.ts";
+import { initConfigTable } from "../core/config/runtime/index.ts";
 import { pendingShardCount } from "../core/souls/api/read/index.ts";
 import { dropSoulshard } from "../core/souls/api/write/index.ts";
 import { initSoulShardTables, initSoulsTables } from "../core/souls/runtime/index.ts";

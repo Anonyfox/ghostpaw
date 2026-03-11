@@ -1,11 +1,9 @@
+import { listConfigInfo } from "../../../../core/config/api/read/index.ts";
 import {
-  deleteConfig,
-  getCurrentEntry,
-  KNOWN_CONFIG_KEYS,
-  listConfig,
-  setConfig,
-  undoConfig,
-} from "../../../../core/config/index.ts";
+  resetConfigValue,
+  setConfigValue,
+  undoConfigValue,
+} from "../../../../harness/public/settings/config.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { ConfigInfo } from "../../shared/config_types.ts";
 import type { RouteContext } from "../types.ts";
@@ -19,21 +17,16 @@ function json(ctx: RouteContext, status: number, data: unknown): void {
 export function createConfigApiHandlers(db: DatabaseHandle) {
   return {
     list(ctx: RouteContext): void {
-      const entries = listConfig(db);
-      const config: ConfigInfo[] = entries.map((e) => {
-        const known = KNOWN_CONFIG_KEYS.find((k) => k.key === e.key);
-        const isDefault = e.id === 0;
-        return {
-          key: e.key,
-          value: e.value,
-          type: e.type,
-          category: e.category,
-          source: isDefault ? "default" : e.source,
-          isDefault,
-          label: known?.label,
-          description: known?.description,
-        };
-      });
+      const config: ConfigInfo[] = listConfigInfo(db).map((entry) => ({
+        key: entry.key,
+        value: String(entry.value),
+        type: entry.type,
+        category: entry.category,
+        source: entry.source,
+        isDefault: entry.isDefault,
+        label: entry.label,
+        description: entry.description,
+      }));
       json(ctx, 200, { config });
     },
 
@@ -44,7 +37,11 @@ export function createConfigApiHandlers(db: DatabaseHandle) {
         return;
       }
       try {
-        setConfig(db, result.key, result.value, "web", result.isKnown ? undefined : result.type);
+        const response = setConfigValue(db, result.key, result.value, "web", result.type);
+        if (!response.success) {
+          json(ctx, 400, { error: response.error });
+          return;
+        }
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
         return;
@@ -58,13 +55,8 @@ export function createConfigApiHandlers(db: DatabaseHandle) {
         json(ctx, 400, { error: "Missing key." });
         return;
       }
-      const current = getCurrentEntry(db, key);
-      if (!current) {
-        json(ctx, 400, { error: `${key} has no change history to undo.` });
-        return;
-      }
-      const undone = undoConfig(db, key);
-      if (!undone) {
+      const undone = undoConfigValue(db, key);
+      if (!undone.success) {
         json(ctx, 400, { error: `${key} has no change history to undo.` });
         return;
       }
@@ -77,7 +69,7 @@ export function createConfigApiHandlers(db: DatabaseHandle) {
         json(ctx, 400, { error: "Missing key." });
         return;
       }
-      deleteConfig(db, key);
+      resetConfigValue(db, key);
       json(ctx, 200, { ok: true });
     },
   };

@@ -2,7 +2,7 @@ import { ok, rejects, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
 import type { ChatFactory } from "../../core/chat/index.ts";
 import { initChatTables } from "../../core/chat/index.ts";
-import { initConfigTable } from "../../core/config/index.ts";
+import { initConfigTable } from "../../core/config/runtime/index.ts";
 import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/runtime/index.ts";

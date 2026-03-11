@@ -1,12 +1,7 @@
 import { createTool, Schema } from "chatoyant";
-import type { ConfigType, ConfigValue } from "../../core/config/index.ts";
-import {
-  getCurrentEntry,
-  inferTypeFromString,
-  KNOWN_CONFIG_KEYS,
-  parseConfigValue,
-  setConfig,
-} from "../../core/config/index.ts";
+import { getConfigInfo } from "../../core/config/api/read/index.ts";
+import type { ConfigType, ConfigValue } from "../../core/config/api/types.ts";
+import { setConfig } from "../../core/config/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class SetConfigParams extends Schema {
@@ -48,8 +43,8 @@ export function createSetConfigTool(db: DatabaseHandle) {
 }
 
 function applyConfigChange(db: DatabaseHandle, key: string, rawValue: string) {
-  const known = KNOWN_CONFIG_KEYS.find((k) => k.key === key);
-  const type: ConfigType = known ? known.type : inferTypeFromString(rawValue);
+  const current = getConfigInfo(db, key);
+  const type: ConfigType = current?.type ?? inferTypeFromString(rawValue);
 
   let parsed: ConfigValue;
   try {
@@ -59,10 +54,8 @@ function applyConfigChange(db: DatabaseHandle, key: string, rawValue: string) {
     return { error: `Invalid value for ${type}: "${rawValue}". ${detail}` };
   }
 
-  const previous = getCurrentEntry(db, key);
-
   try {
-    setConfig(db, key, parsed, "agent", known ? undefined : type);
+    setConfig(db, key, parsed, "agent", current?.isDefault ? undefined : type);
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
     return { error: `Failed to set "${key}": ${detail}` };
@@ -72,6 +65,38 @@ function applyConfigChange(db: DatabaseHandle, key: string, rawValue: string) {
     key,
     value: parsed,
     type,
-    previous_value: previous?.value,
+    previous_value: current && !current.isDefault ? formatRawValue(current.value) : undefined,
   };
+}
+
+function inferTypeFromString(raw: string): ConfigType {
+  if (raw === "true" || raw === "false") return "boolean";
+  if (/^-?(0|[1-9]\d*)$/.test(raw)) return "integer";
+  if (/^-?(0|[1-9]\d*)\.\d+$/.test(raw)) return "number";
+  return "string";
+}
+
+function parseConfigValue(text: string, type: ConfigType): ConfigValue {
+  switch (type) {
+    case "string":
+      return text;
+    case "integer":
+      if (!/^-?\d+$/.test(text)) throw new Error(`"${text}" is not a valid integer.`);
+      return Number.parseInt(text, 10);
+    case "number": {
+      const value = Number(text);
+      if (text.trim() === "" || !Number.isFinite(value)) {
+        throw new Error(`"${text}" is not a valid number.`);
+      }
+      return value;
+    }
+    case "boolean":
+      if (text === "true") return true;
+      if (text === "false") return false;
+      throw new Error(`"${text}" is not a valid boolean. Use "true" or "false".`);
+  }
+}
+
+function formatRawValue(value: ConfigValue): string {
+  return typeof value === "string" ? value : String(value);
 }

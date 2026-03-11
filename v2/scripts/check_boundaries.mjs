@@ -6,10 +6,23 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 const srcRoot = path.join(projectRoot, "src");
 
-const NAMESPACED_CORE_FEATURES = new Set(["memory", "pack", "skills", "souls"]);
+const NAMESPACED_CORE_FEATURES = new Set([
+  "config",
+  "memory",
+  "pack",
+  "schedule",
+  "secrets",
+  "skills",
+  "souls",
+]);
 const RUNTIME_IMPORTERS = new Set([
   "src/index.ts",
+  "src/channels/cli/prepare_web.ts",
+  "src/channels/cli/with_config_db.ts",
   "src/channels/cli/with_run_db.ts",
+  "src/channels/cli/with_secrets_db.ts",
+  "src/harness/scheduler.ts",
+  "src/harness/tools.ts",
 ]);
 const WRITE_IMPORT_ALLOWLIST = new Set([
   "src/harness/tools.ts",
@@ -17,6 +30,9 @@ const WRITE_IMPORT_ALLOWLIST = new Set([
   "src/harness/post_session.ts",
   "src/harness/attune_phase_one.ts",
   "src/harness/run_attune.ts",
+  "src/harness/public/settings/config.ts",
+  "src/harness/public/settings/schedule.ts",
+  "src/harness/public/settings/secrets.ts",
   "src/harness/public/skills.ts",
   "src/harness/public/souls.ts",
 ]);

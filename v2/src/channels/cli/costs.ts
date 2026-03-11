@@ -6,7 +6,7 @@ import {
   getCostSummary,
   getDailyCostTrend,
 } from "../../core/chat/index.ts";
-import { getConfig } from "../../core/config/index.ts";
+import { getConfig } from "../../core/config/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import costsSetLimit from "./costs_set_limit.ts";
 import { withRunDb } from "./with_run_db.ts";

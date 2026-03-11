@@ -1,7 +1,7 @@
 import { ok } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initChatTables } from "../../core/chat/index.ts";
-import { initConfigTable } from "../../core/config/index.ts";
+import { initConfigTable } from "../../core/config/runtime/index.ts";
 import { storeMemory, supersedeMemories } from "../../core/memory/api/write/index.ts";
 import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/runtime/index.ts";

@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { canonicalKeyName, loadSecretsIntoEnv } from "../../core/secrets/index.ts";
+import { canonicalKeyName } from "../../core/secrets/api/read/index.ts";
 import { readSecretFromStream, readSecretInteractive } from "../../lib/index.ts";
 import { log, style } from "../../lib/terminal/index.ts";
 import { formatSecretsList } from "./format_list.ts";
@@ -18,8 +18,6 @@ const secretsSet = defineCommand({
   },
   async run({ args }) {
     await withSecretsDb(async (db) => {
-      loadSecretsIntoEnv(db);
-
       let raw: string;
       if (!process.stdin.isTTY) {
         raw = await readSecretFromStream(process.stdin);

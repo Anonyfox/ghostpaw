@@ -1,10 +1,10 @@
+import { getConfigInfo } from "../../core/config/api/read/index.ts";
 import type {
   ConfigCategory,
   ConfigSource,
   ConfigType,
   ConfigValue,
-} from "../../core/config/index.ts";
-import { getConfig, getCurrentEntry, KNOWN_CONFIG_KEYS } from "../../core/config/index.ts";
+} from "../../core/config/api/types.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 export interface ConfigGetResult {
@@ -19,34 +19,16 @@ export interface ConfigGetResult {
 }
 
 export function handleConfigGet(db: DatabaseHandle, key: string): ConfigGetResult {
-  const known = KNOWN_CONFIG_KEYS.find((k) => k.key === key);
-  const entry = getCurrentEntry(db, key);
-  const value = getConfig(db, key);
-
-  if (entry) {
-    return {
-      found: true,
-      key,
-      value: value ?? undefined,
-      type: known ? known.type : entry.type,
-      category: entry.category,
-      source: entry.source,
-      isDefault: false,
-      label: known?.label,
-    };
-  }
-
-  if (known) {
-    return {
-      found: true,
-      key,
-      value: known.defaultValue,
-      type: known.type,
-      category: known.category,
-      isDefault: true,
-      label: known.label,
-    };
-  }
-
-  return { found: false, key, isDefault: false };
+  const info = getConfigInfo(db, key);
+  if (!info) return { found: false, key, isDefault: false };
+  return {
+    found: true,
+    key,
+    value: info.value,
+    type: info.type,
+    category: info.category,
+    source: info.isDefault ? undefined : info.source,
+    isDefault: info.isDefault,
+    label: info.label,
+  };
 }

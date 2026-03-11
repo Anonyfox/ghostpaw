@@ -1,7 +1,7 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initChatTables } from "../../../../core/chat/index.ts";
-import { initConfigTable } from "../../../../core/config/index.ts";
+import { initConfigTable } from "../../../../core/config/runtime/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { openTestDatabase } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";

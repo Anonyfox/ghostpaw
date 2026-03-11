@@ -1,6 +1,6 @@
 import { createTool } from "chatoyant";
 import { getSpendInWindow } from "../../core/chat/index.ts";
-import { getConfig } from "../../core/config/index.ts";
+import { getConfig } from "../../core/config/api/read/index.ts";
 import { computeSpendStatus } from "../../lib/cost/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 

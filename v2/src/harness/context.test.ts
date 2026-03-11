@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initChatTables } from "../core/chat/index.ts";
-import { initConfigTable } from "../core/config/index.ts";
+import { initConfigTable } from "../core/config/runtime/index.ts";
 import { initHowlTables } from "../core/howl/index.ts";
 import { initMemoryTable } from "../core/memory/runtime/index.ts";
 import { initPackTables } from "../core/pack/runtime/index.ts";

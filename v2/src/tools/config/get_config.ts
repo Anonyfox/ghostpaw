@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { getConfig, getCurrentEntry, KNOWN_CONFIG_KEYS } from "../../core/config/index.ts";
+import { getConfigInfo } from "../../core/config/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class GetConfigParams extends Schema {
@@ -23,34 +23,10 @@ export function createGetConfigTool(db: DatabaseHandle) {
       const { key } = args as { key: string };
       if (!key || !key.trim()) return { error: "Key name is required." };
 
-      const known = KNOWN_CONFIG_KEYS.find((k) => k.key === key);
-      const entry = getCurrentEntry(db, key);
-
-      if (entry) {
-        return {
-          key,
-          value: getConfig(db, key),
-          type: known ? known.type : entry.type,
-          category: entry.category,
-          source: entry.source,
-          label: known?.label,
-          description: known?.description,
-        };
-      }
-
-      if (known) {
-        return {
-          key,
-          value: known.defaultValue,
-          type: known.type,
-          category: known.category,
-          source: "default",
-          label: known.label,
-          description: known.description,
-        };
-      }
-
-      return { error: `Unknown config key "${key}". Use list_config to see available keys.` };
+      const info = getConfigInfo(db, key);
+      if (!info)
+        return { error: `Unknown config key "${key}". Use list_config to see available keys.` };
+      return info;
     },
   });
 }

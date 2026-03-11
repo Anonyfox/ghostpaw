@@ -6,13 +6,17 @@ import {
   migrateHauntsToSessions,
   recoverOrphanedSessions,
 } from "./core/chat/index.ts";
-import { initConfigTable } from "./core/config/index.ts";
+import { initConfigTable } from "./core/config/runtime/index.ts";
 import { initHowlTables } from "./core/howl/index.ts";
 import { initMemoryTable } from "./core/memory/runtime/index.ts";
 import { initPackTables } from "./core/pack/runtime/index.ts";
 import { initQuestTables } from "./core/quests/index.ts";
-import { ensureDefaultSchedules, initScheduleTables } from "./core/schedule/index.ts";
-import { initSecretsTable, loadSecretsIntoEnv, syncProviderKeys } from "./core/secrets/index.ts";
+import { ensureDefaultSchedules, initScheduleTables } from "./core/schedule/runtime/index.ts";
+import {
+  initSecretsTable,
+  loadSecretsIntoEnv,
+  syncProviderKeys,
+} from "./core/secrets/runtime/index.ts";
 import {
   bootstrapSkills,
   initSkillEventsTables,
@@ -195,7 +199,7 @@ const main = defineCommand({
 
     const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
     if (telegramToken) {
-      const { getConfig } = await import("./core/config/index.ts");
+      const { getConfig } = await import("./core/config/api/read/index.ts");
       const { createTelegramChannel } = await import("./channels/telegram/index.ts");
 
       const allowedRaw = String(getConfig(db, "telegram_allowed_chat_ids") ?? "");

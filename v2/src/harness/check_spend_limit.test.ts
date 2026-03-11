@@ -1,7 +1,8 @@
 import { doesNotThrow, ok, throws } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initChatTables } from "../core/chat/index.ts";
-import { initConfigTable, setConfig } from "../core/config/index.ts";
+import { setConfig } from "../core/config/api/write/index.ts";
+import { initConfigTable } from "../core/config/runtime/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase, SpendLimitError } from "../lib/index.ts";
 import { checkSpendLimit } from "./check_spend_limit.ts";

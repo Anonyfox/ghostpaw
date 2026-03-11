@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { initSecretsTable } from "../../core/secrets/index.ts";
+import { initSecretsTable } from "../../core/secrets/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openDatabase } from "../../lib/index.ts";
 

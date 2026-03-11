@@ -4,17 +4,17 @@ import {
   migrateHauntsToSessions,
   recoverOrphanedSessions,
 } from "../../core/chat/index.ts";
-import { initConfigTable } from "../../core/config/index.ts";
+import { initConfigTable } from "../../core/config/runtime/index.ts";
 import { initHowlTables } from "../../core/howl/index.ts";
 import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { initPackTables } from "../../core/pack/runtime/index.ts";
 import { initQuestTables } from "../../core/quests/index.ts";
-import { initScheduleTables } from "../../core/schedule/index.ts";
+import { ensureDefaultSchedules, initScheduleTables } from "../../core/schedule/runtime/index.ts";
 import {
   initSecretsTable,
   loadSecretsIntoEnv,
   syncProviderKeys,
-} from "../../core/secrets/index.ts";
+} from "../../core/secrets/runtime/index.ts";
 import {
   ensureMandatorySouls,
   initSoulShardTables,
@@ -37,6 +37,7 @@ export async function withRunDb<T>(fn: (db: DatabaseHandle) => T | Promise<T>): 
   initHowlTables(db);
   initQuestTables(db);
   initScheduleTables(db);
+  ensureDefaultSchedules(db);
   recoverOrphanedSessions(db);
   ensureMandatorySouls(db);
   loadSecretsIntoEnv(db);

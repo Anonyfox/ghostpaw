@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createTool, Schema } from "chatoyant";
-import { KNOWN_KEYS } from "../core/secrets/index.ts";
+import { KNOWN_KEYS } from "../core/secrets/api/read/index.ts";
 
 const DEFAULT_TIMEOUT_S = 120;
 const MAX_OUTPUT_BYTES = 100_000;

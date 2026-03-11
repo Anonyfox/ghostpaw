@@ -1,4 +1,4 @@
-import { listSecrets } from "../../../../core/secrets/index.ts";
+import { listStoredSecretKeys } from "../../../../core/secrets/api/read/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";
 
@@ -13,7 +13,7 @@ export function createDashboardHandler(config: { version: string; db: DatabaseHa
     const stats: DashboardStats = {
       version: config.version,
       uptimeMs: Math.round(process.uptime() * 1000),
-      secretsCount: listSecrets(config.db).length,
+      secretsCount: listStoredSecretKeys(config.db).length,
     };
     ctx.res.writeHead(200, { "Content-Type": "application/json" });
     ctx.res.end(JSON.stringify(stats));

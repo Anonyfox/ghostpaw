@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { getConfig } from "../core/config/index.ts";
+import { getConfig } from "../core/config/api/read/index.ts";
 import type { HowlUrgency } from "../core/howl/index.ts";
 import { countHowlsToday, lastHowlTime, storeHowl, updateHowlChannel } from "../core/howl/index.ts";
 import { getBestChannel } from "../lib/channel_registry.ts";

@@ -1,7 +1,7 @@
 import type { Tool } from "chatoyant";
 import type { ChatFactory } from "../core/chat/index.ts";
 import { getSession } from "../core/chat/index.ts";
-import { getSecret } from "../core/secrets/index.ts";
+import { getSecretValue } from "../core/secrets/runtime/index.ts";
 import { projectSkillReadContent } from "../core/skills/api/read/index.ts";
 import { logSkillEvent } from "../core/skills/api/write/index.ts";
 import { listSouls, MANDATORY_SOUL_IDS } from "../core/souls/api/read/index.ts";
@@ -104,7 +104,7 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
   const { db, workspace, chatFactory, getParentSessionId } = config;
 
   const mcp = createMcpTool({
-    resolveSecret: (name) => getSecret(db, name) ?? process.env[name] ?? null,
+    resolveSecret: (name) => getSecretValue(db, name) ?? process.env[name] ?? null,
   });
 
   const SKILL_PATH_RE = /^skills\/([^/]+)\/SKILL\.md$/;

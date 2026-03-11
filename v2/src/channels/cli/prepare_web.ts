@@ -1,5 +1,4 @@
-import { getSecret } from "../../core/secrets/index.ts";
-import { upsertSecret } from "../../core/secrets/upsert_secret.ts";
+import { getSecretValue, setProtectedSecret } from "../../core/secrets/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { hashPassword } from "../web/server/hash_password.ts";
 import { isHashedPassword } from "../web/server/is_hashed_password.ts";
@@ -15,11 +14,11 @@ export async function prepareWeb(
   db: DatabaseHandle,
   version: string,
 ): Promise<PrepareWebResult | null> {
-  let raw = getSecret(db, "WEB_UI_PASSWORD");
+  let raw = getSecretValue(db, "WEB_UI_PASSWORD");
 
   if (!raw && process.env.WEB_UI_PASSWORD) {
     raw = process.env.WEB_UI_PASSWORD;
-    upsertSecret(db, "WEB_UI_PASSWORD", raw);
+    setProtectedSecret(db, "WEB_UI_PASSWORD", raw);
   }
 
   if (!raw) return null;
@@ -29,7 +28,7 @@ export async function prepareWeb(
     passwordHash = raw;
   } else {
     passwordHash = await hashPassword(raw);
-    upsertSecret(db, "WEB_UI_PASSWORD", passwordHash);
+    setProtectedSecret(db, "WEB_UI_PASSWORD", passwordHash);
   }
 
   const port = Number.parseInt(process.env.WEB_UI_PORT ?? "3000", 10);

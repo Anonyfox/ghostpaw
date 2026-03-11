@@ -1,6 +1,7 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, before, beforeEach, describe, it } from "node:test";
-import { initSecretsTable, listSecrets } from "../../core/secrets/index.ts";
+import { listStoredSecretKeys } from "../../core/secrets/api/read/index.ts";
+import { initSecretsTable } from "../../core/secrets/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createSetSecretTool } from "./set_secret.ts";
@@ -37,7 +38,7 @@ describe("set_secret tool", () => {
     };
     strictEqual(result.stored, "API_KEY_ANTHROPIC");
 
-    const keys = listSecrets(db);
+    const keys = listStoredSecretKeys(db);
     ok(keys.includes("API_KEY_ANTHROPIC"), "key persisted in DB");
     strictEqual(process.env.API_KEY_ANTHROPIC, "sk-ant-test123");
   });
@@ -85,7 +86,7 @@ describe("set_secret tool", () => {
       error: string;
     };
     ok(result.error.toLowerCase().includes("internal"), "error mentions internal");
-    strictEqual(listSecrets(db).length, 0, "nothing stored");
+    strictEqual(listStoredSecretKeys(db).length, 0, "nothing stored");
   });
 
   it("rejects WEB_UI_ prefixed keys case-insensitively", async () => {

@@ -1,10 +1,8 @@
 import { stdin, stdout } from "node:process";
 import { createInterface } from "node:readline/promises";
-import { KNOWN_KEYS } from "../../core/secrets/known_keys.ts";
-import { listSecrets } from "../../core/secrets/list_secrets.ts";
-import { loadSecretsIntoEnv } from "../../core/secrets/load_secrets_into_env.ts";
-import { setSecret } from "../../core/secrets/set_secret.ts";
-import type { KnownKey } from "../../core/secrets/types.ts";
+import { KNOWN_KEYS, listStoredSecretKeys } from "../../core/secrets/api/read/index.ts";
+import type { KnownKey } from "../../core/secrets/api/types.ts";
+import { setManagedSecret } from "../../harness/public/settings/secrets.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { blank, log, readSecret, style } from "../../lib/terminal/index.ts";
 
@@ -12,7 +10,7 @@ const LLM_KEYS = KNOWN_KEYS.filter((k) => k.category === "llm");
 const SEARCH_KEYS = KNOWN_KEYS.filter((k) => k.category === "search");
 
 function hasAnyKey(db: DatabaseHandle, keys: KnownKey[]): boolean {
-  const configured = new Set(listSecrets(db));
+  const configured = new Set(listStoredSecretKeys(db));
   for (const k of keys) {
     if (configured.has(k.canonical)) return true;
     if (process.env[k.canonical]) return true;
@@ -50,10 +48,10 @@ async function askKeyFromList(
       return false;
     }
 
-    const result = setSecret(db, provider.canonical, key.trim());
-    if (!result.value) {
+    const result = setManagedSecret(db, provider.canonical, key.trim());
+    if (!result.success) {
       blank();
-      log.warn(result.warning ?? "empty value");
+      log.warn(result.error ?? "empty value");
       return false;
     }
     if (result.warning) log.warn(result.warning);
@@ -92,7 +90,6 @@ export async function ensureReady(db: DatabaseHandle): Promise<void> {
   try {
     const stored = await askKeyFromList(db, LLM_KEYS);
     if (stored) {
-      loadSecretsIntoEnv(db);
     } else {
       log.error("an LLM API key is required to proceed");
       process.exit(1);
@@ -104,7 +101,7 @@ export async function ensureReady(db: DatabaseHandle): Promise<void> {
 
     const searchStored = await askKeyFromList(db, SEARCH_KEYS, "Enter to skip");
     if (searchStored) {
-      loadSecretsIntoEnv(db);
+      // setSecret already syncs stored secrets into process.env
     }
   } catch {
     process.exit(0);

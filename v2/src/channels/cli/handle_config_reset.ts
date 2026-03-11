@@ -1,5 +1,5 @@
-import type { ConfigValue } from "../../core/config/index.ts";
-import { deleteConfig, getCurrentEntry, KNOWN_CONFIG_KEYS } from "../../core/config/index.ts";
+import type { ConfigValue } from "../../core/config/api/types.ts";
+import { resetConfigValue } from "../../harness/public/settings/config.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 export interface ConfigResetResult {
@@ -10,17 +10,5 @@ export interface ConfigResetResult {
 }
 
 export function handleConfigReset(db: DatabaseHandle, key: string): ConfigResetResult {
-  const known = KNOWN_CONFIG_KEYS.find((k) => k.key === key);
-  const entry = getCurrentEntry(db, key);
-
-  if (entry) {
-    deleteConfig(db, key);
-  }
-
-  return {
-    key,
-    wasOverridden: entry !== null,
-    isKnown: known !== undefined,
-    defaultValue: known?.defaultValue,
-  };
+  return resetConfigValue(db, key);
 }

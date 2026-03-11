@@ -2,7 +2,7 @@ import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
-import { initConfigTable } from "../config/index.ts";
+import { initConfigTable } from "../config/runtime/index.ts";
 import { fadingMemories } from "./fading_memories.ts";
 import { initMemoryTable } from "./schema.ts";
 

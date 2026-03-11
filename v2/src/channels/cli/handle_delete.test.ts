@@ -1,6 +1,7 @@
 import { strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { getSecret, initSecretsTable, setSecret } from "../../core/secrets/index.ts";
+import { setSecret } from "../../core/secrets/api/write/index.ts";
+import { getSecretValue, initSecretsTable } from "../../core/secrets/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { handleSecretsDelete } from "./handle_delete.ts";
@@ -33,19 +34,19 @@ describe("handleSecretsDelete", () => {
     setSecret(db, "MY_TEST_KEY", "val");
     const existed = handleSecretsDelete(db, "MY_TEST_KEY");
     strictEqual(existed, true);
-    strictEqual(getSecret(db, "MY_TEST_KEY"), null);
+    strictEqual(getSecretValue(db, "MY_TEST_KEY"), null);
   });
 
   it("returns false for a missing key", () => {
     const existed = handleSecretsDelete(db, "NOPE");
     strictEqual(existed, false);
-    strictEqual(getSecret(db, "NOPE"), null);
+    strictEqual(getSecretValue(db, "NOPE"), null);
   });
 
   it("handles alias key and deletes canonical", () => {
     setSecret(db, "ANTHROPIC_API_KEY", "sk-ant-test");
     const existed = handleSecretsDelete(db, "ANTHROPIC_API_KEY");
     strictEqual(existed, true);
-    strictEqual(getSecret(db, "API_KEY_ANTHROPIC"), null);
+    strictEqual(getSecretValue(db, "API_KEY_ANTHROPIC"), null);
   });
 });

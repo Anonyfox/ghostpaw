@@ -2,8 +2,8 @@ import { strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
-import { initConfigTable } from "../config/schema.ts";
-import { setConfig } from "../config/set_config.ts";
+import { setConfig } from "../config/api/write/index.ts";
+import { initConfigTable } from "../config/runtime/index.ts";
 import { resolveMemoryConfig } from "./resolve_config.ts";
 import { initMemoryTable } from "./schema.ts";
 

@@ -1,18 +1,14 @@
 import type { IncomingMessage } from "node:http";
-import type { ConfigType, ConfigValue } from "../../../../core/config/index.ts";
-import {
-  CONFIG_TYPES,
-  inferTypeFromString,
-  KNOWN_CONFIG_KEYS,
-  parseConfigValue,
-} from "../../../../core/config/index.ts";
+import { KNOWN_CONFIG_KEYS } from "../../../../core/config/api/read/index.ts";
+import type { ConfigType } from "../../../../core/config/api/types.ts";
+import { CONFIG_TYPES } from "../../../../core/config/api/types.ts";
 import { readJsonBody } from "../body_parser.ts";
 
 interface ParsedConfigSet {
   key: string;
-  value: ConfigValue;
-  type: ConfigType;
+  value: string;
   isKnown: boolean;
+  type?: ConfigType;
 }
 
 export async function parseConfigSetBody(
@@ -37,18 +33,10 @@ export async function parseConfigSetBody(
     return { error: "Missing value." };
   }
 
-  const known = KNOWN_CONFIG_KEYS.find((k) => k.key === key);
+  const known = KNOWN_CONFIG_KEYS.find((entry) => entry.key === key);
   const validExplicitType =
     typeof explicitType === "string" && (CONFIG_TYPES as readonly string[]).includes(explicitType)
       ? (explicitType as ConfigType)
       : undefined;
-  const type: ConfigType = known ? known.type : (validExplicitType ?? inferTypeFromString(value));
-
-  try {
-    const parsed = parseConfigValue(value, type);
-    return { key, value: parsed, type, isKnown: !!known };
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : "";
-    return { error: `${key} expects ${type}, got "${value}". ${detail}`.trim() };
-  }
+  return { key, value, isKnown: known !== undefined, type: validExplicitType };
 }

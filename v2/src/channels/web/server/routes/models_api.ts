@@ -1,6 +1,7 @@
 import { detectProviderByModel, isProviderActive } from "chatoyant";
-import { getConfig, setConfig } from "../../../../core/config/index.ts";
-import { listSecrets } from "../../../../core/secrets/index.ts";
+import { getConfig } from "../../../../core/config/api/read/index.ts";
+import { listStoredSecretKeys } from "../../../../core/secrets/api/read/index.ts";
+import { setConfigValue } from "../../../../harness/public/settings/config.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { isProviderId, listProviders } from "../../../../lib/models/index.ts";
 import type { ModelsResponse } from "../../shared/models_response.ts";
@@ -30,7 +31,7 @@ export function createModelsApiHandlers(db: DatabaseHandle) {
 
       let providers = modelsCache.get();
       if (!providers) {
-        const configuredKeys = new Set(listSecrets(db));
+        const configuredKeys = new Set(listStoredSecretKeys(db));
         providers = await listProviders({ currentModel, configuredKeys });
         modelsCache.set(providers);
       }
@@ -78,7 +79,11 @@ export function createModelsApiHandlers(db: DatabaseHandle) {
         return;
       }
 
-      setConfig(db, "default_model", model.trim(), "web");
+      const result = setConfigValue(db, "default_model", model.trim(), "web");
+      if (!result.success) {
+        json(ctx, 400, { error: result.error ?? "Failed to set model." });
+        return;
+      }
       modelsCache.invalidate();
       json(ctx, 200, { ok: true, model: model.trim(), provider });
     },

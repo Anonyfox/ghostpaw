@@ -1,6 +1,8 @@
 import { strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { getConfig, initConfigTable, setConfig } from "../../core/config/index.ts";
+import { getConfig } from "../../core/config/api/read/index.ts";
+import { setConfig } from "../../core/config/api/write/index.ts";
+import { initConfigTable } from "../../core/config/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { handleConfigUndo } from "./handle_config_undo.ts";

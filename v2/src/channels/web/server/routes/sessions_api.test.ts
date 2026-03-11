@@ -1,7 +1,7 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import { addMessage, createSession, initChatTables } from "../../../../core/chat/index.ts";
-import { initConfigTable } from "../../../../core/config/index.ts";
+import { initConfigTable } from "../../../../core/config/runtime/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { openTestDatabase } from "../../../../lib/index.ts";
 import { createSessionsApiHandlers } from "./sessions_api.ts";

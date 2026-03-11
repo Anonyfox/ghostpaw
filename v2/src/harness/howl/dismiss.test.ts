@@ -2,7 +2,7 @@ import { ok, rejects, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ChatInstance } from "../../core/chat/chat_instance.ts";
 import { createSession, initChatTables } from "../../core/chat/index.ts";
-import { initConfigTable } from "../../core/config/index.ts";
+import { initConfigTable } from "../../core/config/runtime/index.ts";
 import { getHowl, initHowlTables, storeHowl, updateHowlStatus } from "../../core/howl/index.ts";
 import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { initPackTables } from "../../core/pack/runtime/index.ts";

@@ -1,6 +1,7 @@
 import { ok, rejects, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initScheduleTables, listSchedules } from "../../core/schedule/index.ts";
+import { listSchedules } from "../../core/schedule/api/read/index.ts";
+import { initScheduleTables } from "../../core/schedule/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createScheduleCreateTool } from "./schedule_create.ts";

@@ -1,13 +1,14 @@
 import { defineCommand } from "citty";
 import {
-  createSchedule,
-  deleteSchedule,
-  ensureDefaultSchedules,
   getSchedule,
   getScheduleByName,
   listSchedules,
-  updateSchedule,
-} from "../../core/schedule/index.ts";
+} from "../../core/schedule/api/read/index.ts";
+import {
+  createManagedSchedule,
+  deleteManagedSchedule,
+  updateManagedSchedule,
+} from "../../harness/public/settings/schedule.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -51,7 +52,6 @@ const schedulesShow = defineCommand({
   },
   async run({ args }) {
     await withRunDb((db) => {
-      ensureDefaultSchedules(db);
       if (!args.id) {
         console.log(style.dim("  Usage: schedules show <id|name>"));
         return;
@@ -98,7 +98,6 @@ const schedulesEnable = defineCommand({
   },
   async run({ args }) {
     await withRunDb((db) => {
-      ensureDefaultSchedules(db);
       if (!args.id) {
         console.log(style.dim("  Usage: schedules enable <id|name>"));
         return;
@@ -112,7 +111,7 @@ const schedulesEnable = defineCommand({
         console.log(style.dim(`  ${s.name} is already enabled.`));
         return;
       }
-      updateSchedule(db, s.id, { enabled: true });
+      updateManagedSchedule(db, s.id, { enabled: true });
       console.log(`  ${style.cyan(s.name)} enabled.`);
     });
   },
@@ -125,7 +124,6 @@ const schedulesDisable = defineCommand({
   },
   async run({ args }) {
     await withRunDb((db) => {
-      ensureDefaultSchedules(db);
       if (!args.id) {
         console.log(style.dim("  Usage: schedules disable <id|name>"));
         return;
@@ -139,7 +137,7 @@ const schedulesDisable = defineCommand({
         console.log(style.dim(`  ${s.name} is already disabled.`));
         return;
       }
-      updateSchedule(db, s.id, { enabled: false });
+      updateManagedSchedule(db, s.id, { enabled: false });
       console.log(`  ${style.cyan(s.name)} disabled.`);
     });
   },
@@ -155,7 +153,6 @@ const schedulesCreate = defineCommand({
   },
   async run({ args }) {
     await withRunDb((db) => {
-      ensureDefaultSchedules(db);
       const name = (args.name as string | undefined)?.trim();
       const command = (args.command as string | undefined)?.trim();
       if (!name || !command) {
@@ -177,7 +174,7 @@ const schedulesCreate = defineCommand({
         return;
       }
       try {
-        const s = createSchedule(db, {
+        const s = createManagedSchedule(db, {
           name,
           type: "custom",
           command,
@@ -204,7 +201,6 @@ const schedulesUpdate = defineCommand({
   },
   async run({ args }) {
     await withRunDb((db) => {
-      ensureDefaultSchedules(db);
       if (!args.id) {
         console.log(
           style.dim(
@@ -243,7 +239,7 @@ const schedulesUpdate = defineCommand({
         return;
       }
       try {
-        const updated = updateSchedule(db, s.id, changes);
+        const updated = updateManagedSchedule(db, s.id, changes);
         console.log(
           `  ${style.cyan("Updated")} ${updated.name} — interval ${formatInterval(updated.intervalMs)}`,
         );
@@ -261,7 +257,6 @@ const schedulesDelete = defineCommand({
   },
   async run({ args }) {
     await withRunDb((db) => {
-      ensureDefaultSchedules(db);
       if (!args.id) {
         console.log(style.dim("  Usage: schedules delete <id|name>"));
         return;
@@ -272,7 +267,7 @@ const schedulesDelete = defineCommand({
         return;
       }
       try {
-        deleteSchedule(db, s.id);
+        deleteManagedSchedule(db, s.id);
         console.log(`  ${style.cyan("Deleted")} ${s.name}.`);
       } catch (err) {
         console.log(style.dim(`  Error: ${err instanceof Error ? err.message : String(err)}`));
@@ -297,7 +292,6 @@ export default defineCommand({
     if (positionals.length > 1 && subs.includes(positionals[1])) return;
 
     await withRunDb((db) => {
-      ensureDefaultSchedules(db);
       const all = listSchedules(db);
       if (all.length === 0) {
         console.log(style.dim("  No schedules found."));

@@ -1,10 +1,6 @@
 import { createTool, Schema } from "chatoyant";
-import {
-  getConfig,
-  getCurrentEntry,
-  KNOWN_CONFIG_KEYS,
-  undoConfig,
-} from "../../core/config/index.ts";
+import { getConfigInfo } from "../../core/config/api/read/index.ts";
+import { undoConfig } from "../../core/config/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class UndoConfigParams extends Schema {
@@ -29,17 +25,16 @@ export function createUndoConfigTool(db: DatabaseHandle) {
       const { key } = args as { key: string };
       if (!key || !key.trim()) return { error: "Key name is required." };
 
-      const before = getCurrentEntry(db, key);
-      if (!before) return { error: `"${key}" has no changes to undo.` };
+      const before = getConfigInfo(db, key);
+      if (!before || before.isDefault) return { error: `"${key}" has no changes to undo.` };
 
-      const previousValue = getConfig(db, key);
+      const previousValue = before.value;
       const undone = undoConfig(db, key);
       if (!undone) return { error: `"${key}" has no changes to undo.` };
 
-      const after = getCurrentEntry(db, key);
-      const known = KNOWN_CONFIG_KEYS.find((k) => k.key === key);
-      const restoredToDefault = after === null;
-      const restoredValue = restoredToDefault && known ? known.defaultValue : getConfig(db, key);
+      const after = getConfigInfo(db, key);
+      const restoredToDefault = after?.isDefault ?? false;
+      const restoredValue = after?.value;
 
       return {
         undone: true,

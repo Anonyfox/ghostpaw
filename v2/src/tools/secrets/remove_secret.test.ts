@@ -1,6 +1,8 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, before, beforeEach, describe, it } from "node:test";
-import { initSecretsTable, listSecrets, setSecret } from "../../core/secrets/index.ts";
+import { listStoredSecretKeys } from "../../core/secrets/api/read/index.ts";
+import { setSecret } from "../../core/secrets/api/write/index.ts";
+import { initSecretsTable } from "../../core/secrets/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createRemoveSecretTool } from "./remove_secret.ts";
@@ -36,7 +38,11 @@ describe("remove_secret tool", () => {
 
     const result = (await execute({ key: "API_KEY_ANTHROPIC" })) as { removed: string };
     strictEqual(result.removed, "API_KEY_ANTHROPIC");
-    strictEqual(listSecrets(db).includes("API_KEY_ANTHROPIC"), false, "key removed from DB");
+    strictEqual(
+      listStoredSecretKeys(db).includes("API_KEY_ANTHROPIC"),
+      false,
+      "key removed from DB",
+    );
     strictEqual(process.env.API_KEY_ANTHROPIC, undefined, "env var cleared");
   });
 

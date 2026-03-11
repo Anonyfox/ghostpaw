@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { setConfig } from "../../core/config/index.ts";
+import { setConfigValue } from "../../harness/public/settings/config.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -22,7 +22,7 @@ export default defineCommand({
     }
 
     await withRunDb((db) => {
-      setConfig(db, "max_cost_per_day", amount, "cli");
+      setConfigValue(db, "max_cost_per_day", String(amount), "cli");
       const label = amount > 0 ? `$${amount.toFixed(2)}` : "unlimited";
       console.log(style.cyan("set".padStart(10)), ` daily limit: ${label}`);
     });

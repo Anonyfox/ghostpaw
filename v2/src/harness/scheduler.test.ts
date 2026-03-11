@@ -1,12 +1,8 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import {
-  createSchedule,
-  ensureDefaultSchedules,
-  getSchedule,
-  initScheduleTables,
-  listSchedules,
-} from "../core/schedule/index.ts";
+import { getSchedule, listSchedules } from "../core/schedule/api/read/index.ts";
+import { createSchedule } from "../core/schedule/api/write/index.ts";
+import { ensureDefaultSchedules, initScheduleTables } from "../core/schedule/runtime/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
 import type { SchedulerHandle } from "./scheduler.ts";

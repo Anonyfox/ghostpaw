@@ -1,6 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import type { ConfigType } from "../../core/config/index.ts";
-import { KNOWN_CONFIG_KEYS, listConfig, parseConfigValue } from "../../core/config/index.ts";
+import { listConfigInfo } from "../../core/config/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ListConfigParams extends Schema {
@@ -22,33 +21,10 @@ export function createListConfigTool(db: DatabaseHandle) {
     parameters: new ListConfigParams() as any,
     execute: async ({ args }) => {
       const { category } = args as { category?: string };
-      const all = listConfig(db);
+      const all = listConfigInfo(db);
 
       const filtered = category ? all.filter((e) => e.category === category) : all;
-
-      const entries = filtered.map((e) => {
-        const known = KNOWN_CONFIG_KEYS.find((k) => k.key === e.key);
-        return {
-          key: e.key,
-          value: safeParseValue(e.value, e.type),
-          type: e.type,
-          category: e.category,
-          source: e.source,
-          label: known?.label,
-          description: known?.description,
-        };
-      });
-
-      return { entries };
+      return { entries: filtered };
     },
   });
-}
-
-function safeParseValue(raw: string, type: ConfigType): string | number | boolean {
-  try {
-    return parseConfigValue(raw, type);
-  } catch {
-    // Corrupted or mismatched DB value — show raw string rather than crash the listing
-    return raw;
-  }
 }

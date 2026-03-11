@@ -1,10 +1,8 @@
+import { listSecretStatus } from "../../../../core/secrets/api/read/index.ts";
 import {
-  activeSearchProvider,
-  deleteSecret,
-  KNOWN_KEYS,
-  listSecrets,
-  setSecret,
-} from "../../../../core/secrets/index.ts";
+  deleteManagedSecret,
+  setManagedSecret,
+} from "../../../../harness/public/settings/secrets.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { readJsonBody } from "../body_parser.ts";
 import type { RouteContext } from "../types.ts";
@@ -29,31 +27,7 @@ function json(ctx: RouteContext, status: number, data: unknown): void {
 export function createSecretsApiHandlers(db: DatabaseHandle) {
   return {
     list(ctx: RouteContext): void {
-      const configuredKeys = new Set(listSecrets(db));
-      const activeSearch = activeSearchProvider();
-      const activeSearchKey = activeSearch?.canonical ?? null;
-
-      const secrets: SecretInfo[] = KNOWN_KEYS.map((k) => ({
-        key: k.canonical,
-        label: k.label,
-        category: k.category,
-        configured: configuredKeys.has(k.canonical),
-        isActiveSearch: k.canonical === activeSearchKey,
-      }));
-
-      const knownCanonicals = new Set(KNOWN_KEYS.map((k) => k.canonical));
-      for (const key of configuredKeys) {
-        if (knownCanonicals.has(key)) continue;
-        if (key.startsWith("WEB_UI_")) continue;
-        secrets.push({
-          key,
-          label: key,
-          category: "custom",
-          configured: true,
-          isActiveSearch: false,
-        });
-      }
-
+      const secrets: SecretInfo[] = listSecretStatus(db);
       json(ctx, 200, { secrets });
     },
 
@@ -86,9 +60,9 @@ export function createSecretsApiHandlers(db: DatabaseHandle) {
         return;
       }
 
-      const result = setSecret(db, key, value);
-      if (!result.value) {
-        json(ctx, 400, { error: "Value was empty after cleaning." });
+      const result = setManagedSecret(db, key, value);
+      if (!result.success) {
+        json(ctx, 400, { error: result.error ?? "Value was empty after cleaning." });
         return;
       }
 
@@ -101,7 +75,7 @@ export function createSecretsApiHandlers(db: DatabaseHandle) {
         json(ctx, 403, { error: "Cannot modify internal keys." });
         return;
       }
-      deleteSecret(db, key);
+      deleteManagedSecret(db, key);
       json(ctx, 200, { ok: true });
     },
   };

@@ -1,5 +1,6 @@
 import { createTool, Schema } from "chatoyant";
-import { deleteConfig, getCurrentEntry, KNOWN_CONFIG_KEYS } from "../../core/config/index.ts";
+import { getConfigInfo } from "../../core/config/api/read/index.ts";
+import { resetConfig } from "../../core/config/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ResetConfigParams extends Schema {
@@ -22,26 +23,25 @@ export function createResetConfigTool(db: DatabaseHandle) {
       const { key } = args as { key: string };
       if (!key || !key.trim()) return { error: "Key name is required." };
 
-      const known = KNOWN_CONFIG_KEYS.find((k) => k.key === key);
-      const entry = getCurrentEntry(db, key);
-
-      if (!entry && !known) {
+      const info = getConfigInfo(db, key);
+      if (!info) {
         return { error: `Unknown config key "${key}". Nothing to reset.` };
       }
 
-      if (!entry && known) {
-        return { reset: true, key, was_default: true, default_value: known.defaultValue };
+      if (info.isDefault) {
+        return { reset: true, key, was_default: true, default_value: info.value };
       }
 
       try {
-        deleteConfig(db, key);
+        resetConfig(db, key);
       } catch (err) {
         const detail = err instanceof Error ? err.message : String(err);
         return { error: `Failed to reset "${key}": ${detail}` };
       }
 
-      if (known) {
-        return { reset: true, key, default_value: known.defaultValue };
+      const after = getConfigInfo(db, key);
+      if (after) {
+        return { reset: true, key, default_value: after.value };
       }
 
       return { reset: true, key, removed: true };

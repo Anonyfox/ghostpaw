@@ -1,4 +1,4 @@
-import type { ConfigCategory, ConfigSource, ConfigType } from "../../../core/config/index.ts";
+import type { ConfigCategory, ConfigSource, ConfigType } from "../../../core/config/api/types.ts";
 
 export interface ConfigInfo {
   key: string;

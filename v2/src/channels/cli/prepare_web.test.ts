@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initSecretsTable } from "../../core/secrets/index.ts";
-import { upsertSecret } from "../../core/secrets/upsert_secret.ts";
+import { initSecretsTable, setProtectedSecret } from "../../core/secrets/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { isHashedPassword } from "../web/server/is_hashed_password.ts";
@@ -30,7 +29,7 @@ describe("prepareWeb", () => {
   });
 
   it("reads password from DB and auto-hashes plain text", async () => {
-    upsertSecret(db, "WEB_UI_PASSWORD", "my-secret-password");
+    setProtectedSecret(db, "WEB_UI_PASSWORD", "my-secret-password");
 
     const result = await prepareWeb(db, VERSION);
     assert.ok(result);
@@ -54,7 +53,7 @@ describe("prepareWeb", () => {
 
   it("passes through already-hashed password without re-hashing", async () => {
     const preHashed = `${"a".repeat(64)}:${"b".repeat(128)}`;
-    upsertSecret(db, "WEB_UI_PASSWORD", preHashed);
+    setProtectedSecret(db, "WEB_UI_PASSWORD", preHashed);
 
     const result = await prepareWeb(db, VERSION);
     assert.ok(result);
@@ -62,7 +61,7 @@ describe("prepareWeb", () => {
   });
 
   it("returns correct port from WEB_UI_PORT env var", async () => {
-    upsertSecret(db, "WEB_UI_PASSWORD", "test");
+    setProtectedSecret(db, "WEB_UI_PASSWORD", "test");
     process.env.WEB_UI_PORT = "8080";
 
     const result = await prepareWeb(db, VERSION);
@@ -71,7 +70,7 @@ describe("prepareWeb", () => {
   });
 
   it("defaults to port 3000 when WEB_UI_PORT is unset", async () => {
-    upsertSecret(db, "WEB_UI_PASSWORD", "test");
+    setProtectedSecret(db, "WEB_UI_PASSWORD", "test");
 
     const result = await prepareWeb(db, VERSION);
     assert.ok(result);
@@ -79,7 +78,7 @@ describe("prepareWeb", () => {
   });
 
   it("returns version from argument", async () => {
-    upsertSecret(db, "WEB_UI_PASSWORD", "test");
+    setProtectedSecret(db, "WEB_UI_PASSWORD", "test");
 
     const result = await prepareWeb(db, VERSION);
     assert.ok(result);
@@ -87,7 +86,7 @@ describe("prepareWeb", () => {
   });
 
   it("returns host as 127.0.0.1 by default", async () => {
-    upsertSecret(db, "WEB_UI_PASSWORD", "test");
+    setProtectedSecret(db, "WEB_UI_PASSWORD", "test");
 
     const result = await prepareWeb(db, VERSION);
     assert.ok(result);

@@ -1,4 +1,4 @@
-import { canonicalKeyName, setSecret } from "../../core/secrets/index.ts";
+import { setManagedSecret } from "../../harness/public/settings/secrets.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 export interface SetResult {
@@ -10,11 +10,19 @@ export interface SetResult {
 }
 
 export function handleSecretsSet(db: DatabaseHandle, key: string, value: string): SetResult {
-  const canonical = canonicalKeyName(key);
-  const aliased = canonical !== key;
-  const result = setSecret(db, key, value);
-  if (!result.value) {
-    return { success: false, canonical, aliased, error: result.warning ?? "Empty value" };
+  const result = setManagedSecret(db, key, value);
+  if (!result.success) {
+    return {
+      success: false,
+      canonical: result.canonical,
+      aliased: result.aliased,
+      error: result.error,
+    };
   }
-  return { success: true, canonical, aliased, warning: result.warning };
+  return {
+    success: true,
+    canonical: result.canonical,
+    aliased: result.aliased,
+    warning: result.warning,
+  };
 }

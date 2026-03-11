@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ChatInstance } from "../../core/chat/chat_instance.ts";
 import type { ChatFactory } from "../../core/chat/index.ts";
 import { initChatTables } from "../../core/chat/index.ts";
-import { initConfigTable } from "../../core/config/index.ts";
+import { initConfigTable } from "../../core/config/runtime/index.ts";
 import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/runtime/index.ts";
 import type { Entity } from "../../harness/index.ts";

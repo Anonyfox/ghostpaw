@@ -5,7 +5,8 @@ import {
   getCostSummary,
   getDailyCostTrend,
 } from "../../../../core/chat/index.ts";
-import { getConfig, setConfig } from "../../../../core/config/index.ts";
+import { getConfig } from "../../../../core/config/api/read/index.ts";
+import { setConfigValue } from "../../../../harness/public/settings/config.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { CostsResponse } from "../../shared/cost_types.ts";
 import { readJsonBody } from "../body_parser.ts";
@@ -48,7 +49,11 @@ export function createCostsApiHandlers(db: DatabaseHandle) {
         return;
       }
 
-      setConfig(db, "max_cost_per_day", body.maxCostPerDay, "web");
+      const result = setConfigValue(db, "max_cost_per_day", String(body.maxCostPerDay), "web");
+      if (!result.success) {
+        json(ctx, 400, { error: result.error ?? "Failed to update cost limit." });
+        return;
+      }
 
       const todayCost = getCostSummary(db, todayMidnight()).costUsd;
       json(ctx, 200, {

@@ -1,6 +1,6 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initConfigTable } from "../../../../core/config/index.ts";
+import { initConfigTable } from "../../../../core/config/runtime/index.ts";
 import { storeMemory } from "../../../../core/memory/api/write/index.ts";
 import { initMemoryTable } from "../../../../core/memory/runtime/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";

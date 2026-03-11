@@ -1,5 +1,6 @@
 import { createTool, Schema } from "chatoyant";
-import { canonicalKeyName, deleteSecret } from "../../core/secrets/index.ts";
+import { canonicalKeyName } from "../../core/secrets/api/read/index.ts";
+import { deleteSecret } from "../../core/secrets/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class RemoveSecretParams extends Schema {

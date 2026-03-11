@@ -1,4 +1,4 @@
-import { getConfig } from "../core/config/index.ts";
+import { getConfig } from "../core/config/api/read/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 
 const FALLBACK_MODEL = "claude-sonnet-4-6";

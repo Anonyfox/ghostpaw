@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
-import type { ConfigType } from "../../core/config/index.ts";
-import { CONFIG_TYPES } from "../../core/config/index.ts";
+import type { ConfigType } from "../../core/config/api/types.ts";
+import { CONFIG_TYPES } from "../../core/config/api/types.ts";
 import { log, style } from "../../lib/terminal/index.ts";
 import { handleConfigSet } from "./handle_config_set.ts";
 import { withConfigDb } from "./with_config_db.ts";

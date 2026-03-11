@@ -1,7 +1,8 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { createSession, initChatTables } from "../core/chat/index.ts";
-import { initConfigTable, setConfig } from "../core/config/index.ts";
+import { setConfig } from "../core/config/api/write/index.ts";
+import { initConfigTable } from "../core/config/runtime/index.ts";
 import { initHowlTables, listHowls } from "../core/howl/index.ts";
 import type { ChannelHandle } from "../lib/channel_registry.ts";
 import { clearChannelRegistry, registerChannel } from "../lib/channel_registry.ts";

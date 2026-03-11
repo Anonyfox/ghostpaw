@@ -7,7 +7,7 @@ import {
   getSession,
   renameSession,
 } from "../../core/chat/index.ts";
-import { getConfig } from "../../core/config/index.ts";
+import { getConfig } from "../../core/config/api/read/index.ts";
 import { storeHowl, updateHowlChannel } from "../../core/howl/index.ts";
 import { getBestChannel } from "../../lib/channel_registry.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";

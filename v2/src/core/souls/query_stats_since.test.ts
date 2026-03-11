@@ -2,7 +2,7 @@ import { strictEqual } from "node:assert";
 import { describe, it } from "node:test";
 import { openTestDatabase } from "../../lib/index.ts";
 import { initChatTables } from "../chat/index.ts";
-import { initConfigTable } from "../config/index.ts";
+import { initConfigTable } from "../config/runtime/index.ts";
 import { MANDATORY_SOUL_IDS } from "./api/read/index.ts";
 import { queryStatsSince } from "./query_stats_since.ts";
 import { ensureMandatorySouls, initSoulsTables } from "./runtime/index.ts";

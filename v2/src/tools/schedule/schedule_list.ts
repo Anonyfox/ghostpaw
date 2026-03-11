@@ -1,5 +1,5 @@
 import { createTool } from "chatoyant";
-import { listSchedules } from "../../core/schedule/index.ts";
+import { listSchedules } from "../../core/schedule/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 export function createScheduleListTool(db: DatabaseHandle) {

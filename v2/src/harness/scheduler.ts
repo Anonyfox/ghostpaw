@@ -1,12 +1,12 @@
 import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
-import type { Schedule } from "../core/schedule/index.ts";
+import type { Schedule } from "../core/schedule/api/types.ts";
 import {
   claimSchedule,
   clearStalePids,
   completeRun,
   getDueSchedules,
-} from "../core/schedule/index.ts";
+} from "../core/schedule/runtime/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { log } from "../lib/terminal/index.ts";
 

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initChatTables } from "../../../core/chat/index.ts";
-import { initConfigTable } from "../../../core/config/index.ts";
-import { initSecretsTable } from "../../../core/secrets/index.ts";
+import { initConfigTable } from "../../../core/config/runtime/index.ts";
+import { initSecretsTable } from "../../../core/secrets/runtime/index.ts";
 import type { DatabaseHandle } from "../../../lib/index.ts";
 import { openTestDatabase } from "../../../lib/index.ts";
 import { createWebServer } from "./create_server.ts";

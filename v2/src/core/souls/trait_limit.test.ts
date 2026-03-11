@@ -2,7 +2,8 @@ import { strictEqual } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
-import { initConfigTable, setConfig } from "../config/index.ts";
+import { setConfig } from "../config/api/write/index.ts";
+import { initConfigTable } from "../config/runtime/index.ts";
 import { initSoulsTables } from "./schema.ts";
 import { getTraitLimit } from "./trait_limit.ts";
 

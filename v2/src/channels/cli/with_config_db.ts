@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { initConfigTable } from "../../core/config/index.ts";
+import { initConfigTable } from "../../core/config/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openDatabase } from "../../lib/index.ts";
 

@@ -1,5 +1,6 @@
 import { createTool, Schema } from "chatoyant";
-import { deleteSchedule, getSchedule } from "../../core/schedule/index.ts";
+import { getSchedule } from "../../core/schedule/api/read/index.ts";
+import { deleteSchedule } from "../../core/schedule/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ScheduleDeleteParams extends Schema {
