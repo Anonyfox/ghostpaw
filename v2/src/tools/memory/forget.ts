@@ -1,5 +1,6 @@
 import { createTool, Schema } from "chatoyant";
-import { getMemory, supersedeMemories } from "../../core/memory/index.ts";
+import { getMemory } from "../../core/memory/api/read/index.ts";
+import { supersedeMemories } from "../../core/memory/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ForgetParams extends Schema {

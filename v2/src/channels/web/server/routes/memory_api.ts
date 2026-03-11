@@ -1,20 +1,21 @@
 import type { IncomingMessage } from "node:http";
-import { freshness } from "../../../../core/memory/freshness.ts";
 import {
   countMemories,
   getMemory,
   listMemories,
+  listSupersededMemories,
   memoryHealth,
+  projectMemory,
+  projectRankedMemory,
   recallMemories,
   staleMemories,
-} from "../../../../core/memory/index.ts";
-import type { Memory, RankedMemory } from "../../../../core/memory/types.ts";
+} from "../../../../core/memory/api/read/index.ts";
+import type { Memory, RankedMemory } from "../../../../core/memory/api/types.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type {
   MemoryDetailResponse,
   MemoryInfo,
   MemorySearchResult,
-  MemoryStrength,
 } from "../../shared/memory_types.ts";
 import { readJsonBody } from "../body_parser.ts";
 import type { RouteContext } from "../types.ts";
@@ -24,45 +25,39 @@ function json(ctx: RouteContext, status: number, data: unknown): void {
   ctx.res.end(JSON.stringify(data));
 }
 
-function strength(confidence: number): MemoryStrength {
-  if (confidence >= 0.7) return "strong";
-  if (confidence >= 0.4) return "fading";
-  return "faint";
-}
-
 function toInfo(m: Memory): MemoryInfo {
-  const now = Date.now();
+  const projected = projectMemory(m);
   return {
-    id: m.id,
-    claim: m.claim,
-    confidence: m.confidence,
-    evidenceCount: m.evidenceCount,
-    createdAt: m.createdAt,
-    verifiedAt: m.verifiedAt,
-    source: m.source,
-    category: m.category,
-    supersededBy: m.supersededBy,
-    strength: strength(m.confidence),
-    freshness: freshness(m.verifiedAt, m.evidenceCount, now),
+    id: projected.id,
+    claim: projected.claim,
+    confidence: projected.confidence,
+    evidenceCount: projected.evidenceCount,
+    createdAt: projected.createdAt,
+    verifiedAt: projected.verifiedAt,
+    source: projected.source,
+    category: projected.category,
+    supersededBy: projected.supersededBy,
+    strength: projected.strength,
+    freshness: projected.freshness,
   };
 }
 
 function toSearchResult(m: RankedMemory): MemorySearchResult {
-  const now = Date.now();
+  const projected = projectRankedMemory(m);
   return {
-    id: m.id,
-    claim: m.claim,
-    confidence: m.confidence,
-    evidenceCount: m.evidenceCount,
-    createdAt: m.createdAt,
-    verifiedAt: m.verifiedAt,
-    source: m.source,
-    category: m.category,
-    supersededBy: m.supersededBy,
-    strength: strength(m.confidence),
-    freshness: freshness(m.verifiedAt, m.evidenceCount, now),
-    score: m.score,
-    similarity: m.similarity,
+    id: projected.id,
+    claim: projected.claim,
+    confidence: projected.confidence,
+    evidenceCount: projected.evidenceCount,
+    createdAt: projected.createdAt,
+    verifiedAt: projected.verifiedAt,
+    source: projected.source,
+    category: projected.category,
+    supersededBy: projected.supersededBy,
+    strength: projected.strength,
+    freshness: projected.freshness,
+    score: projected.score,
+    similarity: projected.similarity,
   };
 }
 
@@ -184,10 +179,8 @@ export function createMemoryApiHandlers(db: DatabaseHandle) {
         return;
       }
 
-      const supersedes = db
-        .prepare("SELECT id FROM memories WHERE superseded_by = ? AND id != ?")
-        .all(id, id) as Array<Record<string, unknown>>;
-      const supersedesId = supersedes.length > 0 ? (supersedes[0].id as number) : null;
+      const supersedes = listSupersededMemories(db, id);
+      const supersedesId = supersedes.length > 0 ? supersedes[0].id : null;
 
       const detail: MemoryDetailResponse = {
         ...toInfo(mem),

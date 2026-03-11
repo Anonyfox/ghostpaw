@@ -1,6 +1,7 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { embedText, initMemoryTable, storeMemory } from "../../core/memory/index.ts";
+import { storeMemory } from "../../core/memory/api/write/index.ts";
+import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createRememberTool } from "./remember.ts";
@@ -31,9 +32,7 @@ describe("remember tool", () => {
   });
 
   it("surfaces similar existing memories", async () => {
-    storeMemory(db, "User likes cats a lot", embedText("User likes cats a lot"), {
-      source: "explicit",
-    });
+    storeMemory(db, "User likes cats a lot", { source: "explicit" });
     const result = (await execute({ claim: "User likes cats" })) as {
       stored: FormattedMemory;
       similar: FormattedMemory[];

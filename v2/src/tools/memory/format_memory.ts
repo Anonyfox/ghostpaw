@@ -1,4 +1,4 @@
-import type { Memory, RankedMemory } from "../../core/memory/index.ts";
+import type { Memory, RankedMemory } from "../../core/memory/api/types.ts";
 import type { FormattedMemory } from "./types.ts";
 
 type Strength = "strong" | "fading" | "faint";

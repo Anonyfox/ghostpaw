@@ -2,7 +2,7 @@ import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initChatTables } from "../../core/chat/index.ts";
 import { initConfigTable } from "../../core/config/index.ts";
-import { initMemoryTable } from "../../core/memory/index.ts";
+import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { initSecretsTable } from "../../core/secrets/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";

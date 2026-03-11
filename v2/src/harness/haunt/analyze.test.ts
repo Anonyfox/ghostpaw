@@ -2,7 +2,8 @@ import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ChatSession } from "../../core/chat/index.ts";
 import { createSession, initChatTables, renameSession } from "../../core/chat/index.ts";
-import { embedText, initMemoryTable, storeMemory } from "../../core/memory/index.ts";
+import { storeMemory } from "../../core/memory/api/write/index.ts";
+import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
@@ -102,20 +103,20 @@ describe("sampleAntiRecencyMemories", () => {
   });
 
   it("returns memories across categories", () => {
-    storeMemory(db, "User prefers dark mode", embedText("dark mode"), { category: "preference" });
-    storeMemory(db, "Node 22 is required", embedText("node version"), { category: "fact" });
-    storeMemory(db, "Run tests with node --test", embedText("testing"), { category: "procedure" });
+    storeMemory(db, "User prefers dark mode", { category: "preference" });
+    storeMemory(db, "Node 22 is required", { category: "fact" });
+    storeMemory(db, "Run tests with node --test", { category: "procedure" });
 
     const result = sampleAntiRecencyMemories(db, null);
     ok(result.length >= 3);
   });
 
   it("excludes memories matching topic cluster", () => {
-    storeMemory(db, "MCP servers use stdio transport", embedText("mcp stdio"), {
+    storeMemory(db, "MCP servers use stdio transport", {
       category: "fact",
       confidence: 0.8,
     });
-    storeMemory(db, "SQLite is the database", embedText("sqlite database"), {
+    storeMemory(db, "SQLite is the database", {
       category: "fact",
       confidence: 0.8,
     });
@@ -126,7 +127,7 @@ describe("sampleAntiRecencyMemories", () => {
   });
 
   it("falls back to unfiltered when exclusion yields nothing", () => {
-    storeMemory(db, "MCP is the only protocol", embedText("mcp only"), {
+    storeMemory(db, "MCP is the only protocol", {
       category: "fact",
       confidence: 0.8,
     });
@@ -164,7 +165,7 @@ describe("analyzeHauntContext", () => {
     const s = createSession(db, "haunt:nov:1", { purpose: "haunt" });
     renameSession(db, s.id as number, "Old session");
 
-    storeMemory(db, "Brand new insight", embedText("new insight"), {
+    storeMemory(db, "Brand new insight", {
       category: "fact",
       confidence: 0.8,
     });

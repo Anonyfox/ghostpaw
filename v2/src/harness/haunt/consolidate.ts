@@ -6,7 +6,7 @@ import {
   executeTurn,
   getHistory,
 } from "../../core/chat/index.ts";
-import type { Memory } from "../../core/memory/index.ts";
+import type { Memory } from "../../core/memory/api/types.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { createDropSoulshardTool } from "../../tools/souls/drop_soulshard.ts";

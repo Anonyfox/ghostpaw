@@ -1,6 +1,6 @@
 import { strictEqual } from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Memory, RankedMemory } from "../../core/memory/index.ts";
+import type { Memory, RankedMemory } from "../../core/memory/api/types.ts";
 import { formatMemoryForAgent } from "./format_memory.ts";
 
 const MS_PER_MINUTE = 60_000;

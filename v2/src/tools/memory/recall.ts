@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { recallMemories } from "../../core/memory/index.ts";
+import { recallMemories } from "../../core/memory/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatMemoryForAgent } from "./format_memory.ts";
 

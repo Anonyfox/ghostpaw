@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
-import type { Memory, MemoryCategory } from "../../core/memory/index.ts";
-import { countMemories, listMemories, staleMemories } from "../../core/memory/index.ts";
+import { countMemories, listMemories, staleMemories } from "../../core/memory/api/read/index.ts";
+import type { Memory, MemoryCategory } from "../../core/memory/api/types.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 

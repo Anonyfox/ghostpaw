@@ -8,7 +8,7 @@ import {
 } from "./core/chat/index.ts";
 import { initConfigTable } from "./core/config/index.ts";
 import { initHowlTables } from "./core/howl/index.ts";
-import { initMemoryTable } from "./core/memory/index.ts";
+import { initMemoryTable } from "./core/memory/runtime/index.ts";
 import { initPackTables } from "./core/pack/runtime/index.ts";
 import { initQuestTables } from "./core/quests/index.ts";
 import { ensureDefaultSchedules, initScheduleTables } from "./core/schedule/index.ts";

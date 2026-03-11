@@ -9,7 +9,7 @@ import {
   markDistilled,
   markMessagesDistilled,
 } from "../../core/chat/index.ts";
-import { formatConversation } from "../../core/memory/format_conversation.ts";
+import { formatConversation } from "../../core/memory/api/read/index.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { createDropSoulshardTool } from "../../tools/souls/drop_soulshard.ts";

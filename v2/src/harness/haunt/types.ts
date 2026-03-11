@@ -1,6 +1,6 @@
 import type { ChatFactory } from "../../core/chat/chat_instance.ts";
 import type { ChatSession, TurnResult } from "../../core/chat/index.ts";
-import type { Memory } from "../../core/memory/index.ts";
+import type { Memory } from "../../core/memory/api/types.ts";
 
 export interface NoveltyInfo {
   newMemories: Array<{ id: number; claim: string }>;

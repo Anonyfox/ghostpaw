@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ChatInstance } from "../../core/chat/chat_instance.ts";
 import { getSession, initChatTables } from "../../core/chat/index.ts";
 import { initHowlTables } from "../../core/howl/index.ts";
-import { initMemoryTable } from "../../core/memory/index.ts";
+import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { meetMember } from "../../core/pack/api/write/index.ts";
 import { initPackTables } from "../../core/pack/runtime/index.ts";
 import { initQuestTables } from "../../core/quests/index.ts";
@@ -114,9 +114,8 @@ describe("executeCommand", () => {
   });
 
   it("pre-loads memory context for targeted memory commands", async () => {
-    const { embedText, storeMemory } = await import("../../core/memory/index.ts");
-    const embedding = embedText("deploy uses port 8080");
-    const mem = storeMemory(db, "deploy uses port 8080", embedding, {
+    const { storeMemory } = await import("../../core/memory/api/write/index.ts");
+    const mem = storeMemory(db, "deploy uses port 8080", {
       source: "explicit",
       category: "fact",
     });

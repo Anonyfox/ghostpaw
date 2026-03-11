@@ -1,12 +1,11 @@
 import { createTool, Schema } from "chatoyant";
-import type { Memory } from "../../core/memory/index.ts";
+import { getMemory } from "../../core/memory/api/read/index.ts";
+import type { Memory } from "../../core/memory/api/types.ts";
 import {
   confirmMemory,
-  embedText,
-  getMemory,
   storeMemory,
   supersedeMemories,
-} from "../../core/memory/index.ts";
+} from "../../core/memory/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatMemoryForAgent } from "./format_memory.ts";
 
@@ -84,8 +83,7 @@ function correctOrMerge(db: DatabaseHandle, ids: number[], claim: string) {
 
   let newMem: Memory;
   try {
-    const embedding = embedText(claim);
-    newMem = storeMemory(db, claim, embedding, { source: "explicit" });
+    newMem = storeMemory(db, claim, { source: "explicit" });
     supersedeMemories(db, ids, newMem.id);
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);

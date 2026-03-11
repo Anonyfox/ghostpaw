@@ -1,12 +1,12 @@
 import type { ChatSession } from "../../core/chat/index.ts";
 import { listSessions } from "../../core/chat/index.ts";
-import type { Memory } from "../../core/memory/index.ts";
 import {
   memoriesRevisedSince,
   memoriesSince,
   randomMemories,
   staleMemories,
-} from "../../core/memory/index.ts";
+} from "../../core/memory/api/read/index.ts";
+import type { Memory } from "../../core/memory/api/types.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { selectSeed } from "./seeds.ts";
 import type { HauntAnalysis, NoveltyInfo } from "./types.ts";

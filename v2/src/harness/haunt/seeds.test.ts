@@ -2,12 +2,8 @@ import { ok } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initChatTables } from "../../core/chat/index.ts";
 import { initConfigTable } from "../../core/config/index.ts";
-import {
-  embedText,
-  initMemoryTable,
-  storeMemory,
-  supersedeMemories,
-} from "../../core/memory/index.ts";
+import { storeMemory, supersedeMemories } from "../../core/memory/api/write/index.ts";
+import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
@@ -47,11 +43,11 @@ describe("selectSeed", () => {
   });
 
   it("produces dynamic seeds when memories exist", () => {
-    storeMemory(db, "The user likes TypeScript", embedText("typescript"), {
+    storeMemory(db, "The user likes TypeScript", {
       category: "preference",
       confidence: 0.9,
     });
-    storeMemory(db, "Node 22 is required", embedText("node version"), {
+    storeMemory(db, "Node 22 is required", {
       category: "fact",
       confidence: 0.7,
     });
@@ -73,9 +69,9 @@ describe("selectSeed", () => {
   });
 
   it("produces heavily-revised seeds when revision chains exist", () => {
-    const m1 = storeMemory(db, "Old belief alpha", embedText("alpha"));
-    const m2 = storeMemory(db, "Old belief beta", embedText("beta"));
-    const m3 = storeMemory(db, "Current belief gamma", embedText("gamma"));
+    const m1 = storeMemory(db, "Old belief alpha");
+    const m2 = storeMemory(db, "Old belief beta");
+    const m3 = storeMemory(db, "Current belief gamma");
     supersedeMemories(db, [m1.id], m3.id);
     supersedeMemories(db, [m2.id], m3.id);
 

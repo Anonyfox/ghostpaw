@@ -1,7 +1,8 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initConfigTable } from "../../../../core/config/index.ts";
-import { embedText, initMemoryTable, storeMemory } from "../../../../core/memory/index.ts";
+import { storeMemory } from "../../../../core/memory/api/write/index.ts";
+import { initMemoryTable } from "../../../../core/memory/runtime/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { openTestDatabase } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";
@@ -27,8 +28,7 @@ function mockRes() {
 }
 
 function seedMemory(db: DatabaseHandle, claim: string) {
-  const embedding = embedText(claim);
-  return storeMemory(db, claim, embedding, { source: "explicit", category: "preference" });
+  return storeMemory(db, claim, { source: "explicit", category: "preference" });
 }
 
 describe("memory API", () => {

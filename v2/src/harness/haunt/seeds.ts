@@ -1,12 +1,14 @@
-import type { Memory } from "../../core/memory/index.ts";
 import {
   fadingMemories,
   heavilyRevisedMemories,
+  memoryCategoryConfidences,
   memoryCategoryCounts,
   memoryHealth,
   oldestMemory,
+  randomUnconfirmedExplicitMemoryBefore,
   staleMemories,
-} from "../../core/memory/index.ts";
+} from "../../core/memory/api/read/index.ts";
+import type { Memory } from "../../core/memory/api/types.ts";
 import { sensePack } from "../../core/pack/api/read/index.ts";
 import {
   countQuestsByStatus,
@@ -251,15 +253,7 @@ function buildExploitationSeeds(db: DatabaseHandle, staleMemorySample: Memory[])
 
   try {
     const sevenDaysAgo = Date.now() - 7 * 86_400_000;
-    const unconfirmed = db
-      .prepare(
-        `SELECT claim FROM memories
-         WHERE superseded_by IS NULL
-           AND source = 'explicit' AND evidence_count = 1
-           AND verified_at < ?
-         ORDER BY RANDOM() LIMIT 1`,
-      )
-      .get(sevenDaysAgo) as { claim: string } | undefined;
+    const unconfirmed = randomUnconfirmedExplicitMemoryBefore(db, sevenDaysAgo);
     if (unconfirmed) {
       seeds.push({
         text: `You were told "${truncateClaim(unconfirmed.claim)}" once but never encountered it again. Still accurate?`,
@@ -274,13 +268,8 @@ function buildExploitationSeeds(db: DatabaseHandle, staleMemorySample: Memory[])
     const health = memoryHealth(db);
     for (const [cat, count] of Object.entries(health.byCategory)) {
       if (count <= 3) continue;
-      const catMemories = db
-        .prepare(
-          `SELECT AVG(confidence) AS avg_conf FROM memories
-           WHERE superseded_by IS NULL AND category = ?`,
-        )
-        .get(cat) as { avg_conf: number } | undefined;
-      if (catMemories && catMemories.avg_conf < 0.5) {
+      const confidence = memoryCategoryConfidences(db).find((entry) => entry.category === cat);
+      if (confidence && confidence.avgConfidence < 0.5) {
         seeds.push({
           text: `Most of what you know about ${cat} is inferred, not confirmed. What would make it solid?`,
           weight: 2,

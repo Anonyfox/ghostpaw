@@ -1,6 +1,7 @@
 import { deepStrictEqual, ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { embedText, initMemoryTable, storeMemory } from "../../core/memory/index.ts";
+import { storeMemory } from "../../core/memory/api/write/index.ts";
+import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createRecallTool } from "./recall.ts";
@@ -20,9 +21,7 @@ describe("recall tool", () => {
   afterEach(() => db.close());
 
   it("finds a relevant memory", async () => {
-    storeMemory(db, "The user loves pizza", embedText("The user loves pizza"), {
-      source: "explicit",
-    });
+    storeMemory(db, "The user loves pizza", { source: "explicit" });
     const result = (await execute({ query: "pizza" })) as { memories: FormattedMemory[] };
     ok(result.memories.length > 0);
     ok(result.memories[0].claim.includes("pizza"));
@@ -48,7 +47,7 @@ describe("recall tool", () => {
   });
 
   it("results are formatted correctly", async () => {
-    storeMemory(db, "The user prefers dark mode", embedText("The user prefers dark mode"), {
+    storeMemory(db, "The user prefers dark mode", {
       source: "observed",
       category: "preference",
     });
@@ -67,18 +66,13 @@ describe("recall tool", () => {
   });
 
   it("respects ranking order", async () => {
-    storeMemory(db, "The user loves Italian food", embedText("The user loves Italian food"), {
+    storeMemory(db, "The user loves Italian food", {
       source: "explicit",
     });
-    storeMemory(db, "The user owns a blue car", embedText("The user owns a blue car"), {
+    storeMemory(db, "The user owns a blue car", {
       source: "inferred",
     });
-    storeMemory(
-      db,
-      "Italian restaurants are the best",
-      embedText("Italian restaurants are the best"),
-      { source: "observed" },
-    );
+    storeMemory(db, "Italian restaurants are the best", { source: "observed" });
     const result = (await execute({ query: "Italian food preferences" })) as {
       memories: FormattedMemory[];
     };

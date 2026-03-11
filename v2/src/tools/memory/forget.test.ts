@@ -1,12 +1,8 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import {
-  embedText,
-  getMemory,
-  initMemoryTable,
-  storeMemory,
-  supersedeMemories,
-} from "../../core/memory/index.ts";
+import { getMemory } from "../../core/memory/api/read/index.ts";
+import { storeMemory, supersedeMemories } from "../../core/memory/api/write/index.ts";
+import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createForgetTool } from "./forget.ts";
@@ -25,7 +21,7 @@ describe("forget tool", () => {
   afterEach(() => db.close());
 
   it("forgets a memory and returns its claim", async () => {
-    const mem = storeMemory(db, "User likes tea", embedText("User likes tea"), {
+    const mem = storeMemory(db, "User likes tea", {
       source: "explicit",
     });
     const result = (await execute({ id: mem.id })) as {
@@ -44,7 +40,7 @@ describe("forget tool", () => {
   });
 
   it("returns error for already-superseded memory", async () => {
-    const mem = storeMemory(db, "Old fact", embedText("Old fact"), { source: "explicit" });
+    const mem = storeMemory(db, "Old fact", { source: "explicit" });
     supersedeMemories(db, [mem.id]);
     const result = (await execute({ id: mem.id })) as { error: string };
     ok(result.error.includes("already superseded"));

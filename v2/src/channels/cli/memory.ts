@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { countMemories, staleMemories } from "../../core/memory/index.ts";
+import { countMemories, staleMemories } from "../../core/memory/api/read/index.ts";
 import { defaultChatFactory } from "../../harness/chat_factory.ts";
 import { resolveModel } from "../../harness/model.ts";
 import { executeCommand } from "../../harness/oneshots/execute_command.ts";

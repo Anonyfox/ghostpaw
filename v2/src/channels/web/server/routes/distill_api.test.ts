@@ -7,7 +7,7 @@ import {
   initChatTables,
 } from "../../../../core/chat/index.ts";
 import { initConfigTable } from "../../../../core/config/schema.ts";
-import { initMemoryTable } from "../../../../core/memory/index.ts";
+import { initMemoryTable } from "../../../../core/memory/runtime/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { openTestDatabase } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";

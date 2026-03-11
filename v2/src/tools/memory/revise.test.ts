@@ -1,12 +1,11 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
+import { getMemory } from "../../core/memory/api/read/index.ts";
 import {
-  embedText,
-  getMemory,
-  initMemoryTable,
   storeMemory,
-  supersedeMemories,
-} from "../../core/memory/index.ts";
+  supersedeMemories as supersedeMemoryWrites,
+} from "../../core/memory/api/write/index.ts";
+import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createReviseTool } from "./revise.ts";
@@ -26,7 +25,7 @@ describe("revise tool", () => {
   afterEach(() => db.close());
 
   it("corrects a single memory (one ID + claim)", async () => {
-    const old = storeMemory(db, "User likes pizza", embedText("User likes pizza"), {
+    const old = storeMemory(db, "User likes pizza", {
       source: "explicit",
     });
     const result = (await execute({
@@ -44,10 +43,10 @@ describe("revise tool", () => {
   });
 
   it("merges multiple memories (multiple IDs + claim)", async () => {
-    const m1 = storeMemory(db, "User likes Italian food", embedText("User likes Italian food"), {
+    const m1 = storeMemory(db, "User likes Italian food", {
       source: "explicit",
     });
-    const m2 = storeMemory(db, "User enjoys pasta dishes", embedText("User enjoys pasta dishes"), {
+    const m2 = storeMemory(db, "User enjoys pasta dishes", {
       source: "observed",
     });
     const result = (await execute({
@@ -63,7 +62,7 @@ describe("revise tool", () => {
   });
 
   it("confirms a single memory (one ID, no claim)", async () => {
-    const mem = storeMemory(db, "User works remotely", embedText("User works remotely"), {
+    const mem = storeMemory(db, "User works remotely", {
       source: "explicit",
     });
     const result = (await execute({ ids: String(mem.id) })) as {
@@ -82,7 +81,7 @@ describe("revise tool", () => {
   });
 
   it("bumps confidence on confirm", async () => {
-    const mem = storeMemory(db, "User is a developer", embedText("User is a developer"), {
+    const mem = storeMemory(db, "User is a developer", {
       source: "inferred",
       confidence: 0.5,
     });
@@ -93,8 +92,8 @@ describe("revise tool", () => {
   });
 
   it("returns error for multiple IDs without claim", async () => {
-    const m1 = storeMemory(db, "Fact A", embedText("Fact A"), { source: "explicit" });
-    const m2 = storeMemory(db, "Fact B", embedText("Fact B"), { source: "explicit" });
+    const m1 = storeMemory(db, "Fact A", { source: "explicit" });
+    const m2 = storeMemory(db, "Fact B", { source: "explicit" });
     const result = (await execute({ ids: `${m1.id},${m2.id}` })) as { error: string };
     ok(result.error.includes("claim"));
   });
@@ -110,8 +109,8 @@ describe("revise tool", () => {
   });
 
   it("returns error for already-superseded ID in correct mode", async () => {
-    const mem = storeMemory(db, "Old fact", embedText("Old fact"), { source: "explicit" });
-    supersedeMemories(db, [mem.id]);
+    const mem = storeMemory(db, "Old fact", { source: "explicit" });
+    supersedeMemoryWrites(db, [mem.id]);
     const result = (await execute({
       ids: String(mem.id),
       claim: "Updated fact",
@@ -120,8 +119,8 @@ describe("revise tool", () => {
   });
 
   it("returns error for already-superseded ID in confirm mode", async () => {
-    const mem = storeMemory(db, "Old fact", embedText("Old fact"), { source: "explicit" });
-    supersedeMemories(db, [mem.id]);
+    const mem = storeMemory(db, "Old fact", { source: "explicit" });
+    supersedeMemoryWrites(db, [mem.id]);
     const result = (await execute({ ids: String(mem.id) })) as { error: string };
     ok(result.error.includes("superseded"));
   });
@@ -137,7 +136,7 @@ describe("revise tool", () => {
   });
 
   it("deduplicates repeated IDs", async () => {
-    const mem = storeMemory(db, "Duplicate test", embedText("Duplicate test"), {
+    const mem = storeMemory(db, "Duplicate test", {
       source: "explicit",
     });
     const result = (await execute({
@@ -154,7 +153,7 @@ describe("revise tool", () => {
   });
 
   it("handles IDs with extra whitespace", async () => {
-    const mem = storeMemory(db, "Some fact", embedText("Some fact"), { source: "explicit" });
+    const mem = storeMemory(db, "Some fact", { source: "explicit" });
     const result = (await execute({
       ids: ` ${mem.id} `,
       claim: "Updated fact",

@@ -1,4 +1,4 @@
-import type { MemoryCategory, MemorySource } from "../../core/memory/index.ts";
+import type { MemoryCategory, MemorySource } from "../../core/memory/api/types.ts";
 
 export interface FormattedMemory {
   id: number;

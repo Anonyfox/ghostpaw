@@ -1,6 +1,7 @@
 import { createTool, Schema } from "chatoyant";
-import type { Memory } from "../../core/memory/index.ts";
-import { embedText, searchMemories, storeMemory } from "../../core/memory/index.ts";
+import { searchMemories } from "../../core/memory/api/read/index.ts";
+import type { Memory } from "../../core/memory/api/types.ts";
+import { storeMemory } from "../../core/memory/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatMemoryForAgent } from "./format_memory.ts";
 
@@ -44,11 +45,9 @@ export function createRememberTool(db: DatabaseHandle) {
       };
       if (!claim || !claim.trim()) return { error: "Claim must not be empty." };
 
-      const embedding = embedText(claim.trim());
-
       let stored: Memory;
       try {
-        stored = storeMemory(db, claim, embedding, {
+        stored = storeMemory(db, claim, {
           source: source ?? "explicit",
           category: category ?? "custom",
         });
@@ -57,7 +56,7 @@ export function createRememberTool(db: DatabaseHandle) {
         return { error: `Failed to store memory: ${detail}` };
       }
 
-      const similar = searchMemories(db, embedding, { k: 5, minScore: 0.1 }).filter(
+      const similar = searchMemories(db, claim.trim(), { k: 5, minScore: 0.1 }).filter(
         (m) => m.id !== stored.id,
       );
 

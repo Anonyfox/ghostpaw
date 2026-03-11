@@ -4,7 +4,7 @@ import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createSession, initChatTables } from "../chat/index.ts";
 import { initConfigTable } from "../config/index.ts";
-import { initMemoryTable } from "../memory/index.ts";
+import { initMemoryTable } from "../memory/runtime/index.ts";
 import { formatSoulEvidence, gatherSoulEvidence, MANDATORY_SOUL_IDS } from "./api/read/index.ts";
 import { addTrait } from "./api/write/index.ts";
 import { ensureMandatorySouls, initSoulShardTables, initSoulsTables } from "./runtime/index.ts";

@@ -4,7 +4,7 @@ import type { ChatInstance, TurnResult } from "../core/chat/index.ts";
 import { createSession, initChatTables } from "../core/chat/index.ts";
 import { initConfigTable, setConfig } from "../core/config/index.ts";
 import { initHowlTables } from "../core/howl/index.ts";
-import { initMemoryTable } from "../core/memory/index.ts";
+import { initMemoryTable } from "../core/memory/runtime/index.ts";
 import { initPackTables } from "../core/pack/runtime/index.ts";
 import { initQuestTables } from "../core/quests/index.ts";
 import { initSecretsTable } from "../core/secrets/index.ts";

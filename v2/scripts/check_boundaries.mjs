@@ -6,7 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 const srcRoot = path.join(projectRoot, "src");
 
-const NAMESPACED_CORE_FEATURES = new Set(["pack", "skills", "souls"]);
+const NAMESPACED_CORE_FEATURES = new Set(["memory", "pack", "skills", "souls"]);
 const RUNTIME_IMPORTERS = new Set([
   "src/index.ts",
   "src/channels/cli/with_run_db.ts",

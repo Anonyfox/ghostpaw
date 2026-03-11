@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { getMemory } from "../../core/memory/index.ts";
+import { getMemory } from "../../core/memory/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
