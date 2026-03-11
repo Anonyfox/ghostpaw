@@ -207,7 +207,7 @@ This is not a number going up. This is real-world impact on button click. [Self-
 
 **Phase 1: Code Prowl** (always, zero LLM, <100ms). Validate all skills + auto-repair structural issues. Expire 90+ day pending fragments. Compute readiness colors for all skills. Detect stale skills (checkpointed 90+ days ago, still being read), dormant skills (not read in 60+ days), and oversized skills (approaching 500 lines). Count pending fragments by domain. Compute rank distribution. Write `skill_health` summary to SQLite.
 
-**Phase 2: Background Exploration** (conditional, one LLM call). Only fires if background exploration is enabled AND meaningful evidence has accumulated since last stoke (5+ new fragments OR 10+ new session memories). When it fires: one bounded `invokeTrainer` call with a hardcoded optimized instruction — read all pending fragments, read the skill index, route each fragment to matching skill domains, mine recent memories for friction signals not yet captured as fragments, and queue proposals for orphan clusters with 3+ independent observations and no matching skill. The trainer call is restricted to `dropSkillFragment` and `recall` — no skill creation, no file edits. Timeout: 2 minutes. Expected: ~30 seconds, ~$0.01–0.03.
+**Phase 2: Background Exploration** (conditional, one LLM call). Only fires if 5+ pending fragments exist AND at least 3 new fragments have arrived since the last Phase 2 run. If Phase 2 has never run, the first batch of 5 pending fragments triggers it. This gate mirrors the attunement cycle's `last_attuned_at` pattern — LLM tokens are spent exactly once per evidence batch, regardless of how frequently the job ticks. When it fires: one bounded `invokeTrainer` call with a hardcoded optimized instruction — read all pending fragments, read the skill index, route each fragment to matching skill domains, mine recent memories for friction signals not yet captured as fragments, and queue proposals for orphan clusters with 3+ independent observations and no matching skill. The trainer call is restricted to `dropSkillFragment` and `recall` — no skill creation, no file edits. Timeout: 2 minutes. Expected: ~30 seconds, ~$0.01–0.03.
 
 ```sql
 CREATE TABLE IF NOT EXISTS skill_health (
@@ -261,6 +261,8 @@ user               → picks a reward (train, create, or ignore)
                    → the training session has pre-routed fragments + rich evidence
                    → the ding
 ```
+
+**Self-healing and its limits.** Validation with auto-repair handles structural corruption. Fragment expiry (90 days) and cap enforcement (50) prevent unbounded growth. Stale detection (90+ days without checkpoint while still being read) and dormant detection (60+ days without reads) flag knowledge decay. The split reflex prevents monolith failure. Git-based rollback provides surgical recovery to any checkpoint. The Phase 2 cost gate prevents re-triggering on unchanged evidence. These cover the failure modes detectable in pure code. What the system cannot detect automatically is whether a skill's *content* is making outcomes worse — that requires causal isolation between "skill was followed" and "task outcome degraded," confounded by the fact that harder tasks naturally involve more skill reads. At personal-agent data volumes, the human-curated training cycle is the quality feedback loop: the trainer proposes improvements grounded in evidence, the human selects, and the checkpoint provides rollback if the result is worse.
 
 ## The Trainer
 

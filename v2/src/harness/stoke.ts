@@ -91,12 +91,24 @@ export function stokePhaseOne(workspace: string, db: DatabaseHandle): SkillHealt
 
 export function stokePhaseTwoNeeded(db: DatabaseHandle): boolean {
   const fragCount = pendingFragmentCount(db);
-  if (fragCount >= 5) return true;
+  if (fragCount < 5) return false;
 
-  const lastHealth = readSkillHealth(db);
-  if (!lastHealth) return fragCount > 0;
+  const lastExplored = db
+    .prepare("SELECT computed_at FROM skill_health WHERE explored = 1 ORDER BY rowid DESC LIMIT 1")
+    .get() as { computed_at: number } | undefined;
 
-  return false;
+  if (!lastExplored) return true;
+
+  const newSince = (
+    db
+      .prepare(
+        `SELECT COUNT(*) AS cnt FROM skill_fragments
+       WHERE status = 'pending' AND created_at > ?`,
+      )
+      .get(lastExplored.computed_at) as { cnt: number }
+  ).cnt;
+
+  return newSince >= 3;
 }
 
 export async function stokePhaseTwo(
@@ -138,6 +150,7 @@ export async function runStoke(
     const p2 = await stokePhaseTwo(entity, db, workspace);
     phaseTwoRan = true;
     phaseTwoCostUsd = p2.costUsd;
+    health.explored = true;
     health.proposalsQueued = pendingProposals(db).length;
     writeSkillHealth(db, health);
   }
