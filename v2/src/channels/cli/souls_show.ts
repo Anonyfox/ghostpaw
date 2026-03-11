@@ -1,5 +1,10 @@
 import { defineCommand } from "citty";
-import { getLevelHistory, getTraitLimit, listTraits, resolveSoul } from "../../core/souls/index.ts";
+import {
+  getLevelHistory,
+  getTraitLimit,
+  listTraits,
+  resolveSoul,
+} from "../../core/souls/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 

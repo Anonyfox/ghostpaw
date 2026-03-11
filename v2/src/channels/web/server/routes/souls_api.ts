@@ -1,6 +1,4 @@
 import {
-  awakenSoul,
-  createSoul,
   crystallizationReadiness,
   getLevelHistory,
   getSoul,
@@ -10,11 +8,15 @@ import {
   listShards,
   listSouls,
   listTraits,
-  retireSoul,
-  revertLevelUp,
   shardCountsPerSoul,
-  updateSoul,
-} from "../../../../core/souls/index.ts";
+} from "../../../../core/souls/api/read/index.ts";
+import {
+  awakenSoulEntry,
+  createSoulEntry,
+  retireSoulEntry,
+  revertSoulLevel,
+  updateSoulEntry,
+} from "../../../../harness/public/souls.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { SoulDetailResponse, SoulOverviewInfo } from "../../shared/soul_types.ts";
 import type { RouteContext } from "../types.ts";
@@ -77,7 +79,7 @@ export function createSoulsApiHandlers(db: DatabaseHandle, entityAvailable: bool
         return;
       }
       try {
-        const soul = createSoul(db, result);
+        const soul = createSoulEntry(db, result);
         json(ctx, 201, { soul });
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
@@ -146,7 +148,7 @@ export function createSoulsApiHandlers(db: DatabaseHandle, entityAvailable: bool
         return;
       }
       try {
-        const soul = updateSoul(db, id, result);
+        const soul = updateSoulEntry(db, id, result);
         json(ctx, 200, { soul });
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
@@ -160,7 +162,7 @@ export function createSoulsApiHandlers(db: DatabaseHandle, entityAvailable: bool
         return;
       }
       try {
-        retireSoul(db, id);
+        retireSoulEntry(db, id);
         json(ctx, 200, { ok: true });
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
@@ -176,7 +178,7 @@ export function createSoulsApiHandlers(db: DatabaseHandle, entityAvailable: bool
       const result = await parseAwakenBody(ctx.req);
       const newName = "newName" in result ? result.newName : undefined;
       try {
-        const soul = awakenSoul(db, id, newName);
+        const soul = awakenSoulEntry(db, id, newName);
         json(ctx, 200, { soul });
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
@@ -212,7 +214,7 @@ export function createSoulsApiHandlers(db: DatabaseHandle, entityAvailable: bool
         return;
       }
       try {
-        const soul = revertLevelUp(db, id);
+        const soul = revertSoulLevel(db, id);
         json(ctx, 200, { soul });
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });

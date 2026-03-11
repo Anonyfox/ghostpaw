@@ -8,7 +8,7 @@ import {
   getSession,
 } from "../../core/chat/index.ts";
 import { getHowl, updateHowlStatus } from "../../core/howl/index.ts";
-import { MANDATORY_SOUL_IDS } from "../../core/souls/index.ts";
+import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { defaultChatFactory } from "../chat_factory.ts";
 import { assembleContext } from "../context.ts";

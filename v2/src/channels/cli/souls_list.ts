@@ -1,11 +1,11 @@
 import { defineCommand } from "citty";
-import type { ShardCountPerSoul } from "../../core/souls/index.ts";
 import {
   getTraitLimit,
   listDormantSouls,
   listSouls,
   shardCountsPerSoul,
-} from "../../core/souls/index.ts";
+} from "../../core/souls/api/read/index.ts";
+import type { ShardCountPerSoul } from "../../core/souls/api/types.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 

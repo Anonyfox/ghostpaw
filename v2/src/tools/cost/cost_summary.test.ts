@@ -1,7 +1,7 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initChatTables } from "../../core/chat/index.ts";
-import { initSoulsTables } from "../../core/souls/index.ts";
+import { initSoulsTables } from "../../core/souls/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/open_test_database.ts";
 import { createCostSummaryTool } from "./cost_summary.ts";

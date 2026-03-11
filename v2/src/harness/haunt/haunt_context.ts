@@ -6,7 +6,7 @@ import {
   recentlyCompletedQuests,
   staleQuests,
 } from "../../core/quests/index.ts";
-import { MANDATORY_SOUL_IDS, renderSoul } from "../../core/souls/index.ts";
+import { MANDATORY_SOUL_IDS, renderSoul } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import type { HauntAnalysis, NoveltyInfo } from "./types.ts";
 

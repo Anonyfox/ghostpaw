@@ -1,5 +1,6 @@
 import { defineCommand } from "citty";
-import { resolveSoul, updateSoul } from "../../core/souls/index.ts";
+import { resolveSoul } from "../../core/souls/api/read/index.ts";
+import { updateSoulEntry } from "../../harness/public/souls.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -59,7 +60,7 @@ export default defineCommand({
         if (newEssence?.trim()) input.essence = newEssence.trim();
         if (newDescription?.trim()) input.description = newDescription.trim();
 
-        const updated = updateSoul(db, soul.id, input);
+        const updated = updateSoulEntry(db, soul.id, input);
         console.log(style.cyan("updated".padStart(10)), ` "${updated.name}"`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

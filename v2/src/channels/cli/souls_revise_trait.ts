@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { reviseTrait } from "../../core/souls/index.ts";
+import { reviseSoulTrait } from "../../harness/public/souls.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -47,7 +47,7 @@ export default defineCommand({
         if (principle?.trim()) input.principle = principle.trim();
         if (provenance?.trim()) input.provenance = provenance.trim();
 
-        reviseTrait(db, traitId, input);
+        reviseSoulTrait(db, traitId, input);
         console.log(style.cyan("revised".padStart(10)), ` trait #${traitId}`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

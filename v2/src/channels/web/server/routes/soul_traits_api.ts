@@ -1,9 +1,9 @@
 import {
-  addTrait,
-  reactivateTrait,
-  revertTrait,
-  reviseTrait,
-} from "../../../../core/souls/index.ts";
+  addSoulTrait,
+  reactivateSoulTrait,
+  revertSoulTrait,
+  reviseSoulTrait,
+} from "../../../../harness/public/souls.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";
 import { parseTraitAddBody, parseTraitReviseBody } from "./parse_trait_body.ts";
@@ -27,7 +27,7 @@ export function createSoulTraitsApiHandlers(db: DatabaseHandle) {
         return;
       }
       try {
-        const trait = addTrait(db, soulId, result);
+        const trait = addSoulTrait(db, soulId, result);
         json(ctx, 201, { trait });
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
@@ -46,7 +46,7 @@ export function createSoulTraitsApiHandlers(db: DatabaseHandle) {
         return;
       }
       try {
-        const trait = reviseTrait(db, tid, result);
+        const trait = reviseSoulTrait(db, tid, result);
         json(ctx, 200, { trait });
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
@@ -60,7 +60,7 @@ export function createSoulTraitsApiHandlers(db: DatabaseHandle) {
         return;
       }
       try {
-        const trait = revertTrait(db, tid);
+        const trait = revertSoulTrait(db, tid);
         json(ctx, 200, { trait });
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });
@@ -74,7 +74,7 @@ export function createSoulTraitsApiHandlers(db: DatabaseHandle) {
         return;
       }
       try {
-        const trait = reactivateTrait(db, tid);
+        const trait = reactivateSoulTrait(db, tid);
         json(ctx, 200, { trait });
       } catch (err) {
         json(ctx, 400, { error: err instanceof Error ? err.message : String(err) });

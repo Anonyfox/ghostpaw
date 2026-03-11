@@ -7,7 +7,7 @@ import {
   createSession,
   executeTurn,
 } from "../../core/chat/index.ts";
-import { MANDATORY_SOUL_IDS } from "../../core/souls/index.ts";
+import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { assembleContext } from "../context.ts";
 

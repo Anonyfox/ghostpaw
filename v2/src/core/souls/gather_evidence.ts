@@ -1,4 +1,6 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
+import { getDelegationStatsSince } from "../chat/api/read/index.ts";
+import { countMemoriesMatchingText } from "../memory/api/read/index.ts";
 import { countActiveTraits } from "./count_active_traits.ts";
 import type { DelegationStats } from "./delegation_stats.ts";
 import { getLevelHistory } from "./get_level_history.ts";
@@ -13,41 +15,11 @@ import { getTraitLimit } from "./trait_limit.ts";
 import type { TraitSnapshot } from "./trait_snapshot.ts";
 
 function queryDelegationStats(db: DatabaseHandle, soulId: number): DelegationStats {
-  const row = db
-    .prepare(
-      `SELECT
-        COUNT(*)                                                          AS total,
-        SUM(CASE WHEN closed_at IS NOT NULL AND error IS NULL THEN 1 ELSE 0 END) AS completed,
-        SUM(CASE WHEN error IS NOT NULL THEN 1 ELSE 0 END)                       AS failed,
-        COALESCE(AVG(cost_usd), 0)                                        AS avg_cost,
-        COALESCE(SUM(cost_usd), 0)                                        AS total_cost,
-        COALESCE(SUM(tokens_in), 0)                                       AS total_in,
-        COALESCE(SUM(tokens_out), 0)                                      AS total_out
-      FROM sessions
-      WHERE purpose = 'delegate' AND soul_id = ?`,
-    )
-    .get(soulId) as Record<string, number>;
-
-  return {
-    total: row.total,
-    completed: row.completed,
-    failed: row.failed,
-    avgCostUsd: row.avg_cost,
-    totalCostUsd: row.total_cost,
-    totalTokensIn: row.total_in,
-    totalTokensOut: row.total_out,
-  };
+  return getDelegationStatsSince(db, soulId, 0);
 }
 
 function queryRelatedMemoryCount(db: DatabaseHandle, soulName: string): number {
-  const row = db
-    .prepare(
-      `SELECT COUNT(*) AS cnt FROM memories
-       WHERE superseded_by IS NULL
-         AND (claim LIKE ? OR source LIKE ?)`,
-    )
-    .get(`%${soulName}%`, `%${soulName}%`) as { cnt: number };
-  return row.cnt;
+  return countMemoriesMatchingText(db, soulName);
 }
 
 function toTraitSnapshot(t: {

@@ -9,7 +9,7 @@ import {
   ensureMandatorySouls,
   initSoulShardTables,
   initSoulsTables,
-} from "../../../core/souls/index.ts";
+} from "../../../core/souls/runtime/index.ts";
 import type { DatabaseHandle } from "../../../lib/index.ts";
 import { openTestDatabase } from "../../../lib/index.ts";
 import { buildRoutes } from "./build_routes.ts";

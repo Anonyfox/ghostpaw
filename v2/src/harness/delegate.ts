@@ -8,7 +8,7 @@ import {
   getSession,
   getSessionMessage,
 } from "../core/chat/index.ts";
-import { getSoulByName, listSouls, MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
+import { getSoulByName, listSouls, MANDATORY_SOUL_IDS } from "../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import type { DelegateArgs, DelegateHandler } from "../tools/delegate.ts";
 import { checkSpendLimit } from "./check_spend_limit.ts";

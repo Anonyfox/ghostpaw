@@ -1,5 +1,5 @@
-import type { CrystallizationEntry } from "../core/souls/index.ts";
-import { formatSoulEvidence, gatherSoulEvidence, getSoul } from "../core/souls/index.ts";
+import { formatSoulEvidence, gatherSoulEvidence, getSoul } from "../core/souls/api/read/index.ts";
+import type { CrystallizationEntry } from "../core/souls/api/types.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { createProposeTraitTool } from "../tools/mentor/propose_trait.ts";
 import { createRevertTraitTool } from "../tools/mentor/revert_trait.ts";

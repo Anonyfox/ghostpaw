@@ -1,6 +1,5 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { getConfig } from "../config/get_config.ts";
-import { KNOWN_CONFIG_KEYS } from "../config/known_keys.ts";
+import { getConfig, KNOWN_CONFIG_KEYS } from "../config/api/read/index.ts";
 
 const KEY = "soul_trait_limit";
 const FALLBACK = (KNOWN_CONFIG_KEYS.find((k) => k.key === KEY)?.defaultValue as number) ?? 10;

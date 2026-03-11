@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import type { ChatSession } from "../../core/chat/index.ts";
 import { createSession, initChatTables, renameSession } from "../../core/chat/index.ts";
 import { embedText, initMemoryTable, storeMemory } from "../../core/memory/index.ts";
-import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
+import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import {

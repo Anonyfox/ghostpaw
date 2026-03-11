@@ -1,4 +1,4 @@
-import { stampAttuned } from "../core/souls/index.ts";
+import { stampAttuned } from "../core/souls/api/write/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { attunePhaseOne } from "./attune_phase_one.ts";
 import { attunePhaseTwo } from "./attune_phase_two.ts";

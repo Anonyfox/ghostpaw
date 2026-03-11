@@ -1,5 +1,6 @@
 import { createTool, Schema } from "chatoyant";
-import { getSoulByName, revertLevelUp } from "../../core/souls/index.ts";
+import { getSoulByName } from "../../core/souls/api/read/index.ts";
+import { revertLevelUp } from "../../core/souls/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class RevertLevelUpParams extends Schema {

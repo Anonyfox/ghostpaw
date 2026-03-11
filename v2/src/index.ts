@@ -19,7 +19,11 @@ import {
   initSkillFragmentsTables,
   initSkillHealthTables,
 } from "./core/skills/runtime/index.ts";
-import { ensureMandatorySouls, initSoulShardTables, initSoulsTables } from "./core/souls/index.ts";
+import {
+  ensureMandatorySouls,
+  initSoulShardTables,
+  initSoulsTables,
+} from "./core/souls/runtime/index.ts";
 import { isEntrypoint, openDatabase, suppressWarnings } from "./lib/index.ts";
 import { banner, log } from "./lib/terminal/index.ts";
 

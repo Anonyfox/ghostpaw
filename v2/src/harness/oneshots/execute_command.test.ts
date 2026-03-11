@@ -7,7 +7,7 @@ import { initMemoryTable } from "../../core/memory/index.ts";
 import { meetMember } from "../../core/pack/api/write/index.ts";
 import { initPackTables } from "../../core/pack/runtime/index.ts";
 import { initQuestTables } from "../../core/quests/index.ts";
-import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
+import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { executeCommand } from "./execute_command.ts";

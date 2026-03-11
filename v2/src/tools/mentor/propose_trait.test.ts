@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { initChatTables } from "../../core/chat/index.ts";
 import { initConfigTable } from "../../core/config/index.ts";
 import { initMemoryTable } from "../../core/memory/index.ts";
-import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/index.ts";
+import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createProposeTraitTool } from "./propose_trait.ts";

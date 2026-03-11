@@ -2,7 +2,7 @@ import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
-import { initSoulsTables } from "../souls/schema.ts";
+import { initSoulsTables } from "../souls/runtime/index.ts";
 import { getCostBySoul } from "./get_cost_by_soul.ts";
 import { initChatTables } from "./index.ts";
 

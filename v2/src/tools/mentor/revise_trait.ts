@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { citeShard, fadeExhaustedShards, reviseTrait } from "../../core/souls/index.ts";
+import { citeShard, fadeExhaustedShards, reviseTrait } from "../../core/souls/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ReviseTraitParams extends Schema {

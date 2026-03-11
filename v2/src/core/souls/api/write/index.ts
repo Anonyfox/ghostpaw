@@ -1,0 +1,17 @@
+export { addTrait } from "../../add_trait.ts";
+export { awakenSoul } from "../../awaken_soul.ts";
+export { citeShard } from "../../cite_shard.ts";
+export { createSoul } from "../../create_soul.ts";
+export { dropSoulshard } from "../../drop_soulshard.ts";
+export { enforceShardCap } from "../../enforce_shard_cap.ts";
+export { expireOldShards } from "../../expire_old_shards.ts";
+export { fadeExhaustedShards } from "../../fade_exhausted_shards.ts";
+export { levelUp } from "../../level_up.ts";
+export { reactivateTrait } from "../../reactivate_trait.ts";
+export { retireSoul } from "../../retire_soul.ts";
+export { revealShards } from "../../reveal_shards.ts";
+export { revertLevelUp } from "../../revert_level_up.ts";
+export { revertTrait } from "../../revert_trait.ts";
+export { reviseTrait } from "../../revise_trait.ts";
+export { stampAttuned } from "../../stamp_attuned.ts";
+export { updateSoul } from "../../update_soul.ts";

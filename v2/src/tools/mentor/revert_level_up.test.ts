@@ -3,14 +3,9 @@ import { describe, it } from "node:test";
 import { initChatTables } from "../../core/chat/index.ts";
 import { initConfigTable } from "../../core/config/index.ts";
 import { initMemoryTable } from "../../core/memory/index.ts";
-import {
-  addTrait,
-  ensureMandatorySouls,
-  initSoulsTables,
-  levelUp,
-  listTraits,
-  MANDATORY_SOUL_IDS,
-} from "../../core/souls/index.ts";
+import { listTraits, MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
+import { addTrait, levelUp } from "../../core/souls/api/write/index.ts";
+import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createRevertLevelUpTool } from "./revert_level_up.ts";

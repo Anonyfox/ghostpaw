@@ -5,15 +5,9 @@ import { openTestDatabase } from "../../lib/index.ts";
 import { createSession, initChatTables } from "../chat/index.ts";
 import { initConfigTable } from "../config/index.ts";
 import { initMemoryTable } from "../memory/index.ts";
-import {
-  addTrait,
-  ensureMandatorySouls,
-  formatSoulEvidence,
-  gatherSoulEvidence,
-  initSoulShardTables,
-  initSoulsTables,
-  MANDATORY_SOUL_IDS,
-} from "./index.ts";
+import { formatSoulEvidence, gatherSoulEvidence, MANDATORY_SOUL_IDS } from "./api/read/index.ts";
+import { addTrait } from "./api/write/index.ts";
+import { ensureMandatorySouls, initSoulShardTables, initSoulsTables } from "./runtime/index.ts";
 
 async function setup(): Promise<DatabaseHandle> {
   const db = await openTestDatabase();

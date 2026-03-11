@@ -4,7 +4,7 @@ import { getSession } from "../core/chat/index.ts";
 import { getSecret } from "../core/secrets/index.ts";
 import { projectSkillReadContent } from "../core/skills/api/read/index.ts";
 import { logSkillEvent } from "../core/skills/api/write/index.ts";
-import { listSouls, MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
+import { listSouls, MANDATORY_SOUL_IDS } from "../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { createBashTool } from "../tools/bash.ts";
 import { createCalcTool } from "../tools/calc.ts";

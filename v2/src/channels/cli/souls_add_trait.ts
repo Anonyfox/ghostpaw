@@ -1,5 +1,6 @@
 import { defineCommand } from "citty";
-import { addTrait, resolveSoul } from "../../core/souls/index.ts";
+import { resolveSoul } from "../../core/souls/api/read/index.ts";
+import { addSoulTrait } from "../../harness/public/souls.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -47,7 +48,7 @@ export default defineCommand({
 
       try {
         const provenance = (args.provenance as string | undefined)?.trim() || "added via CLI";
-        const trait = addTrait(db, soul.id, {
+        const trait = addSoulTrait(db, soul.id, {
           principle: principle.trim(),
           provenance,
         });

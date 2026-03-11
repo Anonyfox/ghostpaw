@@ -1,7 +1,8 @@
 import type { ChatFactory } from "../core/chat/chat_instance.ts";
 import type { ChatSession } from "../core/chat/index.ts";
 import { countSubstantiveMessages, getSession } from "../core/chat/index.ts";
-import { dropSoulshard, MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
+import { MANDATORY_SOUL_IDS } from "../core/souls/api/read/index.ts";
+import { dropSoulshard } from "../core/souls/api/write/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { ELIGIBLE_PURPOSES, MIN_SUBSTANTIVE_MESSAGES } from "./distill_types.ts";
 import { distillSession } from "./oneshots/distill_session.ts";

@@ -6,7 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 const srcRoot = path.join(projectRoot, "src");
 
-const NAMESPACED_CORE_FEATURES = new Set(["pack", "skills"]);
+const NAMESPACED_CORE_FEATURES = new Set(["pack", "skills", "souls"]);
 const RUNTIME_IMPORTERS = new Set([
   "src/index.ts",
   "src/channels/cli/with_run_db.ts",
@@ -14,7 +14,11 @@ const RUNTIME_IMPORTERS = new Set([
 const WRITE_IMPORT_ALLOWLIST = new Set([
   "src/harness/tools.ts",
   "src/harness/stoke.ts",
+  "src/harness/post_session.ts",
+  "src/harness/attune_phase_one.ts",
+  "src/harness/run_attune.ts",
   "src/harness/public/skills.ts",
+  "src/harness/public/souls.ts",
 ]);
 
 function toPosix(filePath) {

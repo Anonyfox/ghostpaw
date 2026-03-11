@@ -1,5 +1,6 @@
 import { defineCommand } from "citty";
-import { resolveSoul, revertLevelUp } from "../../core/souls/index.ts";
+import { resolveSoul } from "../../core/souls/api/read/index.ts";
+import { revertSoulLevel } from "../../harness/public/souls.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -32,7 +33,7 @@ export default defineCommand({
       }
 
       try {
-        const reverted = revertLevelUp(db, soul.id);
+        const reverted = revertSoulLevel(db, soul.id);
         console.log(
           style.cyan("reverted".padStart(10)),
           ` "${reverted.name}" back to level ${reverted.level}`,

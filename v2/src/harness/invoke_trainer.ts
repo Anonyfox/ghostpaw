@@ -1,7 +1,7 @@
 import type { Tool } from "chatoyant";
 import type { TurnResult } from "../core/chat/index.ts";
 import { closeSession, createSession } from "../core/chat/index.ts";
-import { MANDATORY_SOUL_IDS } from "../core/souls/index.ts";
+import { MANDATORY_SOUL_IDS } from "../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import type { Entity } from "./types.ts";
 

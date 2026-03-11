@@ -1,5 +1,6 @@
 import { defineCommand } from "citty";
-import { awakenSoul, getSoul, listDormantSouls } from "../../core/souls/index.ts";
+import { getSoul, listDormantSouls } from "../../core/souls/api/read/index.ts";
+import { awakenSoulEntry } from "../../harness/public/souls.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -53,7 +54,7 @@ export default defineCommand({
 
       try {
         const newName = (args.as as string | undefined)?.trim() || undefined;
-        const awakened = awakenSoul(db, soul.id, newName);
+        const awakened = awakenSoulEntry(db, soul.id, newName);
         console.log(style.cyan("awakened".padStart(10)), ` "${awakened.name}"`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

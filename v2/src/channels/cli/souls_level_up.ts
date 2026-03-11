@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { defineCommand } from "citty";
-import { resolveSoul } from "../../core/souls/index.ts";
+import { resolveSoul } from "../../core/souls/api/read/index.ts";
 import { buildLevelUpPrompt, createEntity, invokeMentor } from "../../harness/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";

@@ -2,7 +2,7 @@ import { ok, strictEqual } from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 import { createSession, initChatTables } from "../../../../core/chat/index.ts";
 import { initConfigTable, setConfig } from "../../../../core/config/index.ts";
-import { initSoulsTables } from "../../../../core/souls/index.ts";
+import { initSoulsTables } from "../../../../core/souls/runtime/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { openTestDatabase } from "../../../../lib/index.ts";
 import { createCostsApiHandlers } from "./costs_api.ts";

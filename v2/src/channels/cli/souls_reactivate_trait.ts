@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { reactivateTrait } from "../../core/souls/index.ts";
+import { reactivateSoulTrait } from "../../harness/public/souls.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -23,7 +23,7 @@ export default defineCommand({
 
     await withRunDb((db) => {
       try {
-        reactivateTrait(db, traitId);
+        reactivateSoulTrait(db, traitId);
         console.log(style.cyan("reactivated".padStart(10)), ` trait #${traitId}`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

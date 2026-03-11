@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { formatSoulEvidence, gatherSoulEvidence } from "../../core/souls/index.ts";
+import { formatSoulEvidence, gatherSoulEvidence } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ReviewSoulParams extends Schema {

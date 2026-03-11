@@ -1,12 +1,9 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { initConfigTable } from "../core/config/index.ts";
-import {
-  dropSoulshard,
-  initSoulShardTables,
-  initSoulsTables,
-  pendingShardCount,
-} from "../core/souls/index.ts";
+import { pendingShardCount } from "../core/souls/api/read/index.ts";
+import { dropSoulshard } from "../core/souls/api/write/index.ts";
+import { initSoulShardTables, initSoulsTables } from "../core/souls/runtime/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/open_test_database.ts";
 import { attunePhaseOne } from "./attune_phase_one.ts";

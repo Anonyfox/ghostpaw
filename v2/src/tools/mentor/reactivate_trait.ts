@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { reactivateTrait } from "../../core/souls/index.ts";
+import { reactivateTrait } from "../../core/souls/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ReactivateTraitParams extends Schema {

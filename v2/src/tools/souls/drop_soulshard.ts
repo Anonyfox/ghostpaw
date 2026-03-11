@@ -1,6 +1,7 @@
 import { createTool, Schema } from "chatoyant";
-import type { ShardSource } from "../../core/souls/index.ts";
-import { dropSoulshard, getSoulByName } from "../../core/souls/index.ts";
+import { getSoulByName } from "../../core/souls/api/read/index.ts";
+import type { ShardSource } from "../../core/souls/api/types.ts";
+import { dropSoulshard } from "../../core/souls/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class DropSoulshardParams extends Schema {

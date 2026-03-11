@@ -1,5 +1,6 @@
 import { defineCommand } from "citty";
-import { isMandatorySoulId, resolveSoul, retireSoul } from "../../core/souls/index.ts";
+import { isMandatorySoulId, resolveSoul } from "../../core/souls/api/read/index.ts";
+import { retireSoulEntry } from "../../harness/public/souls.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -38,7 +39,7 @@ export default defineCommand({
       }
 
       try {
-        retireSoul(db, soul.id);
+        retireSoulEntry(db, soul.id);
         console.log(style.cyan("retired".padStart(10)), ` "${soul.name}"`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

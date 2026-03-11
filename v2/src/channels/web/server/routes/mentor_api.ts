@@ -1,4 +1,4 @@
-import { getSoul } from "../../../../core/souls/index.ts";
+import { getSoul } from "../../../../core/souls/api/read/index.ts";
 import type { Entity } from "../../../../harness/index.ts";
 import {
   buildLevelUpPrompt,

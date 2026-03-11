@@ -1,5 +1,6 @@
 import { createTool, Schema } from "chatoyant";
-import { addTrait, citeShard, fadeExhaustedShards, getSoulByName } from "../../core/souls/index.ts";
+import { getSoulByName } from "../../core/souls/api/read/index.ts";
+import { addTrait, citeShard, fadeExhaustedShards } from "../../core/souls/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class ProposeTraitParams extends Schema {

@@ -7,7 +7,7 @@ import {
   getHistory,
 } from "../../core/chat/index.ts";
 import type { Memory } from "../../core/memory/index.ts";
-import { MANDATORY_SOUL_IDS } from "../../core/souls/index.ts";
+import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { createDropSoulshardTool } from "../../tools/souls/drop_soulshard.ts";
 import { createDropFragmentTool } from "../../tools/trainer/drop_fragment.ts";

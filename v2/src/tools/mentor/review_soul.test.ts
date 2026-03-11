@@ -7,7 +7,7 @@ import {
   ensureMandatorySouls,
   initSoulShardTables,
   initSoulsTables,
-} from "../../core/souls/index.ts";
+} from "../../core/souls/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createReviewSoulTool } from "./review_soul.ts";

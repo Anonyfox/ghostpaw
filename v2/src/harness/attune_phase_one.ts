@@ -1,12 +1,11 @@
-import { getConfig } from "../core/config/index.ts";
-import type { CrystallizationEntry } from "../core/souls/index.ts";
+import { getConfig } from "../core/config/api/read/index.ts";
+import { crystallizationReadiness, pendingShardCount } from "../core/souls/api/read/index.ts";
+import type { CrystallizationEntry } from "../core/souls/api/types.ts";
 import {
-  crystallizationReadiness,
   enforceShardCap,
   expireOldShards,
   fadeExhaustedShards,
-  pendingShardCount,
-} from "../core/souls/index.ts";
+} from "../core/souls/api/write/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 
 export function attunePhaseOne(db: DatabaseHandle): {

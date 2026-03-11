@@ -4,8 +4,9 @@ import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createSession, initChatTables } from "../chat/index.ts";
 import { initConfigTable } from "../config/index.ts";
-import { ensureMandatorySouls, initSoulsTables, MANDATORY_SOUL_IDS } from "./index.ts";
+import { MANDATORY_SOUL_IDS } from "./api/read/index.ts";
 import { queryCostTrend } from "./query_cost_trend.ts";
+import { ensureMandatorySouls, initSoulsTables } from "./runtime/index.ts";
 
 const DAY = 86_400_000;
 

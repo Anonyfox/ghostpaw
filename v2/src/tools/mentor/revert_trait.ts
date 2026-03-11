@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { revertTrait } from "../../core/souls/index.ts";
+import { revertTrait } from "../../core/souls/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class RevertTraitParams extends Schema {

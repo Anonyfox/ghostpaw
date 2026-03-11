@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { createSoul } from "../../core/souls/index.ts";
+import { createSoulEntry } from "../../harness/public/souls.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -37,7 +37,7 @@ export default defineCommand({
 
     await withRunDb((db) => {
       try {
-        const soul = createSoul(db, {
+        const soul = createSoulEntry(db, {
           name: name.trim(),
           essence: essence.trim(),
           description: (args.description as string | undefined)?.trim() ?? "",
