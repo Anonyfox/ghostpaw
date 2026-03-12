@@ -38,7 +38,11 @@ Five layers, strictly ordered. Each layer may depend on layers below it. Never a
 
 ## Bootstrap
 
-A lifecycle phase, not a layer. Before the harness or any channel can run, the system must be bootstrapped: database opened, tables created, mandatory souls ensured, secrets loaded. This is a top-level concern (`src/bootstrap.ts` or equivalent) that runs once at startup. Every layer depends on bootstrap having completed, but no layer imports from it — it runs before anything else.
+A lifecycle phase, not a layer. Before the harness or any channel can run, the system must be
+bootstrapped: database opened, tables created, mandatory souls ensured, default schedules seeded,
+and secrets loaded into the runtime environment. This happens from the application entry flow
+(`src/index.ts` plus startup helpers), runs once at startup, and is not a reusable layer of its
+own. Every layer depends on bootstrap having completed, but no layer imports from it directly.
 
 ## src/core/
 
@@ -62,18 +66,24 @@ Meaning:
 - `runtime/` — schema init, defaults, seeds, integrity/bootstrap helpers
 - `internal/` — row mappers, derivation logic, normalization, formatting, private SQL helpers
 
+Today the explicitly namespaced core subsystems are `config`, `memory`, `pack`, `schedule`,
+`secrets`, `skills`, and `souls`.
+
 Features include (not exhaustive — grows as the system grows):
 
 - **chat/** — mechanical turn execution pipeline. Session lifecycle, message persistence, history traversal, turn locking, token estimation. Accepts a system prompt, tools, and chat factory from above — it executes what it's given. The `CompactFn` callback allows the harness to inject compaction logic that runs inside the session lock without core knowing about the LLM call.
 - **memory/** — memory storage, recall, embeddings, reconciliation.
 - **souls/** — soul loading, rendering, refinement pipeline, default soul content (as .ts files).
 - **config/** — typed configuration with known keys, defaults, and validation.
-- **secrets/** — encrypted secret storage, provider key management.
+- **secrets/** — local secret storage, provider key management, and runtime-only value access.
 - **pack/** — social bonds, contacts, identity resolution, member merging, Theory of Mind.
 - **quests/** — unified task/event/calendar system, temporal awareness, quest board, FTS5 search.
 - **howl/** — proactive outreach — routing metadata, origin tracking, delivery lifecycle.
 - **schedule/** — job scheduling with CAS-based at-most-once locking, builtin + custom schedules, interval management.
 - **skills/** — skill storage, craft/train/scout pipeline, default skills (as .ts files).
+
+`SETTINGS` is a product umbrella, not its own `src/core/settings/` namespace. Its implementation is
+split across `core/config/`, `core/secrets/`, and `core/schedule/`.
 
 Modules that moved out of `core/`: `models/` → `lib/models/` (stateless provider registry), `service/` → `lib/service/` (OS-level daemon install), `cost/` eliminated (queries in `chat/`, pure computation in `lib/cost/`), `runs/` eliminated (merged into `chat/` sessions), `haunt/` eliminated (sessions with `purpose = 'haunt'`).
 
@@ -223,11 +233,21 @@ One SQLite file: `ghostpaw.db`. One connection. Managed in two layers:
 
 **Each feature owns its tables.** `core/chat/` creates and queries the `sessions` and `messages` tables (including cost aggregation queries). `core/memory/` creates and queries the `memories` table. `core/pack/` owns `pack_members`, `pack_interactions`, and `pack_contacts`. `core/schedule/` owns the `schedules` table. Schema creation, queries, migrations — all live inside the feature folder. Runtime table setup belongs under `runtime/`; operational queries and mutations are exposed through `api/read/` and `api/write/`; private SQL helpers stay in `internal/`. No ORM, no query builder, no abstraction layer. Hand-tuned SQL, unit-tested.
 
-**SQL lives in core, nowhere else.** SQL statements (`.prepare()`, `.exec()`, raw `SELECT`/`INSERT`/`UPDATE`/`DELETE`) may only exist inside `core/` and `lib/`. Layers above core access data exclusively through approved `api/read/` and `api/write/` surfaces, never by reaching into `internal/` or writing SQL themselves. Raw SQL in channels, harness, or tools is a boundary violation equivalent to importing internal files. When a layer above core needs data that isn't exposed, the correct response is to add a function to the owning core module — never to write SQL in the caller.
+**SQL belongs in core and lib.** The architectural target is that SQL statements (`.prepare()`,
+`.exec()`, raw `SELECT`/`INSERT`/`UPDATE`/`DELETE`) live only inside `core/` and `lib/`. Layers
+above core should access data exclusively through approved `api/read/` and `api/write/` surfaces,
+never by reaching into `internal/` or writing new SQL themselves. A small number of older
+exceptions may still exist outside `core/`/`lib/`; they are technical debt to remove, not a valid
+pattern to copy.
 
 **Testing:** `lib/` also provides a test database connection that returns an in-memory (`:memory:`) SQLite instance instead of a WAL-mode on-disk file. Fast, isolated, throwaway. Every feature's tests use this — no test ever touches a real database file. Network calls are mocked — no test ever makes a real HTTP request or LLM API call.
 
-**Why this works:** SQLite is sequential and synchronous. Even when multiple channels or concurrent actions are in play, the database serializes access. No race conditions, no locking strategies, no transaction isolation concerns. This is a feature, not a limitation — it means each feature module can write straightforward SQL without worrying about what other modules are doing.
+**Why this works:** SQLite is sequential and synchronous. Even when multiple channels or concurrent
+actions are in play, the database serializes writes and gives the codebase a simple consistency
+model. Higher-level features may still need explicit claim/lock protocols for coordination (for
+example scheduled jobs), but they do not need distributed systems machinery. This is a feature, not
+a limitation — it means each feature module can write straightforward SQL against one shared local
+store.
 
 ## System Decisions
 
@@ -239,7 +259,9 @@ Concrete decisions that apply across the codebase. When in doubt, these are auth
 - **`node:sqlite` for all persistence.** One database file. Dynamically imported always. Connection managed by `lib/`, tables owned by features.
 - **Timestamps are Unix milliseconds (INTEGER).** `Date.now()` everywhere. Compact, fast comparisons, native SQLite sorting. Human-readable formatting is a channel concern.
 - **IDs are INTEGER PRIMARY KEY.** SQLite autoincrement. Simple, fast, zero coordination. Sortable by insertion order. External references use session keys (e.g. `web:chat:123`, `telegram:456`).
-- **Secrets never enter conversation context.** Stored in the database, accessed by the `secrets` tool, injected into tool execution — but never included in messages sent to the LLM.
+- **Secrets never enter conversation context.** Stored locally, accessed by runtime-only secret
+  readers and the `secrets` tool surfaces, injected into execution when needed, but never included
+  in messages sent to the LLM.
 - **Default content (souls, skills) ships as TypeScript.** Bundled into the artifact. Written to disk on first run (`init`), then owned by the user.
 - **`citty` for CLI.** Subcommand routing, auto-generated help, error handling. Zero dependencies, built on `node:util.parseArgs`.
 - **`chatoyant` is the LLM abstraction.** Provider-agnostic. No direct HTTP calls to model APIs.

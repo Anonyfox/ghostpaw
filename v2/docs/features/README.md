@@ -44,7 +44,7 @@ The synergy layer is what makes the whole greater than the sum of parts. But it 
 
 ## Quality Criteria
 
-Every subsystem must meet all five at all times. These are not aspirational. They are mandatory.
+Every subsystem must meet all six at all times. These are not aspirational. They are mandatory.
 
 ### 1. Scientifically Grounded
 
@@ -98,7 +98,18 @@ Specifically:
 
 ## The Subsystems
 
-Each document in this folder defines one core subsystem with its complete specification: what it does, how it works, the four value dimensions, quality criteria compliance, schema, and the research grounding every major design decision.
+Each document in this folder defines one feature subsystem specification: what it does, how it works,
+the four value dimensions, quality criteria compliance, data contract, interfaces, and the research
+grounding every major design decision.
+
+These documents are feature contracts, not a guaranteed 1:1 mirror of `src/core/` folder names.
+Most do map directly to a core namespace. Some are umbrella or spec documents:
+
+- `SETTINGS.md` is the product umbrella over `src/core/config`, `src/core/secrets`, and
+  `src/core/schedule`.
+- `QUESTS.md` and `HOWL.md` live one level up in `docs/` because they predate this folder layout.
+- `WISDOM.md` is intentionally excluded from the current hardening pass and should be treated as its
+  own spec track until brought to the same standard.
 
 | Subsystem | One-Line | Managing Soul |
 |-----------|----------|---------------|
@@ -107,7 +118,7 @@ Each document in this folder defines one core subsystem with its complete specif
 | [WISDOM](./WISDOM.md) | Accumulated understanding, calibrations, and longitudinal intelligence | Historian |
 | [MEMORY](./MEMORY.md) | Beliefs, facts, and semantic knowledge about the world | Warden |
 | [QUESTS](../QUESTS.md) | Goal management, delegation, and productivity mechanics | Warden |
-| PACK | Relationships, bonds, and multi-entity social memory | Warden |
+| [PACK](./PACK.md) | Relationships, bonds, and multi-entity social memory | Warden |
 | [SETTINGS](./SETTINGS.md) | Configuration, secrets, and scheduled operations | Chamberlain |
 
 A single soul may manage multiple subsystems when their domains are conceptually linked and the combined cognitive load fits within what an LLM can handle reliably. This is a deliberate quality and performance optimization — fewer delegation calls at runtime, cleaner "what goes where" routing, and the managing soul builds richer cross-domain context within its specialization. Warden owns the data-and-productivity cluster (memory, quests, pack). Chamberlain owns the operational plumbing (settings, secrets, schedules). Mentor, Trainer, and Historian each manage a single high-complexity domain that demands full specialized attention.

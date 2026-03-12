@@ -401,3 +401,123 @@ And this is not something you can replicate by bolting an "auto-improve" feature
 The promise is specific and measurable: an agent that is +10–25% more effective within its first 3–5 levels, with continued gains through levels 5–10, at declining cost per task, with every improvement explainable, auditable, and reversible. Not because someone wrote a better prompt. Because the system earned a better mind through lived experience, consolidated what it learned into richer cognitive patterns, and built each generation on the structured wisdom of the last — all running inside an architecture that makes the evolution efficient, the cost controlled, and the quality compounding.
 
 The soul on day 100 is genuinely different from the soul on day 1 — not because it has more instructions, but because it has earned a different quality of mind. That is the thesis. The math and the implementation both say it works.
+
+## Contract Summary
+
+- **Owning soul:** Mentor for refinement, with every soul owning its own lived evidence.
+- **Core namespace:** `src/core/souls/` with explicit `api/read/`, `api/write/`, and `runtime/`
+  surfaces.
+- **Scope:** cognitive identity, traits, level snapshots, shard-based evidence accumulation, and
+  renderable soul state for execution.
+- **Non-goals:** procedures (`skills`), atomic world facts (`memory`), or social relationships
+  (`pack`).
+
+## Four Value Dimensions
+
+### Direct
+
+The user gets a ghost that meaningfully changes over time: stronger backstories, clearer specialist
+roles, visible levels, trait slots, shard progress, and rollbackable refinement instead of a frozen
+system prompt.
+
+### Active
+
+The coordinator, mentor, and operators have explicit reasons to use soul APIs: render the current
+identity for execution, inspect trait load, gather evidence for refinement, review shard readiness,
+level a soul up, revise a trait, or revert a regression.
+
+### Passive
+
+Every task, delegation, and maintenance cycle creates evidence. Shards accumulate, citation links
+bound repeated use, attunement checks readiness in pure code, and long-run execution quality feeds
+future refinement without the user managing prompts by hand.
+
+### Synergies
+
+Mechanical soul reads are directly consumable by other subsystems: `renderSoul()`, `resolveSoul()`,
+`getSoul()`, `listSouls()`, `listTraits()`, `gatherSoulEvidence()`, `crystallizationReadiness()`,
+`pendingShardsForSoul()`, and `getTraitLimit()` all expose state without requiring intermediate LLM
+calls.
+
+## Quality Criteria Compliance
+
+### Scientifically Grounded
+
+The subsystem is explicitly grounded in prompt evolution, narrative backstories, evidence thresholds,
+blocked training, consolidation, coevolution, and constraint-density research. Each mechanism is
+cited in the detailed sections below.
+
+### Fast, Efficient, Minimal
+
+Most readiness work is cheap local code: shard expiry, cap enforcement, citation fading, readiness
+queries, render reads, and trait counts are all deterministic. The mentor only spends LLM tokens when
+evidence gates justify an actual refinement step.
+
+### Self-Healing
+
+Trait revision, trait reversion, level-up rollback, shard expiry, shard cap enforcement, and
+last-attuned gating give the subsystem explicit mechanisms to recover from bad refinements or stale
+evidence.
+
+### Unique and Distinct
+
+Souls answer "how should this agent think?" They do not duplicate procedure, factual memory, or
+social modeling. Their unique job is cognitive identity and its evidence-backed evolution.
+
+### Data Sovereignty
+
+All soul mutations flow through `src/core/souls/api/write/**` and mentor-owned orchestration. Other
+subsystems can inspect soul state through `api/read/**`, but they do not mutate soul tables directly.
+
+### Graceful Cold Start
+
+Mandatory souls ship with production-quality defaults, baseline traits, and bundled writing support.
+Even before any evolution occurs, the starting essences are usable and the first shards can begin
+accumulating immediately.
+
+## Data Contract
+
+- **Primary tables:** `souls`, `soul_traits`, `soul_levels`, `soul_shards`, `shard_souls`,
+  `shard_citations`.
+- **Canonical identity models:** `Soul`, `SoulSummary`, `SoulTrait`, and `SoulLevel`.
+- **Canonical evidence models:** `SoulShard`, `SoulEvidence`, `LevelSnapshot`, `TraitSnapshot`,
+  `ShardCountPerSoul`, `CrystallizationEntry`, `DelegationStats`, `TraitFitness`, `CostTrend`, and
+  `WindowedStats`.
+- **Status invariants:** traits move through `active`, `consolidated`, `promoted`, and `reverted`.
+- **Write invariants:** every active trait must be accounted for during level-up, shard citations are
+  recorded instead of deleting evidence, and mandatory souls are ensured at bootstrap.
+
+## Interfaces
+
+### Read
+
+`countActiveTraits()`, `crystallizationReadiness()`, `formatSoulEvidence()`, `gatherSoulEvidence()`,
+`getLevelHistory()`, `getSoul()`, `getSoulByName()`, `isMandatorySoulId()`, `listDormantSouls()`,
+`listShards()`, `listSouls()`, `listTraits()`, `pendingShardCount()`, `pendingShardsForSoul()`,
+`renderSoul()`, `resolveSoul()`, `shardCountsPerSoul()`, and `getTraitLimit()`.
+
+### Write
+
+`addTrait()`, `awakenSoul()`, `citeShard()`, `createSoul()`, `dropSoulshard()`, `enforceShardCap()`,
+`expireOldShards()`, `fadeExhaustedShards()`, `levelUp()`, `reactivateTrait()`, `retireSoul()`,
+`revealShards()`, `revertLevelUp()`, `revertTrait()`, `reviseTrait()`, `stampAttuned()`, and
+`updateSoul()`.
+
+### Runtime
+
+`DEFAULT_SOULS`, `ensureMandatorySouls()`, `initSoulsTables()`, and `initSoulShardTables()`.
+
+## User Surfaces
+
+- **Conversation:** the coordinator uses rendered soul state on every turn.
+- **CLI:** list souls, inspect evidence, level up, revert, and attune manually.
+- **Web UI:** soul cards, trait bars, shard readiness, and mentor-driven refinement views.
+- **Background maintenance:** `attune` runs the shard lifecycle and conditional mentor invocation.
+
+## Research Map
+
+- **Identity structure and evolution mechanics:** `The Character Sheet`, `Earning XP`, and `Visiting
+  the Mentor`
+- **Shard accumulation and gated refinement:** `Soulshards`
+- **Constraint management and capacity:** `The XP Bar`
+- **Multi-soul execution architecture and coevolution:** `How Souls Work Together`

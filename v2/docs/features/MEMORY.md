@@ -176,3 +176,122 @@ ChatGPT stores what its platform decides to remember — and deletes it when the
 Most systems store what they remember. Ghostpaw tracks how sure it is. That single structural distinction enables everything else: decay without deletion, convergence without cleanup, calibrated language without explicit rules, and compound learning without unbounded growth.
 
 The ghost on month six doesn't just know more than the ghost on day one. It knows *better* — with earned certainty that compounds across every system it feeds. Memory calibrates the warden's persistence. Pack bonds build on memory atoms. Haunt cycles surface what needs attention. The belief system is the foundation all of it rests on — quiet, local, and accumulating signal while noise fades on its own.
+
+## Contract Summary
+
+- **Owning soul:** Warden.
+- **Core namespace:** `src/core/memory/` with explicit `api/read/`, `api/write/`, and `runtime/`
+  surfaces.
+- **Scope:** confidence-weighted belief storage, recall, confirmation, supersession, health queries,
+  and ranking helpers for persistence-aware reasoning.
+- **Non-goals:** procedures (`skills`), identity (`souls`), or relational bond models (`pack`).
+
+## Four Value Dimensions
+
+### Direct
+
+The user gets corrections that stick, preferences that age gracefully, revisable beliefs, and recall
+that can answer what the ghost knows with calibrated certainty instead of flat assertion.
+
+### Active
+
+The coordinator and warden have clear reasons to use memory: store a new belief, recall relevant
+beliefs, confirm a repeated observation, supersede an outdated claim, inspect memory health, or pull
+stale/fading candidates for maintenance.
+
+### Passive
+
+Normal conversation, distillation, and haunting silently improve the store. Evidence counts rise,
+freshness decays without cron churn, revisions preserve history, and maintenance queries surface what
+needs attention.
+
+### Synergies
+
+Mechanical reads let other systems consume belief state without LLM mediation. The key synergy
+surfaces are `recallMemories()`, `searchMemories()`, `getMemory()`, `listMemories()`,
+`memoryHealth()`, `memoryCategoryCounts()`, `memoryStrength()`, and `listSupersededMemories()`.
+
+## Quality Criteria Compliance
+
+### Scientifically Grounded
+
+The subsystem is grounded in forgetting curves, confidence calibration, retrieval practice,
+reconsolidation, hybrid retrieval, and conflict-aware memory research. The supporting studies are
+embedded in the relevant mechanism sections below.
+
+### Fast, Efficient, Minimal
+
+The data model is one table plus derived read projections. Freshness is computed on read, not via
+background rewrites. Ranking splits work between SQLite and local JavaScript, and the FTS fallback
+fires only when needed.
+
+### Self-Healing
+
+Supersession chains, confirmation, freshness-weighted ranking, stale/fading analytics, and revision
+history let the subsystem converge toward accuracy without destructive cleanup passes.
+
+### Unique and Distinct
+
+Memory stores atomic beliefs about the world. `pack` stores relational understanding. `skills` stores
+procedures. `souls` stores cognition. Memory's unique job is "what claims does the ghost hold, how
+confident is it, and how has that belief changed over time?"
+
+### Data Sovereignty
+
+Memory writes flow through `src/core/memory/api/write/**` and warden-owned flows. Other subsystems may
+read through `api/read/**`, but no other subsystem owns or mutates the belief store directly.
+
+### Graceful Cold Start
+
+An empty store behaves correctly on day one: recall returns nothing, defaults still work, and the
+first conversation can seed high-confidence explicit beliefs immediately.
+
+## Data Contract
+
+- **Primary table:** `memories`.
+- **Canonical belief model:** `Memory` with `claim`, `confidence`, `evidenceCount`, `createdAt`,
+  `verifiedAt`, `source`, `category`, and `supersededBy`.
+- **Canonical ranking models:** `RankedMemory`, `ProjectedMemory`, `ProjectedRankedMemory`, and
+  `MemoryStrength`.
+- **Canonical health/revision models:** `MemoryHealth`, `RevisedMemory`, `CategoryCount`, and
+  `MemoryCategoryConfidence`.
+- **Category invariant:** every belief is one of `preference`, `fact`, `procedure`, `capability`, or
+  `custom`.
+- **Source invariant:** every belief is attributed as `explicit`, `observed`, `distilled`, or
+  `inferred`.
+- **Revision invariant:** updates preserve lineage through supersession instead of destructive
+  overwrite.
+
+## Interfaces
+
+### Read
+
+`countMemories()`, `fadingMemories()`, `formatConversation()`, `getMemory()`, `listMemories()`,
+`memoriesRevisedSince()`, `memoriesSince()`, `memoryCategoryCounts()`, `memoryHealth()`,
+`heavilyRevisedMemories()`, `memoryRevisionChain()`, `oldestMemory()`, `randomMemories()`,
+`recallMemories()`, `staleMemories()`, `countMemoriesMatchingText()`,
+`memoryCategoryConfidences()`, `randomUnconfirmedExplicitMemoryBefore()`, `memoryStrength()`,
+`projectMemory()`, `projectRankedMemory()`, `searchMemories()`, and `listSupersededMemories()`.
+
+### Write
+
+`confirmMemory()`, `removeMemory()`, `supersedeMemories()`, and `storeMemory()`.
+
+### Runtime
+
+`initMemoryTable()`.
+
+## User Surfaces
+
+- **Conversation:** the coordinator delegates memory-sensitive work to the warden.
+- **CLI and web:** read-oriented inspection plus command surfaces that route mutations through the
+  warden.
+- **Distillation:** session review is the main write path for new beliefs.
+- **Haunting:** maintenance reads target stale, fading, imbalanced, and heavily revised beliefs.
+
+## Research Map
+
+- **Belief confidence, decay, and revision:** `How Beliefs Work`
+- **Retrieval and calibrated recall:** `Recall`
+- **Operational verbs and ownership model:** `Four Operations` and `The Warden`
+- **Long-run compounding and maintenance:** `How Memory Compounds` and `Intelligent Maintenance`

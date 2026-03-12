@@ -36,6 +36,11 @@ const WRITE_IMPORT_ALLOWLIST = new Set([
   "src/harness/public/skills.ts",
   "src/harness/public/souls.ts",
 ]);
+const SQL_OUTSIDE_CORE_ALLOWLIST = new Set([
+  "src/channels/web/server/routes/pack_api.ts",
+  "src/harness/oneshots/distill_session.ts",
+  "src/harness/stoke.ts",
+]);
 
 function toPosix(filePath) {
   return filePath.split(path.sep).join("/");
@@ -94,6 +99,10 @@ function isTestFile(relativePath) {
   return relativePath.endsWith(".test.ts") || relativePath.endsWith(".test.tsx");
 }
 
+function hasRawSqlCall(content) {
+  return /\b(?:db|tx|database|conn)\s*\.\s*(?:prepare|exec)\s*\(/.test(content);
+}
+
 function checkImport(importer, imported) {
   const errors = [];
   if (!importer || !imported) {
@@ -111,7 +120,9 @@ function checkImport(importer, imported) {
   }
 
   const sameCoreSubsystem =
-    importer.layer === "core" && importer.subsystem !== null && importer.subsystem === imported.subsystem;
+    importer.layer === "core" &&
+    importer.subsystem !== null &&
+    importer.subsystem === imported.subsystem;
   const namespace = imported.parts[3] ?? null;
   const apiSection = imported.parts[4] ?? null;
 
@@ -153,6 +164,22 @@ function checkImport(importer, imported) {
   return errors;
 }
 
+function checkSqlBoundary(relativePath, content) {
+  if (isTestFile(relativePath)) {
+    return [];
+  }
+  if (relativePath.startsWith("src/core/") || relativePath.startsWith("src/lib/")) {
+    return [];
+  }
+  if (!hasRawSqlCall(content)) {
+    return [];
+  }
+  if (SQL_OUTSIDE_CORE_ALLOWLIST.has(relativePath)) {
+    return [];
+  }
+  return ["raw SQL outside core/lib is forbidden unless explicitly allowlisted as technical debt"];
+}
+
 const files = walk(srcRoot)
   .map((filePath) => toPosix(path.relative(projectRoot, filePath)))
   .filter((relativePath) => relativePath.endsWith(".ts") || relativePath.endsWith(".tsx"));
@@ -163,6 +190,10 @@ for (const relativePath of files) {
   const absolutePath = path.join(projectRoot, relativePath);
   const content = readFileSync(absolutePath, "utf8");
   const importer = classify(relativePath);
+
+  for (const error of checkSqlBoundary(relativePath, content)) {
+    violations.push(`${relativePath}: ${error}`);
+  }
 
   for (const specifier of extractSpecifiers(content)) {
     const importedRelativePath = resolveSpecifier(absolutePath, specifier);

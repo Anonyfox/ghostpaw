@@ -193,3 +193,133 @@ Without these three systems, the ghost is a chatbot with a shell. Keys leak thro
 The alternative is what every other agent tool offers: scattered `.env` files the user manages, static configurations nobody tunes, no autonomous behavior between prompts. The consistent finding across the research: structural enforcement beats behavioral policy, persistent state beats ephemeral tweaks, and temporal autonomy is the line between a tool you use and an agent that works for you.
 
 The chamberlain holds the keys, the purse, and the clock. The ghost governs itself.
+
+## Contract Summary
+
+- **Owning soul:** Chamberlain.
+- **Product umbrella:** `SETTINGS` is the operational contract spanning `src/core/config/`,
+  `src/core/secrets/`, and `src/core/schedule/`.
+- **Scope:** credentials, runtime configuration, and temporal orchestration.
+- **Non-goals:** user memory, social modeling, or procedural knowledge. Those live in `memory`,
+  `pack`, and `skills`.
+
+## Four Value Dimensions
+
+### Direct
+
+The user gets a usable control plane: set credentials safely, tune runtime behavior with audit and
+undo, and run the ghost on a clock instead of only on demand.
+
+### Active
+
+The coordinator and chamberlain have clear reasons to use settings: resolve which provider is
+configured, read or update a typed config key, inspect schedule health, create a recurring job, or
+bootstrap runtime state safely.
+
+### Passive
+
+Secrets persist across restarts, config changes compound across sessions, and scheduled maintenance
+keeps the system alive in the background without the user manually reapplying state every time.
+
+### Synergies
+
+Other subsystems consume settings mechanically through read-only APIs and runtime hooks: config reads
+shape feature behavior, secret status informs provider routing, and schedules trigger haunt, distill,
+stoke, and attune without LLM coordination.
+
+## Quality Criteria Compliance
+
+### Scientifically Grounded
+
+The subsystem is grounded in least privilege, defense in depth, auditable shared state,
+self-configuration, and crash-safe scheduling research. Each operational mechanism is cited in the
+relevant section below.
+
+### Fast, Efficient, Minimal
+
+All three subdomains are local SQLite-backed control planes with small typed tables and cheap reads.
+Secrets expose status-only reads, config is flat primitive state, and scheduling uses one tick loop
+plus CAS claims instead of external infrastructure.
+
+### Self-Healing
+
+Secrets clean and canonicalize input, config supports undo and reset, and scheduling clears stale
+PIDs, enforces timeouts, and recovers after crashes.
+
+### Unique and Distinct
+
+`secrets` owns credentials, `config` owns typed operational parameters, and `schedule` owns temporal
+execution. None of these overlap with the factual, procedural, social, or cognitive subsystems.
+
+### Data Sovereignty
+
+Each subdomain owns its own core namespace and write surface. Cross-system reads go through
+`api/read/**`; mutations stay within `api/write/**` and chamberlain-approved flows. Secret values are
+further restricted to `runtime/**`.
+
+### Graceful Cold Start
+
+Known config defaults work without rows, secrets can be absent without breaking the process, and
+builtin schedules seed the runtime immediately with safe defaults.
+
+## Data Contract
+
+### Secrets
+
+- **Primary table:** `secrets`.
+- **Canonical models:** `KnownKey`, `SecretStatus`, and `CleanResult`.
+- **Invariant:** secret values are never returned by `api/read/**`; value-bearing access lives only in
+  `src/core/secrets/runtime/**`.
+
+### Configuration
+
+- **Primary table:** `config`.
+- **Canonical models:** `ConfigEntry`, `ConfigInfo`, `KnownConfigKey`, and primitive `ConfigValue`.
+- **Invariants:** values stay flat (`string`, `integer`, `number`, `boolean`), every explicit write is
+  attributed, and per-key history is preserved through the `nextId` chain.
+
+### Scheduling
+
+- **Primary table:** `schedules`.
+- **Canonical models:** `Schedule`, `CreateScheduleInput`, and `UpdateScheduleInput`.
+- **Builtin defaults:** `haunt`, `distill`, `stoke`, and `attune`.
+- **Invariants:** runs are claimed at most once, timeouts are recorded, and status stays on the row
+  instead of in a separate logging subsystem.
+
+## Interfaces
+
+### Secrets
+
+- **Read:** `activeSearchProvider()`, `canonicalKeyName()`, `KNOWN_KEYS`, `listStoredSecretKeys()`,
+  and `listSecretStatus()`
+- **Write:** `setSecret()` and `deleteSecret()`
+- **Runtime:** `getSecretValue()`, `loadSecretsIntoEnv()`, `initSecretsTable()`,
+  `setProtectedSecret()`, and `syncProviderKeys()`
+
+### Configuration
+
+- **Read:** `getConfig()`, `KNOWN_CONFIG_KEYS`, `getConfigInfo()`, and `listConfigInfo()`
+- **Write:** `setConfig()`, `undoConfig()`, and `resetConfig()`
+- **Runtime:** `initConfigTable()`
+
+### Scheduling
+
+- **Read:** `getSchedule()`, `getScheduleByName()`, and `listSchedules()`
+- **Write:** `createSchedule()`, `updateSchedule()`, and `deleteSchedule()`
+- **Runtime:** `claimSchedule()`, `clearStalePids()`, `completeRun()`, `DEFAULT_SCHEDULES`,
+  `getDueSchedules()`, `ensureDefaultSchedules()`, and `initScheduleTables()`
+
+## User Surfaces
+
+- **Conversation:** the coordinator delegates operational work to the chamberlain.
+- **CLI:** explicit `config`, `secrets`, and `schedules` commands.
+- **Web UI:** settings views for config and secrets, with schedule state surfaced through runtime
+  views and session history.
+- **Startup/runtime:** secret loading, config defaults, and builtin schedule seeding happen without
+  user intervention.
+
+## Research Map
+
+- **Credential isolation and threat model:** `Secrets`
+- **Typed state, attribution, and self-tuning:** `Configuration`
+- **Temporal autonomy and crash-safe execution:** `Scheduling`

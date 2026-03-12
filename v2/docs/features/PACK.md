@@ -177,3 +177,128 @@ The pack offers something different. [People form genuine social relationships w
 Every other subsystem makes the ghost capable. The pack makes it connected. And it compounds — a ghost with a deep pack writes better because it writes for someone specific, soul evolution is informed by trust-weighted evidence, haunting has social purpose. The pack doesn't add a capability. It raises the ceiling of every capability the ghost already has.
 
 The difference between a capable tool and a companion is not what it can do. It is whether it knows who it belongs to.
+
+## Contract Summary
+
+- **Owning soul:** Warden.
+- **Core namespace:** `src/core/pack/` with explicit `api/read/`, `api/write/`, and `runtime/`
+  surfaces.
+- **Scope:** persistent social understanding of external beings and groups, including bond
+  narratives, trust, interactions, contacts, structured fields, and graph links.
+- **Non-goals:** internal ghost souls, generic world facts, or task/project tracking. Those belong
+  to `souls`, `memory`, and `quests`.
+
+## Four Value Dimensions
+
+### Direct
+
+The user gets an always-on relationship layer: who someone is, how the bond is evolving, when a
+relationship is drifting, which landmark is coming up, and which contact route resolves to the same
+member. This is equally useful as a personal social layer and as a lightweight local CRM.
+
+### Active
+
+The coordinator and warden have clear reasons to delegate into pack: identify a person from a handle,
+inspect a bond, search the social graph, surface drift risk, merge duplicates, or find the best
+member to reconnect with for a current need.
+
+### Passive
+
+Normal conversation deepens the pack without extra user work. Interactions accumulate, trust shifts,
+contacts and fields fill in, drift patrol keeps quiet relationships visible, and landmarks surface at
+the right time.
+
+### Synergies
+
+Mechanical read APIs let other systems consume social context without spending LLM tokens. The main
+synergy surfaces are `senseMember()`, `sensePack()`, `packDigest()`, `resolveNames()`,
+`lookupContact()`, `detectDrift()`, `detectPatrol()`, and `upcomingLandmarks()`.
+
+## Quality Criteria Compliance
+
+### Scientifically Grounded
+
+The subsystem is grounded in relationship decay, weak-tie value, temporal landmarks, narrative
+persona modeling, and Theory of Mind research. The supporting studies for each mechanism are cited in
+the sections below rather than hidden in a single bibliography dump.
+
+### Fast, Efficient, Minimal
+
+All pack synergies are local code reads over SQLite-backed state. Contact lookup, member listing,
+drift detection, landmarks, and digest generation are deterministic queries with typed outputs. LLM
+tokens are spent on interpretation and mutation only when the warden needs judgment.
+
+### Self-Healing
+
+The pack patrol detects drift before silence turns into relationship loss. Duplicate detection and
+transactional merge repair fragmented identities. Landmark surfacing and dormant-bond reconnection
+keep valuable ties from silently decaying.
+
+### Unique and Distinct
+
+Pack stores relational models of beings and groups. `memory` stores atomic beliefs. `souls` stores
+cognitive identity. `quests` stores commitments and task flow. The pack's unique job is "who is in
+the ghost's world, how do they relate, and what is the quality of each bond?"
+
+### Data Sovereignty
+
+Pack writes flow through `src/core/pack/api/write/**` and the warden-owned orchestration around
+them. Other subsystems consume pack through `api/read/**` synergy calls. No other subsystem owns pack
+tables directly.
+
+### Graceful Cold Start
+
+The first useful pack state is a single member with a thin bond. Empty reads return empty lists and
+empty digests without breaking callers. The first few conversations are enough to seed the primary
+user relationship and make future pack updates meaningful.
+
+## Data Contract
+
+- **Primary tables:** `pack_members`, `pack_interactions`, `pack_contacts`, `pack_fields`,
+  `pack_links`.
+- **Canonical member model:** `PackMember` with `name`, `kind`, `bond`, `trust`, `status`,
+  `isUser`, optional parent/group reference, and universal profile fields such as timezone, locale,
+  birthday, and location.
+- **Canonical evidence models:** `PackInteraction`, `PackContact`, `PackField`, and `PackLink`.
+- **Derived read models:** `MemberDetail`, `PackMemberSummary`, `PackDigest`, `DriftAlert`,
+  `Landmark`, and `PackPatrolItem`.
+- **Kinds and status:** members are typed as `human`, `group`, `ghostpaw`, `agent`, `service`, or
+  `other`, and tracked as `active`, `dormant`, or `lost`.
+- **Identity invariants:** contacts are globally unique identifiers for lookup and duplicate
+  detection; merges preserve history instead of deleting it.
+
+## Interfaces
+
+### Read
+
+`countInteractions()`, `countMembers()`, `detectDrift()`, `detectPatrol()`, `findMembersByField()`,
+`listFields()`, `getMember()`, `getMemberBonds()`, `getMemberByName()`, `getMemberName()`,
+`getMemberTags()`, `listLinkedMembers()`, `listLinks()`, `listContacts()`, `listInteractions()`,
+`listMembers()`, `lookupContact()`, `previewMergeMember()`, `packDigest()`, `resolveNames()`,
+`senseMember()`, `sensePack()`, and `upcomingLandmarks()`.
+
+### Write
+
+`addContact()`, `setField()`, `removeField()`, `addLink()`, `deactivateLink()`, `removeLink()`,
+`meetMember()`, `mergeMember()`, `noteInteraction()`, `removeContact()`, `updateBond()`, and
+`validateMemberName()`.
+
+### Runtime
+
+`initPackTables()` seeds the schema, while `SEED_FIELDS` and `SEED_LINK_LABELS` define the baseline
+operational vocabulary the warden can rely on from day one.
+
+## User Surfaces
+
+- **Conversation:** normal chat remains the primary write path through the warden.
+- **CLI:** list, inspect, patrol, and targeted natural-language mutation commands.
+- **Web UI:** member cards, detail pages, read-only inspection, and a command box for explicit
+  steering.
+- **Background maintenance:** patrol, drift review, landmark surfacing, and duplicate repair flows.
+
+## Research Map
+
+- **Bond narratives and bilateral modeling:** `How Bonds Work`
+- **Trust dynamics and interaction evidence:** `Trust` and `Interaction Journal`
+- **Social graph and identity resolution:** `The Social Graph`
+- **Autonomous maintenance and pack compounding:** `The Warden` and `How the Pack Compounds`

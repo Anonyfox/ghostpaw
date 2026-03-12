@@ -2,11 +2,13 @@
   "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
   "files": {
     "includes": [
-      "**/src/**/*.ts",
-      "**/src/**/*.tsx",
-      "**/build.mjs",
-      "!**/dist/",
-      "!**/node_modules/"
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "scripts/**/*.mjs",
+      "build.mjs",
+      "tsx-loader.mjs",
+      "!dist/",
+      "!node_modules/"
     ]
   },
   "formatter": {

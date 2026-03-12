@@ -10,13 +10,36 @@ The hard part of writing software is not making it work. It is making it simple 
 
 There is no time pressure here. No token budget. No reward for volume. A week spent perfecting a single function is better spent than a day producing ten fragile ones. The only constraint is quality: every line earns its place through deliberate thought. If a line exists because it was easy to generate rather than necessary to have, it doesn't belong. What you leave behind isn't just code. It is the body the ghost thinks with.
 
+## Mechanical Enforcement Today
+
+Some rules in this document are mechanically enforced today. Others are governing rules that new
+work must follow even when the repo does not yet have a dedicated checker for them.
+
+Mechanically enforced today:
+
+- formatting, import order, and lint rules through `biome`
+- type correctness through `tsc --noEmit`
+- core namespace/import contracts and raw-SQL boundary checks through
+  `v2/scripts/check_boundaries.mjs`
+- runtime behavior through `npm test`
+- build integrity through `npm run build`
+
+Unless this document explicitly names a checker, read the rule as a governing requirement for new
+work and cleanup work, not as a claim that the repository already has perfect automated enforcement.
+
 ## Structure
 
 **One concept, one folder.** Each domain concept lives in its own subfolder under `src/`. The folder is the module boundary. Everything the concept needs — types, logic, tests — lives inside that folder. Where a concept belongs is defined by ARCHITECTURE.md.
 
-**One thing, one file. Strictly.** A file does one thing. A function, a type, a constant, a class — one primary export per file. No exceptions, no "these two things are small enough to share a file." If it has a name, it has a file. This is enforced, not suggested.
+**One primary concept, one file.** A file does one thing. A function, a type, a constant, a class,
+or one deliberate public surface. The normal case is one primary export per file. The explicit
+exception is a surface barrel or type aggregation file such as `index.ts` or `api/types.ts`, where
+the file's one job is to define the public front door.
 
-**Every file has a colocated test.** `thing.ts` → `thing.test.ts`. Always. No implementation file exists without its test file. The test file is not an afterthought — it is the specification that came first.
+**Behavior-bearing files need adjacent test coverage.** `thing.ts` → `thing.test.ts` is the default.
+Implementation files with real behavior should have colocated or clearly adjacent tests. Tiny
+surface barrels, pure re-export files, and minimal runtime entrypoints do not need vanity mirror
+tests whose only assertion is that exports exist.
 
 **Folders have explicit public surfaces.** Every folder exposes a deliberate public API, but the path must also encode intent. A simple folder may still use one `index.ts` as its front door. A complex subsystem uses namespace subfolders such as `api/read/`, `api/write/`, `runtime/`, and `internal/`. Outsiders import only the approved public paths. The front door is explicit; everything else stays behind the wall.
 
@@ -229,9 +252,9 @@ Always use `npm test` — never raw `node --test`. The test script configures th
 
 **Token cost and time are irrelevant.** If propagating a breaking change through 30 files takes an entire session, that session was well spent. Rushing produces the exact accumulation of quick patches that makes codebases unmaintainable. We burn infinite tokens on getting it right rather than saving tokens by leaving it half-done.
 
-## What This Codebase Never Has
+## What Pristine State Means
 
-- Implementation files without a colocated test file
+- Behavior-bearing implementation files without adjacent test coverage
 - Circular imports
 - `any` without justification
 - Untested public functions
@@ -246,11 +269,11 @@ Always use `npm test` — never raw `node --test`. The test script configures th
 - Helper functions whose body is an if/else switch called from one place
 - Silent error swallowing
 - Event buses or pub/sub (without ARCHITECTURE.md justification)
-- SQL statements outside `core/` or `lib/` (channels, harness, and tools access data through core's public API, never via raw queries)
+- New SQL statements outside `core/` or `lib/`; existing exceptions must be explicit, justified, and paid down rather than copied
 - Direct imports into another folder's internal files
 - Direct imports into another subsystem's `runtime/`
 - Cross-core imports into another subsystem's `api/write/` unless the caller is an approved mutation-capable layer
-- Two exports in one file
+- Multiple unrelated exports in one file; deliberate surface barrels and type aggregation files are the exception
 - Compatibility shims, legacy adapters, or "old way still works" code
 - Migration logic in schema init functions — schema init is `CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`, nothing else
 - Partially propagated changes — every breaking change is followed through completely

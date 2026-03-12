@@ -353,3 +353,129 @@ Of 14 self-improvement mechanisms in the skills subsystem, 8 cost zero LLM token
 Skills encode procedure. [Souls](SOULS.md) encode cognition. [Memory](MEMORY.md) encodes beliefs. [Quests](../QUESTS.md) encode commitments. [Wisdom](WISDOM.md) encodes patterns. The boundary is sharp: if it is a reusable procedure with steps, it is a skill. If it is a principle without steps, it is a trait. If it is a fact, it is a memory. If it is a pattern, it is wisdom.
 
 Ghostpaw on day 100 does not just know more. It executes from earned competence — procedures no model update will ever capture, refined through the specific life of this specific instance, compounding with every session. That is the thesis.
+
+## Contract Summary
+
+- **Owning soul:** Trainer.
+- **Core namespace:** `src/core/skills/` with explicit `api/read/`, `api/write/`, and `runtime/`
+  surfaces.
+- **Scope:** procedural knowledge as markdown-first artifacts with local history, validation,
+  readiness, fragment intake, and trainer-mediated evolution.
+- **Non-goals:** stable facts, personality, or raw chat history. Those belong to `memory`,
+  `souls`, and `chat`.
+
+## Four Value Dimensions
+
+### Direct
+
+The user gets explicit procedures that improve over time: better deploy flows, cleaner writing
+patterns, sharper debugging recipes, and visible rank/readiness states that make improvement tangible
+instead of abstract.
+
+### Active
+
+The coordinator and trainer have unambiguous reasons to use skills: read a procedure before acting,
+create a new procedure for a repeated workflow, checkpoint an improvement, or inspect readiness and
+pending proposals before training.
+
+### Passive
+
+Usage silently compounds the subsystem. Reads generate lifecycle events, fragments accumulate from
+other work, stoke validates and routes evidence, readiness colors ripen, and the skill index in the
+static prompt gets better without the user managing a library manually.
+
+### Synergies
+
+Other subsystems can contribute and consume skills mechanically through local APIs: fragment
+production with `dropSkillFragment()`, prompt-safe routing with `buildSkillIndex()` and
+`formatSkillIndex()`, and operational inspection through `readSkillHealth()`, `pendingFragments()`,
+and `pendingProposals()`.
+
+## Quality Criteria Compliance
+
+### Scientifically Grounded
+
+The subsystem is based on skill-curation, procedural transfer, human-gated refinement, readiness, and
+desirable-difficulty research. Each major mechanism below cites the specific studies supporting it.
+
+### Fast, Efficient, Minimal
+
+Skills live as plain markdown plus a few small SQLite support tables. Reads are cheap, the index is
+cacheable, readiness is computed in code, and the nightly forge spends LLM tokens only when evidence
+gates justify it.
+
+### Self-Healing
+
+Validation, auto-repair, stale-fragment expiry, readiness recomputation, oversize detection, and the
+split reflex keep the library from drifting into unusable clutter.
+
+### Unique and Distinct
+
+Skills answer "how do we do this?" They are neither facts (`memory`) nor identity (`souls`) nor
+social context (`pack`). Their unique job is to store and evolve reusable procedures.
+
+### Data Sovereignty
+
+All persistent skill mutations flow through `src/core/skills/api/write/**` and trainer-owned flows.
+Other subsystems can inspect and contribute evidence, but they do not write arbitrary skill files or
+tables directly.
+
+### Graceful Cold Start
+
+Bundled default skills provide immediate value. New skills are visible at Apprentice rank as soon as
+they are created and checkpointed. Empty fragment queues and empty proposal queues degrade to "nothing
+to train yet," not dead weight.
+
+## Data Contract
+
+- **Primary artifacts on disk:** `skills/<name>/SKILL.md` plus optional `scripts/`,
+  `references/`, and asset files.
+- **History store:** `.ghostpaw/skill-history/` is the dedicated git-backed checkpoint log for skill
+  evolution.
+- **Primary SQLite tables:** `skill_events`, `skill_fragments`, `skill_health`, and
+  `skill_proposals`.
+- **Canonical file models:** `Skill`, `SkillFrontmatter`, `SkillFiles`, `SkillSummary`, and
+  `SkillIndexEntry`.
+- **Canonical evidence models:** `SkillFragment`, `SkillHealthData`, `SkillProposal`, and readiness
+  colors (`grey`, `green`, `yellow`, `orange`).
+- **Lifecycle invariant:** imported or newly created content does not enter the universal skill index
+  until it has been validated and checkpointed into the visible rank system.
+
+## Interfaces
+
+### Read
+
+`allSkillRanks()`, `discoverSkills()`, `getSkill()`, `listSkills()`, `pendingChanges()`,
+`skillPendingChanges()`, `skillDiff()`, `skillHistory()`, `buildSkillIndex()`, `formatSkillIndex()`,
+`skillRank()`, `skillTier()`, `validateAllSkills()`, `validateSkill()`, `fragmentCountsBySource()`,
+`listFragments()`, `pendingFragmentCount()`, `pendingFragments()`, `getSkillMarkdown()`,
+`readSkillHealth()`, `projectSkillReadContent()`, `pendingProposals()`, `readinessForAll()`, and
+`skillReadiness()`.
+
+### Write
+
+`checkpoint()`, `createSkill()`, `deleteSkill()`, `repairFlatFile()`, `repairSkill()`, `rollback()`,
+`logSkillEvent()`, `absorbFragment()`, `dropSkillFragment()`, `enforceFragmentCap()`,
+`expireStaleFragments()`, `writeSkillHealth()`, `approveProposal()`, `dismissProposal()`, and
+`queueProposal()`.
+
+### Runtime
+
+`bootstrapSkills()`, `ensureDefaults()`, `DEFAULT_SKILLS`, `initHistory()`,
+`initSkillEventsTables()`, `initSkillFragmentsTables()`, `initSkillHealthTables()`, and
+`resetGitAvailableCache()`.
+
+## User Surfaces
+
+- **Conversation:** the coordinator and trainer read and create skills through natural work.
+- **CLI:** inspect, create, validate, checkpoint, train, and roll back.
+- **Web UI:** browse skill cards, readiness colors, proposals, diffs, and training actions.
+- **Background maintenance:** `stoke` validates, routes evidence, updates health, and queues
+  proposals.
+
+## Research Map
+
+- **Artifact format and prompt-safe index:** `The Skill` and `The Index`
+- **Rank/readiness mechanics:** `Rank and Tiers` and `Training Readiness`
+- **Evidence intake and silent accumulation:** `Fragments — Gathering While You Quest`
+- **Background maintenance and human-gated improvement:** `Stoke — The Nightly Forge`

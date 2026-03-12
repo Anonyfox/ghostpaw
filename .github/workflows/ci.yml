@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
+  root:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,20 +19,21 @@ jobs:
         with:
           node-version: "22.5"
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - run: npm ci
 
-      - name: Lint & format (biome)
-        run: npx biome check
+      - name: Check
+        run: npm run check
 
-      - name: Typecheck
-        run: npx tsc --noEmit
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build
 
-      - name: Verify artifact runs
-        run: node --experimental-sqlite dist/ghostpaw.mjs --version
+      - name: Smoke artifact
+        run: npm run smoke
 
       - name: Artifact size guard
         run: |
@@ -47,3 +48,31 @@ jobs:
 
       - name: Shellcheck
         run: shellcheck install.sh
+
+  v2:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: v2
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: v2/package-lock.json
+
+      - run: npm ci
+
+      - name: Check
+        run: npm run check
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Smoke artifact
+        run: npm run smoke
