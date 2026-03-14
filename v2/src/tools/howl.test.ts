@@ -1,9 +1,10 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { createSession, initChatTables } from "../core/chat/index.ts";
+import { listHowls } from "../core/chat/api/read/howls/index.ts";
+import { createSession } from "../core/chat/api/write/index.ts";
+import { initChatTables, initHowlTables } from "../core/chat/runtime/index.ts";
 import { setConfig } from "../core/config/api/write/index.ts";
 import { initConfigTable } from "../core/config/runtime/index.ts";
-import { initHowlTables, listHowls } from "../core/howl/index.ts";
 import type { ChannelHandle } from "../lib/channel_registry.ts";
 import { clearChannelRegistry, registerChannel } from "../lib/channel_registry.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
@@ -46,10 +47,23 @@ function makeMockChannel(
   const sent: string[] = [];
   return {
     type,
-    send: async (msg: string) => {
-      sent.push(msg);
-    },
     isConnected: () => connected,
+    getHowlCapabilities: () => ({
+      canPush: type === "telegram",
+      canInbox: type === "web",
+      explicitReply: true,
+      priority: type === "telegram" ? 100 : 50,
+    }),
+    deliverHowl: async ({ message }) => {
+      sent.push(message);
+      return {
+        channel: type,
+        delivered: type === "telegram",
+        mode: type === "telegram" ? "push" : "inbox",
+        address: type === "telegram" ? "123" : "web",
+        messageId: type === "telegram" ? "456" : null,
+      };
+    },
     sent,
   };
 }
@@ -62,6 +76,7 @@ describe("howl tool", () => {
     })) as Record<string, unknown>;
 
     ok(result.howlId);
+    ok(result.sessionId);
     strictEqual(result.channel, "stored");
 
     const howls = listHowls(db);
@@ -81,6 +96,7 @@ describe("howl tool", () => {
 
     strictEqual(result.delivered, true);
     strictEqual(result.channel, "telegram");
+    strictEqual(result.mode, "push");
     strictEqual(tg.sent.length, 1);
     strictEqual(tg.sent[0], "Critical finding!");
   });

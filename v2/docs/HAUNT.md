@@ -1,6 +1,13 @@
 # Haunting
 
+This is now a mode-specific deep dive, not the canonical master feature file. The feature-level truth
+for direct chat, haunt, and howl together lives in [`docs/features/CHAT.md`](./features/CHAT.md).
+
 Haunting is the ghost's autonomous inner life. Between conversations, the ghost doesn't idle — it thinks, explores, and acts from intrinsic drive shaped by accumulated experience. Not on a schedule. Not from a checklist. From the same impulse that makes a curious mind wander when nothing is demanded of it.
+
+It is not a separate runtime from chat. It is one of chat's special modes: `ghostpaw -> ghostpaw`
+instead of `user -> ghostpaw`. See [`docs/features/CHAT.md`](./features/CHAT.md) for the central chat
+substrate this mode lives inside.
 
 This is the GHOST in Ghostpaw. The paw is what it can do. The soul is who it is. The ghost is the fact that it's alive when nobody's watching — and alive differently than when someone is.
 

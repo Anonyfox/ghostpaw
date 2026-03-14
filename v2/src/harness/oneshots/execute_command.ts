@@ -1,5 +1,10 @@
-import type { ChatFactory } from "../../core/chat/chat_instance.ts";
-import { closeSession, createSession, executeTurn, getHistory } from "../../core/chat/index.ts";
+import { getHistory } from "../../core/chat/api/read/index.ts";
+import {
+  type ChatFactory,
+  closeSession,
+  createSession,
+  executeTurn,
+} from "../../core/chat/api/write/index.ts";
 import { getMemory } from "../../core/memory/api/read/index.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";

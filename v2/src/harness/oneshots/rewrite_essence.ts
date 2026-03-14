@@ -1,12 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ChatFactory } from "../../core/chat/index.ts";
 import {
-  accumulateUsage,
+  type ChatFactory,
   closeSession,
   createSession,
   executeTurn,
-} from "../../core/chat/index.ts";
+} from "../../core/chat/api/write/index.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { assembleContext } from "../context.ts";
@@ -101,7 +100,7 @@ function readWritingSkill(workspace: string): string | null {
 export async function rewriteEssence(
   db: DatabaseHandle,
   workspace: string,
-  parentSessionId: number,
+  _parentSessionId: number,
   input: RewriteEssenceInput,
   model: string,
   createChat: ChatFactory,
@@ -129,14 +128,6 @@ export async function rewriteEssence(
       },
       { db, tools: [], createChat },
     );
-
-    accumulateUsage(db, parentSessionId, {
-      tokensIn: result.usage.inputTokens,
-      tokensOut: result.usage.outputTokens,
-      reasoningTokens: result.usage.reasoningTokens,
-      cachedTokens: result.usage.cachedTokens,
-      costUsd: result.cost.estimatedUsd,
-    });
 
     const rewritten = result.content.trim();
     if (!rewritten || rewritten.startsWith("Error:")) {

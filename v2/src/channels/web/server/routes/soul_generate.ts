@@ -1,6 +1,10 @@
 import { Chat } from "chatoyant";
-import type { TurnContext } from "../../../../core/chat/index.ts";
-import { closeSession, createSession, executeTurn } from "../../../../core/chat/index.ts";
+import {
+  closeSession,
+  createSession,
+  executeTurn,
+  type TurnContext,
+} from "../../../../core/chat/api/write/index.ts";
 import { getSoul, listTraits } from "../../../../core/souls/api/read/index.ts";
 import { resolveModel } from "../../../../harness/model.ts";
 import {

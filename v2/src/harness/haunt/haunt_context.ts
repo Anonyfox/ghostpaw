@@ -1,4 +1,4 @@
-import type { ChatSession } from "../../core/chat/index.ts";
+import type { ChatSession } from "../../core/chat/api/read/index.ts";
 import type { Memory } from "../../core/memory/api/types.ts";
 import type { TemporalContext } from "../../core/quests/index.ts";
 import {

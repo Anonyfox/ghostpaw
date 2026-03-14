@@ -1,7 +1,7 @@
 import { defineCommand } from "citty";
-import { getHistory } from "../../core/chat/index.ts";
-import type { HowlStatus } from "../../core/howl/index.ts";
-import { countPendingHowls, getHowl, listHowls } from "../../core/howl/index.ts";
+import type { HowlStatus } from "../../core/chat/api/read/howls/index.ts";
+import { countPendingHowls, getHowl, listHowls } from "../../core/chat/api/read/howls/index.ts";
+import { getFullHistory } from "../../core/chat/api/read/index.ts";
 import { processHowlDismiss, processHowlReply } from "../../harness/howl/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
@@ -114,8 +114,17 @@ const howlHistory = defineCommand({
         console.log(style.dim(`  Howl #${id} not found.`));
         return;
       }
-      console.log(`  ${style.cyan("Origin session")} #${howl.originSessionId}:`);
-      const messages = getHistory(db, howl.originSessionId);
+      console.log(`  ${style.cyan("Howl session")} #${howl.sessionId}:`);
+      const howlMessages = getFullHistory(db, howl.sessionId);
+      for (const m of howlMessages) {
+        if (m.role !== "user" && m.role !== "assistant") continue;
+        const role = m.role === "user" ? "You" : "Ghost";
+        const preview = m.content.length > 120 ? `${m.content.slice(0, 120)}...` : m.content;
+        console.log(`  ${style.dim(`${role}:`)} ${preview}`);
+      }
+
+      console.log(`\n  ${style.cyan("Origin session")} #${howl.originSessionId}:`);
+      const messages = getFullHistory(db, howl.originSessionId);
       for (const m of messages) {
         if (m.role !== "user" && m.role !== "assistant") continue;
         const role = m.role === "user" ? "You" : "Ghost";

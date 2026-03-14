@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import { createServer } from "node:http";
 import type { Duplex } from "node:stream";
+import { getSession } from "../../../core/chat/api/read/index.ts";
 import { registerChannel, unregisterChannel } from "../../../lib/channel_registry.ts";
 import { upgradeToWebSocket } from "../../../lib/ws.ts";
 import { buildRoutes } from "./build_routes.ts";
@@ -78,6 +79,12 @@ export function createWebServer(config: WebServerConfig): Server {
     }
 
     const sessionId = Number(match[1]);
+    const session = getSession(config.db, sessionId);
+    if (!session || session.purpose !== "chat") {
+      socket.end("HTTP/1.1 404 Not Found\r\n\r\n");
+      return;
+    }
+
     const ws = upgradeToWebSocket(req, socket, head);
     if (!ws) {
       socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
@@ -90,10 +97,19 @@ export function createWebServer(config: WebServerConfig): Server {
   registerChannel(WEB_CHANNEL_ID, {
     type: "web",
     isConnected: () => server.listening,
-    send: async () => {
-      // Web delivery is passive — howls are fetched via polling /api/howls/pending.
-      // No active push needed; the channel registration ensures howls are attributed to "web".
-    },
+    getHowlCapabilities: () => ({
+      canPush: false,
+      canInbox: true,
+      explicitReply: true,
+      priority: 50,
+    }),
+    deliverHowl: async () => ({
+      channel: "web",
+      delivered: false,
+      mode: "inbox",
+      address: WEB_CHANNEL_ID,
+      messageId: null,
+    }),
   });
 
   server.on("close", () => {

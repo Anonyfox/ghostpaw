@@ -1,4 +1,5 @@
-import { closeSession, getSessionByKey } from "../../core/chat/index.ts";
+import { getSessionByKey } from "../../core/chat/api/read/index.ts";
+import { closeSession } from "../../core/chat/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { sessionKeyForChat } from "./session_key.ts";
 

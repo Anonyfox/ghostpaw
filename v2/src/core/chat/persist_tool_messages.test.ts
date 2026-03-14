@@ -41,8 +41,9 @@ describe("persistToolMessages", () => {
     assert.strictEqual(toolCall.content, "");
     assert.ok(toolCall.toolData);
     const parsed = JSON.parse(toolCall.toolData);
-    assert.strictEqual(parsed[0].name, "read_file");
-    assert.strictEqual(parsed[0].id, "call_1");
+    assert.strictEqual(parsed.kind, "tool_call");
+    assert.strictEqual(parsed.calls[0].name, "read_file");
+    assert.strictEqual(parsed.calls[0].id, "call_1");
   });
 
   it("persists a tool_result message", () => {
@@ -58,7 +59,9 @@ describe("persistToolMessages", () => {
     assert.strictEqual(toolResult.content, "file contents here");
     assert.ok(toolResult.toolData);
     const parsed = JSON.parse(toolResult.toolData);
+    assert.strictEqual(parsed.kind, "tool_result");
     assert.strictEqual(parsed.toolCallId, "call_1");
+    assert.strictEqual(parsed.success, null);
   });
 
   it("chains multiple tool messages with correct parent_ids", () => {

@@ -106,7 +106,6 @@ export interface TurnInput {
   maxTokens?: number;
   reasoning?: "off" | "low" | "medium" | "high";
   compactionThreshold?: number;
-  abortSignal?: AbortSignal;
   onToolCallStart?: (calls: ToolCallInfo[]) => void;
   onToolCallComplete?: (results: ToolResultInfo[]) => void;
 }

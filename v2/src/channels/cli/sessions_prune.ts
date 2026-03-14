@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { pruneEmptySessions } from "../../core/chat/index.ts";
+import { pruneEmptySessions } from "../../core/chat/api/write/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 

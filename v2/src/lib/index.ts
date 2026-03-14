@@ -1,10 +1,10 @@
 export type { ChannelHandle } from "./channel_registry.ts";
 export {
   clearChannelRegistry,
-  getBestChannel,
   getChannel,
   getConnectedChannels,
   registerChannel,
+  selectHowlChannel,
   unregisterChannel,
 } from "./channel_registry.ts";
 export type { SpendStatus } from "./cost/index.ts";

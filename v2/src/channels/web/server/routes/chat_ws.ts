@@ -1,4 +1,4 @@
-import type { TurnResult } from "../../../../core/chat/index.ts";
+import type { TurnResult } from "../../../../core/chat/api/write/index.ts";
 import type { Entity } from "../../../../harness/index.ts";
 import type { WsConnection } from "../../../../lib/ws.ts";
 

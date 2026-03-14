@@ -1,11 +1,10 @@
 import { resolve } from "node:path";
 import {
   initChatTables,
-  migrateHauntsToSessions,
+  initHowlTables,
   recoverOrphanedSessions,
-} from "../../core/chat/index.ts";
+} from "../../core/chat/runtime/index.ts";
 import { initConfigTable } from "../../core/config/runtime/index.ts";
-import { initHowlTables } from "../../core/howl/index.ts";
 import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { initPackTables } from "../../core/pack/runtime/index.ts";
 import { initQuestTables } from "../../core/quests/index.ts";
@@ -29,7 +28,6 @@ export async function withRunDb<T>(fn: (db: DatabaseHandle) => T | Promise<T>): 
   initSecretsTable(db);
   initConfigTable(db);
   initChatTables(db);
-  migrateHauntsToSessions(db);
   initMemoryTable(db);
   initSoulsTables(db);
   initSoulShardTables(db);

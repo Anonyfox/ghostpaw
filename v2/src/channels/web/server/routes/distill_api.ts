@@ -1,4 +1,4 @@
-import { listDistillableSessionIds } from "../../../../core/chat/index.ts";
+import { listDistillableSessionIds } from "../../../../core/chat/api/read/index.ts";
 import { defaultChatFactory } from "../../../../harness/chat_factory.ts";
 import { distillPending } from "../../../../harness/distill_pending.ts";
 import { ELIGIBLE_PURPOSES, STALE_THRESHOLD_MS } from "../../../../harness/distill_types.ts";

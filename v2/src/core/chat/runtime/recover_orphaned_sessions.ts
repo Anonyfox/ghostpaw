@@ -1,4 +1,4 @@
-import type { DatabaseHandle } from "../../lib/index.ts";
+import type { DatabaseHandle } from "../../../lib/index.ts";
 
 export function recoverOrphanedSessions(db: DatabaseHandle): number {
   const result = db

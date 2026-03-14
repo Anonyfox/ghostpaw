@@ -1,6 +1,6 @@
 import { Chat } from "chatoyant";
 import { defineCommand } from "citty";
-import { closeSession, createSession, executeTurn } from "../../core/chat/index.ts";
+import { closeSession, createSession, executeTurn } from "../../core/chat/api/write/index.ts";
 import { resolveSoul } from "../../core/souls/api/read/index.ts";
 import { resolveModel } from "../../harness/model.ts";
 import { buildNamePrompt, NAME_SYSTEM_PROMPT } from "../../harness/oneshots/generate_soul_text.ts";

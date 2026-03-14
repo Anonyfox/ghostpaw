@@ -1,8 +1,8 @@
 import { ok } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { DatabaseHandle } from "../../lib/index.ts";
-import { openTestDatabase } from "../../lib/index.ts";
-import { initChatTables } from "../chat/index.ts";
+import type { DatabaseHandle } from "../../../../lib/index.ts";
+import { openTestDatabase } from "../../../../lib/index.ts";
+import { initChatTables } from "../index.ts";
 import { initHowlTables } from "./schema.ts";
 
 let db: DatabaseHandle;

@@ -13,7 +13,12 @@ import type { TurnInput, TurnResult } from "./types.ts";
 const DEFAULT_MAX_ITERATIONS = 20;
 const DEFAULT_TOOL_TIMEOUT = 600_000;
 
-export async function executeTurn(input: TurnInput, ctx: TurnContext): Promise<TurnResult> {
+type AbortableTurnInput = TurnInput & { abortSignal?: AbortSignal };
+
+export async function executeTurn(
+  input: AbortableTurnInput,
+  ctx: TurnContext,
+): Promise<TurnResult> {
   const release = await acquireSessionLock(input.sessionId);
   try {
     const session = getSession(ctx.db, input.sessionId);

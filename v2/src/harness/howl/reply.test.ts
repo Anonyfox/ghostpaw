@@ -1,9 +1,11 @@
 import { ok, rejects, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { ChatInstance } from "../../core/chat/chat_instance.ts";
-import { createSession, getSession, initChatTables } from "../../core/chat/index.ts";
+import { getHowl } from "../../core/chat/api/read/howls/index.ts";
+import { getFullHistory } from "../../core/chat/api/read/index.ts";
+import { createHowl, updateHowlStatus } from "../../core/chat/api/write/howls/index.ts";
+import { type ChatInstance, createSession } from "../../core/chat/api/write/index.ts";
+import { initChatTables, initHowlTables } from "../../core/chat/runtime/index.ts";
 import { initConfigTable } from "../../core/config/runtime/index.ts";
-import { getHowl, initHowlTables, storeHowl, updateHowlStatus } from "../../core/howl/index.ts";
 import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { initPackTables } from "../../core/pack/runtime/index.ts";
 import { initQuestTables } from "../../core/quests/index.ts";
@@ -77,7 +79,7 @@ afterEach(() => {
 describe("processHowlReply", () => {
   it("processes a reply and marks the howl as responded", async () => {
     const origin = createSession(db, "chat:origin:1");
-    const howl = storeHowl(db, {
+    const howl = createHowl(db, {
       originSessionId: origin.id as number,
       message: "What's your favorite editor?",
       urgency: "low",
@@ -98,7 +100,7 @@ describe("processHowlReply", () => {
 
   it("injects Q&A into origin session", async () => {
     const origin = createSession(db, "chat:origin:2");
-    const howl = storeHowl(db, {
+    const howl = createHowl(db, {
       originSessionId: origin.id as number,
       message: "Do you like tea or coffee?",
       urgency: "low",
@@ -110,14 +112,18 @@ describe("processHowlReply", () => {
       replyChannel: "telegram",
     });
 
-    const updatedOrigin = getSession(db, origin.id as number);
-    ok(updatedOrigin);
-    ok(updatedOrigin.headMessageId !== null);
+    const howlMessages = getFullHistory(db, howl.sessionId);
+    ok(
+      howlMessages.some((message) => message.role === "user" && message.content === "Tea, always"),
+    );
+
+    const updatedOrigin = getFullHistory(db, origin.id as number);
+    ok(updatedOrigin.some((message) => message.content.includes("Howl Resolved")));
   });
 
   it("creates a system session for warden consolidation", async () => {
     const origin = createSession(db, "chat:origin:3");
-    const howl = storeHowl(db, {
+    const howl = createHowl(db, {
       originSessionId: origin.id as number,
       message: "Question?",
       urgency: "low",
@@ -138,7 +144,7 @@ describe("processHowlReply", () => {
 
   it("throws for already-responded howl", async () => {
     const origin = createSession(db, "chat:origin:4");
-    const howl = storeHowl(db, {
+    const howl = createHowl(db, {
       originSessionId: origin.id as number,
       message: "Q?",
       urgency: "low",

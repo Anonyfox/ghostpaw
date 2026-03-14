@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createTool, Schema } from "chatoyant";
-import { estimateTokens } from "../core/chat/index.ts";
+import { estimateTokens } from "../core/chat/api/write/index.ts";
 
 const TOKEN_INLINE_THRESHOLD = 3000;
 

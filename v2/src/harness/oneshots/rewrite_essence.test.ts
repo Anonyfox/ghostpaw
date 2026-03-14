@@ -1,7 +1,8 @@
 import { ok, rejects, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import type { ChatFactory } from "../../core/chat/index.ts";
-import { initChatTables } from "../../core/chat/index.ts";
+import type { ChatFactory } from "../../core/chat/api/write/index.ts";
+import { initChatTables } from "../../core/chat/runtime/index.ts";
+
 import { initConfigTable } from "../../core/config/runtime/index.ts";
 import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
@@ -87,7 +88,7 @@ const testInput: RewriteEssenceInput = {
 };
 
 describe("rewriteEssence", () => {
-  it("returns rewritten essence and accumulates cost to parent session", async () => {
+  it("returns rewritten essence without rolling cost into the parent session", async () => {
     const db = await setup();
 
     const now = Date.now();
@@ -111,7 +112,12 @@ describe("rewriteEssence", () => {
     const parent = db.prepare("SELECT cost_usd FROM sessions WHERE id = 500").get() as {
       cost_usd: number;
     };
-    ok(parent.cost_usd > 0);
+    strictEqual(parent.cost_usd, 0);
+
+    const system = db
+      .prepare("SELECT cost_usd FROM sessions WHERE key LIKE 'system:essence-rewrite:%'")
+      .get() as { cost_usd: number };
+    ok(system.cost_usd > 0);
   });
 
   it("creates session tagged with mentor soulId and closes it", async () => {

@@ -1,5 +1,5 @@
-import type { ChatFactory } from "../../core/chat/chat_instance.ts";
-import type { ChatSession, TurnResult } from "../../core/chat/index.ts";
+import type { ChatSession } from "../../core/chat/api/read/index.ts";
+import type { ChatFactory, TurnResult } from "../../core/chat/api/write/index.ts";
 import type { Memory } from "../../core/memory/api/types.ts";
 
 export interface NoveltyInfo {

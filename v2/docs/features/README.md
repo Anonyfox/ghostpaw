@@ -107,12 +107,15 @@ Most do map directly to a core namespace. Some are umbrella or spec documents:
 
 - `SETTINGS.md` is the product umbrella over `src/core/config`, `src/core/secrets`, and
   `src/core/schedule`.
-- `QUESTS.md` and `HOWL.md` live one level up in `docs/` because they predate this folder layout.
+- `QUESTS.md` lives one level up in `docs/` because it predates this folder layout.
+- `HAUNT.md` and `HOWL.md` are chat-mode deep dives. They are subordinate to `CHAT.md`, not separate
+  core namespaces.
 - `WISDOM.md` is intentionally excluded from the current hardening pass and should be treated as its
   own spec track until brought to the same standard.
 
 | Subsystem | One-Line | Managing Soul |
 |-----------|----------|---------------|
+| [CHAT](./CHAT.md) | Omnichannel live execution, tool use, and the compounding session substrate | Ghostpaw |
 | [SOULS](./SOULS.md) | Identity, personality, and behavioral evolution of each specialist | Mentor |
 | [SKILLS](./SKILLS.md) | Reusable procedural knowledge as executable markdown | Trainer |
 | [WISDOM](./WISDOM.md) | Accumulated understanding, calibrations, and longitudinal intelligence | Historian |
@@ -121,6 +124,6 @@ Most do map directly to a core namespace. Some are umbrella or spec documents:
 | [PACK](./PACK.md) | Relationships, bonds, and multi-entity social memory | Warden |
 | [SETTINGS](./SETTINGS.md) | Configuration, secrets, and scheduled operations | Chamberlain |
 
-A single soul may manage multiple subsystems when their domains are conceptually linked and the combined cognitive load fits within what an LLM can handle reliably. This is a deliberate quality and performance optimization — fewer delegation calls at runtime, cleaner "what goes where" routing, and the managing soul builds richer cross-domain context within its specialization. Warden owns the data-and-productivity cluster (memory, quests, pack). Chamberlain owns the operational plumbing (settings, secrets, schedules). Mentor, Trainer, and Historian each manage a single high-complexity domain that demands full specialized attention.
+A single soul may manage multiple subsystems when their domains are conceptually linked and the combined cognitive load fits within what an LLM can handle reliably. This is a deliberate quality and performance optimization — fewer delegation calls at runtime, cleaner "what goes where" routing, and the managing soul builds richer cross-domain context within its specialization. Ghostpaw itself owns `CHAT` because live execution is the center the rest of the system orbits. Warden owns the data-and-productivity cluster (memory, quests, pack). Chamberlain owns the operational plumbing (settings, secrets, schedules). Mentor, Trainer, and Historian each manage a single high-complexity domain that demands full specialized attention.
 
 Each subsystem must stand on its own AND multiply the others through the synergy layer.

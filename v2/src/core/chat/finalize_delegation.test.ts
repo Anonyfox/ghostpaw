@@ -19,27 +19,21 @@ afterEach(() => {
 });
 
 describe("finalizeDelegation", () => {
-  it("accumulates usage on parent and closes child", () => {
+  it("closes the child session without mutating the parent totals", () => {
     const parent = createSession(db, "parent");
     const child = createSession(db, "delegate:1", {
       purpose: "delegate",
       parentSessionId: parent.id,
     });
 
-    finalizeDelegation(db, parent.id, child.id, {
-      tokensIn: 100,
-      tokensOut: 50,
-      reasoningTokens: 10,
-      cachedTokens: 5,
-      costUsd: 0.01,
-    });
+    finalizeDelegation(db, child.id);
 
     const updatedParent = getSession(db, parent.id)!;
-    strictEqual(updatedParent.tokensIn, 100);
-    strictEqual(updatedParent.tokensOut, 50);
-    strictEqual(updatedParent.reasoningTokens, 10);
-    strictEqual(updatedParent.cachedTokens, 5);
-    strictEqual(updatedParent.costUsd, 0.01);
+    strictEqual(updatedParent.tokensIn, 0);
+    strictEqual(updatedParent.tokensOut, 0);
+    strictEqual(updatedParent.reasoningTokens, 0);
+    strictEqual(updatedParent.cachedTokens, 0);
+    strictEqual(updatedParent.costUsd, 0);
 
     const updatedChild = getSession(db, child.id)!;
     ok(updatedChild.closedAt !== null);
@@ -53,20 +47,14 @@ describe("finalizeDelegation", () => {
       parentSessionId: parent.id,
     });
 
-    finalizeDelegation(
-      db,
-      parent.id,
-      child.id,
-      { tokensIn: 0, tokensOut: 0, reasoningTokens: 0, cachedTokens: 0, costUsd: 0 },
-      "something went wrong",
-    );
+    finalizeDelegation(db, child.id, "something went wrong");
 
     const updatedChild = getSession(db, child.id)!;
     strictEqual(updatedChild.error, "something went wrong");
     ok(updatedChild.closedAt !== null);
   });
 
-  it("accumulates usage additively across multiple calls", () => {
+  it("closes multiple child sessions independently", () => {
     const parent = createSession(db, "parent");
     const c1 = createSession(db, "delegate:1", {
       purpose: "delegate",
@@ -77,24 +65,14 @@ describe("finalizeDelegation", () => {
       parentSessionId: parent.id,
     });
 
-    finalizeDelegation(db, parent.id, c1.id, {
-      tokensIn: 100,
-      tokensOut: 50,
-      reasoningTokens: 0,
-      cachedTokens: 0,
-      costUsd: 0.01,
-    });
-    finalizeDelegation(db, parent.id, c2.id, {
-      tokensIn: 200,
-      tokensOut: 100,
-      reasoningTokens: 0,
-      cachedTokens: 0,
-      costUsd: 0.02,
-    });
+    finalizeDelegation(db, c1.id);
+    finalizeDelegation(db, c2.id);
 
     const updatedParent = getSession(db, parent.id)!;
-    strictEqual(updatedParent.tokensIn, 300);
-    strictEqual(updatedParent.tokensOut, 150);
-    strictEqual(updatedParent.costUsd, 0.03);
+    strictEqual(updatedParent.tokensIn, 0);
+    strictEqual(updatedParent.tokensOut, 0);
+    strictEqual(updatedParent.costUsd, 0);
+    ok(getSession(db, c1.id)!.closedAt !== null);
+    ok(getSession(db, c2.id)!.closedAt !== null);
   });
 });

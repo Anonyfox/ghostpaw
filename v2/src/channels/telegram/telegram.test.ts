@@ -1,6 +1,6 @@
 import { ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import { initChatTables } from "../../core/chat/index.ts";
+import { initChatTables } from "../../core/chat/runtime/index.ts";
 import type { Entity } from "../../harness/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import type { TelegramChannelConfig } from "./types.ts";
@@ -20,6 +20,7 @@ describe("createTelegramChannel", () => {
       catch: () => {},
       command: () => {},
       on: () => {},
+      callbackQuery: () => {},
       start: async () => {},
       stop: async () => {},
       api: {},
@@ -54,7 +55,7 @@ describe("createTelegramChannel", () => {
         async flush() {},
       },
       bot: mockBot as never,
-      sendMessage: async () => {},
+      sendMessage: async () => ({ messageId: 1 }),
       sendTyping: async () => {},
       setReaction: async () => {},
     };

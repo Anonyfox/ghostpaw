@@ -1,13 +1,12 @@
 import { resolve } from "node:path";
 import { defineCommand, runMain } from "citty";
+import { deleteOldDistilled } from "./core/chat/api/write/index.ts";
 import {
-  deleteOldDistilled,
   initChatTables,
-  migrateHauntsToSessions,
+  initHowlTables,
   recoverOrphanedSessions,
-} from "./core/chat/index.ts";
+} from "./core/chat/runtime/index.ts";
 import { initConfigTable } from "./core/config/runtime/index.ts";
-import { initHowlTables } from "./core/howl/index.ts";
 import { initMemoryTable } from "./core/memory/runtime/index.ts";
 import { initPackTables } from "./core/pack/runtime/index.ts";
 import { initQuestTables } from "./core/quests/index.ts";
@@ -86,7 +85,6 @@ const main = defineCommand({
     initSecretsTable(db);
     initConfigTable(db);
     initChatTables(db);
-    migrateHauntsToSessions(db);
     initMemoryTable(db);
     initSoulsTables(db);
     initSoulShardTables(db);
@@ -110,7 +108,7 @@ const main = defineCommand({
     if (created.length > 0) log.info(`bootstrapped ${created.length} default skills`);
 
     const { notifySession } = await import("./channels/web/server/routes/chat_ws.ts");
-    const { getSession } = await import("./core/chat/index.ts");
+    const { getSession } = await import("./core/chat/api/read/index.ts");
     const { autoResumeDelegation } = await import("./harness/auto_resume_delegation.ts");
     const { formatDelegationMessage } = await import("./harness/notify_background_complete.ts");
 

@@ -1,12 +1,8 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import {
-  addMessage,
-  closeSession,
-  createSession,
-  getHistory,
-  initChatTables,
-} from "../core/chat/index.ts";
+import { getHistory } from "../core/chat/api/read/index.ts";
+import { addMessage, closeSession, createSession } from "../core/chat/api/write/index.ts";
+import { initChatTables } from "../core/chat/runtime/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
 import type { ChannelNotifyFn } from "./notify_background_complete.ts";

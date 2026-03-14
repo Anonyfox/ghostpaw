@@ -1,14 +1,12 @@
-import type { ChatFactory } from "../../core/chat/chat_instance.ts";
+import { getHistory, getSession, parseToolCallData } from "../../core/chat/api/read/index.ts";
 import {
-  accumulateUsage,
+  type ChatFactory,
   closeSession,
   createSession,
   executeTurn,
-  getHistory,
-  getSession,
   markDistilled,
   markMessagesDistilled,
-} from "../../core/chat/index.ts";
+} from "../../core/chat/api/write/index.ts";
 import { formatConversation } from "../../core/memory/api/read/index.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
@@ -50,13 +48,8 @@ function countToolCalls(db: DatabaseHandle, systemSessionId: number): DistillToo
 
   for (const msg of messages) {
     if (msg.role !== "tool_call" || !msg.toolData) continue;
-    try {
-      const data = JSON.parse(msg.toolData) as { name?: string };
-      if (data.name) {
-        counts[data.name] = (counts[data.name] ?? 0) + 1;
-      }
-    } catch {
-      // malformed tool_data, skip
+    for (const call of parseToolCallData(msg.toolData)) {
+      counts[call.name] = (counts[call.name] ?? 0) + 1;
     }
   }
   return counts;
@@ -110,7 +103,7 @@ export async function distillSession(
     const patrol = formatPackPatrol(db);
     const content = [DISTILL_INSTRUCTION, patrol, formatted].filter(Boolean).join("\n\n");
 
-    const result = await executeTurn(
+    await executeTurn(
       {
         sessionId: systemSessionId,
         content,
@@ -120,16 +113,6 @@ export async function distillSession(
       },
       { db, tools, createChat },
     );
-
-    if (result.cost.estimatedUsd > 0 || result.usage.totalTokens > 0) {
-      accumulateUsage(db, sessionId, {
-        tokensIn: result.usage.inputTokens,
-        tokensOut: result.usage.outputTokens,
-        reasoningTokens: result.usage.reasoningTokens,
-        cachedTokens: result.usage.cachedTokens,
-        costUsd: result.cost.estimatedUsd,
-      });
-    }
 
     const toolCalls = countToolCalls(db, systemSessionId);
 

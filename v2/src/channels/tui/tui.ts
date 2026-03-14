@@ -1,6 +1,6 @@
 import { emitKeypressEvents } from "node:readline";
-import type { TurnResult } from "../../core/chat/index.ts";
-import { closeSession, createSession } from "../../core/chat/index.ts";
+import type { TurnResult } from "../../core/chat/api/write/index.ts";
+import { closeSession, createSession } from "../../core/chat/api/write/index.ts";
 import { defaultChatFactory } from "../../harness/chat_factory.ts";
 import type { Entity } from "../../harness/index.ts";
 import { resolveModel } from "../../harness/index.ts";
@@ -11,6 +11,7 @@ import { ansi } from "./ansi.ts";
 import { renderChatMessages } from "./chat_view.ts";
 import type { KeyInfo } from "./key_input.ts";
 import { createInputState, handleKeypress, renderInputLine } from "./key_input.ts";
+import { getExistingTuiSession, loadTuiMessages } from "./session_state.ts";
 import { renderBottomBar, renderTopBar } from "./status_bar.ts";
 import { stripAnsi, wrapText } from "./wrap_text.ts";
 
@@ -43,7 +44,14 @@ export async function runTui(opts: TuiOptions): Promise<void> {
   const w = () => out.columns || 80;
   const h = () => out.rows || 24;
 
-  let sessionId: number | null = null;
+  const existingSession = getExistingTuiSession(db);
+  let sessionId: number | null = existingSession?.id ?? null;
+
+  if (existingSession) {
+    messages.push(...loadTuiMessages(db, existingSession.id));
+    totalTokens = existingSession.tokensIn + existingSession.tokensOut;
+    model = opts.model ?? existingSession.model ?? model;
+  }
 
   function ensureSession(): number {
     if (sessionId === null) {
@@ -198,10 +206,6 @@ export async function runTui(opts: TuiOptions): Promise<void> {
 
   process.on("SIGINT", () => {
     cleanup();
-    if (sessionId !== null) {
-      closeSession(db, sessionId);
-      handlePostSession(db, sessionId, model, defaultChatFactory);
-    }
     entity.flush().finally(() => process.exit(0));
   });
 
@@ -213,10 +217,6 @@ export async function runTui(opts: TuiOptions): Promise<void> {
 
       if (key?.ctrl && key?.name === "c") {
         cleanup();
-        if (sessionId !== null) {
-          closeSession(db, sessionId);
-          handlePostSession(db, sessionId, model, defaultChatFactory);
-        }
         entity.flush().finally(resolve);
         return;
       }
@@ -229,10 +229,6 @@ export async function runTui(opts: TuiOptions): Promise<void> {
       switch (event.type) {
         case "cancel":
           cleanup();
-          if (sessionId !== null) {
-            closeSession(db, sessionId);
-            handlePostSession(db, sessionId, model, defaultChatFactory);
-          }
           entity.flush().finally(resolve);
           break;
         case "clear":

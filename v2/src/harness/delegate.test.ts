@@ -1,9 +1,9 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { ChatInstance } from "../core/chat/index.ts";
-import { createSession, getSession, initChatTables, listSessions } from "../core/chat/index.ts";
+import { getSession, listSessions } from "../core/chat/api/read/index.ts";
+import { type ChatInstance, createSession } from "../core/chat/api/write/index.ts";
+import { initChatTables, initHowlTables } from "../core/chat/runtime/index.ts";
 import { initConfigTable } from "../core/config/runtime/index.ts";
-import { initHowlTables } from "../core/howl/index.ts";
 import { initMemoryTable } from "../core/memory/runtime/index.ts";
 import { initPackTables } from "../core/pack/runtime/index.ts";
 import { initQuestTables } from "../core/quests/index.ts";
@@ -271,7 +271,7 @@ describe("createDelegateHandler", () => {
     capturedSystemPrompt = "";
     let capturedToolCount = 0;
     const wardenTools = createWardenTools(db);
-    const factory = (model: string): import("../core/chat/index.ts").ChatInstance => ({
+    const factory = (model: string): import("../core/chat/api/write/index.ts").ChatInstance => ({
       system(content: string) {
         capturedSystemPrompt = content;
         return this;
@@ -349,7 +349,7 @@ describe("createDelegateHandler", () => {
     capturedSystemPrompt = "";
     let capturedToolCount = 0;
     const chamberlainTools = createChamberlainTools(db);
-    const factory = (model: string): import("../core/chat/index.ts").ChatInstance => ({
+    const factory = (model: string): import("../core/chat/api/write/index.ts").ChatInstance => ({
       system(content: string) {
         capturedSystemPrompt = content;
         return this;

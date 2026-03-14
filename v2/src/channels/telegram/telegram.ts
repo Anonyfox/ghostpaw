@@ -1,5 +1,7 @@
 import { Bot } from "grammy";
-import { getOrCreateSession, listSessions } from "../../core/chat/index.ts";
+import { listSessions } from "../../core/chat/api/read/index.ts";
+import { getOrCreateSession } from "../../core/chat/api/write/index.ts";
+import { processHowlDismiss } from "../../harness/howl/index.ts";
 import { registerChannel, unregisterChannel } from "../../lib/channel_registry.ts";
 import type { HandleMessageDeps } from "./handle_message.ts";
 import { handleMessage } from "./handle_message.ts";
@@ -7,7 +9,13 @@ import { handleReset } from "./handle_reset.ts";
 import { handleSkills } from "./handle_skills.ts";
 import { handleTrain } from "./handle_train.ts";
 import { sessionKeyForChat } from "./session_key.ts";
-import type { ReactionEmoji, TelegramChannel, TelegramChannelConfig } from "./types.ts";
+import type {
+  ReactionEmoji,
+  TelegramChannel,
+  TelegramChannelConfig,
+  TelegramSendMessageOptions,
+  TelegramSentMessage,
+} from "./types.ts";
 
 const CONNECTION_TIMEOUT_MS = 10_000;
 const TELEGRAM_CHANNEL_ID = "telegram";
@@ -29,8 +37,22 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
 
   const sendMessage =
     config.sendMessage ??
-    (async (chatId: number, text: string) => {
-      await bot.api.sendMessage(chatId, text);
+    (async (
+      chatId: number,
+      text: string,
+      options?: TelegramSendMessageOptions,
+    ): Promise<TelegramSentMessage> => {
+      const replyMarkup = options?.dismissHowlId
+        ? {
+            inline_keyboard: [
+              [{ text: "Dismiss", callback_data: `howl:dismiss:${options.dismissHowlId}` }],
+            ],
+          }
+        : undefined;
+      const message = await bot.api.sendMessage(chatId, text, {
+        reply_markup: replyMarkup,
+      });
+      return { messageId: message.message_id };
     });
 
   const sendTyping =
@@ -55,11 +77,15 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
     return session.id;
   }
 
+  const sendPlainMessage = async (chatId: number, text: string): Promise<void> => {
+    await sendMessage(chatId, text);
+  };
+
   const deps: HandleMessageDeps = {
     entity,
     resolveSessionId,
     isAllowed,
-    sendMessage,
+    sendMessage: sendPlainMessage,
     sendTyping,
     setReaction,
   };
@@ -71,27 +97,51 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
 
   bot.command("reset", async (ctx) => {
     const chatId = ctx.chat.id;
-    await handleReset({ db, isAllowed, sendMessage }, chatId);
+    await handleReset({ db, isAllowed, sendMessage: sendPlainMessage }, chatId);
   });
 
   bot.command("skills", async (ctx) => {
     const chatId = ctx.chat.id;
-    await handleSkills({ db, isAllowed, sendMessage }, chatId);
+    await handleSkills({ db, isAllowed, sendMessage: sendPlainMessage }, chatId);
   });
 
   bot.command("train", async (ctx) => {
     const chatId = ctx.chat.id;
     const skillName = ctx.match?.trim() || undefined;
-    await handleTrain({ db, isAllowed, sendMessage }, chatId, skillName);
+    await handleTrain({ db, isAllowed, sendMessage: sendPlainMessage }, chatId, skillName);
   });
 
   bot.on("message:text", async (ctx) => {
     const chatId = ctx.chat.id;
     const messageId = ctx.message.message_id;
     const text = ctx.message.text;
+    const replyToMessageId = ctx.message.reply_to_message?.message_id;
     lastActiveChatId = chatId;
     if (text.startsWith("/")) return;
-    await handleMessage(deps, chatId, messageId, text);
+    await handleMessage(deps, chatId, messageId, text, replyToMessageId);
+  });
+
+  bot.callbackQuery(/^howl:dismiss:(\d+)$/, async (ctx) => {
+    const chatId = ctx.chat?.id ?? ctx.callbackQuery.message?.chat.id;
+    if (!chatId || !isAllowed(chatId)) {
+      await ctx.answerCallbackQuery({ text: "Not allowed." });
+      return;
+    }
+
+    const howlId = Number(ctx.match?.[1]);
+    if (!Number.isFinite(howlId)) {
+      await ctx.answerCallbackQuery({ text: "Invalid howl." });
+      return;
+    }
+
+    try {
+      await processHowlDismiss(db, howlId);
+      await ctx.answerCallbackQuery({ text: "Howl dismissed." });
+      await sendPlainMessage(chatId, "Dismissed. The thread is closed.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await ctx.answerCallbackQuery({ text: msg.slice(0, 180) });
+    }
   });
 
   return {
@@ -114,15 +164,28 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
               registerChannel(TELEGRAM_CHANNEL_ID, {
                 type: "telegram",
                 isConnected: () => running,
-                send: async (message: string) => {
+                getHowlCapabilities: () => ({
+                  canPush: lastActiveChatId !== null,
+                  canInbox: false,
+                  explicitReply: true,
+                  priority: 100,
+                }),
+                deliverHowl: async ({ howlId, message }) => {
                   const chatId = lastActiveChatId;
                   if (!chatId) throw new Error("No active Telegram chat");
-                  await sendMessage(chatId, message);
+                  const sent = await sendMessage(chatId, message, { dismissHowlId: howlId });
+                  return {
+                    channel: "telegram" as const,
+                    delivered: true,
+                    mode: "push" as const,
+                    address: String(chatId),
+                    messageId: String(sent.messageId),
+                  };
                 },
               });
               resolve({ username: info.username });
             },
-            allowed_updates: ["message"],
+            allowed_updates: ["message", "callback_query"],
           })
           .catch((err) => {
             clearTimeout(timeout);

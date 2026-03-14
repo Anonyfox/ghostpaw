@@ -1,19 +1,20 @@
-import type { ChatFactory } from "../../core/chat/chat_instance.ts";
-import type { TurnResult } from "../../core/chat/index.ts";
+import { getHowl } from "../../core/chat/api/read/howls/index.ts";
+import { recordHowlReply } from "../../core/chat/api/write/howls/index.ts";
 import {
-  addMessage,
+  type ChatFactory,
   closeSession,
   createSession,
   executeTurn,
-  getSession,
-} from "../../core/chat/index.ts";
-import { getHowl, updateHowlStatus } from "../../core/howl/index.ts";
+  type TurnResult,
+} from "../../core/chat/api/write/index.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { defaultChatFactory } from "../chat_factory.ts";
 import { assembleContext } from "../context.ts";
 import { resolveModel } from "../model.ts";
 import { createWardenTools } from "../tools.ts";
+import { appendOriginResolutionNote } from "./append_origin_resolution_note.ts";
+import { formatHowlOriginContext } from "./format_origin_context.ts";
 
 const MAX_ITERATIONS = 10;
 
@@ -53,16 +54,7 @@ export async function processHowlReply(
     throw new Error(`Howl #${howlId} is already "${howl.status}".`);
   }
 
-  const originSession = getSession(db, howl.originSessionId);
-  if (originSession) {
-    const parentId = howl.originMessageId ?? originSession.headMessageId ?? undefined;
-    addMessage(db, {
-      sessionId: howl.originSessionId,
-      role: "user",
-      content: `[Howl reply${options?.replyChannel ? ` via ${options.replyChannel}` : ""}] ${replyText}`,
-      parentId,
-    });
-  }
+  recordHowlReply(db, howl.id, replyText);
 
   const createChat: ChatFactory = options?.chatFactory ?? defaultChatFactory;
   const model = resolveModel(db, options?.model);
@@ -79,7 +71,13 @@ export async function processHowlReply(
       soulId: MANDATORY_SOUL_IDS.warden,
     });
 
-    const content = `${REPLY_INSTRUCTION}\n\nQuestion the ghost asked:\n${howl.message}\n\nUser's reply:\n${replyText}`;
+    const content = [
+      REPLY_INSTRUCTION,
+      formatHowlOriginContext(db, howl),
+      `Howl session #${howl.sessionId}`,
+      `Question the ghost asked:\n${howl.message}`,
+      `User's reply${options?.replyChannel ? ` via ${options.replyChannel}` : ""}:\n${replyText}`,
+    ].join("\n\n");
 
     const result = await executeTurn(
       {
@@ -92,15 +90,37 @@ export async function processHowlReply(
       { db, tools, createChat },
     );
 
-    updateHowlStatus(db, howlId, "responded");
-
     const summary = result.content.trim().slice(0, 500) || "(processed)";
+    appendOriginResolutionNote(
+      db,
+      howl,
+      `**Howl Resolved**\n\nQuestion: ${howl.message}\n\nReply: ${replyText}\n\nSummary: ${summary}`,
+    );
 
     return {
       howlId,
       summary,
       usage: result.usage,
       cost: result.cost,
+    };
+  } catch {
+    const summary = "Reply recorded. Follow-up processing can continue later.";
+    appendOriginResolutionNote(
+      db,
+      howl,
+      `**Howl Resolved**\n\nQuestion: ${howl.message}\n\nReply: ${replyText}\n\nSummary: ${summary}`,
+    );
+    return {
+      howlId,
+      summary,
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        reasoningTokens: 0,
+        cachedTokens: 0,
+        totalTokens: 0,
+      },
+      cost: { estimatedUsd: 0 },
     };
   } finally {
     closeSession(db, systemSessionId);

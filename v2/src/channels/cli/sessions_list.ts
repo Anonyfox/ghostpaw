@@ -1,11 +1,11 @@
 import { defineCommand } from "citty";
-import type { SessionPurpose } from "../../core/chat/index.ts";
+import type { SessionPurpose } from "../../core/chat/api/read/index.ts";
 import {
   deriveSessionTitle,
   getSessionMessage,
   getSessionStats,
   querySessionsPage,
-} from "../../core/chat/index.ts";
+} from "../../core/chat/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";

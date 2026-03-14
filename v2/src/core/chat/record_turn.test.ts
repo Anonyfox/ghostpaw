@@ -144,4 +144,20 @@ describe("recordTurn", () => {
     ok(updated);
     strictEqual(updated.headMessageId, result.messageId);
   });
+
+  it("keeps failed turns at zero authoritative usage when provider usage is missing", () => {
+    const session = createSession(db, "k");
+    const result = recordTurn(db, session.id, "Error: failed", null, "gpt-4o", null, false);
+
+    strictEqual(result.succeeded, false);
+    strictEqual(result.usage.inputTokens, 0);
+    strictEqual(result.usage.outputTokens, 0);
+    strictEqual(result.cost.estimatedUsd, 0);
+
+    const updated = getSession(db, session.id);
+    ok(updated);
+    strictEqual(updated.tokensIn, 0);
+    strictEqual(updated.tokensOut, 0);
+    strictEqual(updated.costUsd, 0);
+  });
 });

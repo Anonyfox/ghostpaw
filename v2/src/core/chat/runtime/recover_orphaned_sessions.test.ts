@@ -1,12 +1,12 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { DatabaseHandle } from "../../lib/index.ts";
-import { openTestDatabase } from "../../lib/index.ts";
-import { closeSession } from "./close_session.ts";
-import { createSession } from "./create_session.ts";
-import { getSession } from "./get_session.ts";
+import type { DatabaseHandle } from "../../../lib/index.ts";
+import { openTestDatabase } from "../../../lib/index.ts";
+import { closeSession } from "../close_session.ts";
+import { createSession } from "../create_session.ts";
+import { getSession } from "../get_session.ts";
+import { initChatTables } from "./index.ts";
 import { recoverOrphanedSessions } from "./recover_orphaned_sessions.ts";
-import { initChatTables } from "./schema.ts";
 
 let db: DatabaseHandle;
 

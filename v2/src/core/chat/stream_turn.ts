@@ -13,8 +13,10 @@ import type { TurnInput, TurnResult } from "./types.ts";
 const DEFAULT_MAX_ITERATIONS = 20;
 const DEFAULT_TOOL_TIMEOUT = 600_000;
 
+type AbortableTurnInput = TurnInput & { abortSignal?: AbortSignal };
+
 export async function* streamTurn(
-  input: TurnInput,
+  input: AbortableTurnInput,
   ctx: TurnContext,
 ): AsyncGenerator<string, TurnResult> {
   const release = await acquireSessionLock(input.sessionId);

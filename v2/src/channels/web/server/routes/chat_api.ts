@@ -1,4 +1,5 @@
-import { createSession, getHistory, getSession } from "../../../../core/chat/index.ts";
+import { getHistory, getSession } from "../../../../core/chat/api/read/index.ts";
+import { createSession } from "../../../../core/chat/api/write/index.ts";
 import { resolveModel } from "../../../../harness/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { ChatMessageInfo } from "../../shared/chat_message_info.ts";
@@ -34,6 +35,10 @@ export function createChatApiHandlers(db: DatabaseHandle) {
       const session = getSession(db, id);
       if (!session) {
         json(routeCtx, 404, { error: "Session not found." });
+        return;
+      }
+      if (session.purpose !== "chat") {
+        json(routeCtx, 404, { error: "Chat session not found." });
         return;
       }
 

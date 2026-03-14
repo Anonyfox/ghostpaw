@@ -1,12 +1,11 @@
-import type { ChatFactory } from "../../core/chat/index.ts";
+import { getSession } from "../../core/chat/api/read/index.ts";
 import {
-  accumulateUsage,
+  type ChatFactory,
   closeSession,
   createSession,
   executeTurn,
-  getSession,
   renameSession,
-} from "../../core/chat/index.ts";
+} from "../../core/chat/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 const TITLE_SYSTEM_PROMPT =
@@ -46,14 +45,6 @@ export async function generateSessionTitle(
       },
       { db, tools: [], createChat },
     );
-
-    accumulateUsage(db, parentSessionId, {
-      tokensIn: result.usage.inputTokens,
-      tokensOut: result.usage.outputTokens,
-      reasoningTokens: result.usage.reasoningTokens,
-      cachedTokens: result.usage.cachedTokens,
-      costUsd: result.cost.estimatedUsd,
-    });
 
     const title = result.content.trim().replace(/^["']|["']$/g, "");
     if (title && !title.startsWith("Error:")) {

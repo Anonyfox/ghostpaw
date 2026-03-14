@@ -1,7 +1,8 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { ChatSession } from "../../core/chat/index.ts";
-import { createSession, initChatTables, renameSession } from "../../core/chat/index.ts";
+import type { ChatSession } from "../../core/chat/api/read/index.ts";
+import { createSession, renameSession } from "../../core/chat/api/write/index.ts";
+import { initChatTables } from "../../core/chat/runtime/index.ts";
 import { storeMemory } from "../../core/memory/api/write/index.ts";
 import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../../core/souls/runtime/index.ts";

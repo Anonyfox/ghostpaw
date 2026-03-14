@@ -1,12 +1,19 @@
-import type { ChatFactory } from "../../core/chat/chat_instance.ts";
-import { closeSession, createSession, executeTurn } from "../../core/chat/index.ts";
-import { getHowl, updateHowlStatus } from "../../core/howl/index.ts";
+import { getHowl } from "../../core/chat/api/read/howls/index.ts";
+import { recordHowlDismissal } from "../../core/chat/api/write/howls/index.ts";
+import {
+  type ChatFactory,
+  closeSession,
+  createSession,
+  executeTurn,
+} from "../../core/chat/api/write/index.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { defaultChatFactory } from "../chat_factory.ts";
 import { assembleContext } from "../context.ts";
 import { resolveModel } from "../model.ts";
 import { createWardenTools } from "../tools.ts";
+import { appendOriginResolutionNote } from "./append_origin_resolution_note.ts";
+import { formatHowlOriginContext } from "./format_origin_context.ts";
 
 const MAX_ITERATIONS = 5;
 
@@ -36,7 +43,7 @@ export async function processHowlDismiss(
     throw new Error(`Howl #${howlId} is already "${howl.status}".`);
   }
 
-  updateHowlStatus(db, howlId, "dismissed");
+  recordHowlDismissal(db, howl.id);
 
   const createChat: ChatFactory = options?.chatFactory ?? defaultChatFactory;
   const model = resolveModel(db, options?.model);
@@ -53,7 +60,12 @@ export async function processHowlDismiss(
       soulId: MANDATORY_SOUL_IDS.warden,
     });
 
-    const content = `${DISMISS_INSTRUCTION}\n\nDismissed question:\n${howl.message}`;
+    const content = [
+      DISMISS_INSTRUCTION,
+      formatHowlOriginContext(db, howl),
+      `Howl session #${howl.sessionId}`,
+      `Dismissed question:\n${howl.message}`,
+    ].join("\n\n");
 
     await executeTurn(
       {
@@ -65,8 +77,18 @@ export async function processHowlDismiss(
       },
       { db, tools, createChat },
     );
+    appendOriginResolutionNote(
+      db,
+      howl,
+      `**Howl Dismissed**\n\nQuestion: ${howl.message}\n\nThe user dismissed this request.`,
+    );
   } catch {
     // Dismiss consolidation is best-effort — the status is already updated
+    appendOriginResolutionNote(
+      db,
+      howl,
+      `**Howl Dismissed**\n\nQuestion: ${howl.message}\n\nThe user dismissed this request.`,
+    );
   } finally {
     closeSession(db, systemSessionId);
   }

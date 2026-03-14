@@ -4,13 +4,25 @@ import type { DatabaseHandle } from "../../lib/index.ts";
 
 export type ReactionEmoji = "\u{1F440}" | "\u{1F44D}" | "\u{1F44E}";
 
+export interface TelegramSentMessage {
+  messageId: number;
+}
+
+export interface TelegramSendMessageOptions {
+  dismissHowlId?: number;
+}
+
 export interface TelegramChannelConfig {
   token: string;
   db: DatabaseHandle;
   entity: Entity;
   allowedChatIds?: number[];
   bot?: Bot;
-  sendMessage?: (chatId: number, text: string) => Promise<void>;
+  sendMessage?: (
+    chatId: number,
+    text: string,
+    options?: TelegramSendMessageOptions,
+  ) => Promise<TelegramSentMessage>;
   sendTyping?: (chatId: number) => Promise<void>;
   setReaction?: (chatId: number, messageId: number, emoji: ReactionEmoji) => Promise<void>;
 }

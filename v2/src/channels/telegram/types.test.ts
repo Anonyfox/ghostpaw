@@ -19,7 +19,7 @@ describe("TelegramChannelConfig", () => {
       entity: {} as never,
       allowedChatIds: [123, -456],
       bot: {} as never,
-      sendMessage: async () => {},
+      sendMessage: async () => ({ messageId: 1 }),
       sendTyping: async () => {},
       setReaction: async () => {},
     };

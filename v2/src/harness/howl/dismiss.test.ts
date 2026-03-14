@@ -1,9 +1,11 @@
 import { ok, rejects, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { ChatInstance } from "../../core/chat/chat_instance.ts";
-import { createSession, initChatTables } from "../../core/chat/index.ts";
+import { getHowl } from "../../core/chat/api/read/howls/index.ts";
+import { getFullHistory } from "../../core/chat/api/read/index.ts";
+import { createHowl, updateHowlStatus } from "../../core/chat/api/write/howls/index.ts";
+import { type ChatInstance, createSession } from "../../core/chat/api/write/index.ts";
+import { initChatTables, initHowlTables } from "../../core/chat/runtime/index.ts";
 import { initConfigTable } from "../../core/config/runtime/index.ts";
-import { getHowl, initHowlTables, storeHowl, updateHowlStatus } from "../../core/howl/index.ts";
 import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { initPackTables } from "../../core/pack/runtime/index.ts";
 import { initQuestTables } from "../../core/quests/index.ts";
@@ -77,7 +79,7 @@ afterEach(() => {
 describe("processHowlDismiss", () => {
   it("marks the howl as dismissed and runs warden consolidation", async () => {
     const origin = createSession(db, "chat:origin:1");
-    const howl = storeHowl(db, {
+    const howl = createHowl(db, {
       originSessionId: origin.id as number,
       message: "Want to explore this topic?",
       urgency: "low",
@@ -89,11 +91,14 @@ describe("processHowlDismiss", () => {
     const updated = getHowl(db, howl.id);
     ok(updated);
     strictEqual(updated.status, "dismissed");
+
+    const howlMessages = getFullHistory(db, howl.sessionId);
+    ok(howlMessages.some((message) => message.content === "[Dismissed]"));
   });
 
   it("creates a system session for warden dismissal processing", async () => {
     const origin = createSession(db, "chat:origin:2");
-    const howl = storeHowl(db, {
+    const howl = createHowl(db, {
       originSessionId: origin.id as number,
       message: "Curious about something?",
       urgency: "low",
@@ -106,6 +111,9 @@ describe("processHowlDismiss", () => {
       .prepare("SELECT * FROM sessions WHERE key LIKE 'system:howl-dismiss:%'")
       .all() as { id: number }[];
     strictEqual(sysRows.length, 1);
+
+    const originMessages = getFullHistory(db, origin.id as number);
+    ok(originMessages.some((message) => message.content.includes("Howl Dismissed")));
   });
 
   it("throws for non-existent howl", async () => {
@@ -114,7 +122,7 @@ describe("processHowlDismiss", () => {
 
   it("throws for already-dismissed howl", async () => {
     const origin = createSession(db, "chat:origin:3");
-    const howl = storeHowl(db, {
+    const howl = createHowl(db, {
       originSessionId: origin.id as number,
       message: "Q?",
       urgency: "low",

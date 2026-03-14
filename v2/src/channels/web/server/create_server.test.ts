@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initChatTables } from "../../../core/chat/index.ts";
+import { initChatTables } from "../../../core/chat/runtime/index.ts";
 import { initConfigTable } from "../../../core/config/runtime/index.ts";
 import { initSecretsTable } from "../../../core/secrets/runtime/index.ts";
 import type { DatabaseHandle } from "../../../lib/index.ts";

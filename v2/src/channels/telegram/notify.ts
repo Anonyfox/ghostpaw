@@ -1,5 +1,5 @@
 import { Bot } from "grammy";
-import { addMessage, getOrCreateSession } from "../../core/chat/index.ts";
+import { addMessage, getOrCreateSession } from "../../core/chat/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { sessionKeyForChat } from "./session_key.ts";
 import { splitMessage } from "./split_message.ts";

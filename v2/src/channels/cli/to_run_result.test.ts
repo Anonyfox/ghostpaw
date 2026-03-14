@@ -1,6 +1,6 @@
 import { strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import type { TurnResult } from "../../core/chat/index.ts";
+import type { TurnResult } from "../../core/chat/api/write/index.ts";
 import { toRunResult } from "./to_run_result.ts";
 
 describe("toRunResult", () => {

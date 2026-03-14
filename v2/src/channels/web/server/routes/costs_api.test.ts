@@ -1,6 +1,7 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
-import { createSession, initChatTables } from "../../../../core/chat/index.ts";
+import { createSession } from "../../../../core/chat/api/write/index.ts";
+import { initChatTables } from "../../../../core/chat/runtime/index.ts";
 import { setConfig } from "../../../../core/config/api/write/index.ts";
 import { initConfigTable } from "../../../../core/config/runtime/index.ts";
 import { initSoulsTables } from "../../../../core/souls/runtime/index.ts";

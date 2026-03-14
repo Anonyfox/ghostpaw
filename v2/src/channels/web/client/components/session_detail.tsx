@@ -67,9 +67,11 @@ export function SessionDetail({ sessionId }: Props) {
               <span class="text-body-secondary">Model:</span> {s.model}
             </span>
           )}
-          <Link href={`/chat/${s.id}`} class="text-info ms-auto">
-            Open in Chat
-          </Link>
+          {s.purpose === "chat" && (
+            <Link href={`/chat/${s.id}`} class="text-info ms-auto">
+              Open in Chat
+            </Link>
+          )}
         </div>
         <div class="d-flex flex-wrap gap-3 mt-1">
           <span>

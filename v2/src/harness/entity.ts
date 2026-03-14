@@ -1,5 +1,4 @@
-import type { TurnResult } from "../core/chat/index.ts";
-import { executeTurn, streamTurn } from "../core/chat/index.ts";
+import { executeTurn, streamTurn, type TurnResult } from "../core/chat/api/write/index.ts";
 import { getConfig } from "../core/config/api/read/index.ts";
 import { MANDATORY_SOUL_IDS } from "../core/souls/api/read/index.ts";
 import { defaultChatFactory } from "./chat_factory.ts";

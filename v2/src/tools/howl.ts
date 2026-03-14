@@ -1,8 +1,8 @@
 import { createTool, Schema } from "chatoyant";
+import type { HowlUrgency } from "../core/chat/api/read/howls/index.ts";
+import { countHowlsToday, lastHowlTime } from "../core/chat/api/read/howls/index.ts";
+import { createHowl, deliverHowl } from "../core/chat/api/write/howls/index.ts";
 import { getConfig } from "../core/config/api/read/index.ts";
-import type { HowlUrgency } from "../core/howl/index.ts";
-import { countHowlsToday, lastHowlTime, storeHowl, updateHowlChannel } from "../core/howl/index.ts";
-import { getBestChannel } from "../lib/channel_registry.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 
 class HowlParams extends Schema {
@@ -70,30 +70,20 @@ export function createHowlTool(ctx: HowlToolContext) {
         }
       }
 
-      const originMessageId = getHeadMessageId();
-      const channel = getBestChannel();
-
-      const howl = storeHowl(db, {
+      const howl = createHowl(db, {
         originSessionId,
-        originMessageId,
+        originMessageId: getHeadMessageId(),
         message,
         urgency,
-        channel: channel?.type ?? null,
       });
-
-      if (channel && urgency === "high") {
-        try {
-          await channel.send(message);
-          updateHowlChannel(db, howl.id, channel.type);
-        } catch {
-          // Delivery failed — howl is stored, will appear in web UI
-        }
-      }
+      const delivery = await deliverHowl(db, howl);
 
       return {
         howlId: howl.id,
-        delivered: channel !== null && urgency === "high",
-        channel: channel?.type ?? "stored",
+        sessionId: howl.sessionId,
+        delivered: delivery.delivered,
+        channel: delivery.channel,
+        mode: delivery.mode,
         note: "The user won't reply before this session ends. Continue your work.",
       };
     },

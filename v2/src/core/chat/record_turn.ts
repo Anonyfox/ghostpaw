@@ -26,8 +26,9 @@ export function recordTurn(
   parentId: number | null,
   succeeded = true,
 ): TurnResult {
-  const tokensIn = lastResult?.usage.inputTokens ?? estimateTokens(content);
-  const tokensOut = lastResult?.usage.outputTokens ?? estimateTokens(content);
+  const estimatedTokens = estimateTokens(content);
+  const tokensIn = lastResult?.usage.inputTokens ?? (succeeded ? estimatedTokens : 0);
+  const tokensOut = lastResult?.usage.outputTokens ?? (succeeded ? estimatedTokens : 0);
   const reasoningTokens = lastResult?.usage.reasoningTokens ?? 0;
   const cachedTokens = lastResult?.usage.cachedTokens ?? 0;
   const costUsd = lastResult?.cost.estimatedUsd ?? 0;

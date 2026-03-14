@@ -1,6 +1,6 @@
 import type { Tool } from "chatoyant";
-import type { ChatFactory } from "../core/chat/index.ts";
-import { getSession } from "../core/chat/index.ts";
+import { getSession } from "../core/chat/api/read/index.ts";
+import type { ChatFactory } from "../core/chat/api/write/index.ts";
 import { getSecretValue } from "../core/secrets/runtime/index.ts";
 import { projectSkillReadContent } from "../core/skills/api/read/index.ts";
 import { logSkillEvent } from "../core/skills/api/write/index.ts";

@@ -1,13 +1,12 @@
 import type { Tool } from "chatoyant";
-import type { ChatFactory } from "../core/chat/index.ts";
+import { getSession, getSessionMessage } from "../core/chat/api/read/index.ts";
 import {
+  type ChatFactory,
   closeSession,
   createSession,
   executeTurn,
   finalizeDelegation,
-  getSession,
-  getSessionMessage,
-} from "../core/chat/index.ts";
+} from "../core/chat/api/write/index.ts";
 import { getSoulByName, listSouls, MANDATORY_SOUL_IDS } from "../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import type { DelegateArgs, DelegateHandler } from "../tools/delegate.ts";
@@ -162,7 +161,7 @@ export function createDelegateHandler(options: DelegateExecutorOptions): Delegat
 
 function executeAndFinalize(
   db: DatabaseHandle,
-  parentSessionId: number,
+  _parentSessionId: number,
   childSessionId: number,
   specialist: string,
   systemPrompt: string,
@@ -188,21 +187,7 @@ function executeAndFinalize(
     timeoutMs,
   ).then(
     (result) => {
-      const usage = {
-        tokensIn: result.usage.inputTokens,
-        tokensOut: result.usage.outputTokens,
-        reasoningTokens: result.usage.reasoningTokens,
-        cachedTokens: result.usage.cachedTokens,
-        costUsd: result.cost.estimatedUsd,
-      };
-
-      finalizeDelegation(
-        db,
-        parentSessionId,
-        childSessionId,
-        usage,
-        result.succeeded ? undefined : result.content,
-      );
+      finalizeDelegation(db, childSessionId, result.succeeded ? undefined : result.content);
 
       handlePostSession(db, childSessionId, model, chatFactory);
 

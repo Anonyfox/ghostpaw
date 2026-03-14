@@ -1,4 +1,4 @@
-import type { SessionWithCounts } from "../../../../core/chat/index.ts";
+import type { SessionWithCounts } from "../../../../core/chat/api/read/index.ts";
 import {
   deriveSessionTitle,
   getFullHistory,
@@ -6,9 +6,9 @@ import {
   getSessionMessage,
   getSessionStats,
   listSessions,
-  pruneEmptySessions,
   querySessionsPage,
-} from "../../../../core/chat/index.ts";
+} from "../../../../core/chat/api/read/index.ts";
+import { pruneEmptySessions } from "../../../../core/chat/api/write/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type {
   SessionDetailResponse,

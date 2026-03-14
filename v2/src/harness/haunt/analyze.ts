@@ -1,5 +1,5 @@
-import type { ChatSession } from "../../core/chat/index.ts";
-import { listSessions } from "../../core/chat/index.ts";
+import type { ChatSession } from "../../core/chat/api/read/index.ts";
+import { listSessions } from "../../core/chat/api/read/index.ts";
 import {
   memoriesRevisedSince,
   memoriesSince,

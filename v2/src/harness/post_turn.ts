@@ -1,5 +1,5 @@
-import type { ChatFactory } from "../core/chat/index.ts";
-import { getHistory, getSession } from "../core/chat/index.ts";
+import { getHistory, getSession } from "../core/chat/api/read/index.ts";
+import type { ChatFactory } from "../core/chat/api/write/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { generateSessionTitle } from "./oneshots/generate_title.ts";
 

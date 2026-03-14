@@ -1,6 +1,7 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initChatTables } from "../../../../core/chat/index.ts";
+import { createSession } from "../../../../core/chat/api/write/index.ts";
+import { initChatTables } from "../../../../core/chat/runtime/index.ts";
 import { initConfigTable } from "../../../../core/config/runtime/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { openTestDatabase } from "../../../../lib/index.ts";
@@ -96,6 +97,20 @@ describe("chat API", () => {
       ok(Array.isArray(data.messages));
       strictEqual(data.messages.length, 0);
       strictEqual(data.session.sessionId, sessionId);
+    });
+
+    it("rejects non-chat sessions", () => {
+      const session = createSession(db, "howl:1", { purpose: "howl" });
+      const res = mockRes();
+      const ctx = {
+        req: {},
+        res,
+        params: { id: String(session.id) },
+      } as unknown as RouteContext;
+
+      handlers.history(ctx);
+
+      strictEqual(res.status, 404);
     });
   });
 });

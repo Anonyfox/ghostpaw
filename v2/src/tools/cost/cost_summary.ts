@@ -5,7 +5,7 @@ import {
   getCostBySoul,
   getCostSummary,
   getDailyCostTrend,
-} from "../../core/chat/index.ts";
+} from "../../core/chat/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 class CostSummaryParams extends Schema {

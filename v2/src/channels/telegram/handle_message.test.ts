@@ -1,14 +1,14 @@
 import { deepStrictEqual, ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { TurnResult } from "../../core/chat/index.ts";
-import { initChatTables } from "../../core/chat/index.ts";
-import { initHowlTables } from "../../core/howl/index.ts";
+import { createHowl, updateHowlDelivery } from "../../core/chat/api/write/howls/index.ts";
+import { createSession, type TurnResult } from "../../core/chat/api/write/index.ts";
+import { initChatTables, initHowlTables } from "../../core/chat/runtime/index.ts";
 import type { Entity } from "../../harness/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import type { HandleMessageDeps } from "./handle_message.ts";
 import { handleMessage } from "./handle_message.ts";
-import type { ReactionEmoji } from "./types.ts";
+import type { ReactionEmoji, TelegramSentMessage } from "./types.ts";
 
 const TURN_OK: TurnResult = {
   succeeded: true,
@@ -64,8 +64,9 @@ function createMockDeps(overrides?: Partial<HandleMessageDeps>): HandleMessageDe
     resolveSessionId: () => 1,
     entity: stubEntity(async () => TURN_OK),
     isAllowed: () => true,
-    sendMessage: async (chatId, text) => {
+    sendMessage: async (chatId, text): Promise<TelegramSentMessage> => {
       sent.push({ chatId, text });
+      return { messageId: sent.length };
     },
     sendTyping: async (chatId) => {
       typings.push(chatId);
@@ -147,5 +148,36 @@ describe("handleMessage", () => {
     const deps = createMockDeps({ isAllowed: () => true });
     await handleMessage(deps, 999, 1, "hello");
     ok(deps.sent.length > 0);
+  });
+
+  it("keeps plain text as direct chat when telegram howl fallback is ambiguous", async () => {
+    const origin = createSession(sharedDb, "chat:origin");
+    const howlA = createHowl(sharedDb, {
+      originSessionId: origin.id as number,
+      message: "A?",
+      urgency: "low",
+    });
+    const howlB = createHowl(sharedDb, {
+      originSessionId: origin.id as number,
+      message: "B?",
+      urgency: "low",
+    });
+    updateHowlDelivery(sharedDb, howlA.id, {
+      channel: "telegram",
+      deliveryAddress: "77",
+      deliveryMessageId: "10",
+      deliveryMode: "push",
+    });
+    updateHowlDelivery(sharedDb, howlB.id, {
+      channel: "telegram",
+      deliveryAddress: "77",
+      deliveryMessageId: "11",
+      deliveryMode: "push",
+    });
+
+    const deps = createMockDeps();
+    await handleMessage(deps, 77, 12, "normal chat");
+
+    strictEqual(deps.sent[0]?.text, "Hello from Ghostpaw!");
   });
 });

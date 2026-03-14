@@ -1,11 +1,10 @@
-import type { ChatFactory } from "../../core/chat/chat_instance.ts";
+import { getHistory, parseToolCallData } from "../../core/chat/api/read/index.ts";
 import {
-  accumulateUsage,
+  type ChatFactory,
   closeSession,
   createSession,
   executeTurn,
-  getHistory,
-} from "../../core/chat/index.ts";
+} from "../../core/chat/api/write/index.ts";
 import type { Memory } from "../../core/memory/api/types.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
@@ -66,13 +65,8 @@ function countToolCalls(db: DatabaseHandle, sessionId: number): ConsolidationRes
 
   for (const msg of messages) {
     if (msg.role !== "tool_call" || !msg.toolData) continue;
-    try {
-      const data = JSON.parse(msg.toolData) as { name?: string };
-      if (data.name) {
-        counts[data.name] = (counts[data.name] ?? 0) + 1;
-      }
-    } catch {
-      // malformed tool_data
+    for (const call of parseToolCallData(msg.toolData)) {
+      counts[call.name] = (counts[call.name] ?? 0) + 1;
     }
   }
   return counts;
@@ -122,16 +116,6 @@ export async function consolidateHaunt(
       },
       { db, tools, createChat },
     );
-
-    if (result.cost.estimatedUsd > 0 || result.usage.totalTokens > 0) {
-      accumulateUsage(db, hauntSessionId, {
-        tokensIn: result.usage.inputTokens,
-        tokensOut: result.usage.outputTokens,
-        reasoningTokens: result.usage.reasoningTokens,
-        cachedTokens: result.usage.cachedTokens,
-        costUsd: result.cost.estimatedUsd,
-      });
-    }
 
     const toolCalls = countToolCalls(db, systemSessionId);
     const summary = extractSummaryFromResponse(result.content);

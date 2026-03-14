@@ -1,6 +1,6 @@
 import { doesNotThrow, ok, throws } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { initChatTables } from "../core/chat/index.ts";
+import { initChatTables } from "../core/chat/runtime/index.ts";
 import { setConfig } from "../core/config/api/write/index.ts";
 import { initConfigTable } from "../core/config/runtime/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";

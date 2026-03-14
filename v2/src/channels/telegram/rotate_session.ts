@@ -1,4 +1,5 @@
-import { addMessage, closeSession, getHistory, getOrCreateSession } from "../../core/chat/index.ts";
+import { getHistory } from "../../core/chat/api/read/index.ts";
+import { addMessage, closeSession, getOrCreateSession } from "../../core/chat/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 /**

@@ -1,4 +1,4 @@
-import type { TurnResult } from "../../core/chat/index.ts";
+import type { TurnResult } from "../../core/chat/api/write/index.ts";
 import type { RunResult } from "./run_types.ts";
 
 export function toRunResult(turn: TurnResult): RunResult {

@@ -1,9 +1,10 @@
 import {
   deriveSessionTitle,
+  getSession,
   getSessionMessage,
   listSessions,
-  renameSession,
-} from "../../../../core/chat/index.ts";
+} from "../../../../core/chat/api/read/index.ts";
+import { renameSession } from "../../../../core/chat/api/write/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type { ChatSessionSummary } from "../../shared/chat_session_summary.ts";
 import { readJsonBody } from "../body_parser.ts";
@@ -49,6 +50,12 @@ export function createChatSessionsApiHandlers(db: DatabaseHandle) {
       const id = Number(routeCtx.params.id);
       if (!Number.isFinite(id)) {
         json(routeCtx, 400, { error: "Invalid session ID." });
+        return;
+      }
+
+      const session = getSession(db, id);
+      if (!session || session.purpose !== "chat") {
+        json(routeCtx, 404, { error: "Chat session not found." });
         return;
       }
 

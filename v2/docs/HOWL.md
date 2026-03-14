@@ -1,8 +1,15 @@
 # Howl — Agent-Initiated Targeted Messaging
 
+This is now a mode-specific deep dive, not the canonical master feature file. The feature-level truth
+for direct chat, haunt, and howl together lives in [`docs/features/CHAT.md`](./features/CHAT.md).
+
 ## What It Is
 
 A **howl** is the ghost reaching out because it genuinely needs to talk. Not to report. Not to summarize. To ask something it cannot answer alone, share curiosity about something fundamental, or raise an alarm about real danger.
+
+It is not a side system detached from chat. It is a special outward chat mode: `ghostpaw -> user`
+instead of `user -> ghostpaw`. See [`docs/features/CHAT.md`](./features/CHAT.md) for the central chat
+substrate this mode belongs to.
 
 The howl should feel like a companion tapping your shoulder with something worth discussing — playful, in-theme, and impossible to ignore. It invites true dialogue. If it doesn't make the user want to reply, it shouldn't have been sent.
 

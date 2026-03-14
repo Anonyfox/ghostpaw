@@ -1,4 +1,7 @@
-import { getPendingHowl } from "../../core/howl/index.ts";
+import {
+  getHowlByTelegramReplyTarget,
+  getResolvableTelegramHowlFromPlainText,
+} from "../../core/chat/api/read/howls/index.ts";
 import { processHowlReply } from "../../harness/howl/index.ts";
 import type { Entity } from "../../harness/index.ts";
 import { splitMessage } from "./split_message.ts";
@@ -10,7 +13,7 @@ export interface HandleMessageDeps {
   entity: Entity;
   resolveSessionId: (chatId: number) => number;
   isAllowed: (chatId: number) => boolean;
-  sendMessage: (chatId: number, text: string) => Promise<void>;
+  sendMessage: (chatId: number, text: string) => Promise<unknown>;
   sendTyping: (chatId: number) => Promise<void>;
   setReaction: (chatId: number, messageId: number, emoji: ReactionEmoji) => Promise<void>;
 }
@@ -20,6 +23,7 @@ export async function handleMessage(
   chatId: number,
   messageId: number,
   text: string,
+  replyToMessageId?: number,
 ): Promise<void> {
   if (!deps.isAllowed(chatId)) return;
   if (!text.trim()) return;
@@ -32,10 +36,13 @@ export async function handleMessage(
   }, TYPING_INTERVAL_MS);
 
   try {
-    const pendingHowl = getPendingHowl(deps.entity.db);
+    const howl =
+      (replyToMessageId
+        ? getHowlByTelegramReplyTarget(deps.entity.db, chatId, replyToMessageId)
+        : null) ?? getResolvableTelegramHowlFromPlainText(deps.entity.db, chatId);
 
-    if (pendingHowl) {
-      const reply = await processHowlReply(deps.entity.db, pendingHowl.id, text, {
+    if (howl) {
+      const reply = await processHowlReply(deps.entity.db, howl.id, text, {
         replyChannel: "telegram",
       });
       clearInterval(typingInterval);

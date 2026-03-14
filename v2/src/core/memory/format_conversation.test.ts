@@ -1,6 +1,6 @@
 import { ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import type { ChatMessage } from "../chat/types.ts";
+import type { ChatMessage } from "../chat/api/read/index.ts";
 import { formatConversation } from "./format_conversation.ts";
 
 function msg(

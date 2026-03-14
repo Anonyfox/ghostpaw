@@ -1,12 +1,14 @@
-import type { DatabaseHandle } from "../../lib/index.ts";
-import type { HowlStatus, HowlSummary } from "./types.ts";
+import type { DatabaseHandle } from "../../../../../lib/index.ts";
+import type { HowlStatus, HowlSummary } from "../../../internal/howls/types.ts";
 
 interface HowlSummaryRow {
   id: number;
+  session_id: number;
   message: string;
   urgency: string;
   status: string;
   channel: string | null;
+  delivery_mode: string | null;
   created_at: number;
 }
 
@@ -19,7 +21,7 @@ export function listHowls(
   if (options?.status) {
     const rows = db
       .prepare(
-        `SELECT id, message, urgency, status, channel, created_at
+        `SELECT id, session_id, message, urgency, status, channel, delivery_mode, created_at
          FROM howls WHERE status = ?
          ORDER BY created_at DESC, id DESC LIMIT ?`,
       )
@@ -29,7 +31,7 @@ export function listHowls(
 
   const rows = db
     .prepare(
-      `SELECT id, message, urgency, status, channel, created_at
+      `SELECT id, session_id, message, urgency, status, channel, delivery_mode, created_at
        FROM howls ORDER BY created_at DESC, id DESC LIMIT ?`,
     )
     .all(limit) as unknown as HowlSummaryRow[];
@@ -55,10 +57,12 @@ export function lastHowlTime(db: DatabaseHandle): number | null {
 function rowToSummary(row: HowlSummaryRow): HowlSummary {
   return {
     id: row.id,
+    sessionId: row.session_id,
     message: row.message,
     urgency: row.urgency as HowlSummary["urgency"],
     status: row.status as HowlSummary["status"],
     channel: row.channel,
+    deliveryMode: row.delivery_mode as HowlSummary["deliveryMode"],
     createdAt: row.created_at,
   };
 }

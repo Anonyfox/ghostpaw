@@ -1,15 +1,14 @@
-import type { ChatFactory } from "../../core/chat/chat_instance.ts";
-import type { TurnResult } from "../../core/chat/index.ts";
+import { getSession } from "../../core/chat/api/read/index.ts";
+import { createHowl, deliverHowl } from "../../core/chat/api/write/howls/index.ts";
+import type { ChatFactory } from "../../core/chat/api/write/index.ts";
 import {
   addMessage,
   closeSession,
   createSession,
-  getSession,
   renameSession,
-} from "../../core/chat/index.ts";
+  type TurnResult,
+} from "../../core/chat/api/write/index.ts";
 import { getConfig } from "../../core/config/api/read/index.ts";
-import { storeHowl, updateHowlChannel } from "../../core/howl/index.ts";
-import { getBestChannel } from "../../lib/channel_registry.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { defaultChatFactory } from "../chat_factory.ts";
 import { resolveModel } from "../model.ts";
@@ -142,21 +141,13 @@ export async function runHaunt(
 
   if (consolidation?.highlight) {
     try {
-      const channel = getBestChannel();
-      const howl = storeHowl(db, {
+      const howl = createHowl(db, {
         originSessionId: sessionId,
+        originMessageId: getSession(db, sessionId)?.headMessageId ?? null,
         message: consolidation.highlight,
         urgency: "low",
-        channel: channel?.type ?? null,
       });
-      if (channel) {
-        try {
-          await channel.send(consolidation.highlight);
-          updateHowlChannel(db, howl.id, channel.type);
-        } catch {
-          /* delivery failed, stored for web */
-        }
-      }
+      await deliverHowl(db, howl);
     } catch {
       /* howl creation failed, non-fatal */
     }

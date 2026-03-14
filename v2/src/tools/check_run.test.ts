@@ -1,6 +1,7 @@
 import { ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { addMessage, closeSession, createSession, initChatTables } from "../core/chat/index.ts";
+import { addMessage, closeSession, createSession } from "../core/chat/api/write/index.ts";
+import { initChatTables } from "../core/chat/runtime/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
 import { createCheckRunTool } from "./check_run.ts";

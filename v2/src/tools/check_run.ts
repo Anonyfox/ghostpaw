@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { getSession, getSessionMessage } from "../core/chat/index.ts";
+import { getSession, getSessionMessage } from "../core/chat/api/read/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 
 class CheckRunParams extends Schema {

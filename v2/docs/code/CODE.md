@@ -46,11 +46,15 @@ tests whose only assertion is that exports exist.
 **Namespace paths are semantic.** When a subsystem is large enough to need sub-surfaces, use these names with their exact meaning:
 
 - `api/read/` — deterministic, side-effect-free queries safe for cross-subsystem consumption
-- `api/write/` — privileged mutation surface for tools, the warden, or explicitly approved harness flows
+- `api/write/` — privileged mutation surface for tools and other explicitly approved mutation-capable orchestration/composition paths
 - `runtime/` — bootstrap/setup plumbing such as schema init, defaults, seeds, and integrity checks
 - `internal/` — private implementation details: row mappers, derivation helpers, SQL helpers, normalization, prompt shaping, formatting
 
 These path names are not organization flavor. They are enforceable boundary markers.
+
+`api/types.ts` and the rarer `api/constants.ts` are allowed as explicit public surface files when
+their only job is to aggregate declarations that both `api/read/` and `api/write/` need to share.
+They are not a loophole for behavior.
 
 **No junk drawers.** No `utils.ts`, `helpers.ts`, `common.ts`, `misc.ts`, `shared.ts`. If a function doesn't have a home, it doesn't have a reason to exist yet. When it does, it gets a named file in the right folder.
 
@@ -150,7 +154,7 @@ This analysis comes BEFORE writing test code. You are not checking boxes. You ar
 
 **One composition root.** There is exactly one place — the application entry point — where real implementations are chosen and wired together. This is the only file that knows about all concrete modules. Everything else receives its dependencies, it doesn't go fetch them.
 
-**Cross-subsystem imports target allowed namespace surfaces only.** The default cross-core import is `api/read/`. Importing another subsystem's `api/write/` is privileged and limited to mutation-capable layers such as `tools/` and explicitly approved harness flows. `runtime/` is for the composition root and bootstrap only. `internal/` is never imported across subsystem boundaries.
+**Cross-subsystem imports target allowed namespace surfaces only.** The default cross-core import is `api/read/`. Importing another subsystem's `api/write/` is privileged and limited to mutation-capable layers such as `tools/` and other explicitly approved orchestration/composition paths. `runtime/` is for the composition root and bootstrap only. `internal/` is never imported across subsystem boundaries.
 
 ## Interfaces and Abstraction
 

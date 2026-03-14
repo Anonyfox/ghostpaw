@@ -29,7 +29,7 @@ Five layers, strictly ordered. Each layer may depend on layers below it. Never a
 **Namespace boundary rules:**
 
 - Cross-subsystem `core` imports default to `src/core/<feature>/api/read/**`.
-- `src/core/<feature>/api/write/**` is a privileged mutation surface. It may be imported by `tools/` and by explicitly approved harness orchestration paths, not by arbitrary core callers.
+- `src/core/<feature>/api/write/**` is a privileged mutation surface. It may be imported by `tools/` and by other explicitly approved mutation-capable orchestration/composition paths, not by arbitrary callers.
 - `src/core/<feature>/runtime/**` is for startup/bootstrap/composition only.
 - `src/core/<feature>/internal/**` is private to the owning subsystem.
 - The same pattern applies upward as folders grow: `tools/<namespace>/public/**` vs `tools/<namespace>/internal/**`, `harness/public/**` vs `harness/internal/**`, and equivalent channel-local splits.
@@ -66,19 +66,27 @@ Meaning:
 - `runtime/` — schema init, defaults, seeds, integrity/bootstrap helpers
 - `internal/` — row mappers, derivation logic, normalization, formatting, private SQL helpers
 
-Today the explicitly namespaced core subsystems are `config`, `memory`, `pack`, `schedule`,
+`api/types.ts` and, when truly needed, `api/constants.ts` are also valid public surface files for
+shared declarations. They are the exception, not a second miscellaneous namespace.
+
+Today the explicitly namespaced core subsystems are `chat`, `config`, `memory`, `pack`, `schedule`,
 `secrets`, `skills`, and `souls`.
 
 Features include (not exhaustive — grows as the system grows):
 
-- **chat/** — mechanical turn execution pipeline. Session lifecycle, message persistence, history traversal, turn locking, token estimation. Accepts a system prompt, tools, and chat factory from above — it executes what it's given. The `CompactFn` callback allows the harness to inject compaction logic that runs inside the session lock without core knowing about the LLM call.
+- **chat/** — mechanical turn execution pipeline and conversational substrate. Session lifecycle,
+  message persistence, history traversal, turn locking, token estimation, and chat-owned howl
+  metadata/runtime all live here behind `api/read/`, `api/write/`, and `runtime/` surfaces. Accepts
+  a system prompt, tools, and chat factory from above — it executes what it's given. The `CompactFn`
+  callback allows the harness to inject compaction logic that runs inside the session lock without
+  core knowing about the LLM call. See `docs/features/CHAT.md` for the product-level feature
+  contract around this kernel.
 - **memory/** — memory storage, recall, embeddings, reconciliation.
 - **souls/** — soul loading, rendering, refinement pipeline, default soul content (as .ts files).
 - **config/** — typed configuration with known keys, defaults, and validation.
 - **secrets/** — local secret storage, provider key management, and runtime-only value access.
 - **pack/** — social bonds, contacts, identity resolution, member merging, Theory of Mind.
 - **quests/** — unified task/event/calendar system, temporal awareness, quest board, FTS5 search.
-- **howl/** — proactive outreach — routing metadata, origin tracking, delivery lifecycle.
 - **schedule/** — job scheduling with CAS-based at-most-once locking, builtin + custom schedules, interval management.
 - **skills/** — skill storage, craft/train/scout pipeline, default skills (as .ts files).
 
@@ -89,7 +97,7 @@ Modules that moved out of `core/`: `models/` → `lib/models/` (stateless provid
 
 Core modules never make discretionary LLM calls. `core/chat` is a special case: its purpose IS to execute the LLM turn pipeline, but it doesn't initiate auxiliary LLM tasks (like summarization or title generation). Those live in `harness/oneshots/`.
 
-Core modules may depend on each other when there's a genuine relationship (e.g. memory recall reads config for tuning parameters). These dependencies follow the namespace contract: default to `api/read/`, escalate to `api/write/` only when the caller is explicitly allowed to mutate, never reach into `internal/`, and never import `runtime/` during normal operation. Circular dependencies between core modules are still forbidden — if two features need each other, extract the shared concept or use a callback wired at the harness level.
+Core modules may depend on each other when there's a genuine relationship (e.g. memory recall reads config for tuning parameters). These dependencies follow the namespace contract: default to `api/read/`, escalate to `api/write/` only when the caller is one of the explicitly approved mutation-capable paths, never reach into `internal/`, and never import `runtime/` during normal operation. Circular dependencies between core modules are still forbidden — if two features need each other, extract the shared concept or use a callback wired at the harness level.
 
 ## src/tools/
 

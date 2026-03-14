@@ -1,4 +1,5 @@
-import { addMessage, getSession } from "../core/chat/index.ts";
+import { getSession } from "../core/chat/api/read/index.ts";
+import { addMessage } from "../core/chat/api/write/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import type { DelegationOutcome } from "./types.ts";
 

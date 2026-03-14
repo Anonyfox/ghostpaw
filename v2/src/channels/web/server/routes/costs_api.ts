@@ -4,7 +4,7 @@ import {
   getCostBySoul,
   getCostSummary,
   getDailyCostTrend,
-} from "../../../../core/chat/index.ts";
+} from "../../../../core/chat/api/read/index.ts";
 import { getConfig } from "../../../../core/config/api/read/index.ts";
 import { setConfigValue } from "../../../../harness/public/settings/config.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";

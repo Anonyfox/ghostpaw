@@ -1,6 +1,7 @@
 import type { Message } from "chatoyant";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { addMessage } from "./add_message.ts";
+import { serializeToolCallData, serializeToolResultData } from "./tool_trace.ts";
 
 /**
  * Persists tool call/result messages from chatoyant's in-memory conversation
@@ -20,7 +21,7 @@ export function persistToolMessages(
 
   for (const msg of turnMessages) {
     if (msg.role === "assistant" && msg.toolCalls && msg.toolCalls.length > 0) {
-      const toolData = JSON.stringify(
+      const toolData = serializeToolCallData(
         msg.toolCalls.map((tc) => ({ id: tc.id, name: tc.name, arguments: tc.arguments })),
       );
       const added = addMessage(db, {
@@ -32,7 +33,9 @@ export function persistToolMessages(
       });
       currentParent = added.id;
     } else if (msg.role === "tool") {
-      const toolData = JSON.stringify({ toolCallId: msg.toolCallId ?? null });
+      const toolData = serializeToolResultData({
+        toolCallId: msg.toolCallId ?? null,
+      });
       const added = addMessage(db, {
         sessionId,
         role: "tool_result",

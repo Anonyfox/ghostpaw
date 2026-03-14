@@ -1,6 +1,6 @@
 import { ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import { initChatTables } from "../../core/chat/index.ts";
+import { initChatTables } from "../../core/chat/runtime/index.ts";
 import { initConfigTable } from "../../core/config/runtime/index.ts";
 import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { listTraits, MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";

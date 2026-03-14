@@ -1,5 +1,10 @@
 import { createTool, Schema } from "chatoyant";
-import { getHistory, getSession, listSessions, querySessionsPage } from "../core/chat/index.ts";
+import {
+  getHistory,
+  getSession,
+  listSessions,
+  querySessionsPage,
+} from "../core/chat/api/read/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 
 class RecallHauntsParams extends Schema {

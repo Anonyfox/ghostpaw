@@ -1,4 +1,4 @@
-import { closeSession, createSession } from "../../core/chat/index.ts";
+import { closeSession, createSession } from "../../core/chat/api/write/index.ts";
 import { defaultChatFactory } from "../../harness/chat_factory.ts";
 import type { Entity } from "../../harness/index.ts";
 import { resolveModel } from "../../harness/model.ts";

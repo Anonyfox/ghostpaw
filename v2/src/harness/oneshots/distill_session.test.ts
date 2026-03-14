@@ -1,15 +1,9 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { ChatInstance } from "../../core/chat/chat_instance.ts";
-import {
-  addMessage,
-  createSession,
-  getSession,
-  initChatTables,
-  listSessions,
-  markDistilled,
-} from "../../core/chat/index.ts";
-import { initHowlTables } from "../../core/howl/index.ts";
+import { getSession, listSessions } from "../../core/chat/api/read/index.ts";
+import type { ChatInstance } from "../../core/chat/api/write/index.ts";
+import { addMessage, createSession, markDistilled } from "../../core/chat/api/write/index.ts";
+import { initChatTables, initHowlTables } from "../../core/chat/runtime/index.ts";
 import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { initPackTables } from "../../core/pack/runtime/index.ts";
 import { initQuestTables } from "../../core/quests/index.ts";
@@ -181,7 +175,7 @@ describe("distillSession", () => {
     ok(distillSys.closedAt !== null);
   });
 
-  it("accumulates cost to the original session", async () => {
+  it("keeps distillation cost on the system session", async () => {
     const session = createSession(db, "web:chat:6", { purpose: "chat" });
     addChainedMessages(db, session.id as number, [
       [
@@ -193,7 +187,9 @@ describe("distillSession", () => {
     const beforeCost = getSession(db, session.id as number)!.costUsd;
     await distillSession(db, session.id as number, "test-model", mockFactory("Nothing notable."));
     const afterCost = getSession(db, session.id as number)!.costUsd;
-    ok(afterCost > beforeCost);
+    strictEqual(afterCost, beforeCost);
+    const systemSessions = listSessions(db, { purpose: "system" });
+    ok(systemSessions.some((item) => item.costUsd > 0));
   });
 
   it("marks messages as distilled after processing", async () => {
@@ -236,6 +232,25 @@ describe("distillSession", () => {
       [
         "A sufficiently long delegation task message that passes the minimum conversation length requirements for processing.",
         "I completed the delegation task. Here are the results of the delegated work with detailed information.",
+      ],
+    ]);
+
+    const result = await distillSession(
+      db,
+      session.id as number,
+      "test-model",
+      mockFactory("Nothing notable."),
+    );
+    strictEqual(result.skipped, false);
+    ok(getSession(db, session.id as number)!.distilledAt !== null);
+  });
+
+  it("handles howl purpose sessions", async () => {
+    const session = createSession(db, "howl:thread:1", { purpose: "howl" });
+    addChainedMessages(db, session.id as number, [
+      [
+        "Ghostpaw asked whether I still want the experimental feature enabled in my editor setup.",
+        "Yes, keep it on for now. I rely on it during refactors.",
       ],
     ]);
 

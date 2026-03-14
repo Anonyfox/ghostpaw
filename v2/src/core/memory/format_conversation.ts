@@ -1,4 +1,4 @@
-import type { ChatMessage } from "../chat/types.ts";
+import type { ChatMessage } from "../chat/api/read/index.ts";
 
 const MAX_MESSAGE_LENGTH = 2_000;
 const MAX_CONVERSATION_LENGTH = 40_000;

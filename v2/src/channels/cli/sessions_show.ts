@@ -1,5 +1,11 @@
 import { defineCommand } from "citty";
-import { getHistory, getSession, listSessions } from "../../core/chat/index.ts";
+import {
+  getHistory,
+  getSession,
+  listSessions,
+  parseToolCallData,
+  parseToolResultData,
+} from "../../core/chat/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -130,8 +136,10 @@ export default defineCommand({
 
           if (m.role === "tool_call" || m.role === "tool_result") {
             const label = m.role === "tool_call" ? "tool" : "result";
-            const data = m.toolData ? JSON.parse(m.toolData) : null;
-            const name = data?.name ?? data?.id ?? "";
+            const name =
+              m.role === "tool_call"
+                ? (parseToolCallData(m.toolData)[0]?.name ?? "")
+                : (parseToolResultData(m.toolData)?.toolCallId ?? "");
             console.log(style.dim(`  [${label}] ${name}`));
             continue;
           }

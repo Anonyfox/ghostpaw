@@ -1,15 +1,14 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { ChatInstance } from "../core/chat/chat_instance.ts";
+import { getSession } from "../core/chat/api/read/index.ts";
+import type { ChatInstance } from "../core/chat/api/write/index.ts";
 import {
   addMessage,
   closeSession,
   createSession,
-  getSession,
-  initChatTables,
   markDistilled,
-} from "../core/chat/index.ts";
-import { initHowlTables } from "../core/howl/index.ts";
+} from "../core/chat/api/write/index.ts";
+import { initChatTables, initHowlTables } from "../core/chat/runtime/index.ts";
 import { initMemoryTable } from "../core/memory/runtime/index.ts";
 import { initPackTables } from "../core/pack/runtime/index.ts";
 import { initQuestTables } from "../core/quests/index.ts";

@@ -1,5 +1,9 @@
 # Orchestration
 
+This document is a temporary architecture artifact. The canonical feature-level truth for Ghostpaw's
+live form now belongs in [`docs/features/CHAT.md`](./features/CHAT.md); this file should be read as
+supporting runtime rationale rather than as a competing product center.
+
 Ghostpaw is a spectral wolf. The name comes from a shaman's ghost wolf form — an ethereal creature that moves between worlds, fast and independent, leaving only pawprints. The "paw" is a nod to OpenClaw, but the world it inhabits is different: quiet, elegant, spooky. A ghost that thinks, remembers, grows, and reaches out from the other side.
 
 The spectral wolf contains multiple souls within its form. This is natural for a ghost — spirits carry the essence of many minds. It haunts its territory when no one is watching. It howls when it needs to reach you. It runs with a pack of beings it cares about. It leaves pawprints as traces of where it's been. It pursues quests through the world. It earns traits from experience and levels up through consolidation. It has skills it's learned and memories it carries.
@@ -239,6 +243,9 @@ Each specialist spawns with only the tools relevant to its domain. No specialist
 ---
 
 ## The Execution Model
+
+This section is the runtime truth source for how turns execute. See `docs/features/CHAT.md` for the
+feature-level framing of the same substrate as a user-facing, omnichannel product center.
 
 Every LLM interaction in Ghostpaw follows one primitive:
 
@@ -609,7 +616,10 @@ Session compaction is not a user-facing feature. It is automatic, invisible plum
 
 ## Howl as Targeted Learning
 
-Howl is the ghost's voice reaching out. Where chat waits for the user and haunt ignores the user entirely, howl bridges the gap — the ghost initiates contact when it has a genuine reason. But howl is not a notification system. It is a **targeted learning cycle** that fills the ghost's knowledge gaps dynamically.
+Howl is the ghost's voice reaching out. Where chat waits for the user and haunt ignores the user
+entirely, howl bridges the gap: the ghost initiates contact when it has a genuine reason. But howl
+is not a detached notification system. It is a **targeted learning cycle** expressed as a real
+`purpose: "howl"` chat session plus chat-owned delivery metadata.
 
 ### Three reasons to howl
 
@@ -631,16 +641,18 @@ These two fields are the howl's birth coordinates. They establish where in the g
 ### The full howl cycle
 
 ```
-1. Ghost calls howl(question, urgency) during session X at message M
-2. Howl record created: origin = (X, M), status = pending
-3. Question delivered to user via best available channel
-4. User responds (text answer) or dismisses (also a response)
-5. Q&A pair injected into session X after message M — retroactively completing the record
-6. Cost tracked naturally — injected messages are part of the session
-7. Warden invoked to consolidate the howl interaction
+1. Ghost calls `howl(question, urgency)` during origin session X at message M
+2. Chat creates a dedicated howl session Y with `purpose = "howl"` and a linked howl metadata row
+3. The question is delivered to the best available channel and delivery coordinates are stored
+4. The user responds or dismisses; that action is recorded inside howl session Y
+5. Harness invokes the warden against the origin context plus the resolved howl session
+6. The origin session receives a compact resolution note instead of in-place message surgery
+7. Cost stays local to the sessions where work actually happened
 ```
 
-Step 5 is the key insight. The origin session was incomplete — the ghost asked a question mid-session but the answer arrived asynchronously, possibly hours later. Injecting the Q&A back at the right position makes the session history honest and complete. When the warden later consolidates session X, it sees the full picture: what the ghost was doing, what it asked, what the user said, and what happened next.
+The key insight is that howl is still chat. The outward question lives in its own session because it
+is a real thread with its own lifecycle, delivery state, and explicit resolution, but it remains
+anchored to the origin session through parentage and origin coordinates.
 
 Step 4 includes dismissal as a meaningful response. The user clicking "dismiss" is not silence — it is signal. "I don't want to answer this" or "this isn't worth my time" is valuable data. Three dismissals on the same topic is stronger signal than one answer. The warden can learn patterns of non-engagement and adjust the ghost's model of user interests accordingly.
 
@@ -648,26 +660,41 @@ Step 7 closes the loop. The warden runs a persistence pass on the howl interacti
 
 ### The howl table — DONE
 
-The howl table is **routing metadata with a delivery payload**. The separate howl session is eliminated — no more dedicated session per howl duplicating LLM context. The `message` column (~1 sentence) is kept as the delivery text: channels need it to send, the UI needs it to display, the CLI needs it to list. This is the routing envelope, not content duplication.
+The howl table is **chat-owned routing metadata attached to a real howl session**. The `message`
+column still carries the delivery text channels need to send and surfaces need to display, but it no
+longer stands alone. Each row points at a dedicated `purpose: "howl"` session that holds the actual
+mini-thread.
 
 ```sql
 CREATE TABLE IF NOT EXISTS howls (
   id                 INTEGER PRIMARY KEY,
+  session_id         INTEGER NOT NULL REFERENCES sessions(id),
   origin_session_id  INTEGER NOT NULL REFERENCES sessions(id),
   origin_message_id  INTEGER REFERENCES messages(id),
   message            TEXT    NOT NULL,
   urgency            TEXT    NOT NULL DEFAULT 'low',
   channel            TEXT,
+  delivery_address   TEXT,
+  delivery_message_id TEXT,
+  delivery_mode      TEXT,
   status             TEXT    NOT NULL DEFAULT 'pending',
   created_at         INTEGER NOT NULL,
-  responded_at       INTEGER
+  responded_at       INTEGER,
+  response_message_id INTEGER REFERENCES messages(id)
 );
 CREATE INDEX IF NOT EXISTS idx_howls_status ON howls(status);
 CREATE INDEX IF NOT EXISTS idx_howls_created_at ON howls(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_howls_session ON howls(session_id);
 CREATE INDEX IF NOT EXISTS idx_howls_origin_session ON howls(origin_session_id);
+CREATE INDEX IF NOT EXISTS idx_howls_channel_address ON howls(channel, delivery_address, status);
+CREATE INDEX IF NOT EXISTS idx_howls_channel_message ON howls(channel, delivery_message_id, status);
 ```
 
-The table tracks: where the howl was born (`origin_session_id`, `origin_message_id`), what to deliver (`message`), how urgent it is, where it was delivered, and whether the user has addressed it. The user's reply is injected back into the origin session by the harness, and the warden consolidates the interaction in a system session. `reply_to_howl.ts` (which violated the core→harness layer boundary) is deleted. Reply and dismiss orchestration lives in `harness/howl/` (`processHowlReply`, `processHowlDismiss`).
+The table tracks: the dedicated howl session (`session_id`), where the howl was born
+(`origin_session_id`, `origin_message_id`), what to deliver (`message`), how urgent it is, where it
+was delivered, and whether the user has addressed it. Reply and dismiss orchestration lives in
+`harness/howl/` (`processHowlReply`, `processHowlDismiss`), while the mechanical session and metadata
+operations live under `core/chat/`.
 
 ### Howl as engagement design
 
@@ -694,7 +721,13 @@ This is a USP. Most AI agents are passive receivers. Ghostpaw howls.
 - **`core/service/` moved to `lib/`** — DONE. OS-level utility for systemd/launchd/cron service management. All 21 files moved to `lib/service/`, single consumer (`cli/service.ts`) updated.
 - **Pack `metadata` JSON blob** — DONE. The freeform JSON column on `pack_members` is eliminated. Contact information moves to the structured `pack_contacts` table with constrained types, validated values, and uniqueness enforcement. No more guessing key names or losing queryability to unstructured data.
 - **Token-based hard limits** — DONE. `max_tokens_per_session` and `max_tokens_per_day` config keys removed. `check_token_budget.ts` and `token_budget_error.ts` deleted. The only hard limit is `max_cost_per_day` (dollars). `compaction_threshold` (new config key, default 200K, category "behavior") replaces the old token-per-session concept as an internal orchestration parameter. Telegram session rotation (`executeTurnWithRotation`) eliminated — compaction handles context bounds transparently.
-- **Howl as notification** — DONE. Howl is no longer a notification inbox with a dedicated session per howl. The `session_id` column and `UNIQUE` constraint are eliminated. The howl table becomes routing metadata with origin tracking (`origin_session_id`, `origin_message_id`, `message`, `urgency`, `channel`, `status`). The `message` column is kept as the delivery payload (~1 sentence) for channels, UI, and CLI. `reply_to_howl.ts` deleted from `core/howl/` (layer violation — it imported `Entity` from `harness/`). Reply and dismiss orchestration moved to `harness/howl/` (`processHowlReply`, `processHowlDismiss`) with warden consolidation in system sessions. Howl tool moved from `sharedTools` to `baseTools` (coordinator-only — mentor/trainer/warden/chamberlain no longer see it). Tool factory takes `getCurrentSessionId`/`getHeadMessageId` callbacks instead of creating sessions. All consumers updated: Telegram, web API, web client, CLI. `getHowlBySessionId` removed. Full propagation through all layers, zero old references remain.
+- **Howl as chat-owned outreach** — DONE. Howl is a real `purpose: "howl"` session with chat-owned
+  routing metadata under `core/chat/`, not a sibling `core/howl/` subsystem and not a notification
+  inbox. The metadata row keeps origin and delivery coordinates (`session_id`, `origin_session_id`,
+  `origin_message_id`, `message`, `urgency`, `channel`, delivery fields, `status`). Reply and dismiss
+  orchestration lives in `harness/howl/` (`processHowlReply`, `processHowlDismiss`) with warden
+  consolidation against the origin context. All consumers updated: Telegram, web API, web client,
+  CLI, bootstrap, and the howl tool. The old `core/howl/` namespace is gone.
 - **Hard-coded one-shot prompts** — DONE. `CONSOLIDATION_PROMPT` replaced by warden soul invocation with `assembleContext(db, "", { soulId: MANDATORY_SOUL_IDS.warden })` as system prompt and `CONSOLIDATION_INSTRUCTION` as user message. `DISTILL_SYSTEM_PROMPT` replaced the same way with `DISTILL_INSTRUCTION`. Sessions now record `soulId: MANDATORY_SOUL_IDS.warden`. The `rewrite_essence` hard-coded `SYSTEM_PROMPT` replaced by mentor soul invocation: `assembleContext(db, workspace, { soulId: MANDATORY_SOUL_IDS.mentor })` as system prompt, rewrite rules and effective-writing skill content moved into user message, session tagged with `soulId: MANDATORY_SOUL_IDS.mentor`. All oneshot prompts now follow the same pattern: `assembleContext` for the system prompt, task-specific instructions as the user message, session tagged with the invoked soul's ID.
 
 ### Introduces

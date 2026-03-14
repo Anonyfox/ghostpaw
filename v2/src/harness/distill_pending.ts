@@ -1,5 +1,5 @@
-import type { ChatFactory } from "../core/chat/chat_instance.ts";
-import { deleteOldDistilled, listDistillableSessionIds } from "../core/chat/index.ts";
+import { listDistillableSessionIds } from "../core/chat/api/read/index.ts";
+import { type ChatFactory, deleteOldDistilled } from "../core/chat/api/write/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import type { DistillPendingResult, DistillToolCalls } from "./distill_types.ts";
 import { ELIGIBLE_PURPOSES, MAX_SESSIONS_PER_SWEEP, STALE_THRESHOLD_MS } from "./distill_types.ts";

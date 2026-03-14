@@ -1,6 +1,10 @@
-import { getHistory } from "../../../../core/chat/index.ts";
-import type { HowlStatus } from "../../../../core/howl/index.ts";
-import { countPendingHowls, getHowl, listHowls } from "../../../../core/howl/index.ts";
+import type { HowlStatus } from "../../../../core/chat/api/read/howls/index.ts";
+import {
+  countPendingHowls,
+  getHowl,
+  listHowls,
+} from "../../../../core/chat/api/read/howls/index.ts";
+import { getFullHistory } from "../../../../core/chat/api/read/index.ts";
 import { processHowlDismiss, processHowlReply } from "../../../../harness/howl/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { readJsonBody } from "../body_parser.ts";
@@ -105,13 +109,19 @@ export function createHowlsApiHandlers(db: DatabaseHandle) {
         json(ctx, 404, { error: "Howl not found" });
         return;
       }
-      const messages = getHistory(db, howl.originSessionId).map((m) => ({
+      const sessionMessages = getFullHistory(db, howl.sessionId).map((m) => ({
         id: m.id,
         role: m.role,
         content: m.content,
         createdAt: m.createdAt,
       }));
-      json(ctx, 200, { howl, messages });
+      const originMessages = getFullHistory(db, howl.originSessionId).map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        createdAt: m.createdAt,
+      }));
+      json(ctx, 200, { howl, sessionMessages, originMessages });
     },
   };
 }

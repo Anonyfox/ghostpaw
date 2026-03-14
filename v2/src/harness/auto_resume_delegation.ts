@@ -1,4 +1,4 @@
-import { getSession } from "../core/chat/index.ts";
+import { getSession } from "../core/chat/api/read/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import type { ChannelNotifyFn } from "./notify_background_complete.ts";
 import { notifyBackgroundComplete } from "./notify_background_complete.ts";

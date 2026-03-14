@@ -6,23 +6,30 @@ import { relativeTime } from "../relative_time.ts";
 
 interface HowlSummary {
   id: number;
+  sessionId: number;
   message: string;
   urgency: "low" | "high";
   status: "pending" | "responded" | "dismissed";
   channel: string | null;
+  deliveryMode: "push" | "inbox" | null;
   createdAt: number;
 }
 
 interface HowlDetail {
   id: number;
+  sessionId: number;
   originSessionId: number;
   originMessageId: number | null;
   message: string;
   urgency: "low" | "high";
   channel: string | null;
+  deliveryAddress: string | null;
+  deliveryMessageId: string | null;
+  deliveryMode: "push" | "inbox" | null;
   status: "pending" | "responded" | "dismissed";
   createdAt: number;
   respondedAt: number | null;
+  responseMessageId: number | null;
 }
 
 interface HistoryMessage {
@@ -189,15 +196,21 @@ function ResolvedHowlRow({
 
 function HowlHistoryDetail({ howlId, onBack }: { howlId: number; onBack: () => void }) {
   const [howl, setHowl] = useState<HowlDetail | null>(null);
-  const [messages, setMessages] = useState<HistoryMessage[]>([]);
+  const [sessionMessages, setSessionMessages] = useState<HistoryMessage[]>([]);
+  const [originMessages, setOriginMessages] = useState<HistoryMessage[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    apiGet<{ howl: HowlDetail; messages: HistoryMessage[] }>(`/api/howls/${howlId}/history`)
+    apiGet<{
+      howl: HowlDetail;
+      sessionMessages: HistoryMessage[];
+      originMessages: HistoryMessage[];
+    }>(`/api/howls/${howlId}/history`)
       .then((data) => {
         setHowl(data.howl);
-        setMessages(data.messages);
+        setSessionMessages(data.sessionMessages);
+        setOriginMessages(data.originMessages);
       })
       .finally(() => setLoading(false));
   }, [howlId]);
@@ -231,13 +244,35 @@ function HowlHistoryDetail({ howlId, onBack }: { howlId: number; onBack: () => v
             <span class="text-muted small ms-auto">{relativeTime(howl.createdAt)}</span>
           </div>
           <RenderMarkdown content={howl.message} />
-          <div class="text-muted small mt-2">Origin session #{howl.originSessionId}</div>
+          <div class="text-muted small mt-2">
+            Howl session #{howl.sessionId} · Origin session #{howl.originSessionId}
+          </div>
         </div>
       </div>
-      {messages.length > 0 && (
+      {sessionMessages.length > 0 && (
+        <div class="mb-4">
+          <div class="text-muted small mb-2">Howl thread:</div>
+          <div class="ms-4">
+            {sessionMessages
+              .filter((m) => m.role === "user" || m.role === "assistant")
+              .map((m) => (
+                <div
+                  key={m.id}
+                  class={`mb-2 p-2 rounded ${m.role === "user" ? "bg-body-secondary" : ""}`}
+                >
+                  <div class="text-muted small mb-1">
+                    {m.role === "user" ? "You" : "Ghostpaw"} &middot; {relativeTime(m.createdAt)}
+                  </div>
+                  <RenderMarkdown content={m.content} />
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+      {originMessages.length > 0 && (
         <div class="ms-4">
           <div class="text-muted small mb-2">Origin session context:</div>
-          {messages
+          {originMessages
             .filter((m) => m.role === "user" || m.role === "assistant")
             .map((m) => (
               <div

@@ -1,13 +1,12 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import type { ChatInstance } from "../../core/chat/index.ts";
+import { getSession, listSessions } from "../../core/chat/api/read/index.ts";
 import {
+  type ChatInstance,
   createSession,
-  getSession,
-  initChatTables,
-  listSessions,
   renameSession,
-} from "../../core/chat/index.ts";
+} from "../../core/chat/api/write/index.ts";
+import { initChatTables } from "../../core/chat/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { generateSessionTitle } from "./generate_title.ts";
@@ -132,6 +131,7 @@ describe("generateSessionTitle", () => {
     await generateSessionTitle(db, parent.id as number, "hello", "test-model", mockFactory("Hi"));
     const systemSessions = listSessions(db, { purpose: "system" });
     ok(systemSessions[0]!.tokensIn > 0 || systemSessions[0]!.tokensOut > 0);
+    strictEqual(getSession(db, parent.id as number)!.costUsd, 0);
   });
 
   it("is a no-op when displayName is already set", async () => {

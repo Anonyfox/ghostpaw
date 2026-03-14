@@ -1,5 +1,5 @@
-import type { ChatFactory, ChatMessage } from "../../core/chat/index.ts";
-import { accumulateUsage, addMessage } from "../../core/chat/index.ts";
+import type { ChatMessage } from "../../core/chat/api/read/index.ts";
+import { accumulateUsage, addMessage, type ChatFactory } from "../../core/chat/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 const COMPACT_SYSTEM_PROMPT = [

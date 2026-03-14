@@ -1,11 +1,7 @@
 import { ok, strictEqual } from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import {
-  addMessage,
-  createSession,
-  initChatTables,
-  renameSession,
-} from "../../../../core/chat/index.ts";
+import { addMessage, createSession, renameSession } from "../../../../core/chat/api/write/index.ts";
+import { initChatTables } from "../../../../core/chat/runtime/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { openTestDatabase } from "../../../../lib/index.ts";
 import type { RouteContext } from "../types.ts";
@@ -143,6 +139,20 @@ describe("chat sessions API", () => {
       strictEqual(res.status, 200);
     });
 
+    it("rejects non-chat sessions", async () => {
+      const session = createSession(db, "howl:1", { purpose: "howl" });
+      const res = mockRes();
+      const req = mockReq({ displayName: "Nope" });
+      const ctx = {
+        req,
+        res,
+        params: { id: String(session.id) },
+      } as unknown as RouteContext;
+
+      await handlers.rename(ctx);
+      strictEqual(res.status, 404);
+    });
+
     it("returns 400 for invalid session ID", async () => {
       const res = mockRes();
       const req = mockReq({ displayName: "Renamed" });
@@ -152,17 +162,19 @@ describe("chat sessions API", () => {
     });
 
     it("returns 400 for empty displayName", async () => {
+      const session = createSession(db, "web:chat:2", { purpose: "chat" });
       const res = mockRes();
       const req = mockReq({ displayName: "" });
-      const ctx = { req, res, params: { id: "1" } } as unknown as RouteContext;
+      const ctx = { req, res, params: { id: String(session.id) } } as unknown as RouteContext;
       await handlers.rename(ctx);
       strictEqual(res.status, 400);
     });
 
     it("returns 400 for missing displayName", async () => {
+      const session = createSession(db, "web:chat:3", { purpose: "chat" });
       const res = mockRes();
       const req = mockReq({});
-      const ctx = { req, res, params: { id: "1" } } as unknown as RouteContext;
+      const ctx = { req, res, params: { id: String(session.id) } } as unknown as RouteContext;
       await handlers.rename(ctx);
       strictEqual(res.status, 400);
     });
