@@ -52,12 +52,22 @@ class UpdateWisdomParams extends Schema {
 class UpdateLoopsParams extends Schema {
   create = Schema.String({
     description:
-      'JSON array: [{"description":"...","significance":0.7,"category":"organic"}]. ' +
-      'Use category "curiosity" for questions ghostpaw wants answered; default is "organic".',
+      "JSON array of loops to create. Fields: " +
+      'description (required), category ("organic"|"curiosity", default "organic"), ' +
+      'sourceType (origin subsystem, e.g. "quest", "skill"), ' +
+      "sourceId (ID within that subsystem as string), " +
+      "significance (0-1, default 0.5), " +
+      'recommendedAction ("ask"|"revisit"|"remind"|"wait"|"leave"), ' +
+      "earliestResurface (unix ms timestamp). " +
+      'Example: [{"description":"...","significance":0.7,"sourceType":"quest","sourceId":"42","recommendedAction":"revisit"}]',
     optional: true,
   });
   update = Schema.String({
-    description: 'JSON array: [{"id":1,"significance":0.9,"status":"resolved"}]',
+    description:
+      "JSON array of loops to update. Fields: " +
+      'id (required), significance, status ("alive"|"dormant"|"resolved"|"dismissed"), ' +
+      "recommendedAction, earliestResurface. " +
+      'Example: [{"id":1,"significance":0.9,"status":"resolved"}]',
     optional: true,
   });
   dismiss = Schema.String({ description: "Comma-separated IDs to dismiss", optional: true });

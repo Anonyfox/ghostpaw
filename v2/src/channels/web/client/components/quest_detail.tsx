@@ -3,6 +3,7 @@ import type {
   QuestDetailResponse,
   QuestInfo,
   QuestLogInfo,
+  QuestTrailHint,
   UpdateQuestBody,
 } from "../../shared/quest_types.ts";
 import { relativeAge, relativeDue, rruleLabel } from "../../shared/quest_types.ts";
@@ -35,6 +36,7 @@ function fromLocalInput(val: string): number | null {
 
 export function QuestDetail({ questId, logs, onUpdated, onDone }: Props) {
   const [detail, setDetail] = useState<QuestDetailResponse | null>(null);
+  const [trailHint, setTrailHint] = useState<QuestTrailHint | null>(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<UpdateQuestBody>({});
   const [error, setError] = useState("");
@@ -43,6 +45,9 @@ export function QuestDetail({ questId, logs, onUpdated, onDone }: Props) {
     apiGet<QuestDetailResponse>(`/api/quests/${questId}`)
       .then(setDetail)
       .catch(() => {});
+    apiGet<QuestTrailHint>(`/api/trail/quest-hints?questId=${questId}`)
+      .then(setTrailHint)
+      .catch(() => setTrailHint(null));
   }, [questId]);
 
   useEffect(() => {
@@ -355,6 +360,37 @@ export function QuestDetail({ questId, logs, onUpdated, onDone }: Props) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {trailHint && (trailHint.chapter || trailHint.linkedLoops.length > 0) && (
+        <div class="mb-2">
+          <div class="small fw-semibold text-body-secondary mb-1">Trail Context</div>
+          {trailHint.chapter && (
+            <div class="small mb-1">
+              <span class="text-info">{trailHint.chapter.label}</span>
+              <span class="text-body-tertiary ms-1">({trailHint.chapter.momentum})</span>
+            </div>
+          )}
+          {trailHint.linkedLoops.length > 0 && (
+            <div class="border rounded">
+              {trailHint.linkedLoops.map((loop) => (
+                <div key={loop.id} class="d-flex gap-2 px-2 py-1 border-bottom small">
+                  <span
+                    class="badge"
+                    style={{
+                      minWidth: "2rem",
+                      backgroundColor: `rgba(13,202,240,${loop.significance})`,
+                    }}
+                  >
+                    {loop.significance.toFixed(1)}
+                  </span>
+                  <span>{loop.description}</span>
+                  <span class="text-body-tertiary ms-auto">{loop.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

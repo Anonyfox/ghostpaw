@@ -40,6 +40,11 @@ export interface QuestDetailResponse extends QuestInfo {
   occurrences: QuestOccurrenceInfo[];
 }
 
+export interface QuestTrailHint {
+  chapter: { id: number; label: string; momentum: string } | null;
+  linkedLoops: { id: number; description: string; significance: number; status: string }[];
+}
+
 export interface QuestListResponse {
   quests: QuestInfo[];
   total: number;
