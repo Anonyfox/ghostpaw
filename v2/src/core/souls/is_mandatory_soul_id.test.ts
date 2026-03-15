@@ -10,11 +10,12 @@ describe("isMandatorySoulId", () => {
     ok(isMandatorySoulId(4));
     ok(isMandatorySoulId(5));
     ok(isMandatorySoulId(6));
+    ok(isMandatorySoulId(7));
   });
 
   it("returns false for non-mandatory IDs", () => {
     ok(!isMandatorySoulId(0));
-    ok(!isMandatorySoulId(7));
+    ok(!isMandatorySoulId(8));
     ok(!isMandatorySoulId(100));
     ok(!isMandatorySoulId(-1));
   });

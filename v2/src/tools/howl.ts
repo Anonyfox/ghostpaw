@@ -3,6 +3,11 @@ import type { HowlUrgency } from "../core/chat/api/read/howls/index.ts";
 import { countHowlsToday, lastHowlTime } from "../core/chat/api/read/howls/index.ts";
 import { createHowl, deliverHowl } from "../core/chat/api/write/howls/index.ts";
 import { getConfig } from "../core/config/api/read/index.ts";
+import {
+  getCuriosityHowlCandidate,
+  getOutreachPolicy,
+  getPreferredHowlMode,
+} from "../core/trail/api/read/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 
 class HowlParams extends Schema {
@@ -53,18 +58,32 @@ export function createHowlTool(ctx: HowlToolContext) {
       const maxPerDay = (getConfig(db, "max_howls_per_day") as number | null) ?? 3;
       const cooldownMinutes = (getConfig(db, "howl_cooldown_minutes") as number | null) ?? 60;
 
+      let effectiveMax = maxPerDay;
+      let effectiveCooldownMs = cooldownMinutes * 60_000;
+      let preferredTone: string | null = null;
+      let curiosityQuestion: string | null = null;
+      try {
+        const policy = getOutreachPolicy(db);
+        effectiveMax = Math.min(maxPerDay, policy.maxDailyOutreach);
+        effectiveCooldownMs = Math.max(cooldownMinutes * 60_000, policy.minGapMs);
+        preferredTone = getPreferredHowlMode(db);
+        const candidate = getCuriosityHowlCandidate(db);
+        if (candidate) curiosityQuestion = candidate.question;
+      } catch {
+        /* fail-open: trail tables may not exist yet */
+      }
+
       const todayCount = countHowlsToday(db);
-      if (todayCount >= maxPerDay) {
-        return { error: `Daily howl limit reached (${maxPerDay}). Try again tomorrow.` };
+      if (todayCount >= effectiveMax) {
+        return { error: `Daily howl limit reached (${effectiveMax}). Try again tomorrow.` };
       }
 
       if (urgency !== "high") {
         const lastTime = lastHowlTime(db);
         if (lastTime !== null) {
           const elapsed = Date.now() - lastTime;
-          const cooldownMs = cooldownMinutes * 60_000;
-          if (elapsed < cooldownMs) {
-            const remaining = Math.ceil((cooldownMs - elapsed) / 60_000);
+          if (elapsed < effectiveCooldownMs) {
+            const remaining = Math.ceil((effectiveCooldownMs - elapsed) / 60_000);
             return { error: `Cooldown active. ${remaining} minutes remaining.` };
           }
         }
@@ -84,6 +103,8 @@ export function createHowlTool(ctx: HowlToolContext) {
         delivered: delivery.delivered,
         channel: delivery.channel,
         mode: delivery.mode,
+        ...(preferredTone ? { preferredTone } : {}),
+        ...(curiosityQuestion ? { curiosityQuestion } : {}),
         note: "The user won't reply before this session ends. Continue your work.",
       };
     },

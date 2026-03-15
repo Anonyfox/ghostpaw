@@ -110,15 +110,13 @@ Most do map directly to a core namespace. Some are umbrella or spec documents:
 - `QUESTS.md` lives one level up in `docs/` because it predates this folder layout.
 - `HAUNT.md` and `HOWL.md` are chat-mode deep dives. They are subordinate to `CHAT.md`, not separate
   core namespaces.
-- `WISDOM.md` is intentionally excluded from the current hardening pass and should be treated as its
-  own spec track until brought to the same standard.
 
 | Subsystem | One-Line | Managing Soul |
 |-----------|----------|---------------|
 | [CHAT](./CHAT.md) | Omnichannel live execution, tool use, and the compounding session substrate | Ghostpaw |
 | [SOULS](./SOULS.md) | Identity, personality, and behavioral evolution of each specialist | Mentor |
 | [SKILLS](./SKILLS.md) | Reusable procedural knowledge as executable markdown | Trainer |
-| [WISDOM](./WISDOM.md) | Accumulated understanding, calibrations, and longitudinal intelligence | Historian |
+| [TRAIL](./TRAIL.md) | Longitudinal interpretation, calibration, and compounding intelligence | Historian |
 | [MEMORY](./MEMORY.md) | Beliefs, facts, and semantic knowledge about the world | Warden |
 | [QUESTS](../QUESTS.md) | Goal management, delegation, and productivity mechanics | Warden |
 | [PACK](./PACK.md) | Relationships, bonds, and multi-entity social memory | Warden |

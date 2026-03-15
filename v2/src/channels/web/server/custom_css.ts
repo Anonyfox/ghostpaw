@@ -159,4 +159,10 @@ export const customCss = `
 .howl-history-row:hover {
   background: rgba(var(--bs-info-rgb), 0.05);
 }
+.trail-entry { border-left: 3px solid var(--bs-info); }
+.trail-entry-narrative { max-height: 4.5em; overflow: hidden; transition: max-height 0.3s; }
+.trail-entry-narrative.expanded { max-height: none; }
+.trail-banner { opacity: 0; transition: opacity 0.2s; }
+.trail-banner.loaded { opacity: 1; }
+.trail-omen-bar { height: 4px; border-radius: 2px; }
 `;

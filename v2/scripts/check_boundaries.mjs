@@ -15,6 +15,7 @@ const NAMESPACED_CORE_FEATURES = new Set([
   "secrets",
   "skills",
   "souls",
+  "trail",
 ]);
 const RUNTIME_IMPORTERS = new Set([
   "src/index.ts",
@@ -22,6 +23,7 @@ const RUNTIME_IMPORTERS = new Set([
   "src/channels/cli/with_config_db.ts",
   "src/channels/cli/with_run_db.ts",
   "src/channels/cli/with_secrets_db.ts",
+  "src/harness/run_trail_sweep.ts",
   "src/harness/scheduler.ts",
   "src/harness/tools.ts",
 ]);
@@ -65,6 +67,7 @@ const WRITE_IMPORT_ALLOWLIST = new Set([
   "src/harness/howl/append_origin_resolution_note.ts",
   "src/harness/howl/dismiss.ts",
   "src/harness/howl/reply.ts",
+  "src/harness/invoke_historian.ts",
   "src/harness/invoke_mentor.ts",
   "src/harness/invoke_trainer.ts",
   "src/harness/notify_background_complete.ts",

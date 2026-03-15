@@ -7,6 +7,7 @@ import {
   staleQuests,
 } from "../../core/quests/index.ts";
 import { MANDATORY_SOUL_IDS, renderSoul } from "../../core/souls/api/read/index.ts";
+import { getTrailState, listReflectiveOpenLoops } from "../../core/trail/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import type { HauntAnalysis, NoveltyInfo } from "./types.ts";
 
@@ -28,6 +29,9 @@ export function assembleHauntContext(
 
   const noveltySection = formatNovelty(analysis.novelty);
   if (noveltySection) sections.push(noveltySection);
+
+  const trailSection = formatTrailContext(db);
+  if (trailSection) sections.push(trailSection);
 
   if (analysis.seedMemories.length > 0) {
     sections.push(formatSeededMemories(analysis.seedMemories));
@@ -203,6 +207,36 @@ function formatQuestElapsed(ms: number): string {
   if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
   return `${days}d`;
+}
+
+function formatTrailContext(db: DatabaseHandle): string | null {
+  try {
+    const state = getTrailState(db);
+    if (!state.chapter) return null;
+    const lines: string[] = [
+      "## Trail Context",
+      "",
+      `Current chapter: ${state.chapter.label} (${state.momentum})`,
+    ];
+    if (state.recentTrailmarks.length > 0) {
+      const marks = state.recentTrailmarks
+        .slice(0, 5)
+        .map((m) => m.description)
+        .join(", ");
+      lines.push(`Recent trailmarks: ${marks}`);
+    }
+    const reflective = listReflectiveOpenLoops(db);
+    if (reflective.length > 0) {
+      lines.push("");
+      lines.push("Reflective threads worth revisiting:");
+      for (const loop of reflective) {
+        lines.push(`- ${loop.description} (${loop.recommendedAction ?? "revisit"})`);
+      }
+    }
+    return lines.join("\n");
+  } catch {
+    return null;
+  }
 }
 
 function formatSeededMemories(memories: Memory[]): string {

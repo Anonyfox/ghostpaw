@@ -19,6 +19,7 @@ import {
   initSoulShardTables,
   initSoulsTables,
 } from "../../core/souls/runtime/index.ts";
+import { initTrailTables } from "../../core/trail/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openDatabase } from "../../lib/index.ts";
 
@@ -38,6 +39,7 @@ export async function withRunDb<T>(fn: (db: DatabaseHandle) => T | Promise<T>): 
   ensureDefaultSchedules(db);
   recoverOrphanedSessions(db);
   ensureMandatorySouls(db);
+  initTrailTables(db);
   loadSecretsIntoEnv(db);
   syncProviderKeys(db);
   try {

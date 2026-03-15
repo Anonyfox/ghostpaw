@@ -33,4 +33,12 @@ export const DEFAULT_SCHEDULES: CreateScheduleInput[] = [
     timeoutMs: 240_000,
     enabled: true,
   },
+  {
+    name: "trail_sweep",
+    type: "builtin",
+    command: "trail sweep",
+    intervalMs: 86_400_000,
+    timeoutMs: 600_000,
+    enabled: true,
+  },
 ];

@@ -3,12 +3,13 @@ import { describe, it } from "node:test";
 import { DEFAULT_SCHEDULES } from "./defaults.ts";
 
 describe("DEFAULT_SCHEDULES", () => {
-  it("contains haunt, distill, stoke, and attune", () => {
+  it("contains haunt, distill, stoke, attune, and trail_sweep", () => {
     const names = DEFAULT_SCHEDULES.map((s) => s.name);
     ok(names.includes("haunt"));
     ok(names.includes("distill"));
     ok(names.includes("stoke"));
     ok(names.includes("attune"));
+    ok(names.includes("trail_sweep"));
   });
 
   it("all defaults are builtin type", () => {

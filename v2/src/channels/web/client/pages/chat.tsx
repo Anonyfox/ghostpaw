@@ -3,6 +3,7 @@ import { useRoute } from "wouter-preact";
 import { ChatInput } from "../components/chat_input.tsx";
 import { ChatSidebar } from "../components/chat_sidebar.tsx";
 import { MessageList } from "../components/message_list.tsx";
+import { TrailBanner } from "../components/trail_banner.tsx";
 import { useChatSession } from "../components/use_chat_session.ts";
 
 export function ChatPage() {
@@ -112,6 +113,8 @@ export function ChatPage() {
               )}
             </div>
           </div>
+
+          <TrailBanner />
 
           {error && <div class="alert alert-danger m-3 mb-0 py-1 px-2 small">{error}</div>}
 

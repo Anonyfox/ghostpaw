@@ -350,7 +350,7 @@ No model update will ever teach an LLM how YOU deploy to YOUR infrastructure. A 
 
 Of 14 self-improvement mechanisms in the skills subsystem, 8 cost zero LLM tokens and require zero user action. The system mostly improves itself through code — pure SQL for readiness, pure filesystem for validation, pure git for versioning, pure code for tier checks and rank-up notifications. The two things the user does — train (the reward) and create (the curiosity) — are the two things worth doing. Everything else runs in the background, silently making every training session richer and every skill read more effective.
 
-Skills encode procedure. [Souls](SOULS.md) encode cognition. [Memory](MEMORY.md) encodes beliefs. [Quests](../QUESTS.md) encode commitments. [Wisdom](WISDOM.md) encodes patterns. The boundary is sharp: if it is a reusable procedure with steps, it is a skill. If it is a principle without steps, it is a trait. If it is a fact, it is a memory. If it is a pattern, it is wisdom.
+Skills encode procedure. [Souls](SOULS.md) encode cognition. [Memory](MEMORY.md) encodes beliefs. [Quests](../QUESTS.md) encode commitments. [Trail](TRAIL.md) encodes patterns. The boundary is sharp: if it is a reusable procedure with steps, it is a skill. If it is a principle without steps, it is a trait. If it is a fact, it is a memory. If it is a pattern, it is wisdom.
 
 Ghostpaw on day 100 does not just know more. It executes from earned competence — procedures no model update will ever capture, refined through the specific life of this specific instance, compounding with every session. That is the thesis.
 

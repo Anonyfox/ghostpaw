@@ -28,20 +28,25 @@ describe("MANDATORY_SOUL_IDS", () => {
     strictEqual(MANDATORY_SOUL_IDS.chamberlain, 6);
   });
 
-  it("has exactly six entries", () => {
-    strictEqual(Object.keys(MANDATORY_SOUL_IDS).length, 6);
+  it("assigns historian ID 7", () => {
+    strictEqual(MANDATORY_SOUL_IDS.historian, 7);
+  });
+
+  it("has exactly seven entries", () => {
+    strictEqual(Object.keys(MANDATORY_SOUL_IDS).length, 7);
   });
 });
 
 describe("MANDATORY_SOUL_NAMES", () => {
-  it("contains all six mandatory soul names", () => {
+  it("contains all seven mandatory soul names", () => {
     ok(MANDATORY_SOUL_NAMES.includes("ghostpaw"));
     ok(MANDATORY_SOUL_NAMES.includes("js-engineer"));
     ok(MANDATORY_SOUL_NAMES.includes("mentor"));
     ok(MANDATORY_SOUL_NAMES.includes("trainer"));
     ok(MANDATORY_SOUL_NAMES.includes("warden"));
     ok(MANDATORY_SOUL_NAMES.includes("chamberlain"));
-    strictEqual(MANDATORY_SOUL_NAMES.length, 6);
+    ok(MANDATORY_SOUL_NAMES.includes("historian"));
+    strictEqual(MANDATORY_SOUL_NAMES.length, 7);
   });
 
   it("matches the keys of DEFAULT_SOULS exactly", () => {

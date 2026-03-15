@@ -14,6 +14,7 @@ import { SessionsPage } from "./pages/sessions.tsx";
 import { SettingsPage } from "./pages/settings.tsx";
 import { SoulDetailPage } from "./pages/soul_detail.tsx";
 import { SoulsPage } from "./pages/souls.tsx";
+import { TrailPage } from "./pages/trail.tsx";
 import { TrainingGroundsPage } from "./pages/training_grounds.tsx";
 
 function AuthenticatedRoutes() {
@@ -26,6 +27,7 @@ function AuthenticatedRoutes() {
         <Route path="/pack/:id" component={PackDetailPage} />
         <Route path="/quests/logs/:id" component={QuestLogDetailPage} />
         <Route path="/quests" component={QuestsPage} />
+        <Route path="/trail" component={TrailPage} />
         <Route path="/howls" component={HowlsPage} />
         <Route path="/costs" component={CostsPage} />
         <Route path="/sessions" component={SessionsPage} />

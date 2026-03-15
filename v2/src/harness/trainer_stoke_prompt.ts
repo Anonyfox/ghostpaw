@@ -1,5 +1,9 @@
-export function buildStokePrompt(fragmentSummary: string, skillIndex: string): string {
-  return [
+export function buildStokePrompt(
+  fragmentSummary: string,
+  skillIndex: string,
+  trailSignals?: string,
+): string {
+  const lines = [
     "Background exploration: route pending fragments and mine memories for skill opportunities.",
     "",
     "Current skill index:",
@@ -7,6 +11,13 @@ export function buildStokePrompt(fragmentSummary: string, skillIndex: string): s
     "",
     "Pending fragments:",
     fragmentSummary || "(none)",
+  ];
+
+  if (trailSignals) {
+    lines.push("", "Trail-derived friction signals:", trailSignals);
+  }
+
+  lines.push(
     "",
     "Steps:",
     "1. For each pending fragment, determine if it relates to an existing skill domain.",
@@ -29,5 +40,7 @@ export function buildStokePrompt(fragmentSummary: string, skillIndex: string): s
     "- How many fragments were routed to existing skill domains",
     "- How many new fragments were mined from memories",
     "- How many proposals were queued",
-  ].join("\n");
+  );
+
+  return lines.join("\n");
 }

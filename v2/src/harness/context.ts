@@ -1,5 +1,6 @@
 import { buildSkillIndex, formatSkillIndex } from "../core/skills/api/read/index.ts";
 import { MANDATORY_SOUL_IDS, renderSoul } from "../core/souls/api/read/index.ts";
+import { getCompiledPreamble } from "../core/trail/api/read/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 
 export interface AssembleContextOptions {
@@ -27,7 +28,14 @@ export function assembleContext(
     return [soul, formatEnvironment(), formatToolGuidance(effectiveSoulId)].join("\n\n");
   }
 
-  const sections: string[] = [soul];
+  const sections: string[] = [];
+  try {
+    const preamble = getCompiledPreamble(db);
+    if (preamble) sections.push(preamble.text);
+  } catch {
+    /* fail-open: trail tables may not exist yet */
+  }
+  sections.push(soul);
   sections.push(formatEnvironment());
 
   const skillEntries = buildSkillIndex(workspace);

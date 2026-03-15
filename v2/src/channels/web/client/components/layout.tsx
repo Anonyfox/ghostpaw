@@ -96,6 +96,7 @@ export function Layout({ children }: LayoutProps) {
               <NavItem href="/memories" label="Memories" />
               <NavItem href="/pack" label="Pack" />
               <NavItem href="/quests" label="Quests" />
+              <NavItem href="/trail" label="Trail" />
               <HowlsNavItem />
               <NavItem href="/costs" label="Costs" />
               <NavItem href="/sessions" label="Sessions" />

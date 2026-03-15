@@ -9,6 +9,7 @@ import {
   type TurnResult,
 } from "../../core/chat/api/write/index.ts";
 import { getConfig } from "../../core/config/api/read/index.ts";
+import { shouldSurfaceHowl } from "../../core/trail/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { defaultChatFactory } from "../chat_factory.ts";
 import { resolveModel } from "../model.ts";
@@ -140,16 +141,24 @@ export async function runHaunt(
   renameSession(db, sessionId, summary);
 
   if (consolidation?.highlight) {
+    let surface = true;
     try {
-      const howl = createHowl(db, {
-        originSessionId: sessionId,
-        originMessageId: getSession(db, sessionId)?.headMessageId ?? null,
-        message: consolidation.highlight,
-        urgency: "low",
-      });
-      await deliverHowl(db, howl);
+      surface = shouldSurfaceHowl(db).shouldSurface;
     } catch {
-      /* howl creation failed, non-fatal */
+      /* fail-open: trail tables may not exist yet */
+    }
+    if (surface) {
+      try {
+        const howl = createHowl(db, {
+          originSessionId: sessionId,
+          originMessageId: getSession(db, sessionId)?.headMessageId ?? null,
+          message: consolidation.highlight,
+          urgency: "low",
+        });
+        await deliverHowl(db, howl);
+      } catch {
+        /* howl creation failed, non-fatal */
+      }
     }
   }
 

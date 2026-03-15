@@ -22,6 +22,7 @@ import { createSoulGenerateHandlers } from "./routes/soul_generate.ts";
 import { createSoulTraitsApiHandlers } from "./routes/soul_traits_api.ts";
 import { createSoulsApiHandlers } from "./routes/souls_api.ts";
 import { createStaticHandlers } from "./routes/static.ts";
+import { createTrailApiHandlers } from "./routes/trail_api.ts";
 import { createTrainerApiHandlers } from "./routes/trainer_api.ts";
 import type { Route, RouteHandler } from "./types.ts";
 
@@ -71,6 +72,7 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
   const trainer = createTrainerApiHandlers(config.db, config.entity);
   const quests = createQuestsApiHandlers(config.db);
   const skills = createSkillsApiHandlers(config.db, config.entity);
+  const trail = createTrailApiHandlers(config.db);
 
   return {
     checkSession: auth.checkSession,
@@ -174,6 +176,15 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("GET", "/api/howls/:id/history", howls.history, true),
       createRoute("POST", "/api/howls/:id/reply", howls.reply, true),
       createRoute("POST", "/api/howls/:id/dismiss", howls.dismiss, true),
+      createRoute("GET", "/api/trail/state", trail.state, true),
+      createRoute("GET", "/api/trail/chronicle", trail.chronicle, true),
+      createRoute("GET", "/api/trail/wisdom", trail.wisdom, true),
+      createRoute("GET", "/api/trail/loops", trail.loops, true),
+      createRoute("GET", "/api/trail/omens", trail.omens, true),
+      createRoute("GET", "/api/trail/calibration", trail.calibration, true),
+      createRoute("GET", "/api/trail/curiosity", trail.curiosity, true),
+      createRoute("GET", "/api/trail/pair-summary", trail.pairSummary, true),
+      createRoute("GET", "/api/trail/quest-hints", trail.questHints, true),
       createRoute("GET", "/assets/app.js", statics.serveAppJs, false),
       createRoute("GET", "/assets/style.css", statics.serveStyleCss, false),
     ],

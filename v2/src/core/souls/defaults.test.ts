@@ -37,8 +37,8 @@ describe("DEFAULT_SOULS", () => {
     }
   });
 
-  it("has exactly six entries", () => {
-    strictEqual(Object.keys(DEFAULT_SOULS).length, 6);
+  it("has exactly seven entries", () => {
+    strictEqual(Object.keys(DEFAULT_SOULS).length, 7);
   });
 
   it("ghostpaw default addresses the coordinator role", () => {

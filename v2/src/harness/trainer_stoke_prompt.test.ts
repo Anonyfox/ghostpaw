@@ -26,4 +26,15 @@ describe("buildStokePrompt", () => {
     strictEqual(prompt.includes("Do NOT create"), true);
     strictEqual(prompt.includes("Do NOT edit"), true);
   });
+
+  it("includes trail signals when provided", () => {
+    const prompt = buildStokePrompt("frag", "index", "- [wisdom] Manual deploys");
+    strictEqual(prompt.includes("Trail-derived friction signals"), true);
+    strictEqual(prompt.includes("Manual deploys"), true);
+  });
+
+  it("omits trail section when signals are undefined", () => {
+    const prompt = buildStokePrompt("frag", "index");
+    strictEqual(prompt.includes("Trail-derived"), false);
+  });
 });

@@ -34,6 +34,7 @@ export interface DelegateExecutorOptions {
   tools: Tool[];
   mentorTools?: Tool[];
   trainerTools?: Tool[];
+  historianOndemandTools?: Tool[];
   wardenTools?: Tool[];
   chamberlainTools?: Tool[];
   chatFactory: ChatFactory;
@@ -54,6 +55,7 @@ export function createDelegateHandler(options: DelegateExecutorOptions): Delegat
     tools,
     mentorTools,
     trainerTools,
+    historianOndemandTools,
     wardenTools,
     chamberlainTools,
     chatFactory,
@@ -100,6 +102,7 @@ export function createDelegateHandler(options: DelegateExecutorOptions): Delegat
       const isChamberlain = soulId === MANDATORY_SOUL_IDS.chamberlain;
       const isMentor = soulId === MANDATORY_SOUL_IDS.mentor;
       const isTrainer = soulId === MANDATORY_SOUL_IDS.trainer;
+      const isHistorian = soulId === MANDATORY_SOUL_IDS.historian;
       const effectiveTools =
         isWarden && wardenTools
           ? wardenTools
@@ -109,7 +112,9 @@ export function createDelegateHandler(options: DelegateExecutorOptions): Delegat
               ? [...tools, ...mentorTools]
               : isTrainer && trainerTools
                 ? [...tools, ...trainerTools]
-                : tools;
+                : isHistorian && historianOndemandTools
+                  ? [...tools, ...historianOndemandTools]
+                  : tools;
 
       if (args.background) {
         const channelNotify: ChannelNotifyFn | undefined = options.onBackgroundComplete

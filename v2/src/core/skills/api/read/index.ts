@@ -4,6 +4,8 @@ export { getSkill } from "../../get_skill.ts";
 export { listSkills } from "../../list_skills.ts";
 export { pendingChanges, skillPendingChanges } from "../../pending_changes.ts";
 export { skillDiff } from "../../skill_diff.ts";
+export type { SkillEvent } from "../../skill_events_since.ts";
+export { skillEventsSince } from "../../skill_events_since.ts";
 export { skillHistory } from "../../skill_history.ts";
 export { buildSkillIndex, formatSkillIndex } from "../../skill_index.ts";
 export { skillRank } from "../../skill_rank.ts";

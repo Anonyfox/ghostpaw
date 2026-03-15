@@ -136,6 +136,14 @@ export function formatSoulEvidence(evidence: SoulEvidence): string {
     }
   }
 
+  if (evidence.trailSignals.length > 0) {
+    lines.push("");
+    lines.push("## Trail Signals");
+    for (const s of evidence.trailSignals) {
+      lines.push(`- **[${s.kind}]** ${s.description} (significance: ${s.significance.toFixed(2)})`);
+    }
+  }
+
   lines.push("");
   lines.push(`## Related Memories: ${evidence.relatedMemoryCount}`);
 

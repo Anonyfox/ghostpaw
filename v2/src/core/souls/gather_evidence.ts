@@ -1,6 +1,8 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { getDelegationStatsSince } from "../chat/api/read/index.ts";
 import { countMemoriesMatchingText } from "../memory/api/read/index.ts";
+import type { SoulRelevantSignal } from "../trail/api/read/index.ts";
+import { listSoulRelevantSignals } from "../trail/api/read/index.ts";
 import { countActiveTraits } from "./count_active_traits.ts";
 import type { DelegationStats } from "./delegation_stats.ts";
 import { getLevelHistory } from "./get_level_history.ts";
@@ -20,6 +22,14 @@ function queryDelegationStats(db: DatabaseHandle, soulId: number): DelegationSta
 
 function queryRelatedMemoryCount(db: DatabaseHandle, soulName: string): number {
   return countMemoriesMatchingText(db, soulName);
+}
+
+function safeTrailSignals(db: DatabaseHandle): SoulRelevantSignal[] {
+  try {
+    return listSoulRelevantSignals(db, 10);
+  } catch {
+    return [];
+  }
 }
 
 function toTraitSnapshot(t: {
@@ -89,5 +99,6 @@ export function gatherSoulEvidence(db: DatabaseHandle, soulName: string): SoulEv
     levelHistory,
     relatedMemoryCount: queryRelatedMemoryCount(db, soulName),
     pendingShards: pendingShardsForSoul(db, soulId),
+    trailSignals: safeTrailSignals(db),
   };
 }

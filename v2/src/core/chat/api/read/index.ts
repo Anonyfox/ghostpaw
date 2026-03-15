@@ -34,6 +34,7 @@ export type {
   SessionWithCounts,
 } from "../../query_sessions_page.ts";
 export { querySessionsPage } from "../../query_sessions_page.ts";
+export { sessionsSince } from "../../sessions_since.ts";
 export type {
   PersistedToolCall,
   PersistedToolCallMessageData,

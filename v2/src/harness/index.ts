@@ -6,8 +6,11 @@ export type {
   DistillToolCalls,
 } from "./distill_types.ts";
 export { createEntity } from "./entity.ts";
+export { formatSessionBriefing } from "./format_session_briefing.ts";
 export type { HauntResult, RunHauntOptions } from "./haunt/index.ts";
 export { runHaunt } from "./haunt/index.ts";
+export type { HistorianResult, HistorianTurnResult } from "./invoke_historian.ts";
+export { invokeHistorian } from "./invoke_historian.ts";
 export type { MentorResult } from "./invoke_mentor.ts";
 export { invokeMentor } from "./invoke_mentor.ts";
 export type { TrainerResult } from "./invoke_trainer.ts";
@@ -25,6 +28,8 @@ export { executeCommand } from "./oneshots/execute_command.ts";
 export { handlePostSession } from "./post_session.ts";
 export type { AttuneResult } from "./run_attune.ts";
 export { runAttune } from "./run_attune.ts";
+export type { TrailSweepResult } from "./run_trail_sweep.ts";
+export { runTrailSweepWithHistorian } from "./run_trail_sweep.ts";
 export type { StokeResult } from "./stoke.ts";
 export { runStoke, stokePhaseOne, stokePhaseTwoNeeded } from "./stoke.ts";
 export type { EntityToolSets, EntityToolsConfig } from "./tools.ts";

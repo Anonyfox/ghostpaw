@@ -21,4 +21,6 @@ export { pendingShardsForSoul } from "../../pending_shards_for_soul.ts";
 export { renderSoul } from "../../render_soul.ts";
 export { resolveSoul } from "../../resolve_soul.ts";
 export { shardCountsPerSoul } from "../../shard_counts_per_soul.ts";
+export type { LevelChange, SoulChanges, TraitChange } from "../../trait_changes_since.ts";
+export { traitChangesSince } from "../../trait_changes_since.ts";
 export { getTraitLimit } from "../../trait_limit.ts";

@@ -12,6 +12,7 @@ import { checkpoint } from "../core/skills/api/write/index.ts";
 import { initHistory, resetGitAvailableCache } from "../core/skills/runtime/index.ts";
 import { MANDATORY_SOUL_IDS } from "../core/souls/api/read/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../core/souls/runtime/index.ts";
+import { initTrailTables } from "../core/trail/runtime/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { openTestDatabase } from "../lib/index.ts";
 import { assembleContext } from "./context.ts";
@@ -29,6 +30,7 @@ beforeEach(async () => {
   initPackTables(db);
   initQuestTables(db);
   initHowlTables(db);
+  initTrailTables(db);
   ensureMandatorySouls(db);
   workspace = mkdtempSync(join(tmpdir(), "ghostpaw-ctx-"));
   historyInitialized = false;
@@ -206,5 +208,39 @@ describe("assembleContext", () => {
     ok(!result.includes("## Quests"));
     ok(!result.includes("## Skills"));
     ok(!result.includes("## Budget"));
+  });
+
+  it("prepends trail preamble when compiled preamble exists", () => {
+    db.prepare("INSERT INTO trail_preamble (text, version, compiled_at) VALUES (?, 1, ?)").run(
+      "Be warm but direct. Respect their engineering background.",
+      Date.now(),
+    );
+    const result = assembleContext(db, workspace);
+    ok(result.startsWith("Be warm but direct."));
+    ok(result.indexOf("Be warm but direct.") < result.indexOf("# Ghostpaw"));
+  });
+
+  it("output is unchanged when trail tables are empty", () => {
+    const result = assembleContext(db, workspace);
+    ok(result.startsWith("# Ghostpaw"));
+    ok(!result.includes("Be warm"));
+  });
+
+  it("does not prepend preamble for warden", () => {
+    db.prepare("INSERT INTO trail_preamble (text, version, compiled_at) VALUES (?, 1, ?)").run(
+      "Preamble text here",
+      Date.now(),
+    );
+    const result = assembleContext(db, workspace, MANDATORY_SOUL_IDS.warden);
+    ok(!result.includes("Preamble text here"));
+  });
+
+  it("does not prepend preamble for chamberlain", () => {
+    db.prepare("INSERT INTO trail_preamble (text, version, compiled_at) VALUES (?, 1, ?)").run(
+      "Preamble text here",
+      Date.now(),
+    );
+    const result = assembleContext(db, workspace, MANDATORY_SOUL_IDS.chamberlain);
+    ok(!result.includes("Preamble text here"));
   });
 });

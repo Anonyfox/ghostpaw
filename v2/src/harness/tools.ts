@@ -21,6 +21,10 @@ import { createDatetimeTool } from "../tools/datetime.ts";
 import { createDelegateTool } from "../tools/delegate.ts";
 import { createEditTool } from "../tools/edit.ts";
 import { createGrepTool } from "../tools/grep.ts";
+import {
+  createHistorianNightlyTools,
+  createHistorianOndemandTools,
+} from "../tools/historian/index.ts";
 import { createHowlTool } from "../tools/howl.ts";
 import { createLsTool } from "../tools/ls.ts";
 import { createMcpTool } from "../tools/mcp/index.ts";
@@ -63,9 +67,12 @@ export interface EntityToolSets {
   chamberlainTools: Tool[];
   mentorTools: Tool[];
   trainerTools: Tool[];
+  historianNightlyTools: Tool[];
+  historianOndemandTools: Tool[];
   stokeTools: Tool[];
   allToolsWithMentor: Tool[];
   allToolsWithTrainer: Tool[];
+  allToolsWithHistorian: Tool[];
   shutdown(): Promise<void>;
 }
 
@@ -155,6 +162,8 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
 
   const mentorOnly = createMentorTools(db);
   const trainerOnly = createTrainerTools(workspace, db);
+  const historianNightly = createHistorianNightlyTools(db);
+  const historianOndemand = createHistorianOndemandTools(db);
   const stokeOnly = createStokeTools(db);
 
   const specialists = listSouls(db)
@@ -167,6 +176,7 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     tools: sharedTools,
     mentorTools: mentorOnly,
     trainerTools: trainerOnly,
+    historianOndemandTools: historianOndemand,
     wardenTools: wardenOnlyTools,
     chamberlainTools: chamberlainOnlyTools,
     chatFactory,
@@ -180,6 +190,7 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
   const baseTools = [...sharedTools, howlTool, delegateTool, checkRunTool];
   const allToolsWithMentor = [...sharedTools, ...mentorOnly, delegateTool, checkRunTool];
   const allToolsWithTrainer = [...sharedTools, ...trainerOnly, delegateTool, checkRunTool];
+  const allToolsWithHistorian = [...sharedTools, ...historianOndemand];
 
   return {
     baseTools,
@@ -187,9 +198,12 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     chamberlainTools: chamberlainOnlyTools,
     mentorTools: mentorOnly,
     trainerTools: trainerOnly,
+    historianNightlyTools: historianNightly,
+    historianOndemandTools: historianOndemand,
     stokeTools: [...stokeOnly, createRecallTool(db)],
     allToolsWithMentor,
     allToolsWithTrainer,
+    allToolsWithHistorian,
     shutdown: () => mcp.shutdown(),
   };
 }

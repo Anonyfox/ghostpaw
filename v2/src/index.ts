@@ -27,6 +27,7 @@ import {
   initSoulShardTables,
   initSoulsTables,
 } from "./core/souls/runtime/index.ts";
+import { initTrailTables } from "./core/trail/runtime/index.ts";
 import { isEntrypoint, openDatabase, suppressWarnings } from "./lib/index.ts";
 import { banner, log } from "./lib/terminal/index.ts";
 
@@ -49,6 +50,7 @@ const subCommands = {
   quests: () => import("./channels/cli/quests.ts").then((m) => m.default),
   schedules: () => import("./channels/cli/schedules.ts").then((m) => m.default),
   service: () => import("./channels/cli/service.ts").then((m) => m.default),
+  trail: () => import("./channels/cli/trail.ts").then((m) => m.default),
 };
 
 const main = defineCommand({
@@ -91,6 +93,7 @@ const main = defineCommand({
     initPackTables(db);
     initHowlTables(db);
     initQuestTables(db);
+    initTrailTables(db);
     initScheduleTables(db);
     initSkillEventsTables(db);
     initSkillFragmentsTables(db);

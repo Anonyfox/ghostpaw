@@ -1,3 +1,4 @@
+import type { SoulRelevantSignal } from "../trail/api/read/index.ts";
 import type { DelegationStats } from "./delegation_stats.ts";
 import type { CostTrend } from "./query_cost_trend.ts";
 import type { TraitFitness } from "./query_trait_fitness.ts";
@@ -34,4 +35,5 @@ export interface SoulEvidence {
   levelHistory: LevelSnapshot[];
   relatedMemoryCount: number;
   pendingShards: SoulShard[];
+  trailSignals: SoulRelevantSignal[];
 }

@@ -17,6 +17,7 @@ import {
   repairSkill as repairSkillWrite,
   writeSkillHealth as writeSkillHealthWrite,
 } from "../core/skills/api/write/index.ts";
+import { listSkillOpportunitySignals } from "../core/trail/api/read/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
 import { createRecallTool } from "../tools/memory/recall.ts";
 import { createStokeTools } from "../tools/trainer/index.ts";
@@ -123,7 +124,18 @@ export async function stokePhaseTwo(
     .join("\n");
 
   const index = formatSkillIndex(buildSkillIndex(workspace));
-  const prompt = buildStokePrompt(fragSummary, index);
+  let trailSignals: string | undefined;
+  try {
+    const signals = listSkillOpportunitySignals(db, 5);
+    if (signals.length > 0) {
+      trailSignals = signals
+        .map((s) => `- [${s.source}] ${s.description} (significance: ${s.significance.toFixed(2)})`)
+        .join("\n");
+    }
+  } catch {
+    /* fail-open: trail tables may not exist yet */
+  }
+  const prompt = buildStokePrompt(fragSummary, index, trailSignals);
 
   const stokeTools = [...createStokeTools(db), createRecallTool(db)];
   const result = await invokeTrainer(entity, db, prompt, {

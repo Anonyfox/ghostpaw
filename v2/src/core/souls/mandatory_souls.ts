@@ -5,6 +5,7 @@ export const MANDATORY_SOUL_IDS = {
   trainer: 4,
   warden: 5,
   chamberlain: 6,
+  historian: 7,
 } as const;
 
 export type MandatorySoulName = keyof typeof MANDATORY_SOUL_IDS;

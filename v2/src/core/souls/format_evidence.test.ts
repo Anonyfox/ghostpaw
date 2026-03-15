@@ -41,6 +41,7 @@ function makeEvidence(overrides?: Partial<SoulEvidence>): SoulEvidence {
     levelHistory: [],
     relatedMemoryCount: 3,
     pendingShards: [],
+    trailSignals: [],
     ...overrides,
   };
 }
@@ -97,6 +98,23 @@ describe("formatSoulEvidence", () => {
     ok(output.includes("Pending Soulshards (1)"));
     ok(output.includes("reads before editing"));
     ok(output.includes("[shard=42]"));
+  });
+
+  it("includes trail signals section when present", () => {
+    const output = formatSoulEvidence(
+      makeEvidence({
+        trailSignals: [
+          {
+            kind: "trailmark",
+            description: "[milestone] First delegation",
+            significance: 0.9,
+            createdAt: Date.now(),
+          },
+        ],
+      }),
+    );
+    ok(output.includes("## Trail Signals"));
+    ok(output.includes("[milestone] First delegation"));
   });
 
   it("returns a string of reasonable length", () => {

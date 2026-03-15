@@ -60,7 +60,12 @@ export async function executeTurn(
         reasoning: input.reasoning,
       });
     } catch (err) {
-      text = `Error: ${err instanceof Error ? err.message : String(err)}`;
+      let errMsg = err instanceof Error ? err.message : String(err);
+      if (!errMsg && err && typeof err === "object") {
+        const e = err as Record<string, unknown>;
+        errMsg = `API error (HTTP ${e.status ?? "unknown"})`;
+      }
+      text = `Error: ${errMsg}`;
       succeeded = false;
     }
 

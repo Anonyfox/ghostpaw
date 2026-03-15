@@ -9,6 +9,7 @@ export { getMemberBonds } from "../../get_member_bonds.ts";
 export { getMemberByName } from "../../get_member_by_name.ts";
 export { getMemberName } from "../../get_member_name.ts";
 export { getMemberTags } from "../../get_member_tags.ts";
+export { interactionsSince } from "../../interactions_since.ts";
 export { listLinkedMembers, listLinks } from "../../links.ts";
 export { listContacts } from "../../list_contacts.ts";
 export { listInteractions } from "../../list_interactions.ts";

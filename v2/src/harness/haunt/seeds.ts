@@ -16,6 +16,7 @@ import {
   overdueQuests,
   staleQuests,
 } from "../../core/quests/index.ts";
+import { getHauntSeeds } from "../../core/trail/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import type { NoveltyInfo } from "./types.ts";
 
@@ -147,6 +148,18 @@ function buildDynamicSeeds(
   const questSeeds = buildQuestSeeds(db);
   for (const qs of questSeeds) {
     seeds.push(qs);
+  }
+
+  try {
+    const trailLoops = getHauntSeeds(db);
+    for (const loop of trailLoops) {
+      seeds.push({
+        text: `An unresolved thread: "${truncateClaim(loop.description)}". Is this still alive?`,
+        weight: loop.significance * 4,
+      });
+    }
+  } catch {
+    /* fail-open: trail tables may not exist yet */
   }
 
   return seeds;
