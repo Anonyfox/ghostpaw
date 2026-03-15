@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
-import type { QuestStatus } from "../../core/quests/index.ts";
-import { listQuests } from "../../core/quests/index.ts";
+import { listQuests } from "../../core/quests/api/read/index.ts";
+import type { QuestStatus } from "../../core/quests/api/types.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { errorLine, questRow, questTableHeader } from "./quests_format.ts";
 import { withRunDb } from "./with_run_db.ts";

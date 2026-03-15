@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
-import type { Quest, QuestOccurrence } from "../../core/quests/index.ts";
-import { completeQuest } from "../../core/quests/index.ts";
+import type { Quest, QuestOccurrence } from "../../core/quests/api/types.ts";
+import { completeQuest } from "../../core/quests/api/write/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { errorLine, formatDate, parseTimestamp } from "./quests_format.ts";
 import { withRunDb } from "./with_run_db.ts";

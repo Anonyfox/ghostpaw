@@ -7,7 +7,7 @@ import {
 import { initConfigTable } from "../../core/config/runtime/index.ts";
 import { initMemoryTable } from "../../core/memory/runtime/index.ts";
 import { initPackTables } from "../../core/pack/runtime/index.ts";
-import { initQuestTables } from "../../core/quests/index.ts";
+import { initQuestTables } from "../../core/quests/runtime/index.ts";
 import { ensureDefaultSchedules, initScheduleTables } from "../../core/schedule/runtime/index.ts";
 import {
   initSecretsTable,

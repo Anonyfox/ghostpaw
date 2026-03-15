@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { listQuests } from "../../core/quests/index.ts";
+import { listQuests } from "../../core/quests/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { boardIcon, relativeAge } from "./quests_format.ts";
 import { withRunDb } from "./with_run_db.ts";

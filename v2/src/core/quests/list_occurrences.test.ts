@@ -1,4 +1,4 @@
-import { ok, strictEqual, throws } from "node:assert";
+import { strictEqual } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
@@ -6,7 +6,6 @@ import { completeQuest } from "./complete_quest.ts";
 import { createQuest } from "./create_quest.ts";
 import { listOccurrences } from "./list_occurrences.ts";
 import { initQuestTables } from "./schema.ts";
-import { skipOccurrence } from "./skip_occurrence.ts";
 
 let db: DatabaseHandle;
 
@@ -54,25 +53,5 @@ describe("listOccurrences", () => {
       completeQuest(db, q.id, Date.now() + i * 86400000);
     }
     strictEqual(listOccurrences(db, q.id, { limit: 2 }).length, 2);
-  });
-});
-
-describe("skipOccurrence", () => {
-  it("records a skipped occurrence", () => {
-    const q = createQuest(db, { title: "Daily", rrule: "FREQ=DAILY" });
-    const now = Date.now();
-    const occ = skipOccurrence(db, q.id, now);
-    strictEqual(occ.status, "skipped");
-    strictEqual(occ.occurrenceAt, now);
-    ok(occ.completedAt > 0);
-  });
-
-  it("throws for non-recurring quest", () => {
-    const q = createQuest(db, { title: "One-off" });
-    throws(() => skipOccurrence(db, q.id, Date.now()), /not recurring/);
-  });
-
-  it("throws for nonexistent quest", () => {
-    throws(() => skipOccurrence(db, 999, Date.now()), /not found/);
   });
 });

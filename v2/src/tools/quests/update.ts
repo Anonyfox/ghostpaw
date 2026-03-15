@@ -1,11 +1,8 @@
 import { createTool, Schema } from "chatoyant";
-import type { QuestPriority, QuestStatus } from "../../core/quests/index.ts";
-import {
-  getQuest,
-  QUEST_PRIORITIES,
-  QUEST_STATUSES,
-  updateQuest,
-} from "../../core/quests/index.ts";
+import { getQuest } from "../../core/quests/api/read/index.ts";
+import type { QuestPriority, QuestStatus } from "../../core/quests/api/types.ts";
+import { QUEST_PRIORITIES, QUEST_STATUSES } from "../../core/quests/api/types.ts";
+import { updateQuest } from "../../core/quests/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatQuest } from "./format_quest.ts";
 

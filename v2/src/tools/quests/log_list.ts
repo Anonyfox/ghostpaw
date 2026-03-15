@@ -1,6 +1,7 @@
 import { createTool, Schema } from "chatoyant";
-import type { QuestLogStatus } from "../../core/quests/index.ts";
-import { getQuestLogProgress, listQuestLogs, QUEST_LOG_STATUSES } from "../../core/quests/index.ts";
+import { getQuestLogProgress, listQuestLogs } from "../../core/quests/api/read/index.ts";
+import type { QuestLogStatus } from "../../core/quests/api/types.ts";
+import { QUEST_LOG_STATUSES } from "../../core/quests/api/types.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatQuestLog } from "./format_quest.ts";
 

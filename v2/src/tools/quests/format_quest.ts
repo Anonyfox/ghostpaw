@@ -1,4 +1,4 @@
-import type { Quest, QuestLog, QuestLogProgress } from "../../core/quests/index.ts";
+import type { Quest, QuestLog, QuestLogProgress } from "../../core/quests/api/types.ts";
 
 export function formatQuest(q: Quest) {
   const out: Record<string, unknown> = {

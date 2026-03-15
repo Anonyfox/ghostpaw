@@ -15,7 +15,7 @@ import {
   dueSoonQuests,
   overdueQuests,
   staleQuests,
-} from "../../core/quests/index.ts";
+} from "../../core/quests/api/read/index.ts";
 import { getHauntSeeds } from "../../core/trail/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import type { NoveltyInfo } from "./types.ts";

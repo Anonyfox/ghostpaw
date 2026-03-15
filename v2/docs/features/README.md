@@ -118,7 +118,7 @@ Most do map directly to a core namespace. Some are umbrella or spec documents:
 | [SKILLS](./SKILLS.md) | Reusable procedural knowledge as executable markdown | Trainer |
 | [TRAIL](./TRAIL.md) | Longitudinal interpretation, calibration, and compounding intelligence | Historian |
 | [MEMORY](./MEMORY.md) | Beliefs, facts, and semantic knowledge about the world | Warden |
-| [QUESTS](../QUESTS.md) | Goal management, delegation, and productivity mechanics | Warden |
+| [QUESTS](./QUESTS.md) | Temporal commitment tracking, quest board, and structured temporal awareness | Warden |
 | [PACK](./PACK.md) | Relationships, bonds, and multi-entity social memory | Warden |
 | [SETTINGS](./SETTINGS.md) | Configuration, secrets, and scheduled operations | Chamberlain |
 

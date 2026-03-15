@@ -40,7 +40,7 @@ describe("createQuest", () => {
       questLogId: Number(log.lastInsertRowid),
       priority: "high",
       tags: "code,testing",
-      createdBy: "ghost",
+      createdBy: "ghostpaw",
       startsAt: now,
       endsAt: now + 3600000,
       dueAt: now + 86400000,
@@ -51,7 +51,7 @@ describe("createQuest", () => {
     strictEqual(q.description, "Cover edge cases");
     strictEqual(q.priority, "high");
     strictEqual(q.tags, "code,testing");
-    strictEqual(q.createdBy, "ghost");
+    strictEqual(q.createdBy, "ghostpaw");
     strictEqual(q.startsAt, now);
     strictEqual(q.rrule, "FREQ=WEEKLY;BYDAY=MO");
     ok(q.questLogId! > 0);

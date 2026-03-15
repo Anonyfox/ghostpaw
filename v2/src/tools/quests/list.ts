@@ -1,12 +1,11 @@
 import { createTool, Schema } from "chatoyant";
-import type { QuestPriority, QuestStatus } from "../../core/quests/index.ts";
+import { getTemporalContext, listQuests } from "../../core/quests/api/read/index.ts";
+import type { QuestPriority, QuestStatus } from "../../core/quests/api/types.ts";
 import {
   DEFAULT_EXCLUDE_STATUSES,
-  getTemporalContext,
-  listQuests,
   QUEST_PRIORITIES,
   QUEST_STATUSES,
-} from "../../core/quests/index.ts";
+} from "../../core/quests/api/types.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatQuestBrief } from "./format_quest.ts";
 

@@ -6,7 +6,7 @@ import { setConfig } from "../core/config/api/write/index.ts";
 import { initConfigTable } from "../core/config/runtime/index.ts";
 import { initMemoryTable } from "../core/memory/runtime/index.ts";
 import { initPackTables } from "../core/pack/runtime/index.ts";
-import { initQuestTables } from "../core/quests/index.ts";
+import { initQuestTables } from "../core/quests/runtime/index.ts";
 import { initSecretsTable } from "../core/secrets/runtime/index.ts";
 import { ensureMandatorySouls, initSoulsTables } from "../core/souls/runtime/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";

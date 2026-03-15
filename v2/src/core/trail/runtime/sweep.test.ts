@@ -4,7 +4,7 @@ import { type DatabaseHandle, openTestDatabase } from "../../../lib/index.ts";
 import { initChatTables } from "../../chat/runtime/index.ts";
 import { initMemoryTable } from "../../memory/runtime/index.ts";
 import { initPackTables } from "../../pack/runtime/schema.ts";
-import { initQuestTables } from "../../quests/schema.ts";
+import { initQuestTables } from "../../quests/runtime/index.ts";
 import { initSkillEventsTables } from "../../skills/runtime/events.ts";
 import { initSoulsTables } from "../../souls/runtime/index.ts";
 import { initTrailTables } from "../schema.ts";

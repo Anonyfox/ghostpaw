@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { updateQuestLog } from "../../core/quests/index.ts";
+import { updateQuestLog } from "../../core/quests/api/write/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { errorLine } from "./quests_format.ts";
 import { withRunDb } from "./with_run_db.ts";

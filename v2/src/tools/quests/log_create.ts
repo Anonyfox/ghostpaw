@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { createQuestLog } from "../../core/quests/index.ts";
+import { createQuestLog } from "../../core/quests/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatQuestLog } from "./format_quest.ts";
 

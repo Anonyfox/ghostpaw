@@ -1,11 +1,11 @@
 import type { ChatSession } from "../../core/chat/api/read/index.ts";
 import type { Memory } from "../../core/memory/api/types.ts";
-import type { TemporalContext } from "../../core/quests/index.ts";
 import {
   getTemporalContext,
   recentlyCompletedQuests,
   staleQuests,
-} from "../../core/quests/index.ts";
+} from "../../core/quests/api/read/index.ts";
+import type { TemporalContext } from "../../core/quests/api/types.ts";
 import { MANDATORY_SOUL_IDS, renderSoul } from "../../core/souls/api/read/index.ts";
 import { getTrailState, listReflectiveOpenLoops } from "../../core/trail/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";

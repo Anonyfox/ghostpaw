@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { getTemporalContext, listQuests } from "../../core/quests/index.ts";
+import { getTemporalContext, listQuests } from "../../core/quests/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import questsAccept from "./quests_accept.ts";
 import questsAdd from "./quests_add.ts";
@@ -149,7 +149,7 @@ export default defineCommand({
         console.log(style.yellow("── Quest Board ──"));
         for (const q of boardQuests.slice(0, 5)) {
           const id = `#${q.id}`.padStart(6);
-          const icon = q.createdBy === "ghost" ? style.yellow("!") : style.yellow("?");
+          const icon = q.createdBy === "ghostpaw" ? style.yellow("!") : style.yellow("?");
           console.log(`  ${style.dim(id)} ${icon} ${q.title}`);
         }
         if (boardQuests.length > 5) {

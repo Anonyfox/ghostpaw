@@ -1,16 +1,5 @@
 import type { IncomingMessage } from "node:http";
-import type {
-  Quest,
-  QuestLog,
-  QuestOccurrence,
-  QuestStatus,
-} from "../../../../core/quests/index.ts";
 import {
-  acceptQuest,
-  completeQuest,
-  createQuest,
-  createQuestLog,
-  dismissQuest,
   getQuest,
   getQuestLog,
   getQuestLogProgress,
@@ -18,10 +7,23 @@ import {
   listOccurrences,
   listQuestLogs,
   listQuests,
+} from "../../../../core/quests/api/read/index.ts";
+import type {
+  Quest,
+  QuestLog,
+  QuestOccurrence,
+  QuestStatus,
+} from "../../../../core/quests/api/types.ts";
+import {
+  acceptQuest,
+  completeQuest,
+  createQuest,
+  createQuestLog,
+  dismissQuest,
   skipOccurrence,
   updateQuest,
   updateQuestLog,
-} from "../../../../core/quests/index.ts";
+} from "../../../../core/quests/api/write/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type {
   CreateQuestBody,

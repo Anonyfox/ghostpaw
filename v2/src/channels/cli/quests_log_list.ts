@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
-import type { QuestLogStatus } from "../../core/quests/index.ts";
-import { getQuestLogProgress, listQuestLogs } from "../../core/quests/index.ts";
+import { getQuestLogProgress, listQuestLogs } from "../../core/quests/api/read/index.ts";
+import type { QuestLogStatus } from "../../core/quests/api/types.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { progressBar, relativeAge, relativeDue } from "./quests_format.ts";
 import { withRunDb } from "./with_run_db.ts";

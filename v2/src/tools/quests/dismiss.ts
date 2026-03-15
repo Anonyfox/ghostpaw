@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { dismissQuest } from "../../core/quests/index.ts";
+import { dismissQuest } from "../../core/quests/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatQuest } from "./format_quest.ts";
 

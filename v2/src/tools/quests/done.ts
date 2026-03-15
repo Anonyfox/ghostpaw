@@ -1,5 +1,6 @@
 import { createTool, Schema } from "chatoyant";
-import { completeQuest, getQuest } from "../../core/quests/index.ts";
+import { getQuest } from "../../core/quests/api/read/index.ts";
+import { completeQuest } from "../../core/quests/api/write/index.ts";
 import { dropSkillFragment } from "../../core/skills/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatQuest } from "./format_quest.ts";

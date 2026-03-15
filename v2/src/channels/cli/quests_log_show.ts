@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { getQuestLog, getQuestLogProgress, listQuests } from "../../core/quests/index.ts";
+import { getQuestLog, getQuestLogProgress, listQuests } from "../../core/quests/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import {
   errorLine,

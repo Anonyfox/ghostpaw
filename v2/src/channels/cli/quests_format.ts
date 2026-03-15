@@ -60,7 +60,7 @@ export function statusLabel(status: string): string {
 }
 
 export function boardIcon(createdBy: string): string {
-  return createdBy === "ghost" ? style.yellow("!") : style.yellow("?");
+  return createdBy === "ghostpaw" ? style.yellow("!") : style.yellow("?");
 }
 
 export function progressBar(done: number, total: number, width = 10): string {

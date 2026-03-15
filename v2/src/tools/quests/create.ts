@@ -1,6 +1,7 @@
 import { createTool, Schema } from "chatoyant";
-import type { QuestCreator, QuestPriority, QuestStatus } from "../../core/quests/index.ts";
-import { createQuest, QUEST_PRIORITIES, QUEST_STATUSES } from "../../core/quests/index.ts";
+import type { QuestCreator, QuestPriority, QuestStatus } from "../../core/quests/api/types.ts";
+import { QUEST_PRIORITIES, QUEST_STATUSES } from "../../core/quests/api/types.ts";
+import { createQuest } from "../../core/quests/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatQuest } from "./format_quest.ts";
 
@@ -88,7 +89,7 @@ export function createQuestCreateTool(db: DatabaseHandle) {
           priority: a.priority,
           questLogId: a.questLogId,
           tags: a.tags,
-          createdBy: "ghost" as QuestCreator,
+          createdBy: "ghostpaw" as QuestCreator,
           dueAt: a.dueAt,
           startsAt: a.startsAt,
           endsAt: a.endsAt,

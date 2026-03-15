@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { getQuest, listOccurrences } from "../../core/quests/index.ts";
+import { getQuest, listOccurrences } from "../../core/quests/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { errorLine, formatDate, relativeAge, relativeDue, statusLabel } from "./quests_format.ts";
 import { withRunDb } from "./with_run_db.ts";

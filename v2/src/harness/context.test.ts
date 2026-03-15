@@ -7,7 +7,7 @@ import { initChatTables, initHowlTables } from "../core/chat/runtime/index.ts";
 import { initConfigTable } from "../core/config/runtime/index.ts";
 import { initMemoryTable } from "../core/memory/runtime/index.ts";
 import { initPackTables } from "../core/pack/runtime/index.ts";
-import { initQuestTables } from "../core/quests/index.ts";
+import { initQuestTables } from "../core/quests/runtime/index.ts";
 import { checkpoint } from "../core/skills/api/write/index.ts";
 import { initHistory, resetGitAvailableCache } from "../core/skills/runtime/index.ts";
 import { MANDATORY_SOUL_IDS } from "../core/souls/api/read/index.ts";

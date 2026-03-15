@@ -2,7 +2,7 @@ import type { DatabaseHandle } from "../../../lib/index.ts";
 import { getCostSummary, sessionsSince } from "../../chat/api/read/index.ts";
 import { memoriesRevisedSince, memoriesSince } from "../../memory/api/read/index.ts";
 import { interactionsSince } from "../../pack/api/read/index.ts";
-import { questStateChangesSince } from "../../quests/quest_state_changes_since.ts";
+import { questStateChangesSince } from "../../quests/api/read/index.ts";
 import { skillEventsSince } from "../../skills/api/read/index.ts";
 import { traitChangesSince } from "../../souls/api/read/index.ts";
 import type { GatherSlices } from "../internal/index.ts";

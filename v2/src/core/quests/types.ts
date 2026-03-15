@@ -25,7 +25,7 @@ export type QuestPriority = (typeof QUEST_PRIORITIES)[number];
 export const QUEST_LOG_STATUSES = ["active", "completed", "archived"] as const;
 export type QuestLogStatus = (typeof QUEST_LOG_STATUSES)[number];
 
-export const QUEST_CREATORS = ["human", "ghost"] as const;
+export const QUEST_CREATORS = ["human", "ghostpaw"] as const;
 export type QuestCreator = (typeof QUEST_CREATORS)[number];
 
 export interface Quest {

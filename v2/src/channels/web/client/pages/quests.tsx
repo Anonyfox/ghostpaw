@@ -386,9 +386,9 @@ function BoardTab({
               class="quest-board-row d-flex align-items-start gap-2 px-3 py-2 border-bottom"
             >
               <span
-                class={`quest-board-icon mt-1 ${q.createdBy === "ghost" ? "quest-board-icon-exclaim" : "quest-board-icon-question"}`}
+                class={`quest-board-icon mt-1 ${q.createdBy === "ghostpaw" ? "quest-board-icon-exclaim" : "quest-board-icon-question"}`}
               >
-                {q.createdBy === "ghost" ? "!" : "?"}
+                {q.createdBy === "ghostpaw" ? "!" : "?"}
               </span>
               <div class="flex-grow-1">
                 <div class="d-flex align-items-center gap-2">
