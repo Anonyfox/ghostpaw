@@ -15,10 +15,10 @@ afterEach(() => {
 });
 
 describe("initChatTables", () => {
-  it("creates sessions with all 19 columns", () => {
+  it("creates sessions with all 20 columns", () => {
     initChatTables(db);
     const cols = db.prepare("PRAGMA table_info(sessions)").all() as { name: string }[];
-    strictEqual(cols.length, 19);
+    strictEqual(cols.length, 20);
     const names = new Set(cols.map((c) => c.name));
     for (const expected of [
       "id",
@@ -39,6 +39,7 @@ describe("initChatTables", () => {
       "parent_session_id",
       "soul_id",
       "quest_id",
+      "xp_earned",
       "error",
     ]) {
       ok(names.has(expected), `missing column: ${expected}`);
@@ -74,7 +75,7 @@ describe("initChatTables", () => {
   it("is idempotent", () => {
     initChatTables(db);
     initChatTables(db);
-    strictEqual((db.prepare("PRAGMA table_info(sessions)").all() as unknown[]).length, 19);
+    strictEqual((db.prepare("PRAGMA table_info(sessions)").all() as unknown[]).length, 20);
     strictEqual((db.prepare("PRAGMA table_info(messages)").all() as unknown[]).length, 15);
   });
 
@@ -107,13 +108,14 @@ describe("initChatTables", () => {
     );
     const row = db
       .prepare(
-        "SELECT purpose, tokens_in, tokens_out, cost_usd, model, closed_at, distilled_at, head_message_id, display_name, parent_session_id, soul_id, error FROM sessions",
+        "SELECT purpose, tokens_in, tokens_out, cost_usd, xp_earned, model, closed_at, distilled_at, head_message_id, display_name, parent_session_id, soul_id, error FROM sessions",
       )
       .get() as Record<string, unknown>;
     strictEqual(row.purpose, "chat");
     strictEqual(row.tokens_in, 0);
     strictEqual(row.tokens_out, 0);
     strictEqual(row.cost_usd, 0);
+    strictEqual(row.xp_earned, 0);
     strictEqual(row.model, null);
     strictEqual(row.closed_at, null);
     strictEqual(row.parent_session_id, null);

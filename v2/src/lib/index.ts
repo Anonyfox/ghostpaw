@@ -7,6 +7,8 @@ export {
   selectHowlChannel,
   unregisterChannel,
 } from "./channel_registry.ts";
+export type { SessionXPInputs } from "./compute_xp.ts";
+export { computeSessionXP } from "./compute_xp.ts";
 export type { SpendStatus } from "./cost/index.ts";
 export { computeSpendStatus, isSpendBlocked } from "./cost/index.ts";
 export type { DatabaseHandle } from "./database_handle.ts";

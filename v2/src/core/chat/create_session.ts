@@ -39,6 +39,7 @@ export function createSession(
     parentSessionId,
     soulId,
     questId,
+    xpEarned: 0,
     error: null,
   };
 }

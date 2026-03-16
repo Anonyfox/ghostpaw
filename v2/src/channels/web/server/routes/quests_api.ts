@@ -1,5 +1,7 @@
 import type { IncomingMessage } from "node:http";
+import { getXPByQuest } from "../../../../core/chat/api/read/index.ts";
 import {
+  estimateQuestCost,
   getQuest,
   getStoryline,
   getStorylineProgress,
@@ -84,6 +86,9 @@ function toQuestInfo(q: Quest): QuestInfo {
 
 function toStorylineInfo(storyline: Storyline, db: DatabaseHandle): StorylineInfo {
   const progress = getStorylineProgress(db, storyline.id);
+  const quests = listQuests(db, { storylineId: storyline.id, limit: 500 });
+  let xpEarned = 0;
+  for (const q of quests) xpEarned += getXPByQuest(db, q.id);
   return {
     id: storyline.id,
     title: storyline.title,
@@ -94,6 +99,7 @@ function toStorylineInfo(storyline: Storyline, db: DatabaseHandle): StorylineInf
     updatedAt: storyline.updatedAt,
     completedAt: storyline.completedAt,
     dueAt: storyline.dueAt,
+    xpEarned,
     progress,
   };
 }
@@ -188,7 +194,14 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
         done: s.done,
         position: s.position,
       }));
-      json(ctx, 200, { ...toQuestInfo(q), occurrences, streak, subgoals });
+      const xpEarned = getXPByQuest(db, id);
+      const isTerminal = ["done", "failed", "abandoned"].includes(q.status);
+      const est = isTerminal ? null : estimateQuestCost(db, id);
+      const costEstimate =
+        est && est.confidence !== "none"
+          ? { low: est.low, high: est.high, confidence: est.confidence, sampleSize: est.sampleSize }
+          : null;
+      json(ctx, 200, { ...toQuestInfo(q), occurrences, streak, subgoals, xpEarned, costEstimate });
     },
 
     async update(ctx: RouteContext) {

@@ -1,5 +1,7 @@
 import { defineCommand } from "citty";
+import { getXPByQuest } from "../../core/chat/api/read/index.ts";
 import {
+  estimateQuestCost,
   getQuest,
   getStreakInfo,
   listOccurrences,
@@ -70,6 +72,26 @@ export default defineCommand({
         for (const s of subgoals) {
           const mark = s.done ? style.green("[x]") : "[ ]";
           console.log(`  ${mark} ${s.text}`);
+        }
+      }
+
+      const xp = getXPByQuest(db, q.id);
+      if (xp > 0) {
+        console.log();
+        console.log(style.dim("── XP ──"));
+        console.log(`  ${style.cyan(String(Math.round(xp)))} XP earned`);
+      }
+
+      const isTerminal = ["done", "failed", "abandoned"].includes(q.status);
+      if (!isTerminal) {
+        const est = estimateQuestCost(db, q.id);
+        if (est.confidence !== "none") {
+          console.log();
+          console.log(style.dim("── Cost Estimate ──"));
+          console.log(
+            `  $${est.low.toFixed(4)} – $${est.high.toFixed(4)} ${style.dim(`(${est.confidence}, ${est.sampleSize} samples)`)}`,
+          );
+          if (est.avgXP > 0) console.log(`  ~${Math.round(est.avgXP)} XP expected`);
         }
       }
 

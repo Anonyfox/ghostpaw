@@ -21,6 +21,7 @@ export function initChatTables(db: DatabaseHandle): void {
       parent_session_id INTEGER REFERENCES sessions(id),
       soul_id           INTEGER,
       quest_id          INTEGER,
+      xp_earned         REAL    NOT NULL DEFAULT 0,
       error             TEXT
     )
   `);

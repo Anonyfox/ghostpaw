@@ -9,6 +9,7 @@ export interface EmbarkResult {
   turns: number;
   usage: { tokensIn: number; tokensOut: number };
   cost: number;
+  xp: number;
 }
 
 export interface EmbarkOptions {

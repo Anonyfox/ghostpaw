@@ -1,3 +1,4 @@
+import { getSession } from "../../core/chat/api/read/index.ts";
 import { type ChatFactory, closeSession, createSession } from "../../core/chat/api/write/index.ts";
 import { getQuest, listSubgoals } from "../../core/quests/api/read/index.ts";
 import { updateQuest } from "../../core/quests/api/write/index.ts";
@@ -152,6 +153,10 @@ export async function runEmbark(
       }
     }
 
+    await entity.flush();
+    closeSession(db, sessionId);
+    const closedSession = getSession(db, sessionId);
+
     return {
       sessionId,
       questId,
@@ -160,9 +165,9 @@ export async function runEmbark(
       turns,
       usage: { tokensIn: totalTokensIn, tokensOut: totalTokensOut },
       cost: totalCost,
+      xp: closedSession?.xpEarned ?? 0,
     };
   } finally {
-    await entity.flush();
     closeSession(db, sessionId);
   }
 }

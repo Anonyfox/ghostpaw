@@ -33,6 +33,7 @@ export interface ChatSession {
   parentSessionId: number | null;
   soulId: number | null;
   questId: number | null;
+  xpEarned: number;
   error: string | null;
 }
 

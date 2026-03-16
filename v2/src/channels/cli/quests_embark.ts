@@ -45,11 +45,12 @@ export default defineCommand({
           `quest #${id} after ${result.turns} turns (status: ${result.finalStatus})`,
         );
       }
+      const xpStr = result.xp > 0 ? ` | ${Math.round(result.xp)} XP` : "";
       console.log(
         style.dim(
           `session #${result.sessionId} | ` +
             `${result.usage.tokensIn + result.usage.tokensOut} tokens | ` +
-            `$${result.cost.toFixed(4)}`,
+            `$${result.cost.toFixed(4)}${xpStr}`,
         ),
       );
     });

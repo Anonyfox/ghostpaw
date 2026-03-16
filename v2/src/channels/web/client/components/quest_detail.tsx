@@ -382,6 +382,27 @@ export function QuestDetail({ questId, storylines, onUpdated, onDone }: Props) {
         </div>
       )}
 
+      {(d.xpEarned > 0 || d.costEstimate) && (
+        <div class="mb-2">
+          <div class="small fw-semibold text-body-secondary mb-1">XP &amp; Cost</div>
+          <div class="d-flex gap-3 small">
+            {d.xpEarned > 0 && (
+              <span>
+                XP earned: <strong class="text-info">{Math.round(d.xpEarned)}</strong>
+              </span>
+            )}
+            {d.costEstimate && (
+              <span>
+                Est. ${d.costEstimate.low.toFixed(4)}–${d.costEstimate.high.toFixed(4)}{" "}
+                <span class="text-body-tertiary">
+                  ({d.costEstimate.confidence}, {d.costEstimate.sampleSize} samples)
+                </span>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {d.occurrences.length > 0 && (
         <div class="mb-2">
           <div class="small fw-semibold text-body-secondary mb-1">Recent Occurrences</div>

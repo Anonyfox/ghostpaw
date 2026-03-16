@@ -5,7 +5,12 @@ import type {
   StreakInfo,
 } from "../../core/quests/api/types.ts";
 
-export function formatQuest(q: Quest, streak?: StreakInfo | null) {
+interface FormatQuestOptions {
+  streak?: StreakInfo | null;
+  xp?: number;
+}
+
+export function formatQuest(q: Quest, opts?: FormatQuestOptions) {
   const out: Record<string, unknown> = {
     id: q.id,
     title: q.title,
@@ -22,14 +27,15 @@ export function formatQuest(q: Quest, streak?: StreakInfo | null) {
   if (q.remindAt) out.remindAt = q.remindAt;
   if (q.rrule) out.rrule = q.rrule;
   if (q.completedAt) out.completedAt = q.completedAt;
-  if (streak && q.rrule) {
+  if (opts?.streak && q.rrule) {
     out.streak = {
-      current: streak.currentStreak,
-      longest: streak.longestStreak,
-      totalDone: streak.totalDone,
-      totalSkipped: streak.totalSkipped,
+      current: opts.streak.currentStreak,
+      longest: opts.streak.longestStreak,
+      totalDone: opts.streak.totalDone,
+      totalSkipped: opts.streak.totalSkipped,
     };
   }
+  if (opts?.xp !== undefined && opts.xp > 0) out.xpEarned = opts.xp;
   out.createdAt = q.createdAt;
   out.updatedAt = q.updatedAt;
   return out;

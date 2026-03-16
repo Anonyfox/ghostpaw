@@ -1,3 +1,4 @@
+export type { CostEstimate } from "../estimate_cost.ts";
 export type {
   CreateQuestInput,
   CreateStorylineInput,

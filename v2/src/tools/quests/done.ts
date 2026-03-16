@@ -1,4 +1,5 @@
 import { createTool, Schema } from "chatoyant";
+import { getXPByQuest } from "../../core/chat/api/read/index.ts";
 import { getQuest, getStreakInfo } from "../../core/quests/api/read/index.ts";
 import { completeQuest } from "../../core/quests/api/write/index.ts";
 import { dropSkillFragment } from "../../core/skills/api/write/index.ts";
@@ -50,8 +51,9 @@ export function createQuestDoneTool(db: DatabaseHandle) {
         if ("questId" in result) {
           const quest = getQuest(db, id)!;
           const streak = getStreakInfo(db, id);
+          const xp = getXPByQuest(db, id);
           return {
-            quest: formatQuest(quest, streak),
+            quest: formatQuest(quest, { streak, xp }),
             occurrence: result,
             note: "Occurrence recorded. Recurring quest remains active.",
           };
@@ -68,7 +70,8 @@ export function createQuestDoneTool(db: DatabaseHandle) {
           // best-effort, don't block completion
         }
 
-        return { quest: formatQuest(result) };
+        const xp = getXPByQuest(db, id);
+        return { quest: formatQuest(result, { xp }) };
       } catch (err) {
         return {
           error: `Failed to complete quest: ${err instanceof Error ? err.message : String(err)}`,

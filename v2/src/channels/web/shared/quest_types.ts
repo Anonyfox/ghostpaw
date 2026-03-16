@@ -52,10 +52,19 @@ export interface SubgoalInfo {
   position: number;
 }
 
+export interface CostEstimateInfo {
+  low: number;
+  high: number;
+  confidence: string;
+  sampleSize: number;
+}
+
 export interface QuestDetailResponse extends QuestInfo {
   occurrences: QuestOccurrenceInfo[];
   streak: StreakInfo | null;
   subgoals: SubgoalInfo[];
+  xpEarned: number;
+  costEstimate: CostEstimateInfo | null;
 }
 
 export interface QuestTrailHint {
@@ -78,6 +87,7 @@ export interface StorylineInfo {
   updatedAt: number;
   completedAt: number | null;
   dueAt: number | null;
+  xpEarned: number;
   progress: {
     total: number;
     done: number;

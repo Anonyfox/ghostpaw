@@ -1,6 +1,8 @@
 export { countQuestsByStatus } from "../../count_quests_by_status.ts";
 export { dueSoonQuests } from "../../due_soon_quests.ts";
 export { embarkEligible } from "../../embark_eligible.ts";
+export type { CostEstimate } from "../../estimate_cost.ts";
+export { estimateQuestCost } from "../../estimate_cost.ts";
 export { getQuest } from "../../get_quest.ts";
 export { getStoryline } from "../../get_storyline.ts";
 export { listOccurrences } from "../../list_occurrences.ts";

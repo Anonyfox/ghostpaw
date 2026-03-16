@@ -151,7 +151,7 @@ Nine tools cover every quest operation, safely within the [tool-count cliff](htt
 |---|---|
 | `quest_create` | Create a quest. Title required, everything else optional. Optional `status: "offered"` for the board. |
 | `quest_update` | Update any quest field. All temporal fields as Unix milliseconds — no date parsing ambiguity. |
-| `quest_done` | Mark a quest as completed (or record a recurring occurrence). Drops skill fragments on non-recurring completion. |
+| `quest_done` | Mark a quest as completed (or record a recurring occurrence). Returns cumulative XP earned. Drops skill fragments on non-recurring completion. |
 | `quest_list` | Query by filter or search by keyword. Supports `temporal: true` for the full temporal context view. |
 | `quest_accept` | Accept an offered quest from the board. Transitions `offered → accepted`. |
 | `quest_dismiss` | Dismiss an offered quest. Transitions `offered → abandoned`. |
@@ -171,7 +171,7 @@ The naming is not cosmetic. RPG quest systems solve the exact same design proble
 
 **Recurring quests are dailies and weeklies — with visible streaks.** Every MMO player understands tasks that reset on a schedule. `FREQ=DAILY` is a daily quest. `FREQ=WEEKLY;BYDAY=MO` is a Monday weekly. Streaks are tracked automatically: "12-day streak on Morning Standup Notes." Miss one and it resets — just like in the games. [Users reaching a 7-day streak are 3.6x more likely to complete their course](https://marketingmonsters.io/blog/the-science-behind-streak-based-motivation). Streak visibility IS the mechanism.
 
-**XP is real.** In the soul system, completed quests ARE the evidence that drives trait acquisition. The js-engineer soul that completed 50 code quests has earned traits from those sessions. Quest completion isn't fake gamification — it is the actual input to the evolutionary system described in [SOULS.md](SOULS.md). Completing quests literally makes ghostpaw stronger through evidence-driven refinement. No bolt-on reward system needed.
+**XP is real.** Every session earns XP — a [Weber-Fechner logarithmic metric](https://en.wikipedia.org/wiki/Weber%E2%80%93Fechner_law) computed at session close from tokens processed, tool diversity, and session duration. Quest XP is the sum of all linked sessions' XP. `computeSessionXP()` is a pure function in `lib/` — no database dependency, fully testable. XP is stored on the session row (`xp_earned REAL`), aggregated per quest via `getXPByQuest()`, and surfaced in CLI `show`, the web detail view, and tool output from `quest_done`. Pre-embark cost estimates project token spend and expected XP from historical ghostpaw-completed quest data via `estimateQuestCost()`. Human-completed quests have 0 XP naturally — no sessions, no tokens, no XP. The delegation incentive falls out of the design without needing a special case. In the soul system, completed quests ARE the evidence that drives trait acquisition. The js-engineer soul that completed 50 code quests has earned traits from those sessions. Quest completion isn't fake gamification — it is the actual input to the evolutionary system described in [SOULS.md](SOULS.md). Completing quests literally makes ghostpaw stronger through evidence-driven refinement. No bolt-on reward system needed.
 
 [Deep gamification with story progression and character growth drives retention for years — task completion rates improve 40–60% over traditional lists](https://www.mainquest.net/gamified-habit-trackers-effectiveness-research-2026). Shallow pointsification (slapping badges on activities) loses effectiveness after 2 weeks. Ghostpaw's quest system is deep by construction: autonomy (quest selection), competence (soul level-ups from quest evidence), relatedness (pack bonds). [Self-Determination Theory identifies these three as the drivers of intrinsic motivation](https://doi.org/10.1037/0003-066X.55.1.68), and the quest system satisfies all three structurally.
 
@@ -215,7 +215,7 @@ The gap is structural. Other agents can answer questions about tasks if you tell
 | `quests` | Temporal summary: overdue, due soon, active, today's events |
 | `list` | List quests with status, priority, and storyline filters |
 | `search <query>` | Full-text search across titles and descriptions |
-| `show <id>` | Quest detail with streak info, occurrences, and metadata |
+| `show <id>` | Quest detail with streak info, occurrences, XP earned, cost estimate, and metadata |
 | `add` | Create a quest (title, optional description, status, priority, temporal fields) |
 | `done <id>` | Mark complete (optional occurrence timestamp for recurring quests) |
 | `update <id>` | Update quest fields |
@@ -223,7 +223,7 @@ The gap is structural. Other agents can answer questions about tasks if you tell
 | `offer` | Create a quest with status `offered` |
 | `accept <id>` | Accept an offered quest |
 | `dismiss <id>` | Dismiss an offered quest |
-| `embark <id>` | Autonomously execute a quest — spawns coordinator sessions with warden validation |
+| `embark <id>` | Autonomously execute a quest — spawns coordinator sessions with warden validation. Displays session XP on completion. |
 | `prowl` | Scan for eligible quests and spawn embark processes |
 | `tend` | Quest board maintenance — dismiss stale entries, log stuck quests |
 | `storyline-list` | List storylines with status filter |
@@ -281,7 +281,7 @@ Quest completions drop skill fragments that accumulate silently in the skills pi
 
 ### Synergies
 
-Mechanical code APIs let other subsystems consume quest data without LLM tokens: `getTemporalContext()` for haunt context assembly, `overdueQuests()` and `dueSoonQuests()` for proactive surfacing, `staleQuests()` for identifying stuck work, `getStorylineProgress()` for storyline progress, `getStreakInfo()` for recurring quest streak computation, and `countQuestsByStatus()` for dashboard summaries. The trail sweep gathers quest state changes internally via `questStateChangesSince()`. Skill fragment drops via `dropSkillFragment()` on quest completion feed the trainer pipeline. Streak-at-risk seeds surface in haunting when a significant streak (5+ consecutive completions) is approaching its gap threshold — ghostpaw proactively nudges before the streak breaks. All return sensible defaults when data is absent. The embark harness (`runEmbark()`) orchestrates autonomous quest execution with coordinator-warden turn alternation, using `embarkEligible()` for candidate selection and `openQuestSessionIds()` (from chat API) for concurrency control. Subgoal CRUD functions (`addSubgoal()`, `completeSubgoal()`, `listSubgoals()`, `removeSubgoal()`, `reorderSubgoals()`) provide the warden with granular progress tracking during embark.
+Mechanical code APIs let other subsystems consume quest data without LLM tokens: `getTemporalContext()` for haunt context assembly, `overdueQuests()` and `dueSoonQuests()` for proactive surfacing, `staleQuests()` for identifying stuck work, `getStorylineProgress()` for storyline progress, `getStreakInfo()` for recurring quest streak computation, and `countQuestsByStatus()` for dashboard summaries. The trail sweep gathers quest state changes internally via `questStateChangesSince()`. Skill fragment drops via `dropSkillFragment()` on quest completion feed the trainer pipeline. Streak-at-risk seeds surface in haunting when a significant streak (5+ consecutive completions) is approaching its gap threshold — ghostpaw proactively nudges before the streak breaks. All return sensible defaults when data is absent. The embark harness (`runEmbark()`) orchestrates autonomous quest execution with coordinator-warden turn alternation, using `embarkEligible()` for candidate selection and `openQuestSessionIds()` (from chat API) for concurrency control. Subgoal CRUD functions (`addSubgoal()`, `completeSubgoal()`, `listSubgoals()`, `removeSubgoal()`, `reorderSubgoals()`) provide the warden with granular progress tracking during embark. XP connects session effort to quest progress — `computeSessionXP()` quantifies every session's work, `getXPByQuest()` aggregates it per quest, and `estimateQuestCost()` projects future quests from historical data. XP earned during embark flows into soul evolution as concrete evidence of capability growth.
 
 ## Quality Criteria Compliance
 
@@ -312,8 +312,10 @@ Empty quest tables produce empty temporal context — every read function return
 ## Data Contract
 
 - **Primary tables:** `quests`, `storylines`, `quest_occurrences`, `quest_subgoals`, `quests_fts` (FTS5 virtual table).
-- **Canonical models:** `Quest`, `Storyline`, `QuestOccurrence`, `Subgoal`, `StorylineProgress`, `StreakInfo`, `TemporalContext`.
+- **Canonical models:** `Quest`, `Storyline`, `QuestOccurrence`, `Subgoal`, `StorylineProgress`, `StreakInfo`, `TemporalContext`, `CostEstimate`.
 - **Input models:** `CreateQuestInput`, `UpdateQuestInput`, `CreateStorylineInput`, `UpdateStorylineInput`, `ListQuestsOptions`, `ListStorylinesOptions`.
+- **XP storage:** `xp_earned REAL NOT NULL DEFAULT 0` on `sessions` table (owned by `core/chat`). Quest XP aggregated via `getXPByQuest()` from `core/chat/api/read/`. `SessionXPInputs` interface in `lib/`.
+- **Cost estimation:** `CostEstimate` interface (`low`, `high`, `avgXP`, `confidence`, `sampleSize`) in `core/quests/api/types.ts`. Derived on-the-fly from historical ghostpaw-completed session data — not stored.
 - **Status values:** `offered`, `accepted`, `active`, `blocked`, `done`, `failed`, `abandoned`.
 - **Terminal statuses:** `done`, `failed`, `abandoned`.
 - **Board statuses:** `offered`.
@@ -328,7 +330,11 @@ Empty quest tables produce empty temporal context — every read function return
 
 ### Read
 
-`countQuestsByStatus()`, `dueSoonQuests()`, `embarkEligible()`, `getQuest()`, `getStreakInfo()`, `getStoryline()`, `getStorylineProgress()`, `getTemporalContext()`, `listOccurrences()`, `listStorylines()`, `listSubgoals()`, `listQuests()`, `overdueQuests()`, `recentlyCompletedQuests()`, and `staleQuests()`.
+`countQuestsByStatus()`, `dueSoonQuests()`, `embarkEligible()`, `estimateQuestCost()`, `getQuest()`, `getStreakInfo()`, `getStoryline()`, `getStorylineProgress()`, `getTemporalContext()`, `listOccurrences()`, `listStorylines()`, `listSubgoals()`, `listQuests()`, `overdueQuests()`, `recentlyCompletedQuests()`, and `staleQuests()`.
+
+**Cross-subsystem (from `core/chat/api/read/`):** `getXPByQuest()`, `getQuestCostHistory()`.
+
+**Pure functions (from `lib/`):** `computeSessionXP()` — Weber-Fechner logarithmic XP from session metrics.
 
 **Internal (not exported, used by trail):** `questStateChangesSince()` — returns quests updated since a timestamp, consumed by the trail sweep's gathering phase.
 
@@ -344,7 +350,7 @@ Empty quest tables produce empty temporal context — every read function return
 
 - **Conversation:** the coordinator delegates to the warden for quest creation, completion, board management, and temporal queries during natural chat.
 - **CLI:** full subcommand tree for inspection, creation, updates, search, board management, and storyline operations.
-- **Web UI:** dedicated `/quests` page with three tabs (Quest Log, Quest Board, Storylines), quest detail with streak tracking and occurrences for recurring quests, storyline detail with progress, trail context hints integration, and inline actions.
+- **Web UI:** dedicated `/quests` page with three tabs (Quest Log, Quest Board, Storylines), quest detail with streak tracking, occurrences for recurring quests, XP earned, cost estimate for active quests, storyline detail with progress and cumulative XP, trail context hints integration, and inline actions.
 - **Background:** temporal context assembled automatically during haunt cycles. Skill fragments dropped on quest completion. Quest state changes gathered by the trail sweep. `prowl` heartbeat spawns autonomous embark sessions for eligible quests. `tend` heartbeat maintains board hygiene.
 
 ## Research Map
@@ -357,27 +363,13 @@ Empty quest tables produce empty temporal context — every read function return
 - **Proactive agent scheduling and temporal triggers:** `Temporal Context`
 - **Streak tracking, loss aversion, and habit momentum:** `What You Get` (recurring quests), `A Gamer's Guide to Quests`, `Synergies`
 - **Compounding across subsystems:** `How Quests Compound`
+- **Weber-Fechner XP scaling and delegation economics:** `A Gamer's Guide to Quests` (XP), `What You Get` (XP)
 
 ## Implementation Roadmap
 
 The current quest system is a fully operational unified temporal tracker. The capabilities below are designed, researched, and ready to build — each one extends the existing architecture without breaking what works today. The [original design document](../QUESTS.md) contains the full research foundation, schema extensions, and detailed rationale for every item.
 
-### 1. XP and Cost Estimation
-
-A universal session metric grounded in [Weber-Fechner logarithmic scaling](https://en.wikipedia.org/wiki/Weber%E2%80%93Fechner_law), computed from observable session data. Makes effort legible and delegation economics transparent.
-
-- [ ] XP formula: `log(1 + tokens) × diversity_factor × (1 - error_rate) × duration_factor`
-- [ ] Inputs: token counts, tool call diversity, error density, session duration
-- [ ] Compute XP at session close, store on quest (or occurrence for recurring)
-- [ ] Pre-embark cost estimate: project token usage from quest complexity + historical data
-- [ ] Display XP in quest detail, storyline progress, CLI `show`
-- [ ] Delegation incentive: ghostpaw-completed quests earn XP + drops; human-completed quests advance storyline but produce fewer drops
-
-**Already in place:** Session metadata (token counts, tool calls, duration) is tracked. Soul evolution already uses quest completion as evidence — XP formalizes the signal.
-
-**Research:** [Weber-Fechner law](https://en.wikipedia.org/wiki/Weber%E2%80%93Fechner_law) for logarithmic perception scaling, [AI agent cost analysis](https://www.zenrows.com/blog/ai-agent-cost) for delegation economics.
-
-### 2. Quest Turn-in and Drops
+### 1. Quest Turn-in and Drops
 
 A two-step completion lifecycle that separates "work is done" from "rewards are revealed." The celebration moment — the chest-opening animation.
 
@@ -396,6 +388,6 @@ A two-step completion lifecycle that separates "work is done" from "rewards are 
 
 ---
 
-**Recommended build order:** (1) XP and cost estimation — quantifies execution effort. (2) Turn-in and drops — the reward ceremony that ties everything together.
+**Recommended build order:** XP and cost estimation is complete. Next: turn-in and drops — the reward ceremony that ties everything together.
 
 The full design with schema extensions, edge cases, and additional research citations lives in the [original design document](../QUESTS.md).
