@@ -89,7 +89,7 @@ Those systems tune ephemeral per-run parameters. Ghostpaw goes further: config c
 
 ### System and Custom Keys
 
-Ghostpaw ships known system keys with type, default, and validation constraints in code — no database seeding required. If no override exists, the code default applies. Each feature documents its own keys: [Souls](SOULS.md#configuration), [Memory](MEMORY.md#configuration), [Howl](../HOWL.md#rate-limiting). Any unlisted key is custom — type inferred, no restrictions beyond type correctness. Skills and agents persist preferences (`review.style = thorough`, `deploy.target = staging`) with the same history, attribution, and undo.
+Ghostpaw ships known system keys with type, default, and validation constraints in code — no database seeding required. If no override exists, the code default applies. Each feature documents its own keys: [Souls](SOULS.md#configuration), [Memory](MEMORY.md#configuration), [Howl](./CHAT.md#howl-as-a-chat-mode). Any unlisted key is custom — type inferred, no restrictions beyond type correctness. Skills and agents persist preferences (`review.style = thorough`, `deploy.target = staging`) with the same history, attribution, and undo.
 
 ### Managing Config
 
@@ -153,7 +153,7 @@ Each schedule tracks: `timeout_ms` (max runtime), `started_at` (claim timestamp)
 
 ### Comparison
 
-OpenClaw's heartbeat reads a static `HEARTBEAT.md` at fixed intervals — whether or not anything changed. [60–80% of tokens wasted](../HAUNT.md) on "nothing to report." At default intervals: [2–3M tokens/day](https://e2b.dev/blog/how-much-do-ai-agents-cost-comprehensive-cost-analysis) in overhead, [$720+/month](https://www.zenrows.com/blog/ai-agent-cost). Ghostpaw's scheduler is pure temporal infrastructure — it rings the bell, the ghost decides whether to act. Haunting uses [adaptive sleep with exponential backoff](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/); Microsoft's [SentinelStep](https://arxiv.org/abs/2502.09228) validated dynamic polling for reduced idle computation. An idle ghost costs near-zero. Agents cost [3–10x more than chatbots](https://www.zenrows.com/blog/ai-agent-cost) — near-zero idle cost is the difference between sustainable and budget sinkhole.
+OpenClaw's heartbeat reads a static `HEARTBEAT.md` at fixed intervals — whether or not anything changed. [60–80% of tokens wasted](./CHAT.md#haunt-as-a-chat-mode) on "nothing to report." At default intervals: [2–3M tokens/day](https://e2b.dev/blog/how-much-do-ai-agents-cost-comprehensive-cost-analysis) in overhead, [$720+/month](https://www.zenrows.com/blog/ai-agent-cost). Ghostpaw's scheduler is pure temporal infrastructure — it rings the bell, the ghost decides whether to act. Haunting uses [adaptive sleep with exponential backoff](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/); Microsoft's [SentinelStep](https://arxiv.org/abs/2502.09228) validated dynamic polling for reduced idle computation. An idle ghost costs near-zero. Agents cost [3–10x more than chatbots](https://www.zenrows.com/blog/ai-agent-cost) — near-zero idle cost is the difference between sustainable and budget sinkhole.
 
 | Dimension | OpenClaw Heartbeat | Ghostpaw Scheduling |
 |-----------|-------------------|-------------------|

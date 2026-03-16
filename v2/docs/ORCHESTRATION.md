@@ -44,9 +44,9 @@ Interactive modes that generate experience and drive everything else forward. Pl
 
 **Chat** is user → ghost. Synchronous conversation across any channel. The human talks, the ghost responds, and the exchange generates evidence that feeds into memory, pack bonds, and soul refinement.
 
-**Haunt** is ghost alone. Asynchronous autonomous thinking with no human on the other end. Between conversations, the ghost follows its own curiosity — exploring, reflecting, making connections. The ghost's private inner life. See `HAUNT.md`.
+**Haunt** is ghost alone. Asynchronous autonomous thinking with no human on the other end. Between conversations, the ghost follows its own curiosity — exploring, reflecting, making connections. The ghost's private inner life. See `features/CHAT.md`.
 
-**Howl** is ghost → user. Asynchronous targeted outreach where the ghost initiates contact to fill a knowledge gap, flag a danger, request a decision, or simply ask a playful curiosity question. Each howl is a mini learning cycle — the question, the user's response (or dismissal), and the warden's consolidation of what was learned. See `HOWL.md`.
+**Howl** is ghost → user. Asynchronous targeted outreach where the ghost initiates contact to fill a knowledge gap, flag a danger, request a decision, or simply ask a playful curiosity question. Each howl is a mini learning cycle — the question, the user's response (or dismissal), and the warden's consolidation of what was learned. See `features/CHAT.md`.
 
 Every play session generates experience that persistence engines store and evolution modules compound. The three modes together ensure the ghost is never passive — it converses when spoken to, thinks when alone, and reaches out when it has something worth asking.
 
@@ -449,7 +449,7 @@ The warden's pack tool surface expands to cover contact management and merging:
 
 ## Haunting as Orchestration
 
-Haunting is the ghost's autonomous inner life — thinking, exploring, and acting from intrinsic drive when no one is talking. See `HAUNT.md` for the full thesis, research foundation, and design rationale. This section captures how haunting fits into the execution model.
+Haunting is the ghost's autonomous inner life — thinking, exploring, and acting from intrinsic drive when no one is talking. See `features/CHAT.md` for the full thesis, research foundation, and design rationale. This section captures how haunting fits into the execution model.
 
 ### Haunting is a background chat session
 

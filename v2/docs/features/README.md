@@ -108,8 +108,6 @@ Most do map directly to a core namespace. Some are umbrella or spec documents:
 - `SETTINGS.md` is the product umbrella over `src/core/config`, `src/core/secrets`, and
   `src/core/schedule`.
 - `QUESTS.md` lives one level up in `docs/` because it predates this folder layout.
-- `HAUNT.md` and `HOWL.md` are chat-mode deep dives. They are subordinate to `CHAT.md`, not separate
-  core namespaces.
 
 | Subsystem | One-Line | Managing Soul |
 |-----------|----------|---------------|

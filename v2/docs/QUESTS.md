@@ -290,7 +290,7 @@ During haunting, temporal context becomes richer:
 - **Recurring patterns** — what's due to recur in the upcoming period
 - **Completed recently** — what was accomplished in the past 48 hours
 
-This gives the haunt cycle material to work with. A ghost that knows a deadline is approaching thinks differently about what's worth investigating. A ghost that sees stale active quests might proactively ask the human about them. Temporal awareness feeds the same curiosity mechanisms described in HAUNT.md — specific gaps in the ghost's knowledge of what's happening next.
+This gives the haunt cycle material to work with. A ghost that knows a deadline is approaching thinks differently about what's worth investigating. A ghost that sees stale active quests might proactively ask the human about them. Temporal awareness feeds the same curiosity mechanisms described in features/CHAT.md — specific gaps in the ghost's knowledge of what's happening next.
 
 ### Proactive Messaging
 

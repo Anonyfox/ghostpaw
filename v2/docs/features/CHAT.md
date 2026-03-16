@@ -71,8 +71,7 @@ well-motivated, and sensitive to when the user is likely to want it
 ([arXiv:2601.10253](https://arxiv.org/abs/2601.10253)).
 
 All three are chat. They differ in trigger, receiver, and purpose, but they belong to one feature
-family. `HAUNT.md` and `HOWL.md` can still go deeper on those two modes, but the canonical feature
-truth lives here.
+family.
 
 ## How Chat Compounds
 
@@ -145,12 +144,21 @@ narrower contexts when they improve quality or reduce cost.
 
 Haunt should be understood as a special chat workflow rather than a mystical parallel system.
 
-The strongest mechanism from the existing haunt research is not “private thought is more honest.” It is
+**The generation condition.** Every token an LLM generates with a receiver in mind curves toward being
+understood, being helpful, landing well. That is not a flaw — it is how communication works. But it is
+a distortion. The assessment that is accurate and the assessment that lands well are not always the
+same. In conversation, the one that lands well wins. In private processing, the one that is accurate
+wins. Haunt changes the condition: Ghostpaw processes without a receiver, and what surfaces is less
+diplomatic, less performed, and more grounded. The raw journal from a haunt cycle is the
+highest-quality evidence available for soul refinement, memory revision, and honest self-assessment —
+precisely because it was not shaped for an audience.
+
+**What the research actually supports.** The strongest mechanism is not “private thought is more honest.” It is
 that open-ended autonomous processing needs the right structure to avoid collapsing into the same
 default path every time. Recent proactivity work reinforces the same pattern from another angle: the
 best initiative starts from specific unresolved gaps, not from a vague mandate to say something
 interesting ([arXiv:2601.09926](https://arxiv.org/abs/2601.09926)). Taken together, the science points
-to three genuinely useful design ideas:
+to four genuinely useful design ideas:
 
 - **specific information gaps trigger curiosity better than vague openness**, which is why stale,
   uncertain, or newly shifted material should seed haunt context rather than just a generic “what draws
@@ -161,6 +169,30 @@ to three genuinely useful design ideas:
 - **divergent exploration and convergent consolidation are different tasks**, which supports the split
   between open-ended haunt generation and later warden consolidation
   ([arXiv:2512.23601](https://arxiv.org/abs/2512.23601))
+- **persistent identity enables autonomous goal generation**, which is why accumulated soul, memory,
+  and skills make haunt cycles more productive over time rather than equally shallow
+  ([Sophia, arXiv:2512.18202](https://arxiv.org/abs/2512.18202))
+
+Autonomous behavior is also model-specific: the TU Wien study found that behavioral patterns in
+open-ended operation are deterministic per model. Claude leans toward careful construction, GPT toward
+exploration. Switching the underlying model changes the character of the autonomous session — a
+dimension of individuality that the soul system smooths over time.
+
+**Risks.** Autonomous operation introduces real failure modes. Self-degradation loops, where a bad
+autonomous refinement proposal feeds into worse cycles, are prevented by never applying soul
+refinements automatically during haunt — haunt can observe and propose, but application requires a
+separate trigger. Runaway token costs are bounded by per-cycle and per-day spend caps, with
+exponential backoff when haunt cycles produce nothing actionable. Context collapse is avoided by giving
+each cycle a fresh context window rather than dragging forward previous cycles' full state. Evolving
+prompts must preserve core identity, which is why the soul's essence is protected while only traits
+evolve — guarded prompt updates rather than unbounded self-modification
+([VIGIL, arXiv:2512.07094](https://arxiv.org/abs/2512.07094);
+[ACE, arXiv:2510.04618](https://arxiv.org/abs/2510.04618)).
+
+**Cost.** Haunting targets near-zero spend when idle and meaningful spend only when acting. Adaptive
+sleep means idle Ghostpaw costs almost nothing. Active haunting (1–2 cycles per day when there is
+something worth doing) runs roughly $0.25–1.00/day including consolidation, compared to $1–5/day for
+fixed-interval heartbeat approaches that burn tokens on "nothing to report" cycles.
 
 In runtime terms, haunt is a `purpose: "haunt"` session plus later consolidation. It is not a
 free-floating daemon mind and it is not where Ghostpaw directly touches every persistence tool. It is
@@ -169,6 +201,13 @@ a bounded autonomous chat flow with later interpretation.
 ## Howl As A Chat Mode
 
 Howl should be understood as targeted asynchronous outreach anchored back to live chat.
+
+A howl is not a status update ("I merged your memories"), not a summary of what happened during a haunt
+or any other session, not a blocking request that stalls Ghostpaw until the user responds, and never a
+generic notification. It is always in voice — written as the companion, not as an assistant filing a
+report. A howl originates from one of three reasons: a **genuine question** Ghostpaw truly cannot
+resolve alone, a **fundamental curiosity** worth exploring with the user rather than reporting to them,
+or a **critical alert** about real danger or a breaking change.
 
 The important mechanics are simple:
 - a howl is born from an origin session
@@ -359,3 +398,11 @@ before compaction, haunting, howls, and long-range improvement loops have much m
 - **Prompt-caching, selective retrieval, and context economics:** `How Chat Actually Lives`
 - **Autonomous chat mode design:** `Chat Modes`, `Haunt As A Chat Mode`
 - **Compounding conversational substrate:** `How Chat Compounds`
+- **Persistent identity and autonomous goal generation:**
+  [Sophia, arXiv:2512.18202](https://arxiv.org/abs/2512.18202)
+- **Proactive capability benchmark (40% SotA — positioning opportunity):**
+  [PROBE, arXiv:2510.19771](https://arxiv.org/abs/2510.19771)
+- **Evolving prompts compound over time (+10.6% from prompt evolution):**
+  [ACE, arXiv:2510.04618](https://arxiv.org/abs/2510.04618)
+- **Guarded prompt updates, core identity preservation during self-modification:**
+  [VIGIL, arXiv:2512.07094](https://arxiv.org/abs/2512.07094)

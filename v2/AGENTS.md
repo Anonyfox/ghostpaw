@@ -13,7 +13,7 @@ If you are working on a specific system, also read its spec:
 | Souls | `docs/features/SOULS.md` | **Implemented** | Evolutionary identity, traits, refinement, level-up |
 | Memory | `docs/features/MEMORY.md` | **Implemented** | Belief-based storage, recall, embeddings, confidence decay |
 | Settings | `docs/features/SETTINGS.md` | **Implemented** | Secrets, configuration, scheduling — chamberlain-managed infrastructure |
-| Haunting | `docs/HAUNT.md` | **Implemented** | Haunt cycle, scheduled via builtin scheduler |
+| Haunting | `docs/features/CHAT.md` | **Implemented** | Haunt cycle, scheduled via builtin scheduler |
 | Quests | `docs/QUESTS.md` | **Implemented** | Unified task/event/calendar system, temporal awareness, Quest Board |
 | Pack | `docs/features/PACK.md` | **Implemented** | Social bonds, Theory of Mind, relational identity |
 | Pawprints | `docs/PAWPRINT.md` | **Spec only** | Situated experiential knowledge, discovery by presence |
