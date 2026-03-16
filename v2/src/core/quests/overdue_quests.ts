@@ -7,7 +7,7 @@ export function overdueQuests(db: DatabaseHandle, limit = 5): Quest[] {
     .prepare(
       `SELECT * FROM quests
        WHERE due_at IS NOT NULL AND due_at < ?
-         AND status NOT IN ('offered','done','failed','cancelled')
+         AND status NOT IN ('offered','done','failed','abandoned')
        ORDER BY due_at ASC LIMIT ?`,
     )
     .all(Date.now(), limit) as Record<string, unknown>[];

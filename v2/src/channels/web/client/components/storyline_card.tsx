@@ -1,30 +1,30 @@
 import { Link } from "wouter-preact";
-import type { QuestLogInfo } from "../../shared/quest_types.ts";
+import type { StorylineInfo } from "../../shared/quest_types.ts";
 import { relativeDue } from "../../shared/quest_types.ts";
 import { QuestStatusPill } from "./quest_status_pill.tsx";
 
 interface Props {
-  log: QuestLogInfo;
+  storyline: StorylineInfo;
 }
 
-export function QuestLogCard({ log }: Props) {
-  const { progress } = log;
+export function StorylineCard({ storyline }: Props) {
+  const { progress } = storyline;
   const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
 
   return (
-    <Link href={`/quests/logs/${log.id}`} class="text-decoration-none">
+    <Link href={`/quests/storylines/${storyline.id}`} class="text-decoration-none">
       <div class="card border h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start mb-2">
-            <h6 class="card-title mb-0 text-body">{log.title}</h6>
-            <QuestStatusPill status={log.status} />
+            <h6 class="card-title mb-0 text-body">{storyline.title}</h6>
+            <QuestStatusPill status={storyline.status} />
           </div>
-          {log.description && (
+          {storyline.description && (
             <p
               class="card-text small text-body-secondary mb-2"
               style="overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"
             >
-              {log.description}
+              {storyline.description}
             </p>
           )}
           <div class="progress quest-progress-bar mb-1" style="height: 8px;">
@@ -41,11 +41,11 @@ export function QuestLogCard({ log }: Props) {
             <span class="small text-body-tertiary">
               {progress.done}/{progress.total} done
             </span>
-            {log.dueAt && (
+            {storyline.dueAt && (
               <span
-                class={`small ${log.dueAt < Date.now() ? "text-danger" : "text-body-tertiary"}`}
+                class={`small ${storyline.dueAt < Date.now() ? "text-danger" : "text-body-tertiary"}`}
               >
-                {relativeDue(log.dueAt)}
+                {relativeDue(storyline.dueAt)}
               </span>
             )}
           </div>

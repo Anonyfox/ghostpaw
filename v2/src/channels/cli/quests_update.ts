@@ -19,10 +19,10 @@ export default defineCommand({
     desc: { type: "string", description: "New description" },
     status: {
       type: "string",
-      description: "New status: pending, active, blocked, done, failed, cancelled",
+      description: "New status: accepted, active, blocked, done, failed, abandoned",
     },
     priority: { type: "string", description: "New priority: low, normal, high, urgent" },
-    log: { type: "string", description: "Move to quest log ID" },
+    log: { type: "string", description: "Move to storyline ID" },
     tags: { type: "string", description: "New comma-separated tags" },
     due: { type: "string", description: "New due date (ISO 8601 or unix ms)" },
     starts: { type: "string", description: "New start time (ISO 8601 or unix ms)" },
@@ -51,7 +51,7 @@ export default defineCommand({
         if (args.rrule) input.rrule = args.rrule as string;
 
         if (args.log) {
-          input.questLogId = Number.parseInt(args.log as string, 10);
+          input.storylineId = Number.parseInt(args.log as string, 10);
         }
         if (args.due) input.dueAt = parseTimestamp(args.due as string);
         if (args.starts) input.startsAt = parseTimestamp(args.starts as string);
@@ -68,7 +68,7 @@ export default defineCommand({
               input.tags = null;
             },
             log: () => {
-              input.questLogId = null;
+              input.storylineId = null;
             },
             due: () => {
               input.dueAt = null;

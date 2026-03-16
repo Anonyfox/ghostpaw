@@ -1,37 +1,37 @@
 import type { IncomingMessage } from "node:http";
 import {
   getQuest,
-  getQuestLog,
-  getQuestLogProgress,
+  getStoryline,
+  getStorylineProgress,
   getTemporalContext,
   listOccurrences,
-  listQuestLogs,
   listQuests,
+  listStorylines,
 } from "../../../../core/quests/api/read/index.ts";
 import type {
   Quest,
-  QuestLog,
   QuestOccurrence,
   QuestStatus,
+  Storyline,
 } from "../../../../core/quests/api/types.ts";
 import {
   acceptQuest,
   completeQuest,
   createQuest,
-  createQuestLog,
+  createStoryline,
   dismissQuest,
   skipOccurrence,
   updateQuest,
-  updateQuestLog,
+  updateStoryline,
 } from "../../../../core/quests/api/write/index.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type {
   CreateQuestBody,
-  CreateQuestLogBody,
+  CreateStorylineBody,
   QuestInfo,
-  QuestLogInfo,
+  StorylineInfo,
   UpdateQuestBody,
-  UpdateQuestLogBody,
+  UpdateStorylineBody,
 } from "../../shared/quest_types.ts";
 import { readJsonBody } from "../body_parser.ts";
 import type { RouteContext } from "../types.ts";
@@ -65,7 +65,7 @@ function toQuestInfo(q: Quest): QuestInfo {
     description: q.description,
     status: q.status,
     priority: q.priority,
-    questLogId: q.questLogId,
+    storylineId: q.storylineId,
     tags: q.tags,
     createdBy: q.createdBy,
     createdAt: q.createdAt,
@@ -80,18 +80,18 @@ function toQuestInfo(q: Quest): QuestInfo {
   };
 }
 
-function toQuestLogInfo(log: QuestLog, db: DatabaseHandle): QuestLogInfo {
-  const progress = getQuestLogProgress(db, log.id);
+function toStorylineInfo(storyline: Storyline, db: DatabaseHandle): StorylineInfo {
+  const progress = getStorylineProgress(db, storyline.id);
   return {
-    id: log.id,
-    title: log.title,
-    description: log.description,
-    status: log.status,
-    createdBy: log.createdBy,
-    createdAt: log.createdAt,
-    updatedAt: log.updatedAt,
-    completedAt: log.completedAt,
-    dueAt: log.dueAt,
+    id: storyline.id,
+    title: storyline.title,
+    description: storyline.description,
+    status: storyline.status,
+    createdBy: storyline.createdBy,
+    createdAt: storyline.createdAt,
+    updatedAt: storyline.updatedAt,
+    completedAt: storyline.completedAt,
+    dueAt: storyline.dueAt,
     progress,
   };
 }
@@ -107,7 +107,7 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
       const quests = listQuests(db, {
         status: (qs.get("status") as Quest["status"] | undefined) ?? undefined,
         priority: (qs.get("priority") as Quest["priority"] | undefined) ?? undefined,
-        questLogId: qs.get("log") ? Number(qs.get("log")) : undefined,
+        storylineId: qs.get("storyline") ? Number(qs.get("storyline")) : undefined,
         query: qs.get("query") ?? undefined,
         excludeStatuses,
         limit: qs.get("limit") ? Number(qs.get("limit")) : 100,
@@ -135,7 +135,7 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
         description,
         status,
         priority,
-        questLogId,
+        storylineId,
         tags,
         createdBy,
         startsAt,
@@ -151,7 +151,7 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
           description,
           status,
           priority,
-          questLogId,
+          storylineId,
           tags,
           createdBy,
           startsAt,
@@ -192,7 +192,7 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
         description,
         status,
         priority,
-        questLogId,
+        storylineId,
         tags,
         startsAt,
         endsAt,
@@ -206,7 +206,7 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
           description,
           status,
           priority,
-          questLogId,
+          storylineId,
           tags,
           startsAt,
           endsAt,
@@ -256,57 +256,57 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
       }
     },
 
-    logList(ctx: RouteContext) {
+    storylineList(ctx: RouteContext) {
       const qs = parseQuery(ctx.req.url);
-      const logs = listQuestLogs(db, {
-        status: (qs.get("status") as QuestLog["status"] | undefined) ?? undefined,
+      const storylines = listStorylines(db, {
+        status: (qs.get("status") as Storyline["status"] | undefined) ?? undefined,
         limit: qs.get("limit") ? Number(qs.get("limit")) : 50,
       });
-      json(ctx, 200, { logs: logs.map((l) => toQuestLogInfo(l, db)) });
+      json(ctx, 200, { storylines: storylines.map((s) => toStorylineInfo(s, db)) });
     },
 
-    async logCreate(ctx: RouteContext) {
+    async storylineCreate(ctx: RouteContext) {
       const body = await parseBody(ctx.req);
       if (!body) return json(ctx, 400, { error: "Invalid request body." });
-      const { title, description, dueAt, createdBy } = body as unknown as CreateQuestLogBody;
+      const { title, description, dueAt, createdBy } = body as unknown as CreateStorylineBody;
       if (!title?.trim()) return json(ctx, 400, { error: "Title is required." });
       try {
-        const log = createQuestLog(db, { title, description, dueAt, createdBy });
-        json(ctx, 201, toQuestLogInfo(log, db));
+        const storyline = createStoryline(db, { title, description, dueAt, createdBy });
+        json(ctx, 201, toStorylineInfo(storyline, db));
       } catch (err) {
         json(ctx, 400, { error: (err as Error).message });
       }
     },
 
-    logDetail(ctx: RouteContext) {
+    storylineDetail(ctx: RouteContext) {
       const id = Number(ctx.params.id);
-      if (!Number.isInteger(id)) return json(ctx, 400, { error: "Invalid quest log ID." });
-      const log = getQuestLog(db, id);
-      if (!log) return json(ctx, 404, { error: `Quest log #${id} not found.` });
-      const quests = listQuests(db, { questLogId: id, limit: 200 });
-      json(ctx, 200, { ...toQuestLogInfo(log, db), quests: quests.map(toQuestInfo) });
+      if (!Number.isInteger(id)) return json(ctx, 400, { error: "Invalid storyline ID." });
+      const storyline = getStoryline(db, id);
+      if (!storyline) return json(ctx, 404, { error: `Storyline #${id} not found.` });
+      const quests = listQuests(db, { storylineId: id, limit: 200 });
+      json(ctx, 200, { ...toStorylineInfo(storyline, db), quests: quests.map(toQuestInfo) });
     },
 
-    async logUpdate(ctx: RouteContext) {
+    async storylineUpdate(ctx: RouteContext) {
       const id = Number(ctx.params.id);
-      if (!Number.isInteger(id)) return json(ctx, 400, { error: "Invalid quest log ID." });
+      if (!Number.isInteger(id)) return json(ctx, 400, { error: "Invalid storyline ID." });
       const body = await parseBody(ctx.req);
       if (!body) return json(ctx, 400, { error: "Invalid request body." });
-      const { title, description, status, dueAt } = body as unknown as UpdateQuestLogBody;
+      const { title, description, status, dueAt } = body as unknown as UpdateStorylineBody;
       try {
-        const log = updateQuestLog(db, id, { title, description, status, dueAt });
-        json(ctx, 200, toQuestLogInfo(log, db));
+        const storyline = updateStoryline(db, id, { title, description, status, dueAt });
+        json(ctx, 200, toStorylineInfo(storyline, db));
       } catch (err) {
         json(ctx, 400, { error: (err as Error).message });
       }
     },
 
-    async logDone(ctx: RouteContext) {
+    async storylineDone(ctx: RouteContext) {
       const id = Number(ctx.params.id);
-      if (!Number.isInteger(id)) return json(ctx, 400, { error: "Invalid quest log ID." });
+      if (!Number.isInteger(id)) return json(ctx, 400, { error: "Invalid storyline ID." });
       try {
-        const log = updateQuestLog(db, id, { status: "completed" });
-        json(ctx, 200, toQuestLogInfo(log, db));
+        const storyline = updateStoryline(db, id, { status: "completed" });
+        json(ctx, 200, toStorylineInfo(storyline, db));
       } catch (err) {
         json(ctx, 400, { error: (err as Error).message });
       }
@@ -316,9 +316,9 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
       const id = Number(ctx.params.id);
       if (!Number.isInteger(id)) return json(ctx, 400, { error: "Invalid quest ID." });
       const body = await parseBody(ctx.req);
-      const questLogId = body?.questLogId as number | undefined;
+      const storylineId = body?.storylineId as number | undefined;
       try {
-        const q = acceptQuest(db, id, { questLogId });
+        const q = acceptQuest(db, id, { storylineId });
         json(ctx, 200, toQuestInfo(q));
       } catch (err) {
         json(ctx, 400, { error: (err as Error).message });

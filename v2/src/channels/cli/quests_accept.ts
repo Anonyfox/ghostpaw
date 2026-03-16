@@ -14,7 +14,7 @@ export default defineCommand({
     },
     log: {
       type: "string",
-      description: "Assign to quest log by ID",
+      description: "Assign to storyline by ID",
     },
   },
   async run({ args }) {
@@ -26,11 +26,11 @@ export default defineCommand({
 
     try {
       await withRunDb((db) => {
-        const questLogId = args.log ? Number.parseInt(args.log as string, 10) : undefined;
-        const q = acceptQuest(db, id, { questLogId });
+        const storylineId = args.log ? Number.parseInt(args.log as string, 10) : undefined;
+        const q = acceptQuest(db, id, { storylineId });
         console.log(style.cyan("accepted".padStart(10)), ` #${q.id} "${q.title}"`);
-        if (q.questLogId) {
-          console.log(style.dim(`${"".padStart(10)}  assigned to log #${q.questLogId}`));
+        if (q.storylineId) {
+          console.log(style.dim(`${"".padStart(10)}  assigned to storyline #${q.storylineId}`));
         }
       });
     } catch (err) {

@@ -36,7 +36,7 @@ export function createQuestDoneTool(db: DatabaseHandle) {
       const existing = getQuest(db, id);
       if (!existing) return { error: `Quest #${id} not found.` };
 
-      if (["done", "failed", "cancelled"].includes(existing.status)) {
+      if (["done", "failed", "abandoned"].includes(existing.status)) {
         return { error: `Quest #${id} is already "${existing.status}".` };
       }
 

@@ -8,14 +8,14 @@ import questsDismiss from "./quests_dismiss.ts";
 import questsDone from "./quests_done.ts";
 import { formatDate, relativeAge, relativeDue } from "./quests_format.ts";
 import questsList from "./quests_list.ts";
-import questsLogAdd from "./quests_log_add.ts";
-import questsLogDone from "./quests_log_done.ts";
-import questsLogList from "./quests_log_list.ts";
-import questsLogShow from "./quests_log_show.ts";
-import questsLogUpdate from "./quests_log_update.ts";
 import questsOffer from "./quests_offer.ts";
 import questsSearch from "./quests_search.ts";
 import questsShow from "./quests_show.ts";
+import questsStorylineAdd from "./quests_storyline_add.ts";
+import questsStorylineDone from "./quests_storyline_done.ts";
+import questsStorylineList from "./quests_storyline_list.ts";
+import questsStorylineShow from "./quests_storyline_show.ts";
+import questsStorylineUpdate from "./quests_storyline_update.ts";
 import questsUpdate from "./quests_update.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -32,11 +32,11 @@ export default defineCommand({
     offer: questsOffer,
     accept: questsAccept,
     dismiss: questsDismiss,
-    "log-list": questsLogList,
-    "log-add": questsLogAdd,
-    "log-show": questsLogShow,
-    "log-done": questsLogDone,
-    "log-update": questsLogUpdate,
+    "storyline-list": questsStorylineList,
+    "storyline-add": questsStorylineAdd,
+    "storyline-show": questsStorylineShow,
+    "storyline-done": questsStorylineDone,
+    "storyline-update": questsStorylineUpdate,
   },
   async run() {
     const subs = [
@@ -50,11 +50,11 @@ export default defineCommand({
       "offer",
       "accept",
       "dismiss",
-      "log-list",
-      "log-add",
-      "log-show",
-      "log-done",
-      "log-update",
+      "storyline-list",
+      "storyline-add",
+      "storyline-show",
+      "storyline-done",
+      "storyline-update",
     ];
     const positionals = process.argv.slice(2).filter((a) => !a.startsWith("-"));
     if (positionals.length > 1 && subs.includes(positionals[1])) return;

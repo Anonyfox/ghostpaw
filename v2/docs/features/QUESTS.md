@@ -14,7 +14,7 @@ Managed by the **Warden** soul. The warden owns all persistence — memory, pack
 
 **The Quest Board.** An unsorted opportunity space — not an inbox, not a GTD bucket. Ghostpaw proposes quests it noticed during conversations, haunts, and consolidation: "You mentioned a deploy deadline Friday — I'm tracking it." The human dumps quick ideas: "Maybe I should refactor that auth module." Both land on the board as `offered` quests. Accept when you're ready. Dismiss when you're not. No notification pressure, no unread badges, no processing anxiety. [80.8% of workers feel anxiety about unprocessed inboxes](https://www.readless.app/blog/inbox-zero-statistics-2026). The Quest Board is designed to feel like a town bulletin board in an RPG — things exist there, they can sit indefinitely, and you browse when you want to. The [Ovsiankina Effect](https://www.nature.com/articles/s41599-025-05000-w) — a robust 67% tendency to resume interrupted tasks — makes accepted quests naturally pull toward completion without artificial pressure.
 
-**Quest logs group related work.** A quest log named "Website Redesign" is a storyline. The quests inside are objectives. Progress is computed live — total, done, active, pending, blocked — and rendered as concrete counts, not misleading percentages. [Basecamp's insight](https://basecamp.com/hill-charts): task counts are misleading because tasks aren't equal. The meaningful signal is which quests are blocked, which are active, and whether the unknowns have been resolved.
+**Storylines group related work.** A storyline named "Website Redesign" contains quests as objectives. Progress is computed live — total, done, active, accepted, blocked — and rendered as concrete counts, not misleading percentages. [Basecamp's insight](https://basecamp.com/hill-charts): task counts are misleading because tasks aren't equal. The meaningful signal is which quests are blocked, which are active, and whether the unknowns have been resolved.
 
 **Recurring quests track habits.** `FREQ=DAILY` is a daily. `FREQ=WEEKLY;BYDAY=MO,WE,FR` is Monday/Wednesday/Friday. [RFC 5545 RRULE](https://tools.ietf.org/html/rfc5545) stores the intended pattern — "every third Thursday March–June," "second Sunday in May," bounded or infinite. [Every practitioner says the same thing](https://www.codegenes.net/blog/calendar-recurring-repeating-events-best-storage-method/): don't reinvent recurrence rules. Individual occurrences are tracked as they happen — completing or skipping one records it without affecting the base quest. The web UI provides a recurrence picker mapping common patterns to RRULE strings.
 
@@ -50,9 +50,9 @@ Seven states, clear transitions:
      └────┬─────┘              │
           │ dismiss             │
           ▼                    ▼
-     ┌──────────┐        ┌─────────┐
-     │cancelled │   ┌───>│ pending │
-     └──────────┘   │    └────┬────┘
+     ┌──────────┐        ┌──────────┐
+     │abandoned │   ┌───>│ accepted │
+     └──────────┘   │    └────┬─────┘
                     │         │
                     │    ┌────▼────┐
                     │    │  active  │────────┐
@@ -70,14 +70,14 @@ Seven states, clear transitions:
 | State | Meaning |
 |---|---|
 | `offered` | On the Quest Board — proposed by ghostpaw or quick-dumped by human, not yet accepted |
-| `pending` | Accepted, not yet started |
+| `accepted` | Taken from the board or created directly, not yet started |
 | `active` | In progress |
 | `blocked` | Waiting on something external |
 | `done` | Completed successfully |
 | `failed` | Attempted and failed |
-| `cancelled` | Abandoned intentionally |
+| `abandoned` | Intentionally walked away from |
 
-Terminal states: `done`, `failed`, `cancelled`. Offered quests are excluded from temporal context and progress tracking. Non-terminal states can transition to any other state. Every transition updates `completed_at` for terminal states or relevant temporal fields. Retroactively logged events enter directly as `done`. Quests can be created directly as `pending`, bypassing the board.
+Terminal states: `done`, `failed`, `abandoned`. Offered quests are excluded from temporal context and progress tracking. Non-terminal states can transition to any other state. Every transition updates `completed_at` for terminal states or relevant temporal fields. Retroactively logged events enter directly as `done`. Quests can be created directly as `accepted`, bypassing the board.
 
 ### The Quest Board
 
@@ -86,17 +86,17 @@ Two origins, two roles:
 - **Ghostpaw-created** (`created_by: ghostpaw`) — ghostpaw noticed something worth tracking during conversation, haunting, or consolidation. "I found something worth doing."
 - **Human-created** (`created_by: human`) — the human quick-dumped an idea before committing to it. "Maybe I should do this."
 
-Both are `status: offered`, distinguished by `created_by`. Accept transitions to `pending` (optionally assigning to a quest log). Dismiss transitions to `cancelled`. The board is deliberately unstructured — no sorting, no priority enforcement, no deadlines nagging. A holding pen where things sit until the human or ghostpaw decides they matter enough.
+Both are `status: offered`, distinguished by `created_by`. Accept transitions to `accepted` (optionally assigning to a storyline). Dismiss transitions to `abandoned`. The board is deliberately unstructured — no sorting, no priority enforcement, no deadlines nagging. A holding pen where things sit until the human or ghostpaw decides they matter enough.
 
 [Implementation intentions neutralize intrusive thoughts from open goals](https://users.wfu.edu/masicaej/MasicampoBaumeister2011JPSP.pdf) — you don't need to complete a task to reduce its cognitive burden, simply making a concrete plan is sufficient. Quest capture IS that concrete plan: ghostpaw externalizes the commitment into a quest with a title, temporal metadata, and context. The brain can let go because the plan exists. But [cognitive offloading creates dependency](https://www.nature.com/articles/s44159-025-00432-2) — if ghostpaw drops a quest, the user's internal encoding is already degraded. This means the quest system must be trustworthy and persistent. Ghostpaw's proactive temporal awareness — overdue detection, reminders, stale quest surfacing — is the trust mechanism that makes cognitive offloading safe.
 
-### Quest Logs
+### Storylines
 
-A quest log groups related quests into a named project, direction, or theme — what Basecamp calls a "scope," what RPGs call a "quest chain."
+A storyline groups related quests into a named project, direction, or theme — what Basecamp calls a "scope," what RPGs call a "quest chain."
 
-Quest logs are flat — no nesting. A quest belongs to at most one quest log. Quest logs without quests are allowed (placeholder for future work). Three statuses: `active`, `completed`, `archived`. The difference: completed means the work was done. Archived means the direction was shelved. Both are terminal but carry different meaning. Archived quest logs can be reactivated.
+Storylines are flat — no nesting. A quest belongs to at most one storyline. Storylines without quests are allowed (placeholder for future work). Three statuses: `active`, `completed`, `archived`. The difference: completed means the work was done. Archived means the direction was shelved. Both are terminal but carry different meaning. Archived storylines can be reactivated.
 
-Progress is computed, not stored: `total`, `done`, `active`, `pending`, `blocked`, `offered`. Raw counts tell the truth. The LLM or UI interprets them. No percentage stored, no hill chart position — the data speaks for itself.
+Progress is computed, not stored: `total`, `done`, `active`, `accepted`, `blocked`, `offered`. Raw counts tell the truth. The LLM or UI interprets them. No percentage stored, no hill chart position — the data speaks for itself.
 
 ### Recurrence
 
@@ -151,10 +151,10 @@ Eight tools cover every quest operation, safely within the [tool-count cliff](ht
 | `quest_update` | Update any quest field. All temporal fields as Unix milliseconds — no date parsing ambiguity. |
 | `quest_done` | Mark a quest as completed (or record a recurring occurrence). Drops skill fragments on non-recurring completion. |
 | `quest_list` | Query by filter or search by keyword. Supports `temporal: true` for the full temporal context view. |
-| `quest_accept` | Accept an offered quest from the board. Transitions `offered → pending`. |
-| `quest_dismiss` | Dismiss an offered quest. Transitions `offered → cancelled`. |
-| `questlog_create` | Create a quest log (project/storyline grouping). |
-| `questlog_list` | List quest logs with computed progress counts. |
+| `quest_accept` | Accept an offered quest from the board. Transitions `offered → accepted`. |
+| `quest_dismiss` | Dismiss an offered quest. Transitions `offered → abandoned`. |
+| `storyline_create` | Create a storyline (project/quest chain grouping). |
+| `storyline_list` | List storylines with computed progress counts. |
 
 Minimal surface area. Ghostpaw doesn't need 15 quest tools. It needs to create, update, complete, accept, dismiss, and query. Everything else is a query parameter.
 
@@ -162,9 +162,9 @@ Minimal surface area. Ghostpaw doesn't need 15 quest tools. It needs to create, 
 
 The naming is not cosmetic. RPG quest systems solve the exact same design problem: tracking what needs doing across multiple independent storylines with dependencies, deadlines, and varying priority.
 
-**Quest logs** are literally an RPG quest log. A quest log named "Website Redesign" is a storyline. The quests inside it are objectives. Opening the quest log shows what's done, what's active, what's pending. The metaphor is instant — no onboarding needed.
+**Storylines** are literally an RPG quest chain. A storyline named "Website Redesign" groups quests as objectives. Opening a storyline shows what's done, what's active, what's accepted. The metaphor is instant — no onboarding needed.
 
-**Main quests vs. side quests** emerge naturally. Quest logs with deadlines and high-priority quests are main quests — the critical path. Quest logs without deadlines or low-priority items are side quests. The system doesn't enforce this through types. It emerges from which fields are populated.
+**Main quests vs. side quests** emerge naturally. Storylines with deadlines and high-priority quests are main quests — the critical path. Storylines without deadlines or low-priority items are side quests. The system doesn't enforce this through types. It emerges from which fields are populated.
 
 **Recurring quests are dailies and weeklies.** Every MMO player understands tasks that reset on a schedule. `FREQ=DAILY` is a daily quest. `FREQ=WEEKLY;BYDAY=MO` is a Monday weekly.
 
@@ -176,7 +176,7 @@ The naming is not cosmetic. RPG quest systems solve the exact same design proble
 
 **Day 1** — the quest system is empty. Ghostpaw tracks nothing. It responds to what's in front of it. Temporal context reads return empty — graceful, not broken.
 
-**Week 2** — the human has created a few quest logs. Ghostpaw sees upcoming deadlines in its temporal context. During haunting, it notices a stale quest and asks about it. It starts creating its own quests during work decomposition — breaking a large task into tracked steps. The Quest Board has its first ghostpaw-proposed entries.
+**Week 2** — the human has created a few storylines. Ghostpaw sees upcoming deadlines in its temporal context. During haunting, it notices a stale quest and asks about it. It starts creating its own quests during work decomposition — breaking a large task into tracked steps. The Quest Board has its first ghostpaw-proposed entries.
 
 **Month 2** — dozens of completed quests provide evidence for soul refinement. Ghostpaw has learned the human's patterns: which deadlines are real, which are aspirational. Recurring quests establish rhythm. The temporal context summary is rich enough that ghostpaw proactively manages time — "you have three things due this week, want me to prioritize?" Skill fragments from quest completions have fed training sessions. The trail's nightly sweep reads quest state changes as input for chronicles.
 
@@ -203,14 +203,14 @@ The gap is structural. Other agents can answer questions about tasks if you tell
 
 ## Inspection
 
-**Web UI.** The `/quests` page provides three tabs: **Quest Log** (filtered list with status pills, priority badges, relative timestamps, search, and a bulletin board teaser), **Quest Board** (offered quests with accept/dismiss actions, quick-add input, and optional quest log assignment on accept), and **Storylines** (quest logs as cards with computed progress). Quest detail shows full metadata, occurrences for recurring quests, and trail context hints (current chapter + linked open loops). Quest logs have a detail page with nested quests, progress counts, edit, and completion actions. Toolbar provides status, priority, and quest log filters. Recurrence is configured via a picker that maps common patterns to RRULE strings.
+**Web UI.** The `/quests` page provides three tabs: **Quest Log** (filtered list with status pills, priority badges, relative timestamps, search, and a bulletin board teaser), **Quest Board** (offered quests with accept/dismiss actions, quick-add input, and optional storyline assignment on accept), and **Storylines** (storylines as cards with computed progress). Quest detail shows full metadata, occurrences for recurring quests, and trail context hints (current chapter + linked open loops). Storylines have a detail page with nested quests, progress counts, edit, and completion actions. Toolbar provides status, priority, and storyline filters. Recurrence is configured via a picker that maps common patterns to RRULE strings.
 
 **CLI.** All commands under `ghostpaw quests`:
 
 | Command | What it does |
 |---|---|
 | `quests` | Temporal summary: overdue, due soon, active, today's events |
-| `list` | List quests with status, priority, and quest log filters |
+| `list` | List quests with status, priority, and storyline filters |
 | `search <query>` | Full-text search across titles and descriptions |
 | `show <id>` | Quest detail with occurrences and metadata |
 | `add` | Create a quest (title, optional description, status, priority, temporal fields) |
@@ -220,11 +220,11 @@ The gap is structural. Other agents can answer questions about tasks if you tell
 | `offer` | Create a quest with status `offered` |
 | `accept <id>` | Accept an offered quest |
 | `dismiss <id>` | Dismiss an offered quest |
-| `log-list` | List quest logs with status filter |
-| `log-add` | Create a quest log |
-| `log-show <id>` | Quest log detail with nested quests and progress |
-| `log-done <id>` | Mark quest log completed |
-| `log-update <id>` | Update quest log |
+| `storyline-list` | List storylines with status filter |
+| `storyline-add` | Create a storyline |
+| `storyline-show <id>` | Storyline detail with nested quests and progress |
+| `storyline-done <id>` | Mark storyline completed |
+| `storyline-update <id>` | Update storyline |
 
 Read commands are instant (pure SQL). All timestamps rendered as relative ages ("3 days ago") and formatted dates.
 
@@ -256,14 +256,14 @@ Ghostpaw on day 100 doesn't just remember more. It tracks commitments, reasons a
 
 - **Owning soul:** Warden.
 - **Core namespace:** `src/core/quests/` — namespaced with `api/read/`, `api/write/`, `api/types.ts`, `runtime/`, and `internal/` sub-surfaces, enforced by `check_boundaries.mjs`.
-- **Scope:** temporal commitment tracking — tasks, events, deadlines, reminders, recurrence, quest grouping, temporal context assembly, full-text search, and quest board lifecycle.
+- **Scope:** temporal commitment tracking — tasks, events, deadlines, reminders, recurrence, storyline grouping, temporal context assembly, full-text search, and quest board lifecycle.
 - **Non-goals:** beliefs or world knowledge (`memory`), social relationships (`pack`), procedures (`skills`), cognitive identity (`souls`), conversation history (`chat`), or longitudinal interpretation (`trail`).
 
 ## Four Value Dimensions
 
 ### Direct
 
-The user gets a unified tracking system for every temporal commitment: visible deadlines, proactive proposals on the Quest Board, recurring quest tracking, full-text search, and temporal context available on demand and during haunts. Quest logs organize related work with live progress counts.
+The user gets a unified tracking system for every temporal commitment: visible deadlines, proactive proposals on the Quest Board, recurring quest tracking, full-text search, and temporal context available on demand and during haunts. Storylines organize related work with live progress counts.
 
 ### Active
 
@@ -275,7 +275,7 @@ Quest completions drop skill fragments that accumulate silently in the skills pi
 
 ### Synergies
 
-Mechanical code APIs let other subsystems consume quest data without LLM tokens: `getTemporalContext()` for haunt context assembly, `overdueQuests()` and `dueSoonQuests()` for proactive surfacing, `staleQuests()` for identifying stuck work, `getQuestLogProgress()` for storyline progress, and `countQuestsByStatus()` for dashboard summaries. The trail sweep gathers quest state changes internally via `questStateChangesSince()`. Skill fragment drops via `dropSkillFragment()` on quest completion feed the trainer pipeline. All return sensible defaults when data is absent.
+Mechanical code APIs let other subsystems consume quest data without LLM tokens: `getTemporalContext()` for haunt context assembly, `overdueQuests()` and `dueSoonQuests()` for proactive surfacing, `staleQuests()` for identifying stuck work, `getStorylineProgress()` for storyline progress, and `countQuestsByStatus()` for dashboard summaries. The trail sweep gathers quest state changes internally via `questStateChangesSince()`. Skill fragment drops via `dropSkillFragment()` on quest completion feed the trainer pipeline. All return sensible defaults when data is absent.
 
 ## Quality Criteria Compliance
 
@@ -305,40 +305,40 @@ Empty quest tables produce empty temporal context — every read function return
 
 ## Data Contract
 
-- **Primary tables:** `quests`, `quest_logs`, `quest_occurrences`, `quests_fts` (FTS5 virtual table).
-- **Canonical models:** `Quest`, `QuestLog`, `QuestOccurrence`, `QuestLogProgress`, `TemporalContext`.
-- **Input models:** `CreateQuestInput`, `UpdateQuestInput`, `CreateQuestLogInput`, `UpdateQuestLogInput`, `ListQuestsOptions`, `ListQuestLogsOptions`.
-- **Status values:** `offered`, `pending`, `active`, `blocked`, `done`, `failed`, `cancelled`.
-- **Terminal statuses:** `done`, `failed`, `cancelled`.
+- **Primary tables:** `quests`, `storylines`, `quest_occurrences`, `quests_fts` (FTS5 virtual table).
+- **Canonical models:** `Quest`, `Storyline`, `QuestOccurrence`, `StorylineProgress`, `TemporalContext`.
+- **Input models:** `CreateQuestInput`, `UpdateQuestInput`, `CreateStorylineInput`, `UpdateStorylineInput`, `ListQuestsOptions`, `ListStorylinesOptions`.
+- **Status values:** `offered`, `accepted`, `active`, `blocked`, `done`, `failed`, `abandoned`.
+- **Terminal statuses:** `done`, `failed`, `abandoned`.
 - **Board statuses:** `offered`.
-- **Active view statuses:** `pending`, `active`, `blocked`.
+- **Active view statuses:** `accepted`, `active`, `blocked`.
 - **Priority values:** `low`, `normal`, `high`, `urgent`.
-- **Quest log statuses:** `active`, `completed`, `archived`.
+- **Storyline statuses:** `active`, `completed`, `archived`.
 - **Creator values:** `human`, `ghostpaw`.
 - **Occurrence statuses:** `done`, `skipped`.
-- **Key invariants:** all timestamps as Unix epoch milliseconds, FTS5 triggers maintain search index on insert/update/delete, `quest_log_id` references valid quest logs, status transitions are CHECK-constrained at the schema level.
+- **Key invariants:** all timestamps as Unix epoch milliseconds, FTS5 triggers maintain search index on insert/update/delete, `storyline_id` references valid storylines, status transitions are CHECK-constrained at the schema level.
 
 ## Interfaces
 
 ### Read
 
-`countQuestsByStatus()`, `dueSoonQuests()`, `getQuest()`, `getQuestLog()`, `getQuestLogProgress()`, `getTemporalContext()`, `listOccurrences()`, `listQuestLogs()`, `listQuests()`, `overdueQuests()`, `recentlyCompletedQuests()`, and `staleQuests()`.
+`countQuestsByStatus()`, `dueSoonQuests()`, `getQuest()`, `getStoryline()`, `getStorylineProgress()`, `getTemporalContext()`, `listOccurrences()`, `listStorylines()`, `listQuests()`, `overdueQuests()`, `recentlyCompletedQuests()`, and `staleQuests()`.
 
 **Internal (not exported, used by trail):** `questStateChangesSince()` — returns quests updated since a timestamp, consumed by the trail sweep's gathering phase.
 
 ### Write
 
-`acceptQuest()`, `completeQuest()`, `createQuest()`, `createQuestLog()`, `dismissQuest()`, `skipOccurrence()`, `updateQuest()`, and `updateQuestLog()`.
+`acceptQuest()`, `completeQuest()`, `createQuest()`, `createStoryline()`, `dismissQuest()`, `skipOccurrence()`, `updateQuest()`, and `updateStoryline()`.
 
 ### Runtime
 
-`initQuestTables()` seeds the schema (tables, FTS5, triggers, indexes, migrations).
+`initQuestTables()` seeds the schema (tables, FTS5, triggers, indexes).
 
 ## User Surfaces
 
 - **Conversation:** the coordinator delegates to the warden for quest creation, completion, board management, and temporal queries during natural chat.
-- **CLI:** full subcommand tree for inspection, creation, updates, search, board management, and quest log operations.
-- **Web UI:** dedicated `/quests` page with three tabs (Quest Log, Quest Board, Storylines), quest detail with occurrences, quest log detail with progress, trail context hints integration, and inline actions.
+- **CLI:** full subcommand tree for inspection, creation, updates, search, board management, and storyline operations.
+- **Web UI:** dedicated `/quests` page with three tabs (Quest Log, Quest Board, Storylines), quest detail with occurrences, storyline detail with progress, trail context hints integration, and inline actions.
 - **Background:** temporal context assembled automatically during haunt cycles. Skill fragments dropped on quest completion. Quest state changes gathered by the trail sweep.
 
 ## Research Map
@@ -351,20 +351,91 @@ Empty quest tables produce empty temporal context — every read function return
 - **Proactive agent scheduling and temporal triggers:** `Temporal Context`
 - **Compounding across subsystems:** `How Quests Compound`
 
-## Future Directions
+## Implementation Roadmap
 
-The current quest system is a fully operational unified temporal tracker. The [original design document](../QUESTS.md) contains extensive research and crystallized design for future capabilities that build on this foundation:
+The current quest system is a fully operational unified temporal tracker. The capabilities below are designed, researched, and ready to build — each one extends the existing architecture without breaking what works today. The [original design document](../QUESTS.md) contains the full research foundation, schema extensions, and detailed rationale for every item.
 
-**RPG vocabulary alignment.** Renaming `quest_logs` → `storylines`, `cancelled` → `abandoned`, `pending` → `accepted` for consistent WoW-native language throughout schema, tools, CLI, web UI, and docs.
+### 1. Quest Execution Engine
 
-**Quest execution engine.** Autonomous ghostpaw execution of quests via `ghostpaw quests embark <id>` — ghostpaw picks up a quest, works on it in a background session with step-by-step warden validation, and delivers results. The `prowl` heartbeat (every minute, pure code) scans for eligible quests and spawns embark processes. The `tend` heartbeat (every 30 minutes) handles board hygiene and stuck detection.
+Autonomous ghostpaw execution of quests — ghostpaw picks up a quest, works on it in a background session with step-by-step warden validation, and delivers results. The thesis: a quest should be delegatable to ghostpaw the same way it's delegatable to a team member.
 
-**Subgoals.** Dynamic execution checkpoints within a quest — the individual objectives that grow, shrink, reorder, and check off as ghostpaw works. The mechanism that keeps the LLM self-organized during multi-step execution.
+- [ ] Add `"quest"` to `SESSION_PURPOSES` in `core/chat/types.ts`
+- [ ] Add `quest_id` column to `sessions` table (nullable FK → `quests.id`)
+- [ ] Implement `ghostpaw quests embark <id>` CLI — spawns a quest-linked session
+- [ ] Warden validates each step against quest scope during execution
+- [ ] Embark result: quest transitions to `done` or `failed` with session evidence
+- [ ] `prowl` heartbeat — pure code, ~1 minute interval, scans for eligible quests and spawns embark processes
+- [ ] `tend` heartbeat — ~30 minute interval, board hygiene: stale detection, stuck quest escalation, abandoned cleanup
+- [ ] Register `prowl` and `tend` in `core/schedule/defaults.ts`
+- [ ] Eligibility rules: only `active` quests with `created_by: ghostpaw` or explicitly delegated
+- [ ] Cost guard: pre-embark token estimate, abort if above configured threshold
 
-**XP and cost estimation.** A universal session metric grounded in Weber-Fechner logarithmic scaling, computed from token counts, tool call diversity, error density, and duration. Pre-embark estimates enable cost transparency and delegation incentives.
+**Already in place:** `staleQuests()` provides the core staleness query that `tend` will build on. Haunt seeds already surface overdue/stale quests for proactive questions. The scheduler infrastructure (`core/schedule/`) and session spawning machinery (`harness/`) are proven patterns from haunt/distill/stoke/attune/trail_sweep.
 
-**Quest turn-in and drops.** A two-step completion lifecycle: `done` (work complete) → `turned_in` (rewards revealed). The warden evaluates the full execution trajectory, drops trait drafts and skill drafts as sealed loot, and the turn-in reveals them — the celebration moment, the chest-opening animation.
+**Research:** [Autonomous task scheduling](https://zylos.ai/research/2026-02-16-autonomous-task-scheduling-ai-agents), [CORPGEN multi-horizon task management](https://www.microsoft.com/en-us/research/publication/corpgen-simulating-corporate-environments-with-autonomous-digital-employees-in-multi-horizon-task-environments/).
 
-**Streak tracking for recurring quests.** Visible streaks, grace periods, short-term milestone framing, adaptive scheduling from completion patterns, and decay detection. Grounded in [loss aversion](https://www.smashingmagazine.com/2026/02/designing-streak-system-ux-psychology/) and [streak persistence research](https://marketingmonsters.io/blog/the-science-behind-streak-based-motivation).
+### 2. Subgoals
 
-The full future design is documented with research citations and schema extensions in `docs/QUESTS.md`. Each planned capability is grounded in published research and designed to integrate with the existing architecture without breaking the current system.
+Dynamic execution checkpoints within a quest — the individual objectives that grow, shrink, reorder, and check off as ghostpaw works. The mechanism that keeps the LLM self-organized during multi-step execution and gives the warden granular validation points.
+
+- [ ] `quest_subgoals` table: `id`, `quest_id` (FK), `description`, `done` (boolean), `position` (integer), timestamps
+- [ ] Warden creates/reorders subgoals during embark execution
+- [ ] Subgoal completion feeds XP calculation (count, difficulty weighting)
+- [ ] Subgoal state visible in quest detail (CLI `show`, web UI detail panel)
+- [ ] Subgoal progress contributes to storyline progress counts
+
+**Already in place:** Storyline progress computation pattern (`total`, `done`, `active`, etc.) — subgoal progress follows the same shape. The warden's tool surface pattern (structured input, single-writer) applies directly.
+
+### 3. XP and Cost Estimation
+
+A universal session metric grounded in [Weber-Fechner logarithmic scaling](https://en.wikipedia.org/wiki/Weber%E2%80%93Fechner_law), computed from observable session data. Makes effort legible and delegation economics transparent.
+
+- [ ] XP formula: `log(1 + tokens) × diversity_factor × (1 - error_rate) × duration_factor`
+- [ ] Inputs: token counts, tool call diversity, error density, session duration
+- [ ] Compute XP at session close, store on quest (or occurrence for recurring)
+- [ ] Pre-embark cost estimate: project token usage from quest complexity + historical data
+- [ ] Display XP in quest detail, storyline progress, CLI `show`
+- [ ] Delegation incentive: ghostpaw-completed quests earn XP + drops; human-completed quests advance storyline but produce fewer drops
+
+**Already in place:** Session metadata (token counts, tool calls, duration) is tracked. Soul evolution already uses quest completion as evidence — XP formalizes the signal.
+
+**Research:** [Weber-Fechner law](https://en.wikipedia.org/wiki/Weber%E2%80%93Fechner_law) for logarithmic perception scaling, [AI agent cost analysis](https://www.zenrows.com/blog/ai-agent-cost) for delegation economics.
+
+### 4. Quest Turn-in and Drops
+
+A two-step completion lifecycle that separates "work is done" from "rewards are revealed." The celebration moment — the chest-opening animation.
+
+- [ ] Add `turned_in` status to schema CHECK and types (new terminal state)
+- [ ] `done` means work complete, `turned_in` means rewards evaluated and revealed
+- [ ] Warden evaluates full execution trajectory on turn-in
+- [ ] Drop sealed soul shards (trait drafts) on quest completion — revealed at turn-in
+- [ ] Drop sealed skill drafts on quest completion — revealed at turn-in
+- [ ] `revealShards()` + skill fragment reveal wired to turn-in transition
+- [ ] Turn-in CLI command and web UI action
+- [ ] Turn-in summary: what was earned, what was learned, what changed
+
+**Already in place:** `dropSkillFragment()` already fires on non-recurring quest completion in `done.ts`. Soul shards already have sealed/reveal mechanics (`drop_soulshard.ts`, `reveal_shards.ts`). The two halves exist independently — turn-in wires them into a ceremony.
+
+**Research:** [Deep gamification with story progression](https://www.mainquest.net/gamified-habit-trackers-effectiveness-research-2026), [Self-Determination Theory](https://doi.org/10.1037/0003-066X.55.1.68) (autonomy, competence, relatedness).
+
+### 5. Streak Tracking for Recurring Quests
+
+Visible streaks with grace periods, short-term milestone framing, adaptive scheduling, and decay detection. The mechanism that turns recurring quests from chores into momentum.
+
+- [ ] Streak computation from `quest_occurrences`: consecutive `done` without `skipped` or missed
+- [ ] Grace period: one missed occurrence doesn't break a streak if the next one lands
+- [ ] Streak display in quest detail (CLI, web UI) — "12-day streak," "you've skipped 4 of the last 5"
+- [ ] Short-term milestone framing: "3 more to reach 30 days" rather than raw count
+- [ ] Adaptive scheduling hints: completion patterns inform optimal reminder timing
+- [ ] Decay detection: declining completion rate surfaces in temporal context
+- [ ] Streak data feeds haunt seeds — "your meditation streak is at risk" is a natural prompt
+
+**Already in place:** `quest_occurrences` table records every completion and skip with timestamps. The raw data for streak computation is already accumulating. Haunt seed infrastructure (`buildQuestSeeds()`) is ready to consume streak signals.
+
+**Research:** [Loss aversion in streak design](https://www.smashingmagazine.com/2026/02/designing-streak-system-ux-psychology/), [streak persistence and motivation](https://marketingmonsters.io/blog/the-science-behind-streak-based-motivation).
+
+---
+
+**Recommended build order:** (1) Streak tracking — builds on existing occurrences data, immediate user-visible value. (2) Quest execution engine — largest scope, unlocks (3) subgoals and (4) XP. (5) Turn-in and drops — the reward ceremony that ties everything together.
+
+The full design with schema extensions, edge cases, and additional research citations lives in the [original design document](../QUESTS.md).

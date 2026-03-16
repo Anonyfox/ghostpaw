@@ -16,16 +16,16 @@ class QuestCreateParams extends Schema {
   status = Schema.Enum([...QUEST_STATUSES] as unknown as readonly string[], {
     optional: true,
     description:
-      "Initial status. 'pending' (default) for accepted work, 'offered' to place on " +
+      "Initial status. 'accepted' (default) for accepted work, 'offered' to place on " +
       "the Quest Board as a proposal/idea. Other statuses rarely needed at creation.",
   });
   priority = Schema.Enum([...QUEST_PRIORITIES] as unknown as readonly string[], {
     optional: true,
     description: "Priority: low, normal (default), high, urgent.",
   });
-  questLogId = Schema.Integer({
+  storylineId = Schema.Integer({
     optional: true,
-    description: "Assign to a quest log (storyline) by ID.",
+    description: "Assign to a storyline by ID.",
   });
   tags = Schema.String({
     optional: true,
@@ -58,7 +58,7 @@ export function createQuestCreateTool(db: DatabaseHandle) {
     name: "quest_create",
     description:
       "Create a new quest. Only title is required. Use status 'offered' to propose " +
-      "an idea to the Quest Board, or omit for direct 'pending'. All temporal fields " +
+      "an idea to the Quest Board, or omit for direct 'accepted'. All temporal fields " +
       "are Unix ms timestamps — compute them with datetime tool if needed.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new QuestCreateParams() as any,
@@ -68,7 +68,7 @@ export function createQuestCreateTool(db: DatabaseHandle) {
         description?: string;
         status?: QuestStatus;
         priority?: QuestPriority;
-        questLogId?: number;
+        storylineId?: number;
         tags?: string;
         dueAt?: number;
         startsAt?: number;
@@ -87,7 +87,7 @@ export function createQuestCreateTool(db: DatabaseHandle) {
           description: a.description,
           status: a.status,
           priority: a.priority,
-          questLogId: a.questLogId,
+          storylineId: a.storylineId,
           tags: a.tags,
           createdBy: "ghostpaw" as QuestCreator,
           dueAt: a.dueAt,

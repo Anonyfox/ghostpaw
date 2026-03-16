@@ -27,10 +27,10 @@ export function updateQuest(db: DatabaseHandle, id: number, input: UpdateQuestIn
     throw new Error("Quest title cannot be empty.");
   }
 
-  if (input.questLogId !== undefined && input.questLogId !== null) {
-    const log = db.prepare("SELECT id FROM quest_logs WHERE id = ?").get(input.questLogId);
+  if (input.storylineId !== undefined && input.storylineId !== null) {
+    const log = db.prepare("SELECT id FROM storylines WHERE id = ?").get(input.storylineId);
     if (!log) {
-      throw new Error(`Quest log #${input.questLogId} does not exist.`);
+      throw new Error(`Storyline #${input.storylineId} does not exist.`);
     }
   }
 
@@ -48,7 +48,7 @@ export function updateQuest(db: DatabaseHandle, id: number, input: UpdateQuestIn
   field("description", input.description === null ? null : input.description?.trim());
   field("status", input.status);
   field("priority", input.priority);
-  field("quest_log_id", input.questLogId);
+  field("storyline_id", input.storylineId);
   field("tags", input.tags === null ? null : input.tags?.trim());
   field("starts_at", input.startsAt);
   field("ends_at", input.endsAt);

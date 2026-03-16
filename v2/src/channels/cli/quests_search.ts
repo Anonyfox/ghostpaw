@@ -15,7 +15,7 @@ export default defineCommand({
     },
     status: {
       type: "string",
-      description: "Filter: pending, active, blocked, done, failed, cancelled",
+      description: "Filter: accepted, active, blocked, done, failed, abandoned",
     },
     limit: {
       type: "string",

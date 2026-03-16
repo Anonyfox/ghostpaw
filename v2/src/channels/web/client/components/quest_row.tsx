@@ -15,7 +15,7 @@ export function QuestRow({ quest, isExpanded, onToggle }: Props) {
   const isOverdue =
     q.dueAt != null &&
     q.dueAt < Date.now() &&
-    !["offered", "done", "failed", "cancelled"].includes(q.status);
+    !["offered", "done", "failed", "abandoned"].includes(q.status);
 
   return (
     <button
@@ -39,8 +39,8 @@ export function QuestRow({ quest, isExpanded, onToggle }: Props) {
           {relativeDue(q.dueAt)}
         </span>
       )}
-      {q.questLogId && (
-        <span class="badge bg-body-secondary text-body-tertiary">#{q.questLogId}</span>
+      {q.storylineId && (
+        <span class="badge bg-body-secondary text-body-tertiary">#{q.storylineId}</span>
       )}
       <span class="text-body-tertiary small" style="min-width: 30px; text-align: right;">
         {relativeAge(q.createdAt)}

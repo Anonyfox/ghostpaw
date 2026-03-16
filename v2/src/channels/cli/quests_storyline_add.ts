@@ -1,16 +1,16 @@
 import { defineCommand } from "citty";
 import type { QuestCreator } from "../../core/quests/api/types.ts";
-import { createQuestLog } from "../../core/quests/api/write/index.ts";
+import { createStoryline } from "../../core/quests/api/write/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { errorLine, parseTimestamp } from "./quests_format.ts";
 import { withRunDb } from "./with_run_db.ts";
 
 export default defineCommand({
-  meta: { name: "log-add", description: "Create a new quest log" },
+  meta: { name: "storyline-add", description: "Create a new storyline" },
   args: {
     title: {
       type: "positional",
-      description: "Quest log title",
+      description: "Storyline title",
       required: true,
     },
     desc: {
@@ -29,13 +29,13 @@ export default defineCommand({
   async run({ args }) {
     const title = (args._ ?? []).join(" ") || (args.title as string);
     if (!title?.trim()) {
-      errorLine("Quest log title is required.");
+      errorLine("Storyline title is required.");
       return;
     }
 
     try {
       await withRunDb((db) => {
-        const log = createQuestLog(db, {
+        const log = createStoryline(db, {
           title: title.trim(),
           description: args.desc as string | undefined,
           dueAt: args.due ? parseTimestamp(args.due as string) : undefined,

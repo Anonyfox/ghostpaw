@@ -125,7 +125,7 @@ The warden's tool surface (23 tools — DONE):
 |---|---|
 | Memory (4) | recall, remember, revise (handles confirm + merge via params), forget |
 | Pack (9) | pack_sense, pack_meet, pack_bond, pack_note, contact_add, contact_remove, contact_list, contact_lookup, pack_merge |
-| Quests (8) | quest_create, quest_update, quest_done, quest_list, quest_accept, quest_dismiss, questlog_create, questlog_list |
+| Quests (8) | quest_create, quest_update, quest_done, quest_list, quest_accept, quest_dismiss, storyline_create, storyline_list |
 | Utility (2) | datetime (for temporal reasoning), recall_haunts (for continuity) |
 
 No filesystem tools. No web tools. No bash. No delegation outward. The warden operates exclusively within the ghost's persistence layer.

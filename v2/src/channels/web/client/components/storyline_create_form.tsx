@@ -1,14 +1,14 @@
 import { useState } from "preact/hooks";
-import type { CreateQuestLogBody, QuestLogInfo } from "../../shared/quest_types.ts";
+import type { CreateStorylineBody, StorylineInfo } from "../../shared/quest_types.ts";
 import { apiPost } from "../api_post.ts";
 
 interface Props {
-  onCreated: (log: QuestLogInfo) => void;
+  onCreated: (storyline: StorylineInfo) => void;
   onCancel: () => void;
 }
 
-export function QuestLogCreateForm({ onCreated, onCancel }: Props) {
-  const [form, setForm] = useState<CreateQuestLogBody>({ title: "" });
+export function StorylineCreateForm({ onCreated, onCancel }: Props) {
+  const [form, setForm] = useState<CreateStorylineBody>({ title: "" });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -20,8 +20,8 @@ export function QuestLogCreateForm({ onCreated, onCancel }: Props) {
     setSubmitting(true);
     setError("");
     try {
-      const log = await apiPost<QuestLogInfo>("/api/quest-logs", form);
-      onCreated(log);
+      const storyline = await apiPost<StorylineInfo>("/api/storylines", form);
+      onCreated(storyline);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -44,7 +44,7 @@ export function QuestLogCreateForm({ onCreated, onCancel }: Props) {
   return (
     <div class="card border h-100">
       <div class="card-body">
-        <h6 class="card-title mb-2">New Quest Log</h6>
+        <h6 class="card-title mb-2">New Storyline</h6>
         {error && <div class="alert alert-danger py-1 small">{error}</div>}
         <input
           type="text"
@@ -65,13 +65,13 @@ export function QuestLogCreateForm({ onCreated, onCancel }: Props) {
         />
         <div class="mb-2">
           <label
-            htmlFor="quest-log-create-deadline"
+            htmlFor="storyline-create-deadline"
             class="form-label small text-body-secondary mb-0"
           >
             Deadline
           </label>
           <input
-            id="quest-log-create-deadline"
+            id="storyline-create-deadline"
             type="datetime-local"
             class="form-control form-control-sm"
             onInput={(e) =>

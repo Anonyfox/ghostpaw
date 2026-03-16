@@ -1,15 +1,15 @@
 import { useState } from "preact/hooks";
-import type { CreateQuestBody, QuestInfo, QuestLogInfo } from "../../shared/quest_types.ts";
+import type { CreateQuestBody, QuestInfo, StorylineInfo } from "../../shared/quest_types.ts";
 import { apiPost } from "../api_post.ts";
 import { RecurrencePicker } from "./quest_recurrence_picker.tsx";
 
 interface Props {
-  logs: QuestLogInfo[];
+  storylines: StorylineInfo[];
   onCreated: (q: QuestInfo) => void;
   onCancel: () => void;
 }
 
-export function QuestCreateForm({ logs, onCreated, onCancel }: Props) {
+export function QuestCreateForm({ storylines, onCreated, onCancel }: Props) {
   const [form, setForm] = useState<CreateQuestBody>({ title: "" });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -92,16 +92,16 @@ export function QuestCreateForm({ logs, onCreated, onCancel }: Props) {
         <div class="col-sm-4">
           <select
             class="form-select form-select-sm"
-            value={String(form.questLogId ?? "")}
+            value={String(form.storylineId ?? "")}
             onChange={(e) => {
               const v = (e.target as HTMLSelectElement).value;
-              setForm({ ...form, questLogId: v ? Number(v) : undefined });
+              setForm({ ...form, storylineId: v ? Number(v) : undefined });
             }}
           >
-            <option value="">No quest log</option>
-            {logs.map((l) => (
-              <option key={l.id} value={String(l.id)}>
-                {l.title}
+            <option value="">No storyline</option>
+            {storylines.map((s) => (
+              <option key={s.id} value={String(s.id)}>
+                {s.title}
               </option>
             ))}
           </select>

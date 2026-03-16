@@ -43,7 +43,7 @@ export default defineCommand({
       f("status", statusLabel(q.status));
       f("priority", q.priority);
       if (q.tags) f("tags", q.tags);
-      if (q.questLogId) f("quest log", `#${q.questLogId}`);
+      if (q.storylineId) f("storyline", `#${q.storylineId}`);
       f("created by", q.createdBy);
       f("created", `${formatDate(q.createdAt)} (${relativeAge(q.createdAt)} ago)`);
       f("updated", `${formatDate(q.updatedAt)} (${relativeAge(q.updatedAt)} ago)`);

@@ -14,11 +14,11 @@ beforeEach(async () => {
 });
 
 describe("dismissQuest", () => {
-  it("transitions offered quest to cancelled", () => {
+  it("transitions offered quest to abandoned", () => {
     const q = createQuest(db, { title: "test", status: "offered" });
     deepStrictEqual(q.status, "offered");
     const dismissed = dismissQuest(db, q.id);
-    deepStrictEqual(dismissed.status, "cancelled");
+    deepStrictEqual(dismissed.status, "abandoned");
   });
 
   it("throws for non-offered quest", () => {

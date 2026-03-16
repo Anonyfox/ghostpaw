@@ -67,8 +67,8 @@ const EXPECTED_WARDEN_TOOLS = [
   "quest_done",
   "quest_list",
   "quest_update",
-  "questlog_create",
-  "questlog_list",
+  "storyline_create",
+  "storyline_list",
   "recall",
   "recall_haunts",
   "remember",
@@ -313,8 +313,8 @@ describe("createEntityToolSets", () => {
       "quest_list",
       "quest_accept",
       "quest_dismiss",
-      "questlog_create",
-      "questlog_list",
+      "storyline_create",
+      "storyline_list",
       "recall_haunts",
     ]) {
       ok(!names.has(excluded), `${excluded} should not be in baseTools`);

@@ -5,8 +5,8 @@ import { createQuestCreateTool } from "./create.ts";
 import { createQuestDismissTool } from "./dismiss.ts";
 import { createQuestDoneTool } from "./done.ts";
 import { createQuestListTool } from "./list.ts";
-import { createQuestLogCreateTool } from "./log_create.ts";
-import { createQuestLogListTool } from "./log_list.ts";
+import { createStorylineCreateTool } from "./storyline_create.ts";
+import { createStorylineListTool } from "./storyline_list.ts";
 import { createQuestUpdateTool } from "./update.ts";
 
 export function createQuestTools(db: DatabaseHandle): Tool[] {
@@ -17,7 +17,7 @@ export function createQuestTools(db: DatabaseHandle): Tool[] {
     createQuestDoneTool(db),
     createQuestAcceptTool(db),
     createQuestDismissTool(db),
-    createQuestLogListTool(db),
-    createQuestLogCreateTool(db),
+    createStorylineListTool(db),
+    createStorylineCreateTool(db),
   ];
 }

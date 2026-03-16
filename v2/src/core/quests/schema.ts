@@ -1,18 +1,18 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 const QUEST_STATUS_CHECK =
-  "CHECK(status IN ('offered','pending','active','blocked','done','failed','cancelled'))";
+  "CHECK(status IN ('offered','accepted','active','blocked','done','failed','abandoned'))";
 const QUEST_PRIORITY_CHECK = "CHECK(priority IN ('low','normal','high','urgent'))";
-const QUEST_LOG_STATUS_CHECK = "CHECK(status IN ('active','completed','archived'))";
+const STORYLINE_STATUS_CHECK = "CHECK(status IN ('active','completed','archived'))";
 
 export function initQuestTables(db: DatabaseHandle): void {
   db.exec(`
-    CREATE TABLE IF NOT EXISTS quest_logs (
+    CREATE TABLE IF NOT EXISTS storylines (
       id            INTEGER PRIMARY KEY,
       title         TEXT    NOT NULL,
       description   TEXT,
       status        TEXT    NOT NULL DEFAULT 'active'
-                    ${QUEST_LOG_STATUS_CHECK},
+                    ${STORYLINE_STATUS_CHECK},
       created_at    INTEGER NOT NULL,
       created_by    TEXT    NOT NULL DEFAULT 'human',
       updated_at    INTEGER NOT NULL,
@@ -20,18 +20,18 @@ export function initQuestTables(db: DatabaseHandle): void {
       due_at        INTEGER
     )
   `);
-  db.exec("CREATE INDEX IF NOT EXISTS idx_quest_logs_status ON quest_logs(status)");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_storylines_status ON storylines(status)");
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS quests (
       id            INTEGER PRIMARY KEY,
       title         TEXT    NOT NULL,
       description   TEXT,
-      status        TEXT    NOT NULL DEFAULT 'pending'
+      status        TEXT    NOT NULL DEFAULT 'accepted'
                     ${QUEST_STATUS_CHECK},
       priority      TEXT    NOT NULL DEFAULT 'normal'
                     ${QUEST_PRIORITY_CHECK},
-      quest_log_id  INTEGER REFERENCES quest_logs(id),
+      storyline_id  INTEGER REFERENCES storylines(id),
       tags          TEXT,
       created_at    INTEGER NOT NULL,
       created_by    TEXT    NOT NULL DEFAULT 'human',
@@ -46,10 +46,8 @@ export function initQuestTables(db: DatabaseHandle): void {
     )
   `);
 
-  migrateQuestsCheckIfNeeded(db);
-
   db.exec("CREATE INDEX IF NOT EXISTS idx_quests_status ON quests(status)");
-  db.exec("CREATE INDEX IF NOT EXISTS idx_quests_quest_log_id ON quests(quest_log_id)");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_quests_storyline_id ON quests(storyline_id)");
   db.exec(
     "CREATE INDEX IF NOT EXISTS idx_quests_due_at ON quests(due_at) WHERE due_at IS NOT NULL",
   );
@@ -76,53 +74,6 @@ export function initQuestTables(db: DatabaseHandle): void {
   db.exec(
     "CREATE INDEX IF NOT EXISTS idx_quest_occurrences_quest ON quest_occurrences(quest_id, occurrence_at)",
   );
-}
-
-function migrateQuestsCheckIfNeeded(db: DatabaseHandle): void {
-  try {
-    const now = Date.now();
-    db.prepare(
-      "INSERT INTO quests (title, status, created_at, created_by, updated_at) VALUES (?, 'offered', ?, 'human', ?)",
-    ).run("__migration_test", now, now);
-    db.prepare("DELETE FROM quests WHERE title = '__migration_test'").run();
-  } catch {
-    db.exec("PRAGMA foreign_keys = OFF");
-    db.exec("BEGIN");
-    try {
-      db.exec(`
-        CREATE TABLE quests_new (
-          id            INTEGER PRIMARY KEY,
-          title         TEXT    NOT NULL,
-          description   TEXT,
-          status        TEXT    NOT NULL DEFAULT 'pending'
-                        ${QUEST_STATUS_CHECK},
-          priority      TEXT    NOT NULL DEFAULT 'normal'
-                        ${QUEST_PRIORITY_CHECK},
-          quest_log_id  INTEGER REFERENCES quest_logs(id),
-          tags          TEXT,
-          created_at    INTEGER NOT NULL,
-          created_by    TEXT    NOT NULL DEFAULT 'human',
-          updated_at    INTEGER NOT NULL,
-          starts_at     INTEGER,
-          ends_at       INTEGER,
-          due_at        INTEGER,
-          remind_at     INTEGER,
-          reminded_at   INTEGER,
-          completed_at  INTEGER,
-          rrule         TEXT
-        )
-      `);
-      db.exec("INSERT INTO quests_new SELECT * FROM quests");
-      db.exec("DROP TABLE quests");
-      db.exec("ALTER TABLE quests_new RENAME TO quests");
-      db.exec("COMMIT");
-    } catch (err) {
-      db.exec("ROLLBACK");
-      throw err;
-    } finally {
-      db.exec("PRAGMA foreign_keys = ON");
-    }
-  }
 }
 
 function createFts(db: DatabaseHandle): void {

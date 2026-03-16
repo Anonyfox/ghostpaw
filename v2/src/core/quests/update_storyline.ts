@@ -1,28 +1,28 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { rowToQuestLog } from "./row_to_quest_log.ts";
-import type { QuestLog, UpdateQuestLogInput } from "./types.ts";
-import { QUEST_LOG_STATUSES } from "./types.ts";
+import { rowToStoryline } from "./row_to_storyline.ts";
+import type { Storyline, UpdateStorylineInput } from "./types.ts";
+import { STORYLINE_STATUSES } from "./types.ts";
 
-export function updateQuestLog(
+export function updateStoryline(
   db: DatabaseHandle,
   id: number,
-  input: UpdateQuestLogInput,
-): QuestLog {
-  const existing = db.prepare("SELECT * FROM quest_logs WHERE id = ?").get(id) as
+  input: UpdateStorylineInput,
+): Storyline {
+  const existing = db.prepare("SELECT * FROM storylines WHERE id = ?").get(id) as
     | Record<string, unknown>
     | undefined;
   if (!existing) {
-    throw new Error(`Quest log #${id} not found.`);
+    throw new Error(`Storyline #${id} not found.`);
   }
 
-  if (input.status !== undefined && !QUEST_LOG_STATUSES.includes(input.status)) {
+  if (input.status !== undefined && !STORYLINE_STATUSES.includes(input.status)) {
     throw new Error(
-      `Invalid status "${input.status}". Must be one of: ${QUEST_LOG_STATUSES.join(", ")}.`,
+      `Invalid status "${input.status}". Must be one of: ${STORYLINE_STATUSES.join(", ")}.`,
     );
   }
 
   if (input.title !== undefined && !input.title.trim()) {
-    throw new Error("Quest log title cannot be empty.");
+    throw new Error("Storyline title cannot be empty.");
   }
 
   const sets: string[] = [];
@@ -48,15 +48,15 @@ export function updateQuestLog(
   }
 
   if (sets.length === 0) {
-    return rowToQuestLog(existing);
+    return rowToStoryline(existing);
   }
 
   sets.push("updated_at = ?");
   values.push(now);
   values.push(id);
 
-  db.prepare(`UPDATE quest_logs SET ${sets.join(", ")} WHERE id = ?`).run(...values);
+  db.prepare(`UPDATE storylines SET ${sets.join(", ")} WHERE id = ?`).run(...values);
 
-  const row = db.prepare("SELECT * FROM quest_logs WHERE id = ?").get(id);
-  return rowToQuestLog(row as Record<string, unknown>);
+  const row = db.prepare("SELECT * FROM storylines WHERE id = ?").get(id);
+  return rowToStoryline(row as Record<string, unknown>);
 }

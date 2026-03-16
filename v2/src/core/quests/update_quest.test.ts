@@ -99,9 +99,9 @@ describe("updateQuest", () => {
     throws(() => updateQuest(db, q.id, { title: "  " }), /cannot be empty/);
   });
 
-  it("rejects nonexistent quest_log_id", () => {
+  it("rejects nonexistent storyline_id", () => {
     const q = createQuest(db, { title: "Test" });
-    throws(() => updateQuest(db, q.id, { questLogId: 999 }), /does not exist/);
+    throws(() => updateQuest(db, q.id, { storylineId: 999 }), /does not exist/);
   });
 
   it("updates FTS index on title change", () => {

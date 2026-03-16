@@ -11,7 +11,7 @@ describe("QuestDetail", () => {
   });
 
   it("renders loading state before data arrives", () => {
-    const html = render(<QuestDetail questId={1} logs={[]} onUpdated={noop} onDone={noop} />);
+    const html = render(<QuestDetail questId={1} storylines={[]} onUpdated={noop} onDone={noop} />);
     ok(html.includes("Loading"));
   });
 });

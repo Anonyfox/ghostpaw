@@ -1,13 +1,13 @@
 export type QuestStatus =
   | "offered"
-  | "pending"
+  | "accepted"
   | "active"
   | "blocked"
   | "done"
   | "failed"
-  | "cancelled";
+  | "abandoned";
 export type QuestPriority = "low" | "normal" | "high" | "urgent";
-export type QuestLogStatus = "active" | "completed" | "archived";
+export type StorylineStatus = "active" | "completed" | "archived";
 
 export interface QuestInfo {
   id: number;
@@ -15,7 +15,7 @@ export interface QuestInfo {
   description: string | null;
   status: QuestStatus;
   priority: QuestPriority;
-  questLogId: number | null;
+  storylineId: number | null;
   tags: string | null;
   createdBy: string;
   createdAt: number;
@@ -50,11 +50,11 @@ export interface QuestListResponse {
   total: number;
 }
 
-export interface QuestLogInfo {
+export interface StorylineInfo {
   id: number;
   title: string;
   description: string | null;
-  status: QuestLogStatus;
+  status: StorylineStatus;
   createdBy: string;
   createdAt: number;
   updatedAt: number;
@@ -64,18 +64,18 @@ export interface QuestLogInfo {
     total: number;
     done: number;
     active: number;
-    pending: number;
+    accepted: number;
     blocked: number;
     offered: number;
   };
 }
 
-export interface QuestLogDetailResponse extends QuestLogInfo {
+export interface StorylineDetailResponse extends StorylineInfo {
   quests: QuestInfo[];
 }
 
-export interface QuestLogListResponse {
-  logs: QuestLogInfo[];
+export interface StorylineListResponse {
+  storylines: StorylineInfo[];
 }
 
 export interface TemporalContextResponse {
@@ -91,7 +91,7 @@ export interface CreateQuestBody {
   description?: string;
   status?: QuestStatus;
   priority?: QuestPriority;
-  questLogId?: number;
+  storylineId?: number;
   tags?: string;
   createdBy?: "human" | "ghostpaw";
   startsAt?: number;
@@ -106,7 +106,7 @@ export interface UpdateQuestBody {
   description?: string | null;
   status?: QuestStatus;
   priority?: QuestPriority;
-  questLogId?: number | null;
+  storylineId?: number | null;
   tags?: string | null;
   startsAt?: number | null;
   endsAt?: number | null;
@@ -115,17 +115,17 @@ export interface UpdateQuestBody {
   rrule?: string | null;
 }
 
-export interface CreateQuestLogBody {
+export interface CreateStorylineBody {
   title: string;
   description?: string;
   dueAt?: number;
   createdBy?: "human" | "ghostpaw";
 }
 
-export interface UpdateQuestLogBody {
+export interface UpdateStorylineBody {
   title?: string;
   description?: string | null;
-  status?: QuestLogStatus;
+  status?: StorylineStatus;
   dueAt?: number | null;
 }
 

@@ -17,10 +17,10 @@ describe("createQuest", () => {
     const q = createQuest(db, { title: "Deploy v3" });
     ok(q.id > 0);
     strictEqual(q.title, "Deploy v3");
-    strictEqual(q.status, "pending");
+    strictEqual(q.status, "accepted");
     strictEqual(q.priority, "normal");
     strictEqual(q.createdBy, "human");
-    strictEqual(q.questLogId, null);
+    strictEqual(q.storylineId, null);
     strictEqual(q.description, null);
     ok(q.createdAt > 0);
     strictEqual(q.createdAt, q.updatedAt);
@@ -30,14 +30,14 @@ describe("createQuest", () => {
     const now = Date.now();
     const log = db
       .prepare(
-        "INSERT INTO quest_logs (title, created_at, created_by, updated_at) VALUES (?, ?, ?, ?)",
+        "INSERT INTO storylines (title, created_at, created_by, updated_at) VALUES (?, ?, ?, ?)",
       )
       .run("Project X", now, "human", now);
 
     const q = createQuest(db, {
       title: "Write tests",
       description: "Cover edge cases",
-      questLogId: Number(log.lastInsertRowid),
+      storylineId: Number(log.lastInsertRowid),
       priority: "high",
       tags: "code,testing",
       createdBy: "ghostpaw",
@@ -54,7 +54,7 @@ describe("createQuest", () => {
     strictEqual(q.createdBy, "ghostpaw");
     strictEqual(q.startsAt, now);
     strictEqual(q.rrule, "FREQ=WEEKLY;BYDAY=MO");
-    ok(q.questLogId! > 0);
+    ok(q.storylineId! > 0);
   });
 
   it("rejects empty title", () => {
@@ -72,8 +72,8 @@ describe("createQuest", () => {
     );
   });
 
-  it("rejects nonexistent quest_log_id", () => {
-    throws(() => createQuest(db, { title: "test", questLogId: 999 }), /does not exist/);
+  it("rejects nonexistent storyline_id", () => {
+    throws(() => createQuest(db, { title: "test", storylineId: 999 }), /does not exist/);
   });
 
   it("trims title and description", () => {

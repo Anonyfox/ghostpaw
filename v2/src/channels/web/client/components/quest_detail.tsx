@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from "preact/hooks";
 import type {
   QuestDetailResponse,
   QuestInfo,
-  QuestLogInfo,
   QuestTrailHint,
+  StorylineInfo,
   UpdateQuestBody,
 } from "../../shared/quest_types.ts";
 import { relativeAge, relativeDue, rruleLabel } from "../../shared/quest_types.ts";
@@ -15,7 +15,7 @@ import { QuestStatusPill } from "./quest_status_pill.tsx";
 
 interface Props {
   questId: number;
-  logs: QuestLogInfo[];
+  storylines: StorylineInfo[];
   onUpdated: (q: QuestInfo) => void;
   onDone: (id: number) => void;
 }
@@ -34,7 +34,7 @@ function fromLocalInput(val: string): number | null {
   return new Date(val).getTime();
 }
 
-export function QuestDetail({ questId, logs, onUpdated, onDone }: Props) {
+export function QuestDetail({ questId, storylines, onUpdated, onDone }: Props) {
   const [detail, setDetail] = useState<QuestDetailResponse | null>(null);
   const [trailHint, setTrailHint] = useState<QuestTrailHint | null>(null);
   const [editing, setEditing] = useState(false);
@@ -65,7 +65,7 @@ export function QuestDetail({ questId, logs, onUpdated, onDone }: Props) {
       description: d.description,
       status: d.status,
       priority: d.priority,
-      questLogId: d.questLogId,
+      storylineId: d.storylineId,
       tags: d.tags,
       dueAt: d.dueAt,
       startsAt: d.startsAt,
@@ -136,12 +136,12 @@ export function QuestDetail({ questId, logs, onUpdated, onDone }: Props) {
               }
             >
               <option value="offered">Offered</option>
-              <option value="pending">Pending</option>
+              <option value="accepted">Accepted</option>
               <option value="active">Active</option>
               <option value="blocked">Blocked</option>
               <option value="done">Done</option>
               <option value="failed">Failed</option>
-              <option value="cancelled">Cancelled</option>
+              <option value="abandoned">Abandoned</option>
             </select>
           </div>
           <div class="col-sm-4">
@@ -164,16 +164,16 @@ export function QuestDetail({ questId, logs, onUpdated, onDone }: Props) {
           <div class="col-sm-4">
             <select
               class="form-select form-select-sm"
-              value={String(form.questLogId ?? "")}
+              value={String(form.storylineId ?? "")}
               onChange={(e) => {
                 const v = (e.target as HTMLSelectElement).value;
-                setForm({ ...form, questLogId: v ? Number(v) : null });
+                setForm({ ...form, storylineId: v ? Number(v) : null });
               }}
             >
-              <option value="">No quest log</option>
-              {logs.map((l) => (
-                <option key={l.id} value={String(l.id)}>
-                  {l.title}
+              <option value="">No storyline</option>
+              {storylines.map((s) => (
+                <option key={s.id} value={String(s.id)}>
+                  {s.title}
                 </option>
               ))}
             </select>
@@ -288,10 +288,10 @@ export function QuestDetail({ questId, logs, onUpdated, onDone }: Props) {
             <dd class="col-sm-9">{d.tags}</dd>
           </>
         )}
-        {d.questLogId != null && (
+        {d.storylineId != null && (
           <>
-            <dt class="col-sm-3 text-body-secondary">Quest Log</dt>
-            <dd class="col-sm-9">#{d.questLogId}</dd>
+            <dt class="col-sm-3 text-body-secondary">Storyline</dt>
+            <dd class="col-sm-9">#{d.storylineId}</dd>
           </>
         )}
         <dt class="col-sm-3 text-body-secondary">Created</dt>
@@ -398,7 +398,7 @@ export function QuestDetail({ questId, logs, onUpdated, onDone }: Props) {
         <button type="button" class="btn btn-sm btn-outline-info" onClick={startEdit}>
           Edit
         </button>
-        {!["offered", "done", "failed", "cancelled"].includes(d.status) && (
+        {!["offered", "done", "failed", "abandoned"].includes(d.status) && (
           <button type="button" class="btn btn-sm btn-success" onClick={handleDone}>
             Done
           </button>

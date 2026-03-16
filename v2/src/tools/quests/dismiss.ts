@@ -13,7 +13,7 @@ export function createQuestDismissTool(db: DatabaseHandle) {
   return createTool({
     name: "quest_dismiss",
     description:
-      "Dismiss an offered quest from the Quest Board, transitioning it to 'cancelled'. " +
+      "Dismiss an offered quest from the Quest Board, transitioning it to 'abandoned'. " +
       "Only works on quests with status 'offered'.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new QuestDismissParams() as any,

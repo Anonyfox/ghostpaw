@@ -1,11 +1,11 @@
 import { createTool, Schema } from "chatoyant";
-import { createQuestLog } from "../../core/quests/api/write/index.ts";
+import { createStoryline } from "../../core/quests/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
-import { formatQuestLog } from "./format_quest.ts";
+import { formatStoryline } from "./format_quest.ts";
 
-class QuestLogCreateParams extends Schema {
+class StorylineCreateParams extends Schema {
   title = Schema.String({
-    description: "Quest log (storyline) title.",
+    description: "Storyline title.",
   });
   description = Schema.String({
     optional: true,
@@ -17,14 +17,14 @@ class QuestLogCreateParams extends Schema {
   });
 }
 
-export function createQuestLogCreateTool(db: DatabaseHandle) {
+export function createStorylineCreateTool(db: DatabaseHandle) {
   return createTool({
-    name: "questlog_create",
+    name: "storyline_create",
     description:
-      "Create a quest log (storyline) to group related quests. " +
+      "Create a storyline to group related quests. " +
       "Like an RPG quest chain or a project tracker.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
-    parameters: new QuestLogCreateParams() as any,
+    parameters: new StorylineCreateParams() as any,
     execute: async ({ args }) => {
       const { title, description, dueAt } = args as {
         title: string;
@@ -37,15 +37,15 @@ export function createQuestLogCreateTool(db: DatabaseHandle) {
       }
 
       try {
-        const log = createQuestLog(db, {
+        const storyline = createStoryline(db, {
           title: title.trim(),
           description,
           dueAt,
         });
-        return { questLog: formatQuestLog(log) };
+        return { storyline: formatStoryline(storyline) };
       } catch (err) {
         return {
-          error: `Failed to create quest log: ${err instanceof Error ? err.message : String(err)}`,
+          error: `Failed to create storyline: ${err instanceof Error ? err.message : String(err)}`,
         };
       }
     },

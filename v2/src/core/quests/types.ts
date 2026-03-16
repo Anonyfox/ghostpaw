@@ -1,29 +1,29 @@
 export const QUEST_STATUSES = [
   "offered",
-  "pending",
+  "accepted",
   "active",
   "blocked",
   "done",
   "failed",
-  "cancelled",
+  "abandoned",
 ] as const;
 export type QuestStatus = (typeof QUEST_STATUSES)[number];
 
-export const TERMINAL_STATUSES: readonly QuestStatus[] = ["done", "failed", "cancelled"];
+export const TERMINAL_STATUSES: readonly QuestStatus[] = ["done", "failed", "abandoned"];
 export const BOARD_STATUSES: readonly QuestStatus[] = ["offered"];
-export const ACTIVE_VIEW_STATUSES: readonly QuestStatus[] = ["pending", "active", "blocked"];
+export const ACTIVE_VIEW_STATUSES: readonly QuestStatus[] = ["accepted", "active", "blocked"];
 export const DEFAULT_EXCLUDE_STATUSES: readonly QuestStatus[] = [
   "offered",
   "done",
   "failed",
-  "cancelled",
+  "abandoned",
 ];
 
 export const QUEST_PRIORITIES = ["low", "normal", "high", "urgent"] as const;
 export type QuestPriority = (typeof QUEST_PRIORITIES)[number];
 
-export const QUEST_LOG_STATUSES = ["active", "completed", "archived"] as const;
-export type QuestLogStatus = (typeof QUEST_LOG_STATUSES)[number];
+export const STORYLINE_STATUSES = ["active", "completed", "archived"] as const;
+export type StorylineStatus = (typeof STORYLINE_STATUSES)[number];
 
 export const QUEST_CREATORS = ["human", "ghostpaw"] as const;
 export type QuestCreator = (typeof QUEST_CREATORS)[number];
@@ -34,7 +34,7 @@ export interface Quest {
   description: string | null;
   status: QuestStatus;
   priority: QuestPriority;
-  questLogId: number | null;
+  storylineId: number | null;
   tags: string | null;
   createdAt: number;
   createdBy: QuestCreator;
@@ -48,11 +48,11 @@ export interface Quest {
   rrule: string | null;
 }
 
-export interface QuestLog {
+export interface Storyline {
   id: number;
   title: string;
   description: string | null;
-  status: QuestLogStatus;
+  status: StorylineStatus;
   createdAt: number;
   createdBy: QuestCreator;
   updatedAt: number;
@@ -72,7 +72,7 @@ export interface CreateQuestInput {
   title: string;
   description?: string;
   status?: QuestStatus;
-  questLogId?: number;
+  storylineId?: number;
   priority?: QuestPriority;
   tags?: string;
   createdBy?: QuestCreator;
@@ -88,7 +88,7 @@ export interface UpdateQuestInput {
   description?: string | null;
   status?: QuestStatus;
   priority?: QuestPriority;
-  questLogId?: number | null;
+  storylineId?: number | null;
   tags?: string | null;
   startsAt?: number | null;
   endsAt?: number | null;
@@ -98,24 +98,24 @@ export interface UpdateQuestInput {
   rrule?: string | null;
 }
 
-export interface CreateQuestLogInput {
+export interface CreateStorylineInput {
   title: string;
   description?: string;
   dueAt?: number;
   createdBy?: QuestCreator;
 }
 
-export interface UpdateQuestLogInput {
+export interface UpdateStorylineInput {
   title?: string;
   description?: string | null;
-  status?: QuestLogStatus;
+  status?: StorylineStatus;
   dueAt?: number | null;
 }
 
 export interface ListQuestsOptions {
   status?: QuestStatus;
   excludeStatuses?: QuestStatus[];
-  questLogId?: number;
+  storylineId?: number;
   priority?: QuestPriority;
   dueBefore?: number;
   dueAfter?: number;
@@ -124,17 +124,17 @@ export interface ListQuestsOptions {
   offset?: number;
 }
 
-export interface ListQuestLogsOptions {
-  status?: QuestLogStatus;
+export interface ListStorylinesOptions {
+  status?: StorylineStatus;
   limit?: number;
   offset?: number;
 }
 
-export interface QuestLogProgress {
+export interface StorylineProgress {
   total: number;
   done: number;
   active: number;
-  pending: number;
+  accepted: number;
   blocked: number;
   offered: number;
 }

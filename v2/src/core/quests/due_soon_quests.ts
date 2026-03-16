@@ -8,7 +8,7 @@ export function dueSoonQuests(db: DatabaseHandle, horizonMs: number, limit = 5):
     .prepare(
       `SELECT * FROM quests
        WHERE due_at IS NOT NULL AND due_at >= ? AND due_at <= ?
-         AND status NOT IN ('offered','done','failed','cancelled')
+         AND status NOT IN ('offered','done','failed','abandoned')
        ORDER BY due_at ASC LIMIT ?`,
     )
     .all(now, now + horizonMs, limit) as Record<string, unknown>[];

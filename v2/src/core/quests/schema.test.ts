@@ -15,11 +15,11 @@ describe("initQuestTables", () => {
   it("creates all three tables", () => {
     const tables = db
       .prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('quests','quest_logs','quest_occurrences') ORDER BY name",
+        "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('quests','storylines','quest_occurrences') ORDER BY name",
       )
       .all() as { name: string }[];
     const names = tables.map((t) => t.name);
-    ok(names.includes("quest_logs"));
+    ok(names.includes("storylines"));
     ok(names.includes("quests"));
     ok(names.includes("quest_occurrences"));
   });
@@ -58,20 +58,20 @@ describe("initQuestTables", () => {
     });
   });
 
-  it("rejects invalid quest_log status", () => {
+  it("rejects invalid storyline status", () => {
     const now = Date.now();
     throws(() => {
       db.prepare(
-        "INSERT INTO quest_logs (title, status, created_at, created_by, updated_at) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO storylines (title, status, created_at, created_by, updated_at) VALUES (?, ?, ?, ?, ?)",
       ).run("test", "invalid", now, "human", now);
     });
   });
 
-  it("enforces quest_log_id FK", () => {
+  it("enforces storyline_id FK", () => {
     const now = Date.now();
     throws(() => {
       db.prepare(
-        "INSERT INTO quests (title, quest_log_id, created_at, created_by, updated_at) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO quests (title, storyline_id, created_at, created_by, updated_at) VALUES (?, ?, ?, ?, ?)",
       ).run("test", 999, now, "human", now);
     });
   });

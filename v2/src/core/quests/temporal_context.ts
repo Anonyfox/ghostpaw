@@ -11,7 +11,7 @@ const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
 export function getTemporalContext(db: DatabaseHandle): TemporalContext {
   const now = Date.now();
 
-  const excludeList = "('offered','done','failed','cancelled')";
+  const excludeList = "('offered','done','failed','abandoned')";
 
   const overdue = query(
     db,

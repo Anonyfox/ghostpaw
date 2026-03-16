@@ -2,7 +2,11 @@ import type { DatabaseHandle } from "../../lib/index.ts";
 import type { Quest } from "./types.ts";
 import { updateQuest } from "./update_quest.ts";
 
-export function acceptQuest(db: DatabaseHandle, id: number, opts?: { questLogId?: number }): Quest {
+export function acceptQuest(
+  db: DatabaseHandle,
+  id: number,
+  opts?: { storylineId?: number },
+): Quest {
   const existing = db.prepare("SELECT * FROM quests WHERE id = ?").get(id) as
     | Record<string, unknown>
     | undefined;
@@ -16,7 +20,7 @@ export function acceptQuest(db: DatabaseHandle, id: number, opts?: { questLogId?
   }
 
   return updateQuest(db, id, {
-    status: "pending",
-    questLogId: opts?.questLogId,
+    status: "accepted",
+    storylineId: opts?.storylineId,
   });
 }

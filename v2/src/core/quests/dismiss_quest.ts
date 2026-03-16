@@ -15,5 +15,5 @@ export function dismissQuest(db: DatabaseHandle, id: number): Quest {
     );
   }
 
-  return updateQuest(db, id, { status: "cancelled" });
+  return updateQuest(db, id, { status: "abandoned" });
 }

@@ -1,4 +1,4 @@
-import type { Quest, QuestLog, QuestLogProgress } from "../../core/quests/api/types.ts";
+import type { Quest, Storyline, StorylineProgress } from "../../core/quests/api/types.ts";
 
 export function formatQuest(q: Quest) {
   const out: Record<string, unknown> = {
@@ -9,7 +9,7 @@ export function formatQuest(q: Quest) {
     createdBy: q.createdBy,
   };
   if (q.description) out.description = q.description;
-  if (q.questLogId) out.questLogId = q.questLogId;
+  if (q.storylineId) out.storylineId = q.storylineId;
   if (q.tags) out.tags = q.tags;
   if (q.dueAt) out.dueAt = q.dueAt;
   if (q.startsAt) out.startsAt = q.startsAt;
@@ -30,12 +30,12 @@ export function formatQuestBrief(q: Quest) {
     priority: q.priority,
   };
   if (q.dueAt) out.dueAt = q.dueAt;
-  if (q.questLogId) out.questLogId = q.questLogId;
+  if (q.storylineId) out.storylineId = q.storylineId;
   if (q.rrule) out.rrule = q.rrule;
   return out;
 }
 
-export function formatQuestLog(log: QuestLog, progress?: QuestLogProgress) {
+export function formatStoryline(log: Storyline, progress?: StorylineProgress) {
   const out: Record<string, unknown> = {
     id: log.id,
     title: log.title,

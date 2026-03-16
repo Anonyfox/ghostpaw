@@ -50,7 +50,7 @@ export function statusLabel(status: string): string {
     case "done":
       return style.green(status);
     case "failed":
-    case "cancelled":
+    case "abandoned":
       return style.dim(status);
     case "blocked":
       return style.yellow(status);
@@ -76,7 +76,7 @@ export function questRow(q: {
   status: string;
   priority: string;
   dueAt: number | null;
-  questLogId: number | null;
+  storylineId: number | null;
   createdAt: number;
 }): string {
   const id = String(q.id).padStart(5);
@@ -84,7 +84,7 @@ export function questRow(q: {
   const title = q.title.length > 28 ? `${q.title.slice(0, 27)}…` : q.title.padEnd(28);
   const statusPad = q.status.padEnd(10);
   const due = q.dueAt ? relativeDue(q.dueAt).padStart(10) : "".padStart(10);
-  const log = q.questLogId ? style.dim(`#${q.questLogId}`.padStart(5)) : "".padStart(5);
+  const log = q.storylineId ? style.dim(`#${q.storylineId}`.padStart(5)) : "".padStart(5);
   const age = style.dim(relativeAge(q.createdAt).padStart(4));
   return `${style.dim(id)} ${dot} ${title} ${statusLabel(statusPad)} ${due} ${log} ${age}`;
 }

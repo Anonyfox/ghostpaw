@@ -7,7 +7,7 @@ export function rowToQuest(row: Record<string, unknown>): Quest {
     description: (row.description as string) ?? null,
     status: row.status as QuestStatus,
     priority: row.priority as QuestPriority,
-    questLogId: (row.quest_log_id as number) ?? null,
+    storylineId: (row.storyline_id as number) ?? null,
     tags: (row.tags as string) ?? null,
     createdAt: row.created_at as number,
     createdBy: row.created_by as QuestCreator,

@@ -15,7 +15,7 @@ beforeEach(async () => {
 });
 
 describe("completeQuest", () => {
-  it("marks a pending quest as done", () => {
+  it("marks an accepted quest as done", () => {
     const q = createQuest(db, { title: "Test" });
     const result = completeQuest(db, q.id) as Quest;
     strictEqual(result.status, "done");

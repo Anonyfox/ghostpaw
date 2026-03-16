@@ -63,7 +63,7 @@ The entity composition layer. `createEntity` wires core modules into a working a
 
 **Coordinator (ghostpaw, 13 tools):** filesystem (read, write, edit, ls, grep, bash), web (web_search, web_fetch), mcp, sense, howl, delegate, check_run. No persistence or infrastructure tools — delegates to specialists.
 
-**Warden (23 tools):** memory (recall, remember, revise, forget), pack (pack_sense, pack_meet, pack_bond, pack_note, contact_add, contact_remove, contact_list, contact_lookup, pack_merge), quests (quest_create, quest_update, quest_done, quest_list, quest_accept, quest_dismiss, questlog_create, questlog_list), datetime, recall_haunts. No filesystem, web, or delegation.
+**Warden (23 tools):** memory (recall, remember, revise, forget), pack (pack_sense, pack_meet, pack_bond, pack_note, contact_add, contact_remove, contact_list, contact_lookup, pack_merge), quests (quest_create, quest_update, quest_done, quest_list, quest_accept, quest_dismiss, storyline_create, storyline_list), datetime, recall_haunts. No filesystem, web, or delegation.
 
 **Chamberlain (16 tools):** config (get, list, set, undo, reset), secrets (list, set, remove), schedule (list, create, update, delete), costs (cost_summary, cost_check), calc, datetime. No filesystem, web, or delegation.
 

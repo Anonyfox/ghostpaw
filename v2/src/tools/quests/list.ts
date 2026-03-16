@@ -20,9 +20,9 @@ class QuestListParams extends Schema {
     optional: true,
     description: "Filter by priority.",
   });
-  questLogId = Schema.Integer({
+  storylineId = Schema.Integer({
     optional: true,
-    description: "Filter by quest log ID.",
+    description: "Filter by storyline ID.",
   });
   query = Schema.String({
     optional: true,
@@ -31,7 +31,7 @@ class QuestListParams extends Schema {
   includeAll = Schema.Boolean({
     optional: true,
     description:
-      "If true, show all quests including done/cancelled/offered. " +
+      "If true, show all quests including done/abandoned/offered. " +
       "By default, offered and terminal statuses are excluded.",
   });
   temporal = Schema.Boolean({
@@ -51,7 +51,7 @@ export function createQuestListTool(db: DatabaseHandle) {
     name: "quest_list",
     description:
       "Browse or search quests. Without arguments returns active quests (excludes " +
-      "offered/done/failed/cancelled). Use 'temporal: true' for a time-aware overview " +
+      "offered/done/failed/abandoned). Use 'temporal: true' for a time-aware overview " +
       "of what needs attention. Use 'query' for full-text search. Use 'status: offered' " +
       "to see the Quest Board.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
@@ -60,7 +60,7 @@ export function createQuestListTool(db: DatabaseHandle) {
       const a = args as {
         status?: QuestStatus;
         priority?: QuestPriority;
-        questLogId?: number;
+        storylineId?: number;
         query?: string;
         includeAll?: boolean;
         temporal?: boolean;
@@ -82,7 +82,7 @@ export function createQuestListTool(db: DatabaseHandle) {
       const quests = listQuests(db, {
         status: a.status,
         priority: a.priority,
-        questLogId: a.questLogId,
+        storylineId: a.storylineId,
         query: a.query?.trim() || undefined,
         excludeStatuses:
           hasExplicitStatus || a.includeAll ? undefined : [...DEFAULT_EXCLUDE_STATUSES],

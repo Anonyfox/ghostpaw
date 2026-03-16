@@ -1,4 +1,4 @@
-import type { QuestLogInfo } from "../../shared/quest_types.ts";
+import type { StorylineInfo } from "../../shared/quest_types.ts";
 
 interface Props {
   query: string;
@@ -8,9 +8,9 @@ interface Props {
   onStatusChange: (s: string) => void;
   priority: string;
   onPriorityChange: (p: string) => void;
-  logFilter: string;
-  onLogFilterChange: (id: string) => void;
-  logs: QuestLogInfo[];
+  storylineFilter: string;
+  onStorylineFilterChange: (id: string) => void;
+  storylines: StorylineInfo[];
   onAdd: () => void;
 }
 
@@ -22,9 +22,9 @@ export function QuestToolbar({
   onStatusChange,
   priority,
   onPriorityChange,
-  logFilter,
-  onLogFilterChange,
-  logs,
+  storylineFilter,
+  onStorylineFilterChange,
+  storylines,
   onAdd,
 }: Props) {
   const onKeyDown = (e: KeyboardEvent) => {
@@ -55,12 +55,12 @@ export function QuestToolbar({
       >
         <option value="">Active statuses</option>
         <option value="offered">Offered</option>
-        <option value="pending">Pending</option>
+        <option value="accepted">Accepted</option>
         <option value="active">Active</option>
         <option value="blocked">Blocked</option>
         <option value="done">Done</option>
         <option value="failed">Failed</option>
-        <option value="cancelled">Cancelled</option>
+        <option value="abandoned">Abandoned</option>
         <option value="__all">All (incl. done)</option>
       </select>
 
@@ -77,17 +77,17 @@ export function QuestToolbar({
         <option value="urgent">Urgent</option>
       </select>
 
-      {logs.length > 0 && (
+      {storylines.length > 0 && (
         <select
           class="form-select form-select-sm"
           style="max-width: 160px;"
-          value={logFilter}
-          onChange={(e) => onLogFilterChange((e.target as HTMLSelectElement).value)}
+          value={storylineFilter}
+          onChange={(e) => onStorylineFilterChange((e.target as HTMLSelectElement).value)}
         >
-          <option value="">All quest logs</option>
-          {logs.map((l) => (
-            <option key={l.id} value={String(l.id)}>
-              {l.title}
+          <option value="">All storylines</option>
+          {storylines.map((s) => (
+            <option key={s.id} value={String(s.id)}>
+              {s.title}
             </option>
           ))}
         </select>

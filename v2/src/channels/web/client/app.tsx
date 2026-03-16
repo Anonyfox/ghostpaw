@@ -8,12 +8,12 @@ import { LoginPage } from "./pages/login.tsx";
 import { MemoriesPage } from "./pages/memories.tsx";
 import { PackPage } from "./pages/pack.tsx";
 import { PackDetailPage } from "./pages/pack_detail.tsx";
-import { QuestLogDetailPage } from "./pages/quest_log_detail.tsx";
 import { QuestsPage } from "./pages/quests.tsx";
 import { SessionsPage } from "./pages/sessions.tsx";
 import { SettingsPage } from "./pages/settings.tsx";
 import { SoulDetailPage } from "./pages/soul_detail.tsx";
 import { SoulsPage } from "./pages/souls.tsx";
+import { StorylineDetailPage } from "./pages/storyline_detail.tsx";
 import { TrailPage } from "./pages/trail.tsx";
 import { TrainingGroundsPage } from "./pages/training_grounds.tsx";
 
@@ -25,7 +25,7 @@ function AuthenticatedRoutes() {
         <Route path="/memories" component={MemoriesPage} />
         <Route path="/pack" component={PackPage} />
         <Route path="/pack/:id" component={PackDetailPage} />
-        <Route path="/quests/logs/:id" component={QuestLogDetailPage} />
+        <Route path="/quests/storylines/:id" component={StorylineDetailPage} />
         <Route path="/quests" component={QuestsPage} />
         <Route path="/trail" component={TrailPage} />
         <Route path="/howls" component={HowlsPage} />

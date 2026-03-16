@@ -1,13 +1,12 @@
 const STATUS_CLASSES: Record<string, string> = {
   offered: "bg-warning text-dark",
-  pending: "bg-secondary",
+  accepted: "bg-secondary",
   active: "bg-info",
   blocked: "bg-warning text-dark",
   done: "bg-success",
   failed: "bg-danger",
-  cancelled: "bg-secondary text-decoration-line-through",
-  completed: "bg-success",
   abandoned: "bg-secondary text-decoration-line-through",
+  completed: "bg-success",
 };
 
 export function QuestStatusPill({ status }: { status: string }) {

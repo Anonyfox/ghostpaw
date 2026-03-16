@@ -32,7 +32,7 @@ describe("overdueQuests", () => {
   it("excludes terminal and offered statuses", () => {
     const pastDue = Date.now() - 1000;
     const now = Date.now();
-    for (const status of ["offered", "done", "failed", "cancelled"]) {
+    for (const status of ["offered", "done", "failed", "abandoned"]) {
       db.prepare(
         "INSERT INTO quests (title, status, created_at, created_by, updated_at, due_at) VALUES (?, ?, ?, 'human', ?, ?)",
       ).run(`${status} quest`, status, now, now, pastDue);

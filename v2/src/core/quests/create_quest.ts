@@ -21,10 +21,10 @@ export function createQuest(db: DatabaseHandle, input: CreateQuestInput): Quest 
     );
   }
 
-  if (input.questLogId !== undefined) {
-    const log = db.prepare("SELECT id FROM quest_logs WHERE id = ?").get(input.questLogId);
+  if (input.storylineId !== undefined) {
+    const log = db.prepare("SELECT id FROM storylines WHERE id = ?").get(input.storylineId);
     if (!log) {
-      throw new Error(`Quest log #${input.questLogId} does not exist.`);
+      throw new Error(`Storyline #${input.storylineId} does not exist.`);
     }
   }
 
@@ -32,16 +32,16 @@ export function createQuest(db: DatabaseHandle, input: CreateQuestInput): Quest 
   const { lastInsertRowid } = db
     .prepare(
       `INSERT INTO quests
-        (title, description, status, priority, quest_log_id, tags, created_at, created_by,
+        (title, description, status, priority, storyline_id, tags, created_at, created_by,
          updated_at, starts_at, ends_at, due_at, remind_at, rrule)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       title,
       input.description?.trim() ?? null,
-      input.status ?? "pending",
+      input.status ?? "accepted",
       input.priority ?? "normal",
-      input.questLogId ?? null,
+      input.storylineId ?? null,
       input.tags?.trim() ?? null,
       now,
       input.createdBy ?? "human",

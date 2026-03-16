@@ -2,45 +2,45 @@ import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import type {
   QuestInfo,
   QuestListResponse,
-  QuestLogInfo,
-  QuestLogListResponse,
+  StorylineInfo,
+  StorylineListResponse,
 } from "../../shared/quest_types.ts";
 import { apiGet } from "../api_get.ts";
 import { apiPost } from "../api_post.ts";
 import { QuestBulletinBoard } from "../components/quest_bulletin_board.tsx";
 import { QuestCreateForm } from "../components/quest_create_form.tsx";
 import { QuestDetail } from "../components/quest_detail.tsx";
-import { QuestLogCard } from "../components/quest_log_card.tsx";
-import { QuestLogCreateForm } from "../components/quest_log_create_form.tsx";
 import { QuestRow } from "../components/quest_row.tsx";
 import { QuestToolbar } from "../components/quest_toolbar.tsx";
+import { StorylineCard } from "../components/storyline_card.tsx";
+import { StorylineCreateForm } from "../components/storyline_create_form.tsx";
 
 type Tab = "quests" | "board" | "storylines";
 
-const DEFAULT_EXCLUDE = "offered,done,failed,cancelled";
+const DEFAULT_EXCLUDE = "offered,done,failed,abandoned";
 
 export function QuestsPage() {
   const [tab, setTab] = useState<Tab>("quests");
   const [quests, setQuests] = useState<QuestInfo[]>([]);
-  const [logs, setLogs] = useState<QuestLogInfo[]>([]);
+  const [storylines, setStorylines] = useState<StorylineInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [showLogCreate, setShowLogCreate] = useState(false);
+  const [showStorylineCreate, setShowStorylineCreate] = useState(false);
 
   const [query, setQuery] = useState("");
   const committedQuery = useRef("");
   const [status, setStatus] = useState("");
   const [priority, setPriority] = useState("");
-  const [logFilter, setLogFilter] = useState("");
+  const [storylineFilter, setStorylineFilter] = useState("");
 
   const [boardQuests, setBoardQuests] = useState<QuestInfo[]>([]);
   const [boardLoading, setBoardLoading] = useState(true);
   const [boardInput, setBoardInput] = useState("");
 
-  const fetchLogs = useCallback(() => {
-    apiGet<QuestLogListResponse>("/api/quest-logs")
-      .then((res) => setLogs(res.logs))
+  const fetchStorylines = useCallback(() => {
+    apiGet<StorylineListResponse>("/api/storylines")
+      .then((res) => setStorylines(res.storylines))
       .catch(() => {});
   }, []);
 
@@ -58,14 +58,14 @@ export function QuestsPage() {
       params.set("exclude", DEFAULT_EXCLUDE);
     }
     if (priority) params.set("priority", priority);
-    if (logFilter) params.set("log", logFilter);
+    if (storylineFilter) params.set("storyline", storylineFilter);
     params.set("limit", "200");
 
     apiGet<QuestListResponse>(`/api/quests?${params}`)
       .then((res) => setQuests(res.quests))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [status, priority, logFilter]);
+  }, [status, priority, storylineFilter]);
 
   const fetchBoard = useCallback(() => {
     setBoardLoading(true);
@@ -76,8 +76,8 @@ export function QuestsPage() {
   }, []);
 
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    fetchStorylines();
+  }, [fetchStorylines]);
   useEffect(() => {
     fetchQuests();
   }, [fetchQuests]);
@@ -102,26 +102,26 @@ export function QuestsPage() {
   const handleCreated = useCallback(() => {
     setShowCreate(false);
     fetchQuests();
-    fetchLogs();
+    fetchStorylines();
     fetchBoard();
-  }, [fetchQuests, fetchLogs, fetchBoard]);
+  }, [fetchQuests, fetchStorylines, fetchBoard]);
 
   const handleUpdated = useCallback(() => {
     fetchQuests();
-    fetchLogs();
+    fetchStorylines();
     fetchBoard();
-  }, [fetchQuests, fetchLogs, fetchBoard]);
+  }, [fetchQuests, fetchStorylines, fetchBoard]);
 
   const handleDone = useCallback(() => {
     fetchQuests();
-    fetchLogs();
+    fetchStorylines();
     fetchBoard();
-  }, [fetchQuests, fetchLogs, fetchBoard]);
+  }, [fetchQuests, fetchStorylines, fetchBoard]);
 
-  const handleLogCreated = useCallback(() => {
-    setShowLogCreate(false);
-    fetchLogs();
-  }, [fetchLogs]);
+  const handleStorylineCreated = useCallback(() => {
+    setShowStorylineCreate(false);
+    fetchStorylines();
+  }, [fetchStorylines]);
 
   const handleBoardQuickAdd = async () => {
     const title = boardInput.trim();
@@ -135,12 +135,12 @@ export function QuestsPage() {
     }
   };
 
-  const handleAccept = async (id: number, questLogId?: number) => {
+  const handleAccept = async (id: number, storylineId?: number) => {
     try {
-      await apiPost(`/api/quests/${id}/accept`, questLogId ? { questLogId } : {});
+      await apiPost(`/api/quests/${id}/accept`, storylineId ? { storylineId } : {});
       fetchBoard();
       fetchQuests();
-      fetchLogs();
+      fetchStorylines();
     } catch {
       /* ignore */
     }
@@ -187,7 +187,7 @@ export function QuestsPage() {
               class={`nav-link ${tab === "storylines" ? "active" : ""}`}
               onClick={() => setTab("storylines")}
             >
-              Storylines ({logs.length})
+              Storylines ({storylines.length})
             </button>
           </li>
         </ul>
@@ -209,17 +209,17 @@ export function QuestsPage() {
             onPriorityChange={(p) => {
               setPriority(p);
             }}
-            logFilter={logFilter}
-            onLogFilterChange={(l) => {
-              setLogFilter(l);
+            storylineFilter={storylineFilter}
+            onStorylineFilterChange={(l) => {
+              setStorylineFilter(l);
             }}
-            logs={logs}
+            storylines={storylines}
             onAdd={() => setShowCreate(true)}
           />
 
           {showCreate && (
             <QuestCreateForm
-              logs={logs}
+              storylines={storylines}
               onCreated={handleCreated}
               onCancel={() => setShowCreate(false)}
             />
@@ -256,7 +256,7 @@ export function QuestsPage() {
                     {expandedId === q.id && (
                       <QuestDetail
                         questId={q.id}
-                        logs={logs}
+                        storylines={storylines}
                         onUpdated={handleUpdated}
                         onDone={handleDone}
                       />
@@ -273,7 +273,7 @@ export function QuestsPage() {
         <BoardTab
           quests={boardQuests}
           loading={boardLoading}
-          logs={logs}
+          storylines={storylines}
           input={boardInput}
           onInputChange={setBoardInput}
           onQuickAdd={handleBoardQuickAdd}
@@ -286,33 +286,33 @@ export function QuestsPage() {
         <div>
           <div class="d-flex justify-content-between align-items-center mb-3">
             <span class="text-body-tertiary small">
-              {logs.length} quest log{logs.length !== 1 ? "s" : ""}
+              {storylines.length} storyline{storylines.length !== 1 ? "s" : ""}
             </span>
             <button
               type="button"
               class="btn btn-sm btn-info"
-              onClick={() => setShowLogCreate(true)}
+              onClick={() => setShowStorylineCreate(true)}
             >
-              + New Quest Log
+              + New Storyline
             </button>
           </div>
           <div class="row g-3">
-            {logs.map((l) => (
-              <div class="col-md-6 col-lg-4" key={l.id}>
-                <QuestLogCard log={l} />
+            {storylines.map((s) => (
+              <div class="col-md-6 col-lg-4" key={s.id}>
+                <StorylineCard storyline={s} />
               </div>
             ))}
-            {showLogCreate && (
+            {showStorylineCreate && (
               <div class="col-md-6 col-lg-4">
-                <QuestLogCreateForm
-                  onCreated={handleLogCreated}
-                  onCancel={() => setShowLogCreate(false)}
+                <StorylineCreateForm
+                  onCreated={handleStorylineCreated}
+                  onCancel={() => setShowStorylineCreate(false)}
                 />
               </div>
             )}
-            {logs.length === 0 && !showLogCreate && (
+            {storylines.length === 0 && !showStorylineCreate && (
               <div class="col-12 text-body-tertiary text-center py-5">
-                No quest logs yet. Create your first storyline!
+                No storylines yet. Create your first storyline!
               </div>
             )}
           </div>
@@ -325,18 +325,18 @@ export function QuestsPage() {
 interface BoardTabProps {
   quests: QuestInfo[];
   loading: boolean;
-  logs: QuestLogInfo[];
+  storylines: StorylineInfo[];
   input: string;
   onInputChange: (v: string) => void;
   onQuickAdd: () => void;
-  onAccept: (id: number, questLogId?: number) => void;
+  onAccept: (id: number, storylineId?: number) => void;
   onDismiss: (id: number) => void;
 }
 
 function BoardTab({
   quests,
   loading,
-  logs,
+  storylines,
   input,
   onInputChange,
   onQuickAdd,
@@ -344,13 +344,13 @@ function BoardTab({
   onDismiss,
 }: BoardTabProps) {
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
-  const [acceptLogId, setAcceptLogId] = useState("");
+  const [acceptStorylineId, setAcceptStorylineId] = useState("");
 
   const confirmAccept = (id: number) => {
-    const logId = acceptLogId ? Number(acceptLogId) : undefined;
-    onAccept(id, logId);
+    const storylineId = acceptStorylineId ? Number(acceptStorylineId) : undefined;
+    onAccept(id, storylineId);
     setAcceptingId(null);
-    setAcceptLogId("");
+    setAcceptStorylineId("");
   };
 
   return (
@@ -415,17 +415,19 @@ function BoardTab({
 
                 {acceptingId === q.id && (
                   <div class="d-flex gap-2 align-items-center mt-1">
-                    {logs.length > 0 && (
+                    {storylines.length > 0 && (
                       <select
                         class="form-select form-select-sm"
                         style="max-width: 180px;"
-                        value={acceptLogId}
-                        onChange={(e) => setAcceptLogId((e.target as HTMLSelectElement).value)}
+                        value={acceptStorylineId}
+                        onChange={(e) =>
+                          setAcceptStorylineId((e.target as HTMLSelectElement).value)
+                        }
                       >
-                        <option value="">No quest log</option>
-                        {logs.map((l) => (
-                          <option key={l.id} value={String(l.id)}>
-                            {l.title}
+                        <option value="">No storyline</option>
+                        {storylines.map((s) => (
+                          <option key={s.id} value={String(s.id)}>
+                            {s.title}
                           </option>
                         ))}
                       </select>

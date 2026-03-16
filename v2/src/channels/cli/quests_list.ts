@@ -11,7 +11,7 @@ export default defineCommand({
   args: {
     status: {
       type: "string",
-      description: "Filter: offered, pending, active, blocked, done, failed, cancelled",
+      description: "Filter: offered, accepted, active, blocked, done, failed, abandoned",
     },
     priority: {
       type: "string",
@@ -19,7 +19,7 @@ export default defineCommand({
     },
     log: {
       type: "string",
-      description: "Filter by quest log ID",
+      description: "Filter by storyline ID",
     },
     query: {
       type: "string",
@@ -37,14 +37,14 @@ export default defineCommand({
   async run({ args }) {
     await withRunDb((db) => {
       const limit = args.limit ? Number.parseInt(args.limit as string, 10) : 50;
-      const questLogId = args.log ? Number.parseInt(args.log as string, 10) : undefined;
+      const storylineId = args.log ? Number.parseInt(args.log as string, 10) : undefined;
       const hasStatusFilter = !!(args.status as string);
       const showAll = args.all as boolean;
 
       const quests = listQuests(db, {
         status: args.status as QuestStatus | undefined,
         priority: args.priority as QuestPriority | undefined,
-        questLogId,
+        storylineId,
         query: args.query as string | undefined,
         excludeStatuses: hasStatusFilter || showAll ? undefined : [...DEFAULT_EXCLUDE_STATUSES],
         limit,

@@ -2,7 +2,7 @@ import { ok, strictEqual, throws } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
-import { createQuestLog } from "./create_quest_log.ts";
+import { createStoryline } from "./create_storyline.ts";
 import { initQuestTables } from "./schema.ts";
 
 let db: DatabaseHandle;
@@ -12,9 +12,9 @@ beforeEach(async () => {
   initQuestTables(db);
 });
 
-describe("createQuestLog", () => {
-  it("creates a log with title", () => {
-    const log = createQuestLog(db, { title: "Project X" });
+describe("createStoryline", () => {
+  it("creates a storyline with title", () => {
+    const log = createStoryline(db, { title: "Project X" });
     ok(log.id > 0);
     strictEqual(log.title, "Project X");
     strictEqual(log.status, "active");
@@ -24,7 +24,7 @@ describe("createQuestLog", () => {
 
   it("creates with all optional fields", () => {
     const due = Date.now() + 86400000;
-    const log = createQuestLog(db, {
+    const log = createStoryline(db, {
       title: "Sprint",
       description: "Week 1",
       dueAt: due,
@@ -36,6 +36,6 @@ describe("createQuestLog", () => {
   });
 
   it("rejects empty title", () => {
-    throws(() => createQuestLog(db, { title: "" }), /title is required/);
+    throws(() => createStoryline(db, { title: "" }), /title is required/);
   });
 });

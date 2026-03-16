@@ -23,7 +23,7 @@ export default defineCommand({
     },
     log: {
       type: "string",
-      description: "Attach to quest log by ID",
+      description: "Attach to storyline by ID",
     },
     tags: {
       type: "string",
@@ -67,7 +67,7 @@ export default defineCommand({
           title: title.trim(),
           description: args.desc as string | undefined,
           priority: (args.priority as QuestPriority) ?? undefined,
-          questLogId: args.log ? Number.parseInt(args.log as string, 10) : undefined,
+          storylineId: args.log ? Number.parseInt(args.log as string, 10) : undefined,
           tags: args.tags as string | undefined,
           dueAt: args.due ? parseTimestamp(args.due as string) : undefined,
           startsAt: args.starts ? parseTimestamp(args.starts as string) : undefined,
@@ -81,7 +81,7 @@ export default defineCommand({
 
         const meta: string[] = [];
         if (q.priority !== "normal") meta.push(`priority: ${q.priority}`);
-        if (q.questLogId) meta.push(`log: #${q.questLogId}`);
+        if (q.storylineId) meta.push(`storyline: #${q.storylineId}`);
         if (q.dueAt) meta.push(`due: ${new Date(q.dueAt).toISOString().slice(0, 10)}`);
         if (q.rrule) meta.push(`recurs: ${q.rrule}`);
         if (meta.length > 0) {

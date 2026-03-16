@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from "preact/hooks";
 import { Link, useParams } from "wouter-preact";
 import type {
   QuestInfo,
-  QuestLogDetailResponse,
-  QuestLogInfo,
-  QuestLogListResponse,
-  UpdateQuestLogBody,
+  StorylineDetailResponse,
+  StorylineInfo,
+  StorylineListResponse,
+  UpdateStorylineBody,
 } from "../../shared/quest_types.ts";
 import { relativeAge, relativeDue } from "../../shared/quest_types.ts";
 import { apiGet } from "../api_get.ts";
@@ -29,24 +29,24 @@ function fromLocalInput(val: string): number | null {
   return new Date(val).getTime();
 }
 
-export function QuestLogDetailPage() {
+export function StorylineDetailPage() {
   const { id } = useParams();
-  const logId = Number(id);
-  const [detail, setDetail] = useState<QuestLogDetailResponse | null>(null);
-  const [logs, setLogs] = useState<QuestLogInfo[]>([]);
+  const storylineId = Number(id);
+  const [detail, setDetail] = useState<StorylineDetailResponse | null>(null);
+  const [storylines, setStorylines] = useState<StorylineInfo[]>([]);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<UpdateQuestLogBody>({});
+  const [form, setForm] = useState<UpdateStorylineBody>({});
   const [error, setError] = useState("");
 
   const load = useCallback(() => {
-    apiGet<QuestLogDetailResponse>(`/api/quest-logs/${logId}`)
+    apiGet<StorylineDetailResponse>(`/api/storylines/${storylineId}`)
       .then(setDetail)
       .catch(() => {});
-    apiGet<QuestLogListResponse>("/api/quest-logs")
-      .then((res) => setLogs(res.logs))
+    apiGet<StorylineListResponse>("/api/storylines")
+      .then((res) => setStorylines(res.storylines))
       .catch(() => {});
-  }, [logId]);
+  }, [storylineId]);
 
   useEffect(() => {
     load();
@@ -66,7 +66,7 @@ export function QuestLogDetailPage() {
 
   const saveEdit = async () => {
     try {
-      await apiPatch(`/api/quest-logs/${logId}`, form);
+      await apiPatch(`/api/storylines/${storylineId}`, form);
       setEditing(false);
       setError("");
       load();
@@ -77,7 +77,7 @@ export function QuestLogDetailPage() {
 
   const handleDone = async () => {
     try {
-      await apiPost(`/api/quest-logs/${logId}/done`);
+      await apiPost(`/api/storylines/${storylineId}/done`);
       load();
     } catch (err) {
       setError((err as Error).message);
@@ -131,7 +131,7 @@ export function QuestLogDetailPage() {
                   setForm({
                     ...form,
                     status: (e.target as HTMLSelectElement)
-                      .value as QuestLogDetailResponse["status"],
+                      .value as StorylineDetailResponse["status"],
                   })
                 }
               >
@@ -142,13 +142,13 @@ export function QuestLogDetailPage() {
             </div>
             <div class="col-sm-6">
               <label
-                htmlFor="quest-log-edit-deadline"
+                htmlFor="storyline-edit-deadline"
                 class="form-label small text-body-secondary mb-0"
               >
                 Deadline
               </label>
               <input
-                id="quest-log-edit-deadline"
+                id="storyline-edit-deadline"
                 type="datetime-local"
                 class="form-control form-control-sm"
                 value={toLocalInput(form.dueAt ?? null)}
@@ -191,7 +191,7 @@ export function QuestLogDetailPage() {
               {progress.done}/{progress.total} done ({pct}%)
             </span>
             {progress.active > 0 && <span>{progress.active} active</span>}
-            {progress.pending > 0 && <span>{progress.pending} pending</span>}
+            {progress.accepted > 0 && <span>{progress.accepted} accepted</span>}
             {progress.blocked > 0 && <span class="text-warning">{progress.blocked} blocked</span>}
             {d.dueAt && (
               <span class={d.dueAt < Date.now() ? "text-danger" : ""}>{relativeDue(d.dueAt)}</span>
@@ -214,9 +214,9 @@ export function QuestLogDetailPage() {
         </div>
       )}
 
-      <h6 class="text-body-secondary mb-2">Quests in this log ({d.quests.length})</h6>
+      <h6 class="text-body-secondary mb-2">Quests in this storyline ({d.quests.length})</h6>
       {d.quests.length === 0 ? (
-        <div class="text-body-tertiary small">No quests in this log yet.</div>
+        <div class="text-body-tertiary small">No quests in this storyline yet.</div>
       ) : (
         <div class="border rounded">
           {d.quests.map((q: QuestInfo) => (
@@ -229,7 +229,7 @@ export function QuestLogDetailPage() {
               {expandedId === q.id && (
                 <QuestDetail
                   questId={q.id}
-                  logs={logs}
+                  storylines={storylines}
                   onUpdated={() => load()}
                   onDone={() => load()}
                 />

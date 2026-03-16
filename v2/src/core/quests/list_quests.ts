@@ -25,9 +25,9 @@ export function listQuests(db: DatabaseHandle, options: ListQuestsOptions = {}):
     values.push(...options.excludeStatuses);
   }
 
-  if (options.questLogId !== undefined) {
-    clauses.push("quest_log_id = ?");
-    values.push(options.questLogId);
+  if (options.storylineId !== undefined) {
+    clauses.push("storyline_id = ?");
+    values.push(options.storylineId);
   }
 
   if (options.priority) {

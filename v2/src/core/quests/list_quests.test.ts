@@ -3,7 +3,7 @@ import { beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createQuest } from "./create_quest.ts";
-import { createQuestLog } from "./create_quest_log.ts";
+import { createStoryline } from "./create_storyline.ts";
 import { listQuests } from "./list_quests.ts";
 import { initQuestTables } from "./schema.ts";
 import { updateQuest } from "./update_quest.ts";
@@ -30,14 +30,14 @@ describe("listQuests", () => {
     const b = createQuest(db, { title: "B" });
     updateQuest(db, b.id, { status: "done" });
     strictEqual(listQuests(db, { status: "done" }).length, 1);
-    strictEqual(listQuests(db, { status: "pending" }).length, 1);
+    strictEqual(listQuests(db, { status: "accepted" }).length, 1);
   });
 
-  it("filters by quest_log_id", () => {
-    const log = createQuestLog(db, { title: "Log" });
-    createQuest(db, { title: "In log", questLogId: log.id });
+  it("filters by storyline_id", () => {
+    const log = createStoryline(db, { title: "Log" });
+    createQuest(db, { title: "In log", storylineId: log.id });
     createQuest(db, { title: "Standalone" });
-    const inLog = listQuests(db, { questLogId: log.id });
+    const inLog = listQuests(db, { storylineId: log.id });
     strictEqual(inLog.length, 1);
     strictEqual(inLog[0].title, "In log");
   });
@@ -75,7 +75,7 @@ describe("listQuests", () => {
     const a = createQuest(db, { title: "Deploy A" });
     createQuest(db, { title: "Deploy B" });
     updateQuest(db, a.id, { status: "done" });
-    const active = listQuests(db, { query: "deploy", status: "pending" });
+    const active = listQuests(db, { query: "deploy", status: "accepted" });
     strictEqual(active.length, 1);
     strictEqual(active[0].title, "Deploy B");
   });

@@ -21,15 +21,15 @@ class QuestUpdateParams extends Schema {
   status = Schema.Enum([...QUEST_STATUSES] as unknown as readonly string[], {
     optional: true,
     description:
-      "New status. Transitions to 'done'/'failed'/'cancelled' set completed_at automatically.",
+      "New status. Transitions to 'done'/'failed'/'abandoned' set completed_at automatically.",
   });
   priority = Schema.Enum([...QUEST_PRIORITIES] as unknown as readonly string[], {
     optional: true,
     description: "New priority: low, normal, high, urgent.",
   });
-  questLogId = Schema.Integer({
+  storylineId = Schema.Integer({
     optional: true,
-    description: "Assign to or move between quest logs. Use 0 to unassign.",
+    description: "Assign to or move between storylines. Use 0 to unassign.",
   });
   tags = Schema.String({
     optional: true,
@@ -73,7 +73,7 @@ export function createQuestUpdateTool(db: DatabaseHandle) {
         description?: string;
         status?: QuestStatus;
         priority?: QuestPriority;
-        questLogId?: number;
+        storylineId?: number;
         tags?: string;
         dueAt?: number;
         startsAt?: number;
@@ -94,7 +94,8 @@ export function createQuestUpdateTool(db: DatabaseHandle) {
       if (a.description !== undefined) input.description = a.description || null;
       if (a.status !== undefined) input.status = a.status;
       if (a.priority !== undefined) input.priority = a.priority;
-      if (a.questLogId !== undefined) input.questLogId = a.questLogId === 0 ? null : a.questLogId;
+      if (a.storylineId !== undefined)
+        input.storylineId = a.storylineId === 0 ? null : a.storylineId;
       if (a.tags !== undefined) input.tags = a.tags || null;
       if (a.dueAt !== undefined) input.dueAt = a.dueAt === 0 ? null : a.dueAt;
       if (a.startsAt !== undefined) input.startsAt = a.startsAt === 0 ? null : a.startsAt;
