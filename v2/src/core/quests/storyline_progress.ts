@@ -16,7 +16,8 @@ export function getStorylineProgress(db: DatabaseHandle, storylineId: number): S
 
   return {
     total,
-    done: (counts.done ?? 0) + (counts.failed ?? 0) + (counts.abandoned ?? 0),
+    done:
+      (counts.done ?? 0) + (counts.turned_in ?? 0) + (counts.failed ?? 0) + (counts.abandoned ?? 0),
     active: counts.active ?? 0,
     accepted: counts.accepted ?? 0,
     blocked: counts.blocked ?? 0,

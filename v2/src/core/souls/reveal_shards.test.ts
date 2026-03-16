@@ -24,12 +24,13 @@ afterEach(() => {
 });
 
 describe("revealShards", () => {
-  it("flips sealed flag for matching source batch", () => {
+  it("flips sealed flag for matching source batch and returns count", () => {
     dropSoulshard(db, "quest", "q-1", "obs 1", [1], true);
     dropSoulshard(db, "quest", "q-1", "obs 2", [1], true);
     dropSoulshard(db, "quest", "q-2", "obs 3", [1], true);
 
-    revealShards(db, "quest", "q-1");
+    const count = revealShards(db, "quest", "q-1");
+    strictEqual(count, 2);
 
     const revealed = db
       .prepare("SELECT COUNT(*) AS cnt FROM soul_shards WHERE sealed = 0")
@@ -37,13 +38,9 @@ describe("revealShards", () => {
     strictEqual(revealed.cnt, 2);
   });
 
-  it("does nothing when no sealed shards match", () => {
+  it("returns zero when no sealed shards match", () => {
     dropSoulshard(db, "session", "s-1", "obs", [1]);
-    revealShards(db, "quest", "q-99");
-
-    const count = db.prepare("SELECT COUNT(*) AS cnt FROM soul_shards WHERE sealed = 0").get() as {
-      cnt: number;
-    };
-    strictEqual(count.cnt, 1);
+    const count = revealShards(db, "quest", "q-99");
+    strictEqual(count, 0);
   });
 });

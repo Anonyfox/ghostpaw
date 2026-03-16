@@ -32,7 +32,12 @@ export async function runEmbark(
 
   const quest = getQuest(db, questId);
   if (!quest) throw new Error(`Quest #${questId} not found`);
-  if (quest.status === "done" || quest.status === "failed" || quest.status === "abandoned") {
+  if (
+    quest.status === "done" ||
+    quest.status === "turned_in" ||
+    quest.status === "failed" ||
+    quest.status === "abandoned"
+  ) {
     throw new Error(`Quest #${questId} is already "${quest.status}"`);
   }
 
@@ -65,7 +70,8 @@ export async function runEmbark(
     for (let turn = 0; turn < maxTurns; turn++) {
       const currentQuest = getQuest(db, questId);
       if (!currentQuest) break;
-      if (["done", "failed", "abandoned", "blocked"].includes(currentQuest.status)) break;
+      if (["done", "turned_in", "failed", "abandoned", "blocked"].includes(currentQuest.status))
+        break;
 
       try {
         checkSpendLimit(db);
@@ -118,7 +124,8 @@ export async function runEmbark(
 
       const afterValidation = getQuest(db, questId);
       if (!afterValidation) break;
-      if (["done", "failed", "abandoned", "blocked"].includes(afterValidation.status)) break;
+      if (["done", "turned_in", "failed", "abandoned", "blocked"].includes(afterValidation.status))
+        break;
 
       const newSubgoals = listSubgoals(db, questId);
       const progressMade =

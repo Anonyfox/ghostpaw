@@ -1,5 +1,12 @@
 import type { ChatFactory } from "../../core/chat/api/write/index.ts";
-import type { QuestStatus } from "../../core/quests/api/types.ts";
+import type { Quest, QuestStatus } from "../../core/quests/api/types.ts";
+
+export interface TurnInSummary {
+  quest: Quest;
+  revealedShards: number;
+  fragmentDropped: boolean;
+  xpEarned: number;
+}
 
 export interface EmbarkResult {
   sessionId: number;

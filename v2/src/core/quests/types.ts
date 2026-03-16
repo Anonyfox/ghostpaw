@@ -4,17 +4,24 @@ export const QUEST_STATUSES = [
   "active",
   "blocked",
   "done",
+  "turned_in",
   "failed",
   "abandoned",
 ] as const;
 export type QuestStatus = (typeof QUEST_STATUSES)[number];
 
-export const TERMINAL_STATUSES: readonly QuestStatus[] = ["done", "failed", "abandoned"];
+export const TERMINAL_STATUSES: readonly QuestStatus[] = [
+  "done",
+  "turned_in",
+  "failed",
+  "abandoned",
+];
 export const BOARD_STATUSES: readonly QuestStatus[] = ["offered"];
 export const ACTIVE_VIEW_STATUSES: readonly QuestStatus[] = ["accepted", "active", "blocked"];
 export const DEFAULT_EXCLUDE_STATUSES: readonly QuestStatus[] = [
   "offered",
   "done",
+  "turned_in",
   "failed",
   "abandoned",
 ];

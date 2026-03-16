@@ -151,6 +151,7 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("GET", "/api/quests/:id", quests.detail, true),
       createRoute("PATCH", "/api/quests/:id", quests.update, true),
       createRoute("POST", "/api/quests/:id/done", quests.done, true),
+      createRoute("POST", "/api/quests/:id/turn-in", quests.turnIn, true),
       createRoute("POST", "/api/quests/:id/accept", quests.accept, true),
       createRoute("POST", "/api/quests/:id/dismiss", quests.dismiss, true),
       createRoute("POST", "/api/quests/:id/occurrence", quests.occurrence, true),

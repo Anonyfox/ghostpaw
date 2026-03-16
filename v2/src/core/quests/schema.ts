@@ -1,7 +1,7 @@
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 const QUEST_STATUS_CHECK =
-  "CHECK(status IN ('offered','accepted','active','blocked','done','failed','abandoned'))";
+  "CHECK(status IN ('offered','accepted','active','blocked','done','turned_in','failed','abandoned'))";
 const QUEST_PRIORITY_CHECK = "CHECK(priority IN ('low','normal','high','urgent'))";
 const STORYLINE_STATUS_CHECK = "CHECK(status IN ('active','completed','archived'))";
 

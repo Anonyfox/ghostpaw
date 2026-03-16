@@ -7,6 +7,7 @@ import { createQuest } from "./create_quest.ts";
 import { createStoryline } from "./create_storyline.ts";
 import { initQuestTables } from "./schema.ts";
 import { getStorylineProgress } from "./storyline_progress.ts";
+import { turnInQuest } from "./turn_in_quest.ts";
 import { updateQuest } from "./update_quest.ts";
 
 let db: DatabaseHandle;
@@ -54,6 +55,15 @@ describe("getStorylineProgress", () => {
     updateQuest(db, b.id, { status: "abandoned" });
     const progress = getStorylineProgress(db, log.id);
     strictEqual(progress.done, 2);
+  });
+
+  it("counts turned_in quests in done bucket", () => {
+    const log = createStoryline(db, { title: "Sprint" });
+    const a = createQuest(db, { title: "A", storylineId: log.id });
+    completeQuest(db, a.id);
+    turnInQuest(db, a.id);
+    const progress = getStorylineProgress(db, log.id);
+    strictEqual(progress.done, 1);
   });
 
   it("ignores quests not in the storyline", () => {

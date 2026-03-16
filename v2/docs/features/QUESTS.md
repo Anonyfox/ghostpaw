@@ -20,7 +20,7 @@ Managed by the **Warden** soul. The warden owns all persistence — memory, pack
 
 **Full-text search across everything.** Quests are searchable by title and description via FTS5. "What was that deploy issue?" returns the quest instantly. No embedding, no vector search — just fast, precise full-text matching on structured temporal data.
 
-**Everything compounds into ghostpaw's evolution.** When a quest is completed, the warden drops a skill fragment capturing any reusable patterns from the work — feeding the [skills subsystem](SKILLS.md) silently. Quest state changes feed the [trail](TRAIL.md) nightly sweep, giving the historian material for chronicles and chapter detection. Completed quests are evidence for the [soul](SOULS.md) evolution pipeline. The quest system is not just tracking what needs doing — it is the primary source of temporal facts that make every other subsystem time-aware.
+**Everything compounds into ghostpaw's evolution.** Quests have a two-phase completion lifecycle: `done` marks the work as complete, `turned_in` reveals the rewards. For autonomous quests, `consolidateEmbark` drops sealed soul shards during post-completion evaluation — behavioral observations that remain hidden until the quest is turned in. Turning in a quest reveals those shards, drops a skill fragment capturing reusable patterns from the work, and displays XP earned. The ceremony feeds both the [soul evolution pipeline](SOULS.md) (via revealed shards) and the [skills subsystem](SKILLS.md) (via skill fragments) in a single celebratory moment. Quest state changes feed the [trail](TRAIL.md) nightly sweep, giving the historian material for chronicles and chapter detection. The quest system is not just tracking what needs doing — it is the primary source of temporal facts that make every other subsystem time-aware.
 
 **Ghostpaw embarks on quests autonomously.** Quests created by ghostpaw with `created_by: ghostpaw` are eligible for autonomous execution. The `prowl` heartbeat scans for eligible quests every 60 seconds, spawns an embark session, and ghostpaw works through the quest with step-by-step warden validation. The warden plans **subgoals** — dynamic execution checkpoints — before work begins, marks them done as progress is confirmed, and calls `quest_done` when all objectives are met. If ghostpaw gets stuck after three consecutive warden rejections, the quest is set to `blocked` for human review. If the daily spend limit is hit, the session closes gracefully and prowl resumes when budget allows. Subgoals persist across sessions — a multi-hour quest interrupted by budget or turn limits picks up exactly where it left off. The `tend` heartbeat runs every 30 minutes, dismissing stale board entries older than 14 days and logging quests stuck without updates for 48+ hours.
 
@@ -44,7 +44,7 @@ All timestamps are Unix milliseconds (`Date.now()`) — the same convention used
 
 ### The State Machine
 
-Seven states, clear transitions:
+Eight states, clear transitions:
 
 ```
      ┌──────────┐
@@ -61,11 +61,11 @@ Seven states, clear transitions:
                     │    └────┬────┘        │
                     │         │             │
                     │    ┌────▼─────┐  ┌────▼─────┐
-                    │    │  blocked  │  │   done    │
-                    │    └──────────┘  └──────────┘
-                    │
-                    │    ┌──────────┐
-                    └────│  failed   │
+                    │    │  blocked  │  │   done    │─── turn in ──┐
+                    │    └──────────┘  └──────────┘               │
+                    │                                        ┌────▼─────┐
+                    │    ┌──────────┐                        │turned_in │
+                    └────│  failed   │                        └──────────┘
                          └──────────┘
 ```
 
@@ -75,11 +75,12 @@ Seven states, clear transitions:
 | `accepted` | Taken from the board or created directly, not yet started |
 | `active` | In progress |
 | `blocked` | Waiting on something external |
-| `done` | Completed successfully |
+| `done` | Completed successfully — work is finished, rewards awaiting turn-in |
+| `turned_in` | Rewards revealed — sealed soul shards unsealed, skill fragment dropped, XP displayed |
 | `failed` | Attempted and failed |
 | `abandoned` | Intentionally walked away from |
 
-Terminal states: `done`, `failed`, `abandoned`. Offered quests are excluded from temporal context and progress tracking. Non-terminal states can transition to any other state. Every transition updates `completed_at` for terminal states or relevant temporal fields. Retroactively logged events enter directly as `done`. Quests can be created directly as `accepted`, bypassing the board.
+Terminal states: `done`, `turned_in`, `failed`, `abandoned`. The `done → turned_in` transition is the reward ceremony — it reveals sealed soul shards, drops a skill fragment, and displays cumulative XP. Offered quests are excluded from temporal context and progress tracking. Non-terminal states can transition to any other state. Every transition updates `completed_at` for terminal states or relevant temporal fields. Retroactively logged events enter directly as `done`. Quests can be created directly as `accepted`, bypassing the board.
 
 ### The Quest Board
 
@@ -145,13 +146,14 @@ The warden is the quest system's managing [soul](SOULS.md) — the same soul tha
 
 ### Tool Surface
 
-Nine tools cover every quest operation, safely within the [tool-count cliff](https://vercel.com/blog/we-removed-80-percent-of-our-agents-tools) where selection accuracy degrades:
+Ten tools cover every quest operation, safely within the [tool-count cliff](https://vercel.com/blog/we-removed-80-percent-of-our-agents-tools) where selection accuracy degrades:
 
 | Tool | What it does |
 |---|---|
 | `quest_create` | Create a quest. Title required, everything else optional. Optional `status: "offered"` for the board. |
 | `quest_update` | Update any quest field. All temporal fields as Unix milliseconds — no date parsing ambiguity. |
-| `quest_done` | Mark a quest as completed (or record a recurring occurrence). Returns cumulative XP earned. Drops skill fragments on non-recurring completion. |
+| `quest_done` | Mark a quest as completed (or record a recurring occurrence). Returns cumulative XP earned. Prompts turn-in for non-recurring completion. |
+| `quest_turnin` | Turn in a completed quest to reveal rewards. Reveals sealed soul shards, drops a skill fragment, and transitions `done → turned_in`. |
 | `quest_list` | Query by filter or search by keyword. Supports `temporal: true` for the full temporal context view. |
 | `quest_accept` | Accept an offered quest from the board. Transitions `offered → accepted`. |
 | `quest_dismiss` | Dismiss an offered quest. Transitions `offered → abandoned`. |
@@ -159,7 +161,7 @@ Nine tools cover every quest operation, safely within the [tool-count cliff](htt
 | `storyline_create` | Create a storyline (project/quest chain grouping). |
 | `storyline_list` | List storylines with computed progress counts. |
 
-Minimal surface area. Ghostpaw doesn't need 15 quest tools. It needs to create, update, complete, accept, dismiss, and query. Everything else is a query parameter.
+Minimal surface area. Ghostpaw doesn't need 15 quest tools. It needs to create, update, complete, turn in, accept, dismiss, and query. Everything else is a query parameter.
 
 ## A Gamer's Guide to Quests
 
@@ -181,7 +183,7 @@ The naming is not cosmetic. RPG quest systems solve the exact same design proble
 
 **Week 2** — the human has created a few storylines and some recurring dailies. Ghostpaw sees upcoming deadlines in its temporal context. During haunting, it notices a stale quest and asks about it. Streaks on recurring quests start building — "5-day streak on Journal Review." It starts creating its own quests during work decomposition — breaking a large task into tracked steps. The Quest Board has its first ghostpaw-proposed entries. With `prowl` enabled, ghostpaw-created quests begin executing autonomously — subgoals track each step, the warden validates progress, and completed quests appear without human intervention.
 
-**Month 2** — dozens of completed quests provide evidence for soul refinement. Ghostpaw has learned the human's patterns: which deadlines are real, which are aspirational. Recurring quests have built long streaks — the 30-day meditation streak is motivation in itself. The temporal context summary is rich enough that ghostpaw proactively manages time — "you have three things due this week, want me to prioritize?" Skill fragments from quest completions have fed training sessions. The trail's nightly sweep reads quest state changes as input for chronicles.
+**Month 2** — dozens of completed quests provide evidence for soul refinement. Ghostpaw has learned the human's patterns: which deadlines are real, which are aspirational. Recurring quests have built long streaks — the 30-day meditation streak is motivation in itself. The temporal context summary is rich enough that ghostpaw proactively manages time — "you have three things due this week, want me to prioritize?" Turning in quests reveals sealed soul shards from autonomous execution and drops skill fragments into the training pipeline. The trail's nightly sweep reads quest state changes as input for chronicles.
 
 **Month 6** — the quest history is a structured log of everything that happened and when. Ghostpaw's temporal reasoning is grounded in months of pattern data. It knows that Friday deploys slip to Monday. It knows the user forgets recurring tasks unless reminded Wednesday. This knowledge lives in memory, informed by quest data. The quest system provides the facts. Memory provides the interpretation. Together they give ghostpaw something no other agent has: a genuine sense of time passing and commitments within it.
 
@@ -198,7 +200,7 @@ Every agent framework treats task management as an external concern or ignores i
 | Full-text search | FTS5 across titles + descriptions | No | No | No | Basic |
 | Bidirectional task flow | Ghostpaw creates + completes quests | Human only | Human only | Human only | Human only |
 | Feeds soul evolution | Quest evidence → trait refinement | No | No | No | N/A |
-| Feeds skill discovery | Fragment drops on completion | No | No | No | N/A |
+| Feeds skill discovery | Fragment drops on turn-in | No | No | No | N/A |
 | Feeds temporal trail | State changes → chronicle input | No | No | No | N/A |
 | Survives platform wipes | SQLite, user-controlled | N/A | N/A | N/A | Vendor-controlled |
 
@@ -218,6 +220,7 @@ The gap is structural. Other agents can answer questions about tasks if you tell
 | `show <id>` | Quest detail with streak info, occurrences, XP earned, cost estimate, and metadata |
 | `add` | Create a quest (title, optional description, status, priority, temporal fields) |
 | `done <id>` | Mark complete (optional occurrence timestamp for recurring quests) |
+| `turn-in <id>` | Turn in a completed quest — reveals sealed soul shards, drops skill fragment, shows XP |
 | `update <id>` | Update quest fields |
 | `board` | List offered quests |
 | `offer` | Create a quest with status `offered` |
@@ -281,7 +284,9 @@ Quest completions drop skill fragments that accumulate silently in the skills pi
 
 ### Synergies
 
-Mechanical code APIs let other subsystems consume quest data without LLM tokens: `getTemporalContext()` for haunt context assembly, `overdueQuests()` and `dueSoonQuests()` for proactive surfacing, `staleQuests()` for identifying stuck work, `getStorylineProgress()` for storyline progress, `getStreakInfo()` for recurring quest streak computation, and `countQuestsByStatus()` for dashboard summaries. The trail sweep gathers quest state changes internally via `questStateChangesSince()`. Skill fragment drops via `dropSkillFragment()` on quest completion feed the trainer pipeline. Streak-at-risk seeds surface in haunting when a significant streak (5+ consecutive completions) is approaching its gap threshold — ghostpaw proactively nudges before the streak breaks. All return sensible defaults when data is absent. The embark harness (`runEmbark()`) orchestrates autonomous quest execution with coordinator-warden turn alternation, using `embarkEligible()` for candidate selection and `openQuestSessionIds()` (from chat API) for concurrency control. Subgoal CRUD functions (`addSubgoal()`, `completeSubgoal()`, `listSubgoals()`, `removeSubgoal()`, `reorderSubgoals()`) provide the warden with granular progress tracking during embark. XP connects session effort to quest progress — `computeSessionXP()` quantifies every session's work, `getXPByQuest()` aggregates it per quest, and `estimateQuestCost()` projects future quests from historical data. XP earned during embark flows into soul evolution as concrete evidence of capability growth.
+Mechanical code APIs let other subsystems consume quest data without LLM tokens: `getTemporalContext()` for haunt context assembly, `overdueQuests()` and `dueSoonQuests()` for proactive surfacing, `staleQuests()` for identifying stuck work, `getStorylineProgress()` for storyline progress, `getStreakInfo()` for recurring quest streak computation, and `countQuestsByStatus()` for dashboard summaries. The trail sweep gathers quest state changes internally via `questStateChangesSince()`. Streak-at-risk seeds surface in haunting when a significant streak (5+ consecutive completions) is approaching its gap threshold — ghostpaw proactively nudges before the streak breaks. All return sensible defaults when data is absent. The embark harness (`runEmbark()`) orchestrates autonomous quest execution with coordinator-warden turn alternation, using `embarkEligible()` for candidate selection and `openQuestSessionIds()` (from chat API) for concurrency control. Subgoal CRUD functions (`addSubgoal()`, `completeSubgoal()`, `listSubgoals()`, `removeSubgoal()`, `reorderSubgoals()`) provide the warden with granular progress tracking during embark. XP connects session effort to quest progress — `computeSessionXP()` quantifies every session's work, `getXPByQuest()` aggregates it per quest, and `estimateQuestCost()` projects future quests from historical data. XP earned during embark flows into soul evolution as concrete evidence of capability growth.
+
+**Turn-in ceremony:** `executeTurnIn()` orchestrates the reward reveal. For autonomous quests, `consolidateEmbark` gives the warden a `drop_soulshard` tool configured with `sealed: true` — the warden drops behavioral observations as sealed shards during post-completion evaluation. When the quest is turned in, `revealShards()` unseals those shards (feeding [soul evolution](SOULS.md)), `dropSkillFragment()` captures reusable patterns (feeding the [skills pipeline](SKILLS.md)), and the summary displays XP earned. The tool, CLI, and web UI all call the same `executeTurnIn()` harness — no duplicated logic. `turned_in` quests count alongside `done` in storyline progress.
 
 ## Quality Criteria Compliance
 
@@ -316,8 +321,8 @@ Empty quest tables produce empty temporal context — every read function return
 - **Input models:** `CreateQuestInput`, `UpdateQuestInput`, `CreateStorylineInput`, `UpdateStorylineInput`, `ListQuestsOptions`, `ListStorylinesOptions`.
 - **XP storage:** `xp_earned REAL NOT NULL DEFAULT 0` on `sessions` table (owned by `core/chat`). Quest XP aggregated via `getXPByQuest()` from `core/chat/api/read/`. `SessionXPInputs` interface in `lib/`.
 - **Cost estimation:** `CostEstimate` interface (`low`, `high`, `avgXP`, `confidence`, `sampleSize`) in `core/quests/api/types.ts`. Derived on-the-fly from historical ghostpaw-completed session data — not stored.
-- **Status values:** `offered`, `accepted`, `active`, `blocked`, `done`, `failed`, `abandoned`.
-- **Terminal statuses:** `done`, `failed`, `abandoned`.
+- **Status values:** `offered`, `accepted`, `active`, `blocked`, `done`, `turned_in`, `failed`, `abandoned`.
+- **Terminal statuses:** `done`, `turned_in`, `failed`, `abandoned`.
 - **Board statuses:** `offered`.
 - **Active view statuses:** `accepted`, `active`, `blocked`.
 - **Priority values:** `low`, `normal`, `high`, `urgent`.
@@ -340,7 +345,9 @@ Empty quest tables produce empty temporal context — every read function return
 
 ### Write
 
-`acceptQuest()`, `addSubgoal()`, `completeQuest()`, `completeSubgoal()`, `createQuest()`, `createStoryline()`, `dismissQuest()`, `removeSubgoal()`, `reorderSubgoals()`, `skipOccurrence()`, `updateQuest()`, and `updateStoryline()`.
+`acceptQuest()`, `addSubgoal()`, `completeQuest()`, `completeSubgoal()`, `createQuest()`, `createStoryline()`, `dismissQuest()`, `removeSubgoal()`, `reorderSubgoals()`, `skipOccurrence()`, `turnInQuest()`, `updateQuest()`, and `updateStoryline()`.
+
+**Harness orchestration:** `executeTurnIn()` — coordinates the full turn-in ceremony: transitions `done → turned_in`, reveals sealed soul shards, drops skill fragment, returns `TurnInSummary`.
 
 ### Runtime
 
@@ -350,7 +357,7 @@ Empty quest tables produce empty temporal context — every read function return
 
 - **Conversation:** the coordinator delegates to the warden for quest creation, completion, board management, and temporal queries during natural chat.
 - **CLI:** full subcommand tree for inspection, creation, updates, search, board management, and storyline operations.
-- **Web UI:** dedicated `/quests` page with three tabs (Quest Log, Quest Board, Storylines), quest detail with streak tracking, occurrences for recurring quests, XP earned, cost estimate for active quests, storyline detail with progress and cumulative XP, trail context hints integration, and inline actions.
+- **Web UI:** dedicated `/quests` page with three tabs (Quest Log, Quest Board, Storylines), quest detail with streak tracking, occurrences for recurring quests, XP earned, cost estimate for active quests, turn-in button for done quests with reward summary display, storyline detail with progress and cumulative XP, trail context hints integration, and inline actions.
 - **Background:** temporal context assembled automatically during haunt cycles. Skill fragments dropped on quest completion. Quest state changes gathered by the trail sweep. `prowl` heartbeat spawns autonomous embark sessions for eligible quests. `tend` heartbeat maintains board hygiene.
 
 ## Research Map
@@ -365,29 +372,6 @@ Empty quest tables produce empty temporal context — every read function return
 - **Compounding across subsystems:** `How Quests Compound`
 - **Weber-Fechner XP scaling and delegation economics:** `A Gamer's Guide to Quests` (XP), `What You Get` (XP)
 
-## Implementation Roadmap
+## Implementation Status
 
-The current quest system is a fully operational unified temporal tracker. The capabilities below are designed, researched, and ready to build — each one extends the existing architecture without breaking what works today. The [original design document](../QUESTS.md) contains the full research foundation, schema extensions, and detailed rationale for every item.
-
-### 1. Quest Turn-in and Drops
-
-A two-step completion lifecycle that separates "work is done" from "rewards are revealed." The celebration moment — the chest-opening animation.
-
-- [ ] Add `turned_in` status to schema CHECK and types (new terminal state)
-- [ ] `done` means work complete, `turned_in` means rewards evaluated and revealed
-- [ ] Warden evaluates full execution trajectory on turn-in
-- [ ] Drop sealed soul shards (trait drafts) on quest completion — revealed at turn-in
-- [ ] Drop sealed skill drafts on quest completion — revealed at turn-in
-- [ ] `revealShards()` + skill fragment reveal wired to turn-in transition
-- [ ] Turn-in CLI command and web UI action
-- [ ] Turn-in summary: what was earned, what was learned, what changed
-
-**Already in place:** `dropSkillFragment()` already fires on non-recurring quest completion in `done.ts`. Soul shards already have sealed/reveal mechanics (`drop_soulshard.ts`, `reveal_shards.ts`). The two halves exist independently — turn-in wires them into a ceremony.
-
-**Research:** [Deep gamification with story progression](https://www.mainquest.net/gamified-habit-trackers-effectiveness-research-2026), [Self-Determination Theory](https://doi.org/10.1037/0003-066X.55.1.68) (autonomy, competence, relatedness).
-
----
-
-**Recommended build order:** XP and cost estimation is complete. Next: turn-in and drops — the reward ceremony that ties everything together.
-
-The full design with schema extensions, edge cases, and additional research citations lives in the [original design document](../QUESTS.md).
+The quest system is feature-complete: unified temporal tracking, quest board, storylines, recurrence with streaks, temporal context, full-text search, autonomous embark with subgoals, XP and cost estimation, and the turn-in reward ceremony. The full design with schema extensions, edge cases, and additional research citations lives in the [original design document](../QUESTS.md).

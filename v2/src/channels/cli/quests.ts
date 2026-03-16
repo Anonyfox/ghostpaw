@@ -19,6 +19,7 @@ import questsStorylineList from "./quests_storyline_list.ts";
 import questsStorylineShow from "./quests_storyline_show.ts";
 import questsStorylineUpdate from "./quests_storyline_update.ts";
 import questsTend from "./quests_tend.ts";
+import questsTurnIn from "./quests_turn_in.ts";
 import questsUpdate from "./quests_update.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -30,6 +31,7 @@ export default defineCommand({
     show: questsShow,
     add: questsAdd,
     done: questsDone,
+    "turn-in": questsTurnIn,
     update: questsUpdate,
     board: questsBoard,
     offer: questsOffer,
@@ -51,6 +53,7 @@ export default defineCommand({
       "show",
       "add",
       "done",
+      "turn-in",
       "update",
       "board",
       "offer",

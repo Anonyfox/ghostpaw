@@ -4,6 +4,7 @@ import type {
   QuestInfo,
   QuestTrailHint,
   StorylineInfo,
+  TurnInResponse,
   UpdateQuestBody,
 } from "../../shared/quest_types.ts";
 import { relativeAge, relativeDue, rruleLabel } from "../../shared/quest_types.ts";
@@ -37,6 +38,7 @@ function fromLocalInput(val: string): number | null {
 export function QuestDetail({ questId, storylines, onUpdated, onDone }: Props) {
   const [detail, setDetail] = useState<QuestDetailResponse | null>(null);
   const [trailHint, setTrailHint] = useState<QuestTrailHint | null>(null);
+  const [turnInResult, setTurnInResult] = useState<TurnInResponse | null>(null);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<UpdateQuestBody>({});
   const [error, setError] = useState("");
@@ -99,6 +101,16 @@ export function QuestDetail({ questId, storylines, onUpdated, onDone }: Props) {
     }
   };
 
+  const handleTurnIn = async () => {
+    try {
+      const result = await apiPost<TurnInResponse>(`/api/quests/${questId}/turn-in`);
+      setTurnInResult(result);
+      load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
   if (editing) {
     return (
       <div class="px-3 py-3 bg-body-tertiary border-bottom">
@@ -140,6 +152,7 @@ export function QuestDetail({ questId, storylines, onUpdated, onDone }: Props) {
               <option value="active">Active</option>
               <option value="blocked">Blocked</option>
               <option value="done">Done</option>
+              <option value="turned_in">Turned In</option>
               <option value="failed">Failed</option>
               <option value="abandoned">Abandoned</option>
             </select>
@@ -451,13 +464,34 @@ export function QuestDetail({ questId, storylines, onUpdated, onDone }: Props) {
         </div>
       )}
 
+      {turnInResult && (
+        <div class="alert alert-info small py-2 mb-2">
+          <strong>Turned in!</strong>
+          {turnInResult.revealedShards > 0 && (
+            <span class="ms-2">
+              {turnInResult.revealedShards} soul shard
+              {turnInResult.revealedShards !== 1 ? "s" : ""} revealed
+            </span>
+          )}
+          {turnInResult.fragmentDropped && <span class="ms-2">| skill fragment dropped</span>}
+          {turnInResult.xpEarned > 0 && (
+            <span class="ms-2">| {Math.round(turnInResult.xpEarned)} XP earned</span>
+          )}
+        </div>
+      )}
+
       <div class="d-flex gap-2">
         <button type="button" class="btn btn-sm btn-outline-info" onClick={startEdit}>
           Edit
         </button>
-        {!["offered", "done", "failed", "abandoned"].includes(d.status) && (
+        {!["offered", "done", "turned_in", "failed", "abandoned"].includes(d.status) && (
           <button type="button" class="btn btn-sm btn-success" onClick={handleDone}>
             Done
+          </button>
+        )}
+        {d.status === "done" && (
+          <button type="button" class="btn btn-sm btn-warning" onClick={handleTurnIn}>
+            Turn In
           </button>
         )}
       </div>

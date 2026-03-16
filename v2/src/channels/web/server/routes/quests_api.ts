@@ -28,6 +28,7 @@ import {
   updateQuest,
   updateStoryline,
 } from "../../../../core/quests/api/write/index.ts";
+import { executeTurnIn } from "../../../../harness/quest/turn_in.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import type {
   CreateQuestBody,
@@ -195,7 +196,7 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
         position: s.position,
       }));
       const xpEarned = getXPByQuest(db, id);
-      const isTerminal = ["done", "failed", "abandoned"].includes(q.status);
+      const isTerminal = ["done", "turned_in", "failed", "abandoned"].includes(q.status);
       const est = isTerminal ? null : estimateQuestCost(db, id);
       const costEstimate =
         est && est.confidence !== "none"
@@ -252,6 +253,22 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
         } else {
           json(ctx, 200, { type: "quest", ...toQuestInfo(result as Quest) });
         }
+      } catch (err) {
+        json(ctx, 400, { error: (err as Error).message });
+      }
+    },
+
+    async turnIn(ctx: RouteContext) {
+      const id = Number(ctx.params.id);
+      if (!Number.isInteger(id)) return json(ctx, 400, { error: "Invalid quest ID." });
+      try {
+        const summary = executeTurnIn(db, id);
+        json(ctx, 200, {
+          quest: toQuestInfo(summary.quest),
+          revealedShards: summary.revealedShards,
+          fragmentDropped: summary.fragmentDropped,
+          xpEarned: summary.xpEarned,
+        });
       } catch (err) {
         json(ctx, 400, { error: (err as Error).message });
       }

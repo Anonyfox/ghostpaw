@@ -2,7 +2,6 @@ import { createTool, Schema } from "chatoyant";
 import { getXPByQuest } from "../../core/chat/api/read/index.ts";
 import { getQuest, getStreakInfo } from "../../core/quests/api/read/index.ts";
 import { completeQuest } from "../../core/quests/api/write/index.ts";
-import { dropSkillFragment } from "../../core/skills/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { formatQuest } from "./format_quest.ts";
 
@@ -37,7 +36,7 @@ export function createQuestDoneTool(db: DatabaseHandle) {
       const existing = getQuest(db, id);
       if (!existing) return { error: `Quest #${id} not found.` };
 
-      if (["done", "failed", "abandoned"].includes(existing.status)) {
+      if (["done", "turned_in", "failed", "abandoned"].includes(existing.status)) {
         return { error: `Quest #${id} is already "${existing.status}".` };
       }
 
@@ -59,19 +58,11 @@ export function createQuestDoneTool(db: DatabaseHandle) {
           };
         }
 
-        try {
-          dropSkillFragment(
-            db,
-            "quest",
-            String(id),
-            `Quest completed: "${result.title}". ${result.description ?? ""}`.trim(),
-          );
-        } catch {
-          // best-effort, don't block completion
-        }
-
         const xp = getXPByQuest(db, id);
-        return { quest: formatQuest(result, { xp }) };
+        return {
+          quest: formatQuest(result, { xp }),
+          note: "Quest completed. Use quest_turnin to reveal rewards.",
+        };
       } catch (err) {
         return {
           error: `Failed to complete quest: ${err instanceof Error ? err.message : String(err)}`,

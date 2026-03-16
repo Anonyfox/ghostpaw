@@ -4,6 +4,7 @@ export type QuestStatus =
   | "active"
   | "blocked"
   | "done"
+  | "turned_in"
   | "failed"
   | "abandoned";
 export type QuestPriority = "low" | "normal" | "high" | "urgent";
@@ -96,6 +97,13 @@ export interface StorylineInfo {
     blocked: number;
     offered: number;
   };
+}
+
+export interface TurnInResponse {
+  quest: QuestInfo;
+  revealedShards: number;
+  fragmentDropped: boolean;
+  xpEarned: number;
 }
 
 export interface StorylineDetailResponse extends StorylineInfo {

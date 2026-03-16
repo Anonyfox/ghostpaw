@@ -48,6 +48,7 @@ export function statusLabel(status: string): string {
     case "active":
       return style.cyan(status);
     case "done":
+    case "turned_in":
       return style.green(status);
     case "failed":
     case "abandoned":

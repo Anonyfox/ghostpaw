@@ -4,6 +4,7 @@ const STATUS_CLASSES: Record<string, string> = {
   active: "bg-info",
   blocked: "bg-warning text-dark",
   done: "bg-success",
+  turned_in: "bg-success",
   failed: "bg-danger",
   abandoned: "bg-secondary text-decoration-line-through",
   completed: "bg-success",

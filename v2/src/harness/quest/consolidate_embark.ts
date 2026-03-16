@@ -7,6 +7,7 @@ import {
 import { getQuest } from "../../core/quests/api/read/index.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
+import { createDropSoulshardTool } from "../../tools/souls/drop_soulshard.ts";
 import { assembleContext } from "../context.ts";
 import { createWardenTools } from "../tools.ts";
 
@@ -24,7 +25,14 @@ export async function consolidateEmbark(
   const sid = session.id as number;
 
   try {
-    const tools = createWardenTools(db);
+    const tools = [
+      ...createWardenTools(db),
+      createDropSoulshardTool(db, {
+        source: "quest",
+        sourceId: String(questId),
+        sealed: true,
+      }),
+    ];
     const systemPrompt = assembleContext(db, "", { soulId: MANDATORY_SOUL_IDS.warden });
 
     const content = [
@@ -34,6 +42,7 @@ export async function consolidateEmbark(
       "- Remember key insights or decisions made during execution.",
       "- Update pack bonds if people were involved.",
       "- Note any patterns that could improve future quest execution.",
+      "- Drop sealed soul shards for behavioral/cognitive patterns observed during quest execution — these will be revealed when the quest is turned in.",
       "",
       "Be brief. Only persist genuinely useful information.",
     ].join("\n");
