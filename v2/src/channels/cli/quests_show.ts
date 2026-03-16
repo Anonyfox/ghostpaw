@@ -1,5 +1,10 @@
 import { defineCommand } from "citty";
-import { getQuest, getStreakInfo, listOccurrences } from "../../core/quests/api/read/index.ts";
+import {
+  getQuest,
+  getStreakInfo,
+  listOccurrences,
+  listSubgoals,
+} from "../../core/quests/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { errorLine, formatDate, relativeAge, relativeDue, statusLabel } from "./quests_format.ts";
 import { withRunDb } from "./with_run_db.ts";
@@ -56,6 +61,17 @@ export default defineCommand({
       if (q.completedAt)
         f("completed", `${formatDate(q.completedAt)} (${relativeAge(q.completedAt)} ago)`);
       if (q.rrule) f("recurrence", q.rrule);
+
+      const subgoals = listSubgoals(db, q.id);
+      if (subgoals.length > 0) {
+        const doneCount = subgoals.filter((s) => s.done).length;
+        console.log();
+        console.log(style.dim(`── Subgoals (${doneCount}/${subgoals.length} done) ──`));
+        for (const s of subgoals) {
+          const mark = s.done ? style.green("[x]") : "[ ]";
+          console.log(`  ${mark} ${s.text}`);
+        }
+      }
 
       if (q.rrule) {
         const streak = getStreakInfo(db, q.id);

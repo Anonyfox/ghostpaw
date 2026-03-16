@@ -11,13 +11,14 @@ export function createSession(
   const model = options?.model ?? null;
   const parentSessionId = options?.parentSessionId ?? null;
   const soulId = options?.soulId ?? null;
+  const questId = options?.questId ?? null;
 
   const result = db
     .prepare(
-      `INSERT INTO sessions (key, purpose, model, created_at, last_active_at, parent_session_id, soul_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO sessions (key, purpose, model, created_at, last_active_at, parent_session_id, soul_id, quest_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(key, purpose, model, now, now, parentSessionId, soulId);
+    .run(key, purpose, model, now, now, parentSessionId, soulId, questId);
 
   return {
     id: result.lastInsertRowid,
@@ -37,6 +38,7 @@ export function createSession(
     distilledAt: null,
     parentSessionId,
     soulId,
+    questId,
     error: null,
   };
 }

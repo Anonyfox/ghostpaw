@@ -74,6 +74,19 @@ export function initQuestTables(db: DatabaseHandle): void {
   db.exec(
     "CREATE INDEX IF NOT EXISTS idx_quest_occurrences_quest ON quest_occurrences(quest_id, occurrence_at)",
   );
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS quest_subgoals (
+      id         INTEGER PRIMARY KEY,
+      quest_id   INTEGER NOT NULL REFERENCES quests(id),
+      text       TEXT    NOT NULL,
+      done       INTEGER NOT NULL DEFAULT 0,
+      position   INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      done_at    INTEGER
+    )
+  `);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_quest_subgoals_quest_id ON quest_subgoals(quest_id)");
 }
 
 function createFts(db: DatabaseHandle): void {

@@ -45,9 +45,17 @@ export interface StreakInfo {
   atRisk: boolean;
 }
 
+export interface SubgoalInfo {
+  id: number;
+  text: string;
+  done: boolean;
+  position: number;
+}
+
 export interface QuestDetailResponse extends QuestInfo {
   occurrences: QuestOccurrenceInfo[];
   streak: StreakInfo | null;
+  subgoals: SubgoalInfo[];
 }
 
 export interface QuestTrailHint {

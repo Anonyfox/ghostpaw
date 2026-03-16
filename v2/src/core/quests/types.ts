@@ -148,6 +148,16 @@ export interface StreakInfo {
   atRisk: boolean;
 }
 
+export interface Subgoal {
+  id: number;
+  questId: number;
+  text: string;
+  done: boolean;
+  position: number;
+  createdAt: number;
+  doneAt: number | null;
+}
+
 export interface TemporalContext {
   overdue: Quest[];
   dueSoon: Quest[];

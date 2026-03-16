@@ -7,6 +7,7 @@ export const SESSION_PURPOSES = [
   "system",
   "haunt",
   "howl",
+  "quest",
 ] as const;
 export type SessionPurpose = (typeof SESSION_PURPOSES)[number];
 
@@ -31,6 +32,7 @@ export interface ChatSession {
   distilledAt: number | null;
   parentSessionId: number | null;
   soulId: number | null;
+  questId: number | null;
   error: string | null;
 }
 
@@ -56,6 +58,7 @@ export interface CreateSessionInput {
   model?: string;
   parentSessionId?: number;
   soulId?: number;
+  questId?: number;
 }
 
 export interface AddMessageInput {

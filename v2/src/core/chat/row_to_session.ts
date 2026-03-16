@@ -19,6 +19,7 @@ export function rowToSession(row: Record<string, unknown>): ChatSession {
     distilledAt: (row.distilled_at as number) ?? null,
     parentSessionId: (row.parent_session_id as number) ?? null,
     soulId: (row.soul_id as number) ?? null,
+    questId: (row.quest_id as number) ?? null,
     error: (row.error as string) ?? null,
   };
 }

@@ -8,6 +8,7 @@ import {
   listOccurrences,
   listQuests,
   listStorylines,
+  listSubgoals,
 } from "../../../../core/quests/api/read/index.ts";
 import type {
   Quest,
@@ -181,7 +182,13 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
           }))
         : [];
       const streak = q.rrule ? getStreakInfo(db, id) : null;
-      json(ctx, 200, { ...toQuestInfo(q), occurrences, streak });
+      const subgoals = listSubgoals(db, id).map((s) => ({
+        id: s.id,
+        text: s.text,
+        done: s.done,
+        position: s.position,
+      }));
+      json(ctx, 200, { ...toQuestInfo(q), occurrences, streak, subgoals });
     },
 
     async update(ctx: RouteContext) {

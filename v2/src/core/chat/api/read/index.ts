@@ -26,6 +26,7 @@ export { getTokensInWindow } from "../../get_tokens_in_window.ts";
 export type { ListDistillableOptions } from "../../list_distillable_session_ids.ts";
 export { listDistillableSessionIds } from "../../list_distillable_session_ids.ts";
 export { listSessions } from "../../list_sessions.ts";
+export { openQuestSessionIds } from "../../open_quest_session_ids.ts";
 export type {
   QuerySessionsFilter,
   QuerySessionsOptions,

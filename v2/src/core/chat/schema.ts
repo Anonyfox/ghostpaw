@@ -20,10 +20,12 @@ export function initChatTables(db: DatabaseHandle): void {
       distilled_at      INTEGER,
       parent_session_id INTEGER REFERENCES sessions(id),
       soul_id           INTEGER,
+      quest_id          INTEGER,
       error             TEXT
     )
   `);
   db.exec("CREATE INDEX IF NOT EXISTS idx_sessions_key ON sessions(key)");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_sessions_quest_id ON sessions(quest_id)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_sessions_purpose ON sessions(purpose)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_sessions_last_active ON sessions(last_active_at)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_sessions_parent ON sessions(parent_session_id)");

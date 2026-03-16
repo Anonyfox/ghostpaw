@@ -346,6 +346,26 @@ export function QuestDetail({ questId, storylines, onUpdated, onDone }: Props) {
         )}
       </dl>
 
+      {d.subgoals && d.subgoals.length > 0 && (
+        <div class="mb-2">
+          <div class="small fw-semibold text-body-secondary mb-1">
+            Subgoals ({d.subgoals.filter((s) => s.done).length}/{d.subgoals.length} done)
+          </div>
+          <div class="border rounded">
+            {d.subgoals.map((s) => (
+              <div key={s.id} class="d-flex gap-2 px-2 py-1 border-bottom small">
+                <span class={s.done ? "text-success" : "text-body-tertiary"}>
+                  {s.done ? "\u2713" : "\u25cb"}
+                </span>
+                <span class={s.done ? "text-decoration-line-through text-body-tertiary" : ""}>
+                  {s.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {d.streak && (d.streak.totalDone > 0 || d.streak.totalSkipped > 0) && (
         <div class="mb-2">
           <div class="small fw-semibold text-body-secondary mb-1">Streak</div>

@@ -6,9 +6,11 @@ import questsAdd from "./quests_add.ts";
 import questsBoard from "./quests_board.ts";
 import questsDismiss from "./quests_dismiss.ts";
 import questsDone from "./quests_done.ts";
+import questsEmbark from "./quests_embark.ts";
 import { formatDate, relativeAge, relativeDue } from "./quests_format.ts";
 import questsList from "./quests_list.ts";
 import questsOffer from "./quests_offer.ts";
+import questsProwl from "./quests_prowl.ts";
 import questsSearch from "./quests_search.ts";
 import questsShow from "./quests_show.ts";
 import questsStorylineAdd from "./quests_storyline_add.ts";
@@ -16,6 +18,7 @@ import questsStorylineDone from "./quests_storyline_done.ts";
 import questsStorylineList from "./quests_storyline_list.ts";
 import questsStorylineShow from "./quests_storyline_show.ts";
 import questsStorylineUpdate from "./quests_storyline_update.ts";
+import questsTend from "./quests_tend.ts";
 import questsUpdate from "./quests_update.ts";
 import { withRunDb } from "./with_run_db.ts";
 
@@ -32,6 +35,9 @@ export default defineCommand({
     offer: questsOffer,
     accept: questsAccept,
     dismiss: questsDismiss,
+    embark: questsEmbark,
+    prowl: questsProwl,
+    tend: questsTend,
     "storyline-list": questsStorylineList,
     "storyline-add": questsStorylineAdd,
     "storyline-show": questsStorylineShow,
@@ -50,6 +56,9 @@ export default defineCommand({
       "offer",
       "accept",
       "dismiss",
+      "embark",
+      "prowl",
+      "tend",
       "storyline-list",
       "storyline-add",
       "storyline-show",

@@ -15,10 +15,10 @@ afterEach(() => {
 });
 
 describe("initChatTables", () => {
-  it("creates sessions with all 18 columns", () => {
+  it("creates sessions with all 19 columns", () => {
     initChatTables(db);
     const cols = db.prepare("PRAGMA table_info(sessions)").all() as { name: string }[];
-    strictEqual(cols.length, 18);
+    strictEqual(cols.length, 19);
     const names = new Set(cols.map((c) => c.name));
     for (const expected of [
       "id",
@@ -38,6 +38,7 @@ describe("initChatTables", () => {
       "distilled_at",
       "parent_session_id",
       "soul_id",
+      "quest_id",
       "error",
     ]) {
       ok(names.has(expected), `missing column: ${expected}`);
@@ -73,7 +74,7 @@ describe("initChatTables", () => {
   it("is idempotent", () => {
     initChatTables(db);
     initChatTables(db);
-    strictEqual((db.prepare("PRAGMA table_info(sessions)").all() as unknown[]).length, 18);
+    strictEqual((db.prepare("PRAGMA table_info(sessions)").all() as unknown[]).length, 19);
     strictEqual((db.prepare("PRAGMA table_info(messages)").all() as unknown[]).length, 15);
   });
 

@@ -12,6 +12,7 @@ export type {
   StorylineProgress,
   StorylineStatus,
   StreakInfo,
+  Subgoal,
   TemporalContext,
   UpdateQuestInput,
   UpdateStorylineInput,

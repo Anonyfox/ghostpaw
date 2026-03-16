@@ -1,8 +1,12 @@
 export { acceptQuest } from "../../accept_quest.ts";
+export { addSubgoal } from "../../add_subgoal.ts";
 export { completeQuest } from "../../complete_quest.ts";
+export { completeSubgoal } from "../../complete_subgoal.ts";
 export { createQuest } from "../../create_quest.ts";
 export { createStoryline } from "../../create_storyline.ts";
 export { dismissQuest } from "../../dismiss_quest.ts";
+export { removeSubgoal } from "../../remove_subgoal.ts";
+export { reorderSubgoals } from "../../reorder_subgoals.ts";
 export { skipOccurrence } from "../../skip_occurrence.ts";
 export { updateQuest } from "../../update_quest.ts";
 export { updateStoryline } from "../../update_storyline.ts";
