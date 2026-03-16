@@ -139,6 +139,15 @@ export interface StorylineProgress {
   offered: number;
 }
 
+export interface StreakInfo {
+  currentStreak: number;
+  longestStreak: number;
+  totalDone: number;
+  totalSkipped: number;
+  lastCompletedAt: number | null;
+  atRisk: boolean;
+}
+
 export interface TemporalContext {
   overdue: Quest[];
   dueSoon: Quest[];

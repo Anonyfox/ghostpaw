@@ -11,6 +11,7 @@ export type {
   Storyline,
   StorylineProgress,
   StorylineStatus,
+  StreakInfo,
   TemporalContext,
   UpdateQuestInput,
   UpdateStorylineInput,

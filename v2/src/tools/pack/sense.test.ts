@@ -116,16 +116,18 @@ describe("pack_sense tool", () => {
   });
 
   it("returns patrol digest with compact items", async () => {
+    const now = Date.now();
+    const DAY = 86_400_000;
     const member = meetMember(db, { name: "Alice", kind: "human", birthday: "1992-03-12" });
     noteInteraction(db, {
       memberId: member.id,
       kind: "conflict",
       summary: "rough patch",
-      occurredAt: new Date(2026, 2, 8).getTime(),
+      occurredAt: now - 3 * DAY,
     });
     db.prepare("UPDATE pack_members SET trust = ?, last_contact = ? WHERE id = ?").run(
       0.9,
-      new Date(2026, 1, 20).getTime(),
+      now - 16 * DAY,
       member.id,
     );
 

@@ -1,5 +1,5 @@
 import { createTool, Schema } from "chatoyant";
-import { getQuest } from "../../core/quests/api/read/index.ts";
+import { getQuest, getStreakInfo } from "../../core/quests/api/read/index.ts";
 import { completeQuest } from "../../core/quests/api/write/index.ts";
 import { dropSkillFragment } from "../../core/skills/api/write/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
@@ -49,8 +49,9 @@ export function createQuestDoneTool(db: DatabaseHandle) {
 
         if ("questId" in result) {
           const quest = getQuest(db, id)!;
+          const streak = getStreakInfo(db, id);
           return {
-            quest: formatQuest(quest),
+            quest: formatQuest(quest, streak),
             occurrence: result,
             note: "Occurrence recorded. Recurring quest remains active.",
           };

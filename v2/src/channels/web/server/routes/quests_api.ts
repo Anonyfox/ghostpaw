@@ -3,6 +3,7 @@ import {
   getQuest,
   getStoryline,
   getStorylineProgress,
+  getStreakInfo,
   getTemporalContext,
   listOccurrences,
   listQuests,
@@ -179,7 +180,8 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
             completedAt: o.completedAt,
           }))
         : [];
-      json(ctx, 200, { ...toQuestInfo(q), occurrences });
+      const streak = q.rrule ? getStreakInfo(db, id) : null;
+      json(ctx, 200, { ...toQuestInfo(q), occurrences, streak });
     },
 
     async update(ctx: RouteContext) {

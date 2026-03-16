@@ -13,6 +13,8 @@ import { sensePack } from "../../core/pack/api/read/index.ts";
 import {
   countQuestsByStatus,
   dueSoonQuests,
+  getStreakInfo,
+  listQuests,
   overdueQuests,
   staleQuests,
 } from "../../core/quests/api/read/index.ts";
@@ -211,6 +213,21 @@ function buildQuestSeeds(db: DatabaseHandle): SeedCandidate[] {
         text: `${offeredCount} quest${offeredCount > 1 ? "s" : ""} on the Quest Board. Any worth accepting or dismissing?`,
         weight: 2,
       });
+    }
+
+    const recurring = listQuests(db, {
+      excludeStatuses: ["offered", "done", "failed", "abandoned"],
+      limit: 10,
+    }).filter((q) => q.rrule);
+    for (const q of recurring) {
+      const streak = getStreakInfo(db, q.id);
+      if (streak?.atRisk && streak.currentStreak >= 5) {
+        seeds.push({
+          text: `Your "${q.title}" streak of ${streak.currentStreak} is at risk — due for completion soon.`,
+          weight: 2.5,
+        });
+        break;
+      }
     }
   } catch {
     // Quest tables may not exist yet

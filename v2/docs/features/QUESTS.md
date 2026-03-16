@@ -16,7 +16,7 @@ Managed by the **Warden** soul. The warden owns all persistence — memory, pack
 
 **Storylines group related work.** A storyline named "Website Redesign" contains quests as objectives. Progress is computed live — total, done, active, accepted, blocked — and rendered as concrete counts, not misleading percentages. [Basecamp's insight](https://basecamp.com/hill-charts): task counts are misleading because tasks aren't equal. The meaningful signal is which quests are blocked, which are active, and whether the unknowns have been resolved.
 
-**Recurring quests track habits.** `FREQ=DAILY` is a daily. `FREQ=WEEKLY;BYDAY=MO,WE,FR` is Monday/Wednesday/Friday. [RFC 5545 RRULE](https://tools.ietf.org/html/rfc5545) stores the intended pattern — "every third Thursday March–June," "second Sunday in May," bounded or infinite. [Every practitioner says the same thing](https://www.codegenes.net/blog/calendar-recurring-repeating-events-best-storage-method/): don't reinvent recurrence rules. Individual occurrences are tracked as they happen — completing or skipping one records it without affecting the base quest. The web UI provides a recurrence picker mapping common patterns to RRULE strings.
+**Recurring quests track habits — with streaks.** `FREQ=DAILY` is a daily. `FREQ=WEEKLY;BYDAY=MO,WE,FR` is Monday/Wednesday/Friday. [RFC 5545 RRULE](https://tools.ietf.org/html/rfc5545) stores the intended pattern — "every third Thursday March–June," "second Sunday in May," bounded or infinite. [Every practitioner says the same thing](https://www.codegenes.net/blog/calendar-recurring-repeating-events-best-storage-method/): don't reinvent recurrence rules. Individual occurrences are tracked as they happen — completing or skipping one records it without affecting the base quest. Every recurring quest shows a live streak: current consecutive completions, longest streak ever, total done/skipped. Streaks are strict — miss one occurrence or skip one, and the streak resets to zero. [Loss aversion makes streak progress ~2x more painful to lose than equivalent gains](https://www.smashingmagazine.com/2026/02/designing-streak-system-ux-psychology/), creating a natural "second-level objective" that reduces mental negotiation about whether to perform the task. During haunting, ghostpaw surfaces at-risk streaks before they break. The web UI provides a recurrence picker mapping common patterns to RRULE strings.
 
 **Full-text search across everything.** Quests are searchable by title and description via FTS5. "What was that deploy issue?" returns the quest instantly. No embedding, no vector search — just fast, precise full-text matching on structured temporal data.
 
@@ -166,7 +166,7 @@ The naming is not cosmetic. RPG quest systems solve the exact same design proble
 
 **Main quests vs. side quests** emerge naturally. Storylines with deadlines and high-priority quests are main quests — the critical path. Storylines without deadlines or low-priority items are side quests. The system doesn't enforce this through types. It emerges from which fields are populated.
 
-**Recurring quests are dailies and weeklies.** Every MMO player understands tasks that reset on a schedule. `FREQ=DAILY` is a daily quest. `FREQ=WEEKLY;BYDAY=MO` is a Monday weekly.
+**Recurring quests are dailies and weeklies — with visible streaks.** Every MMO player understands tasks that reset on a schedule. `FREQ=DAILY` is a daily quest. `FREQ=WEEKLY;BYDAY=MO` is a Monday weekly. Streaks are tracked automatically: "12-day streak on Morning Standup Notes." Miss one and it resets — just like in the games. [Users reaching a 7-day streak are 3.6x more likely to complete their course](https://marketingmonsters.io/blog/the-science-behind-streak-based-motivation). Streak visibility IS the mechanism.
 
 **XP is real.** In the soul system, completed quests ARE the evidence that drives trait acquisition. The js-engineer soul that completed 50 code quests has earned traits from those sessions. Quest completion isn't fake gamification — it is the actual input to the evolutionary system described in [SOULS.md](SOULS.md). Completing quests literally makes ghostpaw stronger through evidence-driven refinement. No bolt-on reward system needed.
 
@@ -176,9 +176,9 @@ The naming is not cosmetic. RPG quest systems solve the exact same design proble
 
 **Day 1** — the quest system is empty. Ghostpaw tracks nothing. It responds to what's in front of it. Temporal context reads return empty — graceful, not broken.
 
-**Week 2** — the human has created a few storylines. Ghostpaw sees upcoming deadlines in its temporal context. During haunting, it notices a stale quest and asks about it. It starts creating its own quests during work decomposition — breaking a large task into tracked steps. The Quest Board has its first ghostpaw-proposed entries.
+**Week 2** — the human has created a few storylines and some recurring dailies. Ghostpaw sees upcoming deadlines in its temporal context. During haunting, it notices a stale quest and asks about it. Streaks on recurring quests start building — "5-day streak on Journal Review." It starts creating its own quests during work decomposition — breaking a large task into tracked steps. The Quest Board has its first ghostpaw-proposed entries.
 
-**Month 2** — dozens of completed quests provide evidence for soul refinement. Ghostpaw has learned the human's patterns: which deadlines are real, which are aspirational. Recurring quests establish rhythm. The temporal context summary is rich enough that ghostpaw proactively manages time — "you have three things due this week, want me to prioritize?" Skill fragments from quest completions have fed training sessions. The trail's nightly sweep reads quest state changes as input for chronicles.
+**Month 2** — dozens of completed quests provide evidence for soul refinement. Ghostpaw has learned the human's patterns: which deadlines are real, which are aspirational. Recurring quests have built long streaks — the 30-day meditation streak is motivation in itself. The temporal context summary is rich enough that ghostpaw proactively manages time — "you have three things due this week, want me to prioritize?" Skill fragments from quest completions have fed training sessions. The trail's nightly sweep reads quest state changes as input for chronicles.
 
 **Month 6** — the quest history is a structured log of everything that happened and when. Ghostpaw's temporal reasoning is grounded in months of pattern data. It knows that Friday deploys slip to Monday. It knows the user forgets recurring tasks unless reminded Wednesday. This knowledge lives in memory, informed by quest data. The quest system provides the facts. Memory provides the interpretation. Together they give ghostpaw something no other agent has: a genuine sense of time passing and commitments within it.
 
@@ -203,7 +203,7 @@ The gap is structural. Other agents can answer questions about tasks if you tell
 
 ## Inspection
 
-**Web UI.** The `/quests` page provides three tabs: **Quest Log** (filtered list with status pills, priority badges, relative timestamps, search, and a bulletin board teaser), **Quest Board** (offered quests with accept/dismiss actions, quick-add input, and optional storyline assignment on accept), and **Storylines** (storylines as cards with computed progress). Quest detail shows full metadata, occurrences for recurring quests, and trail context hints (current chapter + linked open loops). Storylines have a detail page with nested quests, progress counts, edit, and completion actions. Toolbar provides status, priority, and storyline filters. Recurrence is configured via a picker that maps common patterns to RRULE strings.
+**Web UI.** The `/quests` page provides three tabs: **Quest Log** (filtered list with status pills, priority badges, relative timestamps, search, and a bulletin board teaser), **Quest Board** (offered quests with accept/dismiss actions, quick-add input, and optional storyline assignment on accept), and **Storylines** (storylines as cards with computed progress). Quest detail shows full metadata, streak info and occurrences for recurring quests, and trail context hints (current chapter + linked open loops). Storylines have a detail page with nested quests, progress counts, edit, and completion actions. Toolbar provides status, priority, and storyline filters. Recurrence is configured via a picker that maps common patterns to RRULE strings.
 
 **CLI.** All commands under `ghostpaw quests`:
 
@@ -212,7 +212,7 @@ The gap is structural. Other agents can answer questions about tasks if you tell
 | `quests` | Temporal summary: overdue, due soon, active, today's events |
 | `list` | List quests with status, priority, and storyline filters |
 | `search <query>` | Full-text search across titles and descriptions |
-| `show <id>` | Quest detail with occurrences and metadata |
+| `show <id>` | Quest detail with streak info, occurrences, and metadata |
 | `add` | Create a quest (title, optional description, status, priority, temporal fields) |
 | `done <id>` | Mark complete (optional occurrence timestamp for recurring quests) |
 | `update <id>` | Update quest fields |
@@ -275,13 +275,13 @@ Quest completions drop skill fragments that accumulate silently in the skills pi
 
 ### Synergies
 
-Mechanical code APIs let other subsystems consume quest data without LLM tokens: `getTemporalContext()` for haunt context assembly, `overdueQuests()` and `dueSoonQuests()` for proactive surfacing, `staleQuests()` for identifying stuck work, `getStorylineProgress()` for storyline progress, and `countQuestsByStatus()` for dashboard summaries. The trail sweep gathers quest state changes internally via `questStateChangesSince()`. Skill fragment drops via `dropSkillFragment()` on quest completion feed the trainer pipeline. All return sensible defaults when data is absent.
+Mechanical code APIs let other subsystems consume quest data without LLM tokens: `getTemporalContext()` for haunt context assembly, `overdueQuests()` and `dueSoonQuests()` for proactive surfacing, `staleQuests()` for identifying stuck work, `getStorylineProgress()` for storyline progress, `getStreakInfo()` for recurring quest streak computation, and `countQuestsByStatus()` for dashboard summaries. The trail sweep gathers quest state changes internally via `questStateChangesSince()`. Skill fragment drops via `dropSkillFragment()` on quest completion feed the trainer pipeline. Streak-at-risk seeds surface in haunting when a significant streak (5+ consecutive completions) is approaching its gap threshold — ghostpaw proactively nudges before the streak breaks. All return sensible defaults when data is absent.
 
 ## Quality Criteria Compliance
 
 ### Scientifically Grounded
 
-The subsystem is grounded in calendar-task fusion research, RRULE standards, temporal knowledge graph findings, structured task storage for agents (CORPGEN), proactive scheduling, cognitive offloading, the Ovsiankina Effect, implementation intentions, and gamification effectiveness research. Citations are inline where each mechanism is introduced.
+The subsystem is grounded in calendar-task fusion research, RRULE standards, temporal knowledge graph findings, structured task storage for agents (CORPGEN), proactive scheduling, cognitive offloading, the Ovsiankina Effect, implementation intentions, gamification effectiveness research, and loss aversion / streak psychology. Citations are inline where each mechanism is introduced.
 
 ### Fast, Efficient, Minimal
 
@@ -306,7 +306,7 @@ Empty quest tables produce empty temporal context — every read function return
 ## Data Contract
 
 - **Primary tables:** `quests`, `storylines`, `quest_occurrences`, `quests_fts` (FTS5 virtual table).
-- **Canonical models:** `Quest`, `Storyline`, `QuestOccurrence`, `StorylineProgress`, `TemporalContext`.
+- **Canonical models:** `Quest`, `Storyline`, `QuestOccurrence`, `StorylineProgress`, `StreakInfo`, `TemporalContext`.
 - **Input models:** `CreateQuestInput`, `UpdateQuestInput`, `CreateStorylineInput`, `UpdateStorylineInput`, `ListQuestsOptions`, `ListStorylinesOptions`.
 - **Status values:** `offered`, `accepted`, `active`, `blocked`, `done`, `failed`, `abandoned`.
 - **Terminal statuses:** `done`, `failed`, `abandoned`.
@@ -322,7 +322,7 @@ Empty quest tables produce empty temporal context — every read function return
 
 ### Read
 
-`countQuestsByStatus()`, `dueSoonQuests()`, `getQuest()`, `getStoryline()`, `getStorylineProgress()`, `getTemporalContext()`, `listOccurrences()`, `listStorylines()`, `listQuests()`, `overdueQuests()`, `recentlyCompletedQuests()`, and `staleQuests()`.
+`countQuestsByStatus()`, `dueSoonQuests()`, `getQuest()`, `getStreakInfo()`, `getStoryline()`, `getStorylineProgress()`, `getTemporalContext()`, `listOccurrences()`, `listStorylines()`, `listQuests()`, `overdueQuests()`, `recentlyCompletedQuests()`, and `staleQuests()`.
 
 **Internal (not exported, used by trail):** `questStateChangesSince()` — returns quests updated since a timestamp, consumed by the trail sweep's gathering phase.
 
@@ -338,7 +338,7 @@ Empty quest tables produce empty temporal context — every read function return
 
 - **Conversation:** the coordinator delegates to the warden for quest creation, completion, board management, and temporal queries during natural chat.
 - **CLI:** full subcommand tree for inspection, creation, updates, search, board management, and storyline operations.
-- **Web UI:** dedicated `/quests` page with three tabs (Quest Log, Quest Board, Storylines), quest detail with occurrences, storyline detail with progress, trail context hints integration, and inline actions.
+- **Web UI:** dedicated `/quests` page with three tabs (Quest Log, Quest Board, Storylines), quest detail with streak tracking and occurrences for recurring quests, storyline detail with progress, trail context hints integration, and inline actions.
 - **Background:** temporal context assembled automatically during haunt cycles. Skill fragments dropped on quest completion. Quest state changes gathered by the trail sweep.
 
 ## Research Map
@@ -349,6 +349,7 @@ Empty quest tables produce empty temporal context — every read function return
 - **Quest Board, cognitive offloading, and opportunity design:** `The Quest Board`
 - **Gamification effectiveness and Self-Determination Theory:** `A Gamer's Guide to Quests`
 - **Proactive agent scheduling and temporal triggers:** `Temporal Context`
+- **Streak tracking, loss aversion, and habit momentum:** `What You Get` (recurring quests), `A Gamer's Guide to Quests`, `Synergies`
 - **Compounding across subsystems:** `How Quests Compound`
 
 ## Implementation Roadmap
@@ -418,24 +419,8 @@ A two-step completion lifecycle that separates "work is done" from "rewards are 
 
 **Research:** [Deep gamification with story progression](https://www.mainquest.net/gamified-habit-trackers-effectiveness-research-2026), [Self-Determination Theory](https://doi.org/10.1037/0003-066X.55.1.68) (autonomy, competence, relatedness).
 
-### 5. Streak Tracking for Recurring Quests
-
-Visible streaks with grace periods, short-term milestone framing, adaptive scheduling, and decay detection. The mechanism that turns recurring quests from chores into momentum.
-
-- [ ] Streak computation from `quest_occurrences`: consecutive `done` without `skipped` or missed
-- [ ] Grace period: one missed occurrence doesn't break a streak if the next one lands
-- [ ] Streak display in quest detail (CLI, web UI) — "12-day streak," "you've skipped 4 of the last 5"
-- [ ] Short-term milestone framing: "3 more to reach 30 days" rather than raw count
-- [ ] Adaptive scheduling hints: completion patterns inform optimal reminder timing
-- [ ] Decay detection: declining completion rate surfaces in temporal context
-- [ ] Streak data feeds haunt seeds — "your meditation streak is at risk" is a natural prompt
-
-**Already in place:** `quest_occurrences` table records every completion and skip with timestamps. The raw data for streak computation is already accumulating. Haunt seed infrastructure (`buildQuestSeeds()`) is ready to consume streak signals.
-
-**Research:** [Loss aversion in streak design](https://www.smashingmagazine.com/2026/02/designing-streak-system-ux-psychology/), [streak persistence and motivation](https://marketingmonsters.io/blog/the-science-behind-streak-based-motivation).
-
 ---
 
-**Recommended build order:** (1) Streak tracking — builds on existing occurrences data, immediate user-visible value. (2) Quest execution engine — largest scope, unlocks (3) subgoals and (4) XP. (5) Turn-in and drops — the reward ceremony that ties everything together.
+**Recommended build order:** (1) Quest execution engine — largest scope, unlocks (2) subgoals and (3) XP. (4) Turn-in and drops — the reward ceremony that ties everything together.
 
 The full design with schema extensions, edge cases, and additional research citations lives in the [original design document](../QUESTS.md).

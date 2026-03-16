@@ -36,8 +36,18 @@ export interface QuestOccurrenceInfo {
   completedAt: number;
 }
 
+export interface StreakInfo {
+  currentStreak: number;
+  longestStreak: number;
+  totalDone: number;
+  totalSkipped: number;
+  lastCompletedAt: number | null;
+  atRisk: boolean;
+}
+
 export interface QuestDetailResponse extends QuestInfo {
   occurrences: QuestOccurrenceInfo[];
+  streak: StreakInfo | null;
 }
 
 export interface QuestTrailHint {

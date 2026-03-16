@@ -1,6 +1,11 @@
-import type { Quest, Storyline, StorylineProgress } from "../../core/quests/api/types.ts";
+import type {
+  Quest,
+  Storyline,
+  StorylineProgress,
+  StreakInfo,
+} from "../../core/quests/api/types.ts";
 
-export function formatQuest(q: Quest) {
+export function formatQuest(q: Quest, streak?: StreakInfo | null) {
   const out: Record<string, unknown> = {
     id: q.id,
     title: q.title,
@@ -17,6 +22,14 @@ export function formatQuest(q: Quest) {
   if (q.remindAt) out.remindAt = q.remindAt;
   if (q.rrule) out.rrule = q.rrule;
   if (q.completedAt) out.completedAt = q.completedAt;
+  if (streak && q.rrule) {
+    out.streak = {
+      current: streak.currentStreak,
+      longest: streak.longestStreak,
+      totalDone: streak.totalDone,
+      totalSkipped: streak.totalSkipped,
+    };
+  }
   out.createdAt = q.createdAt;
   out.updatedAt = q.updatedAt;
   return out;

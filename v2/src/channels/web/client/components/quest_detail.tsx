@@ -346,6 +346,22 @@ export function QuestDetail({ questId, storylines, onUpdated, onDone }: Props) {
         )}
       </dl>
 
+      {d.streak && (d.streak.totalDone > 0 || d.streak.totalSkipped > 0) && (
+        <div class="mb-2">
+          <div class="small fw-semibold text-body-secondary mb-1">Streak</div>
+          <div class="d-flex gap-3 small">
+            <span>
+              Current: <strong class="text-info">{d.streak.currentStreak}</strong>
+            </span>
+            <span>
+              Longest: <strong>{d.streak.longestStreak}</strong>
+            </span>
+            <span class="text-success">Done: {d.streak.totalDone}</span>
+            <span class="text-warning">Skipped: {d.streak.totalSkipped}</span>
+          </div>
+        </div>
+      )}
+
       {d.occurrences.length > 0 && (
         <div class="mb-2">
           <div class="small fw-semibold text-body-secondary mb-1">Recent Occurrences</div>

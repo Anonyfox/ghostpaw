@@ -10,4 +10,5 @@ export { questStateChangesSince } from "../../quest_state_changes_since.ts";
 export { recentlyCompletedQuests } from "../../recently_completed_quests.ts";
 export { staleQuests } from "../../stale_quests.ts";
 export { getStorylineProgress } from "../../storyline_progress.ts";
+export { getStreakInfo } from "../../streak_info.ts";
 export { getTemporalContext } from "../../temporal_context.ts";

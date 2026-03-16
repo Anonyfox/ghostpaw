@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { getQuest, listOccurrences } from "../../core/quests/api/read/index.ts";
+import { getQuest, getStreakInfo, listOccurrences } from "../../core/quests/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 import { errorLine, formatDate, relativeAge, relativeDue, statusLabel } from "./quests_format.ts";
 import { withRunDb } from "./with_run_db.ts";
@@ -58,6 +58,18 @@ export default defineCommand({
       if (q.rrule) f("recurrence", q.rrule);
 
       if (q.rrule) {
+        const streak = getStreakInfo(db, q.id);
+        if (streak && (streak.totalDone > 0 || streak.totalSkipped > 0)) {
+          console.log();
+          console.log(style.dim("── Streak ──"));
+          const s = (label: string, val: string | number) =>
+            console.log(`  ${style.dim(label)}  ${val}`);
+          s("Current:", style.cyan(String(streak.currentStreak)));
+          s("Longest:", String(streak.longestStreak));
+          s("   Done:", String(streak.totalDone));
+          s("Skipped:", String(streak.totalSkipped));
+        }
+
         const occs = listOccurrences(db, q.id, { limit: 10 });
         if (occs.length > 0) {
           console.log();
