@@ -1,6 +1,7 @@
 import { defineCommand } from "citty";
 import {
   getTraitLimit,
+  isMandatorySoulId,
   listDormantSouls,
   listSouls,
   shardCountsPerSoul,
@@ -37,17 +38,20 @@ export default defineCommand({
         return;
       }
 
-      const header = `${"ID".padStart(4)} ${"Name".padEnd(20)} ${"Lvl".padStart(4)} ${"Traits".padStart(8)} Shards`;
+      const header = `${"ID".padStart(4)} ${"Name".padEnd(20)} ${"Type".padEnd(6)} ${"Lvl".padStart(4)} ${"Traits".padStart(8)} Shards`;
       console.log(style.dim(header + label));
-      console.log(style.dim("─".repeat(84)));
+      console.log(style.dim("─".repeat(90)));
 
       for (const s of souls) {
         const id = String(s.id).padStart(4);
         const name = s.name.padEnd(20);
+        const kind = isMandatorySoulId(s.id) ? style.dim("core  ") : "custom";
         const level = String(s.level).padStart(4);
         const traits = `${s.activeTraitCount}/${traitLimit}`.padStart(8);
         const shards = shardLabel(counts, s.id);
-        console.log(`${style.dim(id)} ${style.cyan(name)} ${level} ${traits} ${style.dim(shards)}`);
+        console.log(
+          `${style.dim(id)} ${style.cyan(name)} ${kind} ${level} ${traits} ${style.dim(shards)}`,
+        );
       }
     });
   },

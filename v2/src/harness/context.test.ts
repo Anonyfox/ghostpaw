@@ -88,8 +88,8 @@ describe("assembleContext", () => {
   });
 
   it("accepts soulId override for specialist souls", () => {
-    const result = assembleContext(db, workspace, MANDATORY_SOUL_IDS["js-engineer"]);
-    ok(result.includes("# JS Engineer"));
+    const result = assembleContext(db, workspace, MANDATORY_SOUL_IDS.warden);
+    ok(result.includes("# Warden"));
   });
 
   it("includes environment section with current date", () => {

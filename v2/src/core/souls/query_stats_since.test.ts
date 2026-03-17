@@ -15,7 +15,7 @@ describe("queryStatsSince", () => {
     initConfigTable(db);
     ensureMandatorySouls(db);
 
-    const result = queryStatsSince(db, MANDATORY_SOUL_IDS["js-engineer"], 0);
+    const result = queryStatsSince(db, MANDATORY_SOUL_IDS.warden, 0);
     strictEqual(result.total, 0);
     strictEqual(result.completed, 0);
     strictEqual(result.failed, 0);

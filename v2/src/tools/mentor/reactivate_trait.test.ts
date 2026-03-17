@@ -25,7 +25,7 @@ async function setup(): Promise<DatabaseHandle> {
 describe("reactivate_trait tool", () => {
   it("reactivates a reverted trait", async () => {
     const db = await setup();
-    const trait = addTrait(db, MANDATORY_SOUL_IDS["js-engineer"], {
+    const trait = addTrait(db, MANDATORY_SOUL_IDS.warden, {
       principle: "Will be reverted then reactivated",
       provenance: "Testing",
     });
@@ -44,7 +44,7 @@ describe("reactivate_trait tool", () => {
 
   it("returns error for already active trait", async () => {
     const db = await setup();
-    const trait = addTrait(db, MANDATORY_SOUL_IDS["js-engineer"], {
+    const trait = addTrait(db, MANDATORY_SOUL_IDS.warden, {
       principle: "Already active",
       provenance: "Testing",
     });

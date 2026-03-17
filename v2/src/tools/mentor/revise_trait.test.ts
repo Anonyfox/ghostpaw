@@ -25,7 +25,7 @@ async function setup(): Promise<DatabaseHandle> {
 describe("revise_trait tool", () => {
   it("revises principle of an active trait", async () => {
     const db = await setup();
-    const trait = addTrait(db, MANDATORY_SOUL_IDS["js-engineer"], {
+    const trait = addTrait(db, MANDATORY_SOUL_IDS.warden, {
       principle: "Old principle",
       provenance: "Original evidence",
     });

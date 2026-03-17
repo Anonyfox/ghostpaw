@@ -1,6 +1,5 @@
 export const MANDATORY_SOUL_IDS = {
   ghostpaw: 1,
-  "js-engineer": 2,
   mentor: 3,
   trainer: 4,
   warden: 5,

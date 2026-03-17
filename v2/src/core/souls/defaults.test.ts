@@ -1,6 +1,6 @@
 import { ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
-import { DEFAULT_SOULS } from "./defaults.ts";
+import { BUILTIN_CUSTOM_SOULS, DEFAULT_SOULS } from "./defaults.ts";
 import { MANDATORY_SOUL_NAMES } from "./mandatory_souls.ts";
 
 describe("DEFAULT_SOULS", () => {
@@ -8,6 +8,10 @@ describe("DEFAULT_SOULS", () => {
     for (const name of MANDATORY_SOUL_NAMES) {
       ok(DEFAULT_SOULS[name], `Missing default for mandatory soul: ${name}`);
     }
+  });
+
+  it("has seven entries total (six mandatory + one built-in custom)", () => {
+    strictEqual(Object.keys(DEFAULT_SOULS).length, 7);
   });
 
   it("every entry has a non-empty name", () => {
@@ -35,10 +39,6 @@ describe("DEFAULT_SOULS", () => {
         `Default soul ${key} essence is only ${soul.essence.length} chars — too short for a production soul`,
       );
     }
-  });
-
-  it("has exactly seven entries", () => {
-    strictEqual(Object.keys(DEFAULT_SOULS).length, 7);
   });
 
   it("ghostpaw default addresses the coordinator role", () => {
@@ -80,5 +80,22 @@ describe("DEFAULT_SOULS", () => {
         );
       }
     }
+  });
+});
+
+describe("BUILTIN_CUSTOM_SOULS", () => {
+  it("contains only non-mandatory souls", () => {
+    const mandatorySet = new Set<string>(MANDATORY_SOUL_NAMES);
+    for (const slug of Object.keys(BUILTIN_CUSTOM_SOULS)) {
+      ok(!mandatorySet.has(slug), `${slug} is mandatory but appears in BUILTIN_CUSTOM_SOULS`);
+    }
+  });
+
+  it("contains js-engineer", () => {
+    ok(BUILTIN_CUSTOM_SOULS["js-engineer"]);
+  });
+
+  it("has exactly one entry", () => {
+    strictEqual(Object.keys(BUILTIN_CUSTOM_SOULS).length, 1);
   });
 });

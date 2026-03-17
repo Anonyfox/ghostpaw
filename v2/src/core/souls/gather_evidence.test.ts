@@ -29,9 +29,9 @@ describe("gatherSoulEvidence", () => {
 
   it("returns evidence for a mandatory soul", async () => {
     const db = await setup();
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
-    strictEqual(evidence.soulId, MANDATORY_SOUL_IDS["js-engineer"]);
-    strictEqual(evidence.soulName, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
+    strictEqual(evidence.soulId, MANDATORY_SOUL_IDS.warden);
+    strictEqual(evidence.soulName, "Warden");
     strictEqual(evidence.level, 0);
     strictEqual(typeof evidence.essence, "string");
     ok(evidence.activeTraitCount >= 2);
@@ -45,7 +45,7 @@ describe("gatherSoulEvidence", () => {
 
   it("tracks delegation stats when delegate sessions exist", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
     const parent = createSession(db, "test:parent", { purpose: "chat" });
 
     const s1 = createSession(db, "d:1", {
@@ -68,7 +68,7 @@ describe("gatherSoulEvidence", () => {
       "UPDATE sessions SET cost_usd = 0.005, tokens_in = 50, tokens_out = 0, closed_at = ?, error = 'timeout' WHERE id = ?",
     ).run(Date.now(), s2.id);
 
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
     strictEqual(evidence.delegationStats.total, 2);
     strictEqual(evidence.delegationStats.completed, 1);
     strictEqual(evidence.delegationStats.failed, 1);
@@ -78,7 +78,7 @@ describe("gatherSoulEvidence", () => {
 
   it("detects capacity when at trait limit", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
     const existing = db
       .prepare("SELECT COUNT(*) AS c FROM soul_traits WHERE soul_id = ? AND status = 'active'")
       .get(soulId) as { c: number };
@@ -90,7 +90,7 @@ describe("gatherSoulEvidence", () => {
       });
     }
 
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
     strictEqual(evidence.atCapacity, true);
   });
 
@@ -141,14 +141,14 @@ function insertDelegation(
 describe("windowed delegation stats", () => {
   it("separates recent from old delegations into windows", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
 
     insertDelegation(db, soulId, { ageMs: 2 * DAY });
     insertDelegation(db, soulId, { ageMs: 2 * DAY });
     insertDelegation(db, soulId, { ageMs: 15 * DAY });
     insertDelegation(db, soulId, { ageMs: 60 * DAY });
 
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
     strictEqual(evidence.delegationStats.total, 4);
 
     const w7 = evidence.windowedStats.find((w) => w.window === "7d");
@@ -162,11 +162,11 @@ describe("windowed delegation stats", () => {
 
   it("returns zeroed windows when no recent delegations exist", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
 
     insertDelegation(db, soulId, { ageMs: 60 * DAY });
 
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
     const w7 = evidence.windowedStats.find((w) => w.window === "7d");
     ok(w7);
     strictEqual(w7.stats.total, 0);
@@ -175,7 +175,7 @@ describe("windowed delegation stats", () => {
 
   it("includes since-last-trait-change window", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
 
     const oldTs = Date.now() - 90 * DAY;
     db.prepare("UPDATE soul_traits SET created_at = ?, updated_at = ? WHERE soul_id = ?").run(
@@ -192,7 +192,7 @@ describe("windowed delegation stats", () => {
       "INSERT INTO soul_traits (soul_id, principle, provenance, generation, status, created_at, updated_at) VALUES (?, 'test', 'test', 0, 'active', ?, ?)",
     ).run(soulId, traitTs, traitTs);
 
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
     const wTrait = evidence.windowedStats.find((w) => w.window === "since_last_trait_change");
     ok(wTrait, "should have since_last_trait_change window");
     strictEqual(wTrait.stats.total, 1);
@@ -202,7 +202,7 @@ describe("windowed delegation stats", () => {
 describe("trait fitness", () => {
   it("reports delegation stats since each active trait was added", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
 
     const traitTs = Date.now() - 10 * DAY;
     const trait = addTrait(db, soulId, {
@@ -215,7 +215,7 @@ describe("trait fitness", () => {
     insertDelegation(db, soulId, { ageMs: 5 * DAY });
     insertDelegation(db, soulId, { ageMs: 2 * DAY });
 
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
     const fitness = evidence.traitFitness.find((f) => f.traitId === trait.id);
     ok(fitness, "should have fitness entry for the added trait");
     strictEqual(fitness.statsSinceAdded.total, 2);
@@ -223,7 +223,7 @@ describe("trait fitness", () => {
 
   it("returns empty stats for a trait added after all delegations", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
 
     insertDelegation(db, soulId, { ageMs: 30 * DAY });
 
@@ -232,7 +232,7 @@ describe("trait fitness", () => {
       provenance: "Just added",
     });
 
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
     const fitness = evidence.traitFitness.find((f) => f.traitId === trait.id);
     ok(fitness);
     strictEqual(fitness.statsSinceAdded.total, 0);
@@ -242,32 +242,32 @@ describe("trait fitness", () => {
 describe("cost trend", () => {
   it("detects cheaper trend when recent costs are lower", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
 
     insertDelegation(db, soulId, { ageMs: 10 * DAY, costUsd: 0.05 });
     insertDelegation(db, soulId, { ageMs: 10 * DAY, costUsd: 0.05 });
     insertDelegation(db, soulId, { ageMs: 2 * DAY, costUsd: 0.01 });
     insertDelegation(db, soulId, { ageMs: 2 * DAY, costUsd: 0.01 });
 
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
     strictEqual(evidence.costTrend.direction, "cheaper");
     ok(evidence.costTrend.recent7d < evidence.costTrend.previous7d);
   });
 
   it("detects costlier trend when recent costs are higher", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
 
     insertDelegation(db, soulId, { ageMs: 10 * DAY, costUsd: 0.01 });
     insertDelegation(db, soulId, { ageMs: 2 * DAY, costUsd: 0.05 });
 
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
     strictEqual(evidence.costTrend.direction, "costlier");
   });
 
   it("returns stable with zeroed costs when no delegations exist", async () => {
     const db = await setup();
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
     strictEqual(evidence.costTrend.direction, "stable");
     strictEqual(evidence.costTrend.recent7d, 0);
     strictEqual(evidence.costTrend.previous7d, 0);
@@ -287,10 +287,10 @@ describe("formatSoulEvidence", () => {
 
   it("includes recent performance section with windowed stats", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
     insertDelegation(db, soulId, { ageMs: 2 * DAY });
 
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
     const formatted = formatSoulEvidence(evidence);
     ok(formatted.includes("Recent Performance"));
     ok(formatted.includes("7d"));
@@ -298,21 +298,21 @@ describe("formatSoulEvidence", () => {
 
   it("includes trait effectiveness section", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
     insertDelegation(db, soulId, { ageMs: 1 * DAY });
 
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
     const formatted = formatSoulEvidence(evidence);
     ok(formatted.includes("Trait Effectiveness"));
   });
 
   it("includes cost trend section", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
     insertDelegation(db, soulId, { ageMs: 2 * DAY, costUsd: 0.01 });
     insertDelegation(db, soulId, { ageMs: 10 * DAY, costUsd: 0.05 });
 
-    const evidence = gatherSoulEvidence(db, "JS Engineer");
+    const evidence = gatherSoulEvidence(db, "Warden");
     const formatted = formatSoulEvidence(evidence);
     ok(formatted.includes("Cost Trend"));
   });

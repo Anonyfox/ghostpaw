@@ -2,7 +2,7 @@ import { ok, strictEqual } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
-import { DEFAULT_SOULS } from "./defaults.ts";
+import { BUILTIN_CUSTOM_SOULS, DEFAULT_SOULS } from "./defaults.ts";
 import { ensureMandatorySouls } from "./ensure_mandatory_souls.ts";
 import { MANDATORY_SOUL_IDS, MANDATORY_SOUL_NAMES } from "./mandatory_souls.ts";
 import { rowToSoul } from "./row_to_soul.ts";
@@ -12,6 +12,11 @@ let db: DatabaseHandle;
 
 function getSoulById(id: number) {
   const row = db.prepare("SELECT * FROM souls WHERE id = ?").get(id);
+  return row ? rowToSoul(row as Record<string, unknown>) : null;
+}
+
+function getSoulBySlug(slug: string) {
+  const row = db.prepare("SELECT * FROM souls WHERE slug = ?").get(slug);
   return row ? rowToSoul(row as Record<string, unknown>) : null;
 }
 
@@ -36,12 +41,26 @@ describe("ensureMandatorySouls", () => {
     }
   });
 
+  it("creates built-in custom souls with auto-assigned IDs", () => {
+    ensureMandatorySouls(db);
+    for (const [slug, defaults] of Object.entries(BUILTIN_CUSTOM_SOULS)) {
+      const soul = getSoulBySlug(slug);
+      ok(soul, `Missing built-in custom soul: ${slug}`);
+      strictEqual(soul!.slug, slug);
+      strictEqual(soul!.name, defaults.name);
+      strictEqual(soul!.essence, defaults.essence);
+    }
+  });
+
   it("is idempotent — safe to call multiple times", () => {
     ensureMandatorySouls(db);
     ensureMandatorySouls(db);
     ensureMandatorySouls(db);
     for (const key of MANDATORY_SOUL_NAMES) {
       ok(getSoulById(MANDATORY_SOUL_IDS[key]));
+    }
+    for (const slug of Object.keys(BUILTIN_CUSTOM_SOULS)) {
+      ok(getSoulBySlug(slug));
     }
   });
 
@@ -80,15 +99,24 @@ describe("ensureMandatorySouls", () => {
     strictEqual(soul.deletedAt, null);
   });
 
+  it("does not restore a soft-deleted built-in custom soul", () => {
+    ensureMandatorySouls(db);
+    const jse = getSoulBySlug("js-engineer")!;
+    db.prepare("UPDATE souls SET deleted_at = ? WHERE id = ?").run(Date.now(), jse.id);
+    ensureMandatorySouls(db);
+    const after = getSoulById(jse.id)!;
+    ok(after.deletedAt != null, "Built-in custom soul should stay retired");
+  });
+
   it("preserves level when restoring essence", () => {
     ensureMandatorySouls(db);
     db.prepare("UPDATE souls SET level = 3, essence = '' WHERE id = ?").run(
-      MANDATORY_SOUL_IDS["js-engineer"],
+      MANDATORY_SOUL_IDS.mentor,
     );
     ensureMandatorySouls(db);
-    const soul = getSoulById(MANDATORY_SOUL_IDS["js-engineer"])!;
+    const soul = getSoulById(MANDATORY_SOUL_IDS.mentor)!;
     strictEqual(soul.level, 3);
-    strictEqual(soul.essence, DEFAULT_SOULS["js-engineer"].essence);
+    strictEqual(soul.essence, DEFAULT_SOULS.mentor.essence);
   });
 
   it("sets default descriptions for mandatory souls", () => {
@@ -120,13 +148,16 @@ describe("ensureMandatorySouls", () => {
 
   it("seeds default traits for souls with zero traits", () => {
     ensureMandatorySouls(db);
-    for (const key of MANDATORY_SOUL_NAMES) {
-      const id = MANDATORY_SOUL_IDS[key];
-      const defaults = DEFAULT_SOULS[key];
+    for (const [slug, defaults] of Object.entries(DEFAULT_SOULS)) {
+      const soul =
+        slug in MANDATORY_SOUL_IDS
+          ? getSoulById(MANDATORY_SOUL_IDS[slug as keyof typeof MANDATORY_SOUL_IDS])
+          : getSoulBySlug(slug);
+      ok(soul, `Missing soul: ${slug}`);
       const rows = db
         .prepare("SELECT principle, provenance FROM soul_traits WHERE soul_id = ? ORDER BY id")
-        .all(id) as { principle: string; provenance: string }[];
-      strictEqual(rows.length, defaults.traits.length, `Trait count mismatch for ${key}`);
+        .all(soul!.id) as { principle: string; provenance: string }[];
+      strictEqual(rows.length, defaults.traits.length, `Trait count mismatch for ${slug}`);
       for (let i = 0; i < defaults.traits.length; i++) {
         strictEqual(rows[i].principle, defaults.traits[i].principle);
         strictEqual(rows[i].provenance, defaults.traits[i].provenance);

@@ -42,7 +42,7 @@ function insertDelegation(db: DatabaseHandle, soulId: number, ageMs: number): vo
 describe("queryTraitFitness", () => {
   it("returns stats since each trait was added", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
 
     const traitTs = Date.now() - 10 * DAY;
     const trait = addTrait(db, soulId, { principle: "Test", provenance: "Test" });

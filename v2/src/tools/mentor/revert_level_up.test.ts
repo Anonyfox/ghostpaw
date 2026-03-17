@@ -25,7 +25,7 @@ async function setup(): Promise<DatabaseHandle> {
 describe("revert_level_up tool", () => {
   it("reverts the most recent level-up", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
     addTrait(db, soulId, {
       principle: "Test trait for level-up",
       provenance: "Test evidence",
@@ -41,11 +41,11 @@ describe("revert_level_up tool", () => {
 
     const tool = createRevertLevelUpTool(db);
     const result = (await tool.execute({
-      args: { soul_name: "JS Engineer" },
+      args: { soul_name: "Warden" },
       ctx: CTX,
     })) as { reverted: boolean; soulName: string; newLevel: number };
     strictEqual(result.reverted, true);
-    strictEqual(result.soulName, "JS Engineer");
+    strictEqual(result.soulName, "Warden");
     ok(result.newLevel >= 0);
   });
 
@@ -63,7 +63,7 @@ describe("revert_level_up tool", () => {
     const db = await setup();
     const tool = createRevertLevelUpTool(db);
     const result = (await tool.execute({
-      args: { soul_name: "JS Engineer" },
+      args: { soul_name: "Warden" },
       ctx: CTX,
     })) as { error: string };
     ok(result.error.length > 0);

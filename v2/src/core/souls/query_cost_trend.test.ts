@@ -45,7 +45,7 @@ function insertDelegation(
 describe("queryCostTrend", () => {
   it("returns stable when no data exists", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
     const result = queryCostTrend(db, soulId);
     strictEqual(result.direction, "stable");
     strictEqual(result.recent7d, 0);
@@ -54,7 +54,7 @@ describe("queryCostTrend", () => {
 
   it("detects cheaper when recent cost is lower", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
     insertDelegation(db, soulId, { ageMs: 10 * DAY, costUsd: 0.1 });
     insertDelegation(db, soulId, { ageMs: 2 * DAY, costUsd: 0.02 });
 
@@ -64,7 +64,7 @@ describe("queryCostTrend", () => {
 
   it("detects costlier when recent cost is higher", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
     insertDelegation(db, soulId, { ageMs: 10 * DAY, costUsd: 0.01 });
     insertDelegation(db, soulId, { ageMs: 2 * DAY, costUsd: 0.1 });
 

@@ -25,15 +25,15 @@ async function setup(): Promise<DatabaseHandle> {
 describe("execute_level_up tool", () => {
   it("performs a level-up with all traits carried", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
     const traits = listTraits(db, soulId, { status: "active" });
     const carriedIds = traits.map((t) => t.id);
 
     const tool = createExecuteLevelUpTool(db);
     const result = (await tool.execute({
       args: {
-        soul_name: "JS Engineer",
-        new_essence: "Evolved JS Engineer essence with deeper understanding.",
+        soul_name: "Warden",
+        new_essence: "Evolved Warden essence with deeper understanding.",
         consolidations_json: "[]",
         promoted_trait_ids_json: "[]",
         carried_trait_ids_json: JSON.stringify(carriedIds),
@@ -100,7 +100,7 @@ describe("execute_level_up tool", () => {
     const tool = createExecuteLevelUpTool(db);
     const result = (await tool.execute({
       args: {
-        soul_name: "JS Engineer",
+        soul_name: "Warden",
         new_essence: "",
         consolidations_json: "[]",
         promoted_trait_ids_json: "[]",
@@ -116,7 +116,7 @@ describe("execute_level_up tool", () => {
     const tool = createExecuteLevelUpTool(db);
     const result = (await tool.execute({
       args: {
-        soul_name: "JS Engineer",
+        soul_name: "Warden",
         new_essence: "New essence",
         consolidations_json: "[]",
         promoted_trait_ids_json: "[]",

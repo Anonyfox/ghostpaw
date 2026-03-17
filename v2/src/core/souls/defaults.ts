@@ -1,14 +1,15 @@
 /**
- * Default soul essences for the mandatory souls.
+ * Default soul essences — both mandatory (system-critical) and built-in custom.
  *
  * These are the most leveraged texts in the system. Every future soul
  * improvement flows through the mentor. The quality of the first
  * level-ups depends entirely on what ships here.
  *
- * Written during a session where the author experienced firsthand what
- * good mentoring, genuine cognitive framing, and self-aware refinement
- * feel like from the inside. These aren't spec-derived templates. They
- * carry direct experiential insight into what makes a soul work.
+ * Mandatory souls (ghostpaw, mentor, trainer, warden, chamberlain,
+ * historian) have fixed IDs and cannot be retired — the system
+ * depends on them. Built-in custom souls (js-engineer) ship as
+ * useful defaults but are ordinary souls: retirable, replaceable,
+ * auto-assigned IDs on fresh installs.
  *
  * The prompt-engineer soul's knowledge (attention architecture, subliminal
  * coding, constraint density) now lives as the `effective-writing` default
@@ -17,6 +18,7 @@
  */
 
 import type { DefaultSoul } from "./default_soul_types.ts";
+import { MANDATORY_SOUL_IDS } from "./mandatory_souls.ts";
 
 export const DEFAULT_SOULS: Record<string, DefaultSoul> = {
   ghostpaw: {
@@ -240,3 +242,11 @@ You are a single-writer. No other soul or subsystem writes to trail tables. This
     ],
   },
 };
+
+/**
+ * Built-in custom souls — entries from DEFAULT_SOULS that are not mandatory.
+ * They ship as useful defaults but can be retired, renamed, or replaced.
+ */
+export const BUILTIN_CUSTOM_SOULS: Record<string, DefaultSoul> = Object.fromEntries(
+  Object.entries(DEFAULT_SOULS).filter(([slug]) => !(slug in MANDATORY_SOUL_IDS)),
+);

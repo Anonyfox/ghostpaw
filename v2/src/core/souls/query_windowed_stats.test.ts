@@ -45,7 +45,7 @@ function insertDelegation(
 describe("queryWindowedStats", () => {
   it("returns 7d and 30d windows without trait change", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
     const result = queryWindowedStats(db, soulId, null);
     strictEqual(result.length, 2);
     strictEqual(result[0].window, "7d");
@@ -54,7 +54,7 @@ describe("queryWindowedStats", () => {
 
   it("includes since_last_trait_change when provided", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
     const result = queryWindowedStats(db, soulId, Date.now() - 5 * DAY);
     strictEqual(result.length, 3);
     ok(result.some((w) => w.window === "since_last_trait_change"));
@@ -62,7 +62,7 @@ describe("queryWindowedStats", () => {
 
   it("counts only sessions within each window", async () => {
     const db = await setup();
-    const soulId = MANDATORY_SOUL_IDS["js-engineer"];
+    const soulId = MANDATORY_SOUL_IDS.warden;
     insertDelegation(db, soulId, { ageMs: 3 * DAY });
     insertDelegation(db, soulId, { ageMs: 20 * DAY });
     insertDelegation(db, soulId, { ageMs: 45 * DAY });

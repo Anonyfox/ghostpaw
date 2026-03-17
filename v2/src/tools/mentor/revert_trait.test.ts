@@ -25,7 +25,7 @@ async function setup(): Promise<DatabaseHandle> {
 describe("revert_trait tool", () => {
   it("reverts an active trait", async () => {
     const db = await setup();
-    const trait = addTrait(db, MANDATORY_SOUL_IDS["js-engineer"], {
+    const trait = addTrait(db, MANDATORY_SOUL_IDS.warden, {
       principle: "To be reverted",
       provenance: "Testing evidence",
     });
@@ -49,7 +49,7 @@ describe("revert_trait tool", () => {
 
   it("returns error for already reverted trait", async () => {
     const db = await setup();
-    const trait = addTrait(db, MANDATORY_SOUL_IDS["js-engineer"], {
+    const trait = addTrait(db, MANDATORY_SOUL_IDS.warden, {
       principle: "Will be reverted",
       provenance: "Testing",
     });

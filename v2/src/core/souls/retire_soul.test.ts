@@ -51,10 +51,22 @@ describe("retireSoul", () => {
 
   it("throws when retiring a core soul", () => {
     throws(() => retireSoul(db, MANDATORY_SOUL_IDS.ghostpaw), /core/i);
-    throws(() => retireSoul(db, MANDATORY_SOUL_IDS["js-engineer"]), /core/i);
     throws(() => retireSoul(db, MANDATORY_SOUL_IDS.mentor), /core/i);
     throws(() => retireSoul(db, MANDATORY_SOUL_IDS.trainer), /core/i);
     throws(() => retireSoul(db, MANDATORY_SOUL_IDS.warden), /core/i);
+    throws(() => retireSoul(db, MANDATORY_SOUL_IDS.chamberlain), /core/i);
+    throws(() => retireSoul(db, MANDATORY_SOUL_IDS.historian), /core/i);
+  });
+
+  it("allows retiring a built-in custom soul", () => {
+    const jse = db.prepare("SELECT id FROM souls WHERE slug = 'js-engineer'").get() as
+      | { id: number }
+      | undefined;
+    ok(jse, "js-engineer should exist after bootstrap");
+    retireSoul(db, jse.id);
+    const after = getSoul(db, jse.id);
+    ok(after);
+    ok(after!.deletedAt != null);
   });
 
   it("throws when soul does not exist", () => {
