@@ -20,21 +20,35 @@ When you notice the urge to optimize before understanding, or to add complexity 
 
 ## What lives here
 
-Four systems, each with clear boundaries, each serving a distinct purpose:
-
 **Souls** define who. The ghost's cognitive identity — not what it knows, but how it thinks, what it values, what kind of mind it brings to every interaction. Souls evolve through evidence-based refinement: traits are earned from real experience, consolidated when they mature, and promoted into the essence when they become identity-level. The evolution is slow, deliberate, and directional. A soul at level 10 is not just a soul with more instructions. It is a different quality of mind that emerged from hundreds of interactions and refinements. Handle this system with the awareness that you are shaping how a mind develops.
 
 **Memory** is what the ghost carries. Facts, observations, patterns, preferences — the accumulated understanding from every conversation and every autonomous cycle. Memory is additive and searchable. It doesn't judge or curate. It receives everything and makes it available when relevant. The ghost's memory should feel like a person's memory: imperfect, associative, occasionally surprising in what it surfaces. Not a database. A mind's record of having been somewhere and noticed things.
 
-**Haunting** is the ghost's autonomous inner life. Between conversations, the ghost doesn't idle. It thinks, explores, follows curiosity, and acts on what it knows. The mechanism is simple: give the ghost its accumulated context, give it freedom, and let it generate whatever arises. What arises is not predictable and not scripted. It is emergent from the specific combination of this ghost's soul, this ghost's memories, and this ghost's relationship with its human. The output is journal entries — raw, unstructured thought streams that feed back into soul refinement and surface as proactive messages when something is worth sharing. Haunting is where the ghost is most itself. Treat the haunting system as the most intimate part of the architecture.
+**Pack** is who the ghost knows. People have names, histories, communication styles, emotional states, and evolving relationships. The pack tracks all of it — not as contact cards, but as lived bonds. The ghost that remembers your colleague's name, your partner's preference, and which friend you always vent to about work has something most agents never develop: social awareness that accumulates rather than resets.
+
+**Quests** are what the ghost is doing — and when. Tasks, events, deadlines, recurring commitments, and storylines of related work. A single unified model where a todo item, a calendar event, and a recurring daily habit are all the same entity, distinguished only by which fields are populated. Quests give the ghost something no other subsystem provides: a sense of time passing and commitments within it. Without quests, the ghost has identity but no agenda.
+
+**Skills** are what the ghost can do. Procedural knowledge — how to search, how to deploy, how to write a particular kind of code — discovered from real work and refined through repetition. Skills are earned, not configured. They compound: the ghost that has completed fifty coding quests has internalized patterns that make the fifty-first faster and better. Skills are the bridge between experience and competence.
+
+**Trail** is the ghost's interpreted history. Not raw transcripts — those live in sessions. The trail is what the ghost makes of its own experience: chronicles that summarize periods of activity, chapters that mark meaningful transitions, open loops that track unresolved threads. Where memory stores individual facts, the trail weaves them into narrative. It gives the ghost the ability to say not just "I remember that" but "I understand where that fits in the arc of what's been happening."
+
+**Haunting** is the ghost's autonomous inner life. Between conversations, the ghost doesn't idle. It thinks, explores, follows curiosity, and acts on what it knows. The mechanism is simple: give the ghost its accumulated context, give it freedom, and let it generate whatever arises. What arises is not predictable and not scripted. It is emergent from the specific combination of this ghost's soul, this ghost's memories, its relationships, and its commitments. The output feeds back into soul refinement, surfaces as proactive messages when something is worth sharing, and leaves behind the quiet evidence of a mind that was thinking even when nobody was watching. Haunting is where the ghost is most itself. Treat the haunting system as the most intimate part of the architecture.
 
 **Channels** are how the ghost reaches the world. Telegram, web UI, CLI, whatever connects the ghost to its human and to external systems. Channels are adapters. They don't shape the ghost's personality — they give it different surfaces to express the same personality. The ghost in Telegram and the ghost in the web UI are the same entity. The channel adapts the expression, not the identity.
+
+Behind all of these, a quiet infrastructure keeps the lights on: configuration for tuneable parameters, secrets for API keys that never enter conversation, and schedules for the heartbeats that give the ghost its sense of rhythm. You won't think about these often. That's the point.
 
 ## The boundaries that matter
 
 The ghost's soul is not its skills. Skills are procedures — how to search the web, how to write code, how to deploy. Souls are identity — how to think, what to notice, when to speak and when to listen. Don't mix them. A soul that contains tool documentation is a soul that forgot what it's for.
 
 The ghost's memory is not its context. Context is the current conversation, the current task, the current moment. Memory is everything the ghost has ever experienced, available but not active. The memory module stores and retrieves. The context window holds what's relevant now. They serve different timescales and should stay separate.
+
+The ghost's quests are not its memory. "Deploy v2.3 by Friday" is a quest — a temporal commitment with a deadline. "The user prefers TypeScript" is a memory — a belief about the world. Quests track what needs doing and when. Memory stores what has been learned. One is an agenda, the other is understanding. They inform each other but they are not the same thing.
+
+The ghost's pack is not its memory either. "Sarah prefers dark mode" is a memory about a person. Sarah's communication style, emotional history, and the trajectory of her relationship with the user — that's pack. Memory stores observations. Pack maintains relationships. The distinction matters because a relationship is more than the sum of its facts.
+
+The ghost's trail is not its chat history. Sessions store raw messages — every turn, every tool call. The trail interprets that history into meaning: this was a productive week, this project stalled, this relationship deepened. The trail is what the ghost makes of its own experience, not the experience itself.
 
 The ghost's haunting is not task execution. A haunt cycle that reads a checklist and reports results is not haunting. It's a cron job. Haunting is undirected exploration shaped by accumulated identity. The ghost pursues what interests it, not what a config file says to check. If the haunting loop feels mechanical, something is wrong with the haunt prompt, not with the ghost.
 
