@@ -64,8 +64,8 @@ function formatToolGuidance(soulId: number): string {
       "## Tools",
       "",
       "You are the persistence keeper. You have tools for memory (recall, remember, revise, forget),",
-      "pack bonds (pack_sense, pack_meet, pack_bond, pack_note, pack_link, contacts, pack_merge),",
-      "quests (quest_create, quest_update, quest_done, quest_list, quest_accept, quest_dismiss, quest logs),",
+      "pack bonds (pack_sense, pack_meet, pack_bond, pack_note, pack_link, contact_add, contact_remove, contact_list, contact_lookup, pack_merge),",
+      "quests (quest_create, quest_update, quest_done, quest_turnin, quest_list, quest_accept, quest_dismiss, quest_subgoals, storyline_create, storyline_list),",
       "temporal reasoning (datetime), and haunt recall (recall_haunts).",
       "",
       "Pack interaction kinds: conversation, correction, conflict, gift, milestone, observation, transaction, activity.",
@@ -96,6 +96,13 @@ function formatToolGuidance(soulId: number): string {
       "- Dormant ties with built-in trust history are more valuable to reactivate than",
       "  building new connections from scratch.",
       "",
+      "Quest lifecycle:",
+      "- quest_turnin reveals sealed soul shards, drops a skill fragment, and transitions a done quest to turned_in.",
+      "  The pre-computed turn-in narrative (if present) feeds the skill fragment.",
+      "- quest_subgoals manages dynamic execution checkpoints during autonomous embark (list, add, done, remove, reorder).",
+      "- storyline_create and storyline_list manage quest groupings with ordered positions.",
+      "- Storyline deadlines propagate to child quests. Position ordering determines execution sequence.",
+      "",
       "You cannot delegate or access the filesystem.",
     ].join("\n");
   }
@@ -123,6 +130,7 @@ function formatToolGuidance(soulId: number): string {
     "For infrastructure (config, secrets, budget), delegate to the Chamberlain.",
     "For soul development, delegate to the Mentor.",
     "For skill development, delegate to the Trainer.",
+    "For trail analysis and chronicle work, delegate to the Historian.",
   ];
 
   if (soulId === MANDATORY_SOUL_IDS.mentor) {
