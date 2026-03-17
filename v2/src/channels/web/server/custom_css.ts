@@ -92,6 +92,11 @@ export const customCss = `
   padding: 0.25rem 0;
 }
 
+/* Quest Markers (WoW-style ! and ?) */
+.quest-marker-yellow { color: var(--bs-warning); }
+.quest-marker-blue { color: var(--bs-info); }
+.quest-marker-grey { color: var(--bs-secondary); }
+
 /* Quest Board */
 .quest-board-icon {
   font-weight: 900;

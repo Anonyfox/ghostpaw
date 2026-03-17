@@ -103,6 +103,7 @@ const WRITE_IMPORT_ALLOWLIST = new Set([
 const SQL_OUTSIDE_CORE_ALLOWLIST = new Set([
   "src/channels/web/server/routes/pack_api.ts",
   "src/harness/oneshots/distill_session.ts",
+  "src/harness/quest/turn_in.ts",
   "src/harness/stoke.ts",
 ]);
 const FORBIDDEN_LEGACY_CORE_PATHS = ["src/core/howl/"];

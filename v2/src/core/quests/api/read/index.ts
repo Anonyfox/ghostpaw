@@ -10,6 +10,8 @@ export { listQuests } from "../../list_quests.ts";
 export { listStorylines } from "../../list_storylines.ts";
 export { listSubgoals } from "../../list_subgoals.ts";
 export { overdueQuests } from "../../overdue_quests.ts";
+export type { QuestMarker, QuestMarkerColor, QuestMarkerSymbol } from "../../quest_marker.ts";
+export { computeQuestMarker } from "../../quest_marker.ts";
 export { questStateChangesSince } from "../../quest_state_changes_since.ts";
 export { recentlyCompletedQuests } from "../../recently_completed_quests.ts";
 export { staleQuests } from "../../stale_quests.ts";

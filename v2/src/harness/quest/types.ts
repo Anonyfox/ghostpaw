@@ -6,6 +6,7 @@ export interface TurnInSummary {
   revealedShards: number;
   fragmentDropped: boolean;
   xpEarned: number;
+  narrative: string | null;
 }
 
 export interface EmbarkResult {

@@ -3,6 +3,7 @@ import { beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createQuest } from "./create_quest.ts";
+import { createStoryline } from "./create_storyline.ts";
 import { initQuestTables } from "./schema.ts";
 
 let db: DatabaseHandle;
@@ -83,5 +84,24 @@ describe("createQuest", () => {
     });
     strictEqual(q.title, "padded");
     strictEqual(q.description, "spaced");
+  });
+
+  it("auto-assigns position when storylineId is given", () => {
+    const s = createStoryline(db, { title: "Story" });
+    const q1 = createQuest(db, { title: "A", storylineId: s.id });
+    const q2 = createQuest(db, { title: "B", storylineId: s.id });
+    strictEqual(q1.position, 1000);
+    strictEqual(q2.position, 2000);
+  });
+
+  it("uses explicit position when provided", () => {
+    const s = createStoryline(db, { title: "Story" });
+    const q = createQuest(db, { title: "A", storylineId: s.id, position: 500 });
+    strictEqual(q.position, 500);
+  });
+
+  it("position is null when no storyline", () => {
+    const q = createQuest(db, { title: "Free" });
+    strictEqual(q.position, null);
   });
 });

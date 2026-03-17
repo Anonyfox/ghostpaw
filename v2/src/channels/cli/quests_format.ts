@@ -1,3 +1,4 @@
+import { computeQuestMarker } from "../../core/quests/api/read/index.ts";
 import { style } from "../../lib/terminal/index.ts";
 
 export function parseTimestamp(input: string): number {
@@ -60,6 +61,14 @@ export function statusLabel(status: string): string {
   }
 }
 
+export function markerLabel(quest: { status: string; rrule?: string | null }): string {
+  const m = computeQuestMarker(quest);
+  if (!m) return " ";
+  if (m.color === "yellow") return style.yellow(m.symbol);
+  if (m.color === "blue") return style.cyan(m.symbol);
+  return style.dim(m.symbol);
+}
+
 export function boardIcon(createdBy: string): string {
   return createdBy === "ghostpaw" ? style.yellow("!") : style.yellow("?");
 }
@@ -79,7 +88,9 @@ export function questRow(q: {
   dueAt: number | null;
   storylineId: number | null;
   createdAt: number;
+  rrule?: string | null;
 }): string {
+  const marker = markerLabel(q);
   const id = String(q.id).padStart(5);
   const dot = priorityDot(q.priority);
   const title = q.title.length > 28 ? `${q.title.slice(0, 27)}…` : q.title.padEnd(28);
@@ -87,7 +98,7 @@ export function questRow(q: {
   const due = q.dueAt ? relativeDue(q.dueAt).padStart(10) : "".padStart(10);
   const log = q.storylineId ? style.dim(`#${q.storylineId}`.padStart(5)) : "".padStart(5);
   const age = style.dim(relativeAge(q.createdAt).padStart(4));
-  return `${style.dim(id)} ${dot} ${title} ${statusLabel(statusPad)} ${due} ${log} ${age}`;
+  return `${marker}${style.dim(id)} ${dot} ${title} ${statusLabel(statusPad)} ${due} ${log} ${age}`;
 }
 
 export function questTableHeader(): string {

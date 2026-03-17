@@ -55,6 +55,10 @@ class QuestUpdateParams extends Schema {
     optional: true,
     description: "New RRULE. Pass empty string to clear.",
   });
+  position = Schema.Integer({
+    optional: true,
+    description: "New position within storyline. Use 0 to clear.",
+  });
 }
 
 export function createQuestUpdateTool(db: DatabaseHandle) {
@@ -80,6 +84,7 @@ export function createQuestUpdateTool(db: DatabaseHandle) {
         endsAt?: number;
         remindAt?: number;
         rrule?: string;
+        position?: number;
       };
 
       if (!Number.isInteger(a.id) || a.id <= 0) {
@@ -102,6 +107,7 @@ export function createQuestUpdateTool(db: DatabaseHandle) {
       if (a.endsAt !== undefined) input.endsAt = a.endsAt === 0 ? null : a.endsAt;
       if (a.remindAt !== undefined) input.remindAt = a.remindAt === 0 ? null : a.remindAt;
       if (a.rrule !== undefined) input.rrule = a.rrule || null;
+      if (a.position !== undefined) input.position = a.position === 0 ? null : a.position;
 
       try {
         const updated = updateQuest(db, a.id, input);

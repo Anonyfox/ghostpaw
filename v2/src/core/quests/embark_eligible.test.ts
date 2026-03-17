@@ -3,6 +3,7 @@ import { beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openTestDatabase } from "../../lib/index.ts";
 import { createQuest } from "./create_quest.ts";
+import { createStoryline } from "./create_storyline.ts";
 import { embarkEligible } from "./embark_eligible.ts";
 import { initQuestTables } from "./schema.ts";
 import { updateQuest } from "./update_quest.ts";
@@ -67,5 +68,53 @@ describe("embarkEligible", () => {
       createQuest(db, { title: `Q${i}`, createdBy: "ghostpaw" });
     }
     strictEqual(embarkEligible(db, 3).length, 3);
+  });
+
+  it("excludes quest when earlier storyline quest is not terminal", () => {
+    const s = createStoryline(db, { title: "Ordered" });
+    createQuest(db, {
+      title: "Step 1",
+      createdBy: "ghostpaw",
+      storylineId: s.id,
+    });
+    createQuest(db, {
+      title: "Step 2",
+      createdBy: "ghostpaw",
+      storylineId: s.id,
+    });
+    const results = embarkEligible(db);
+    strictEqual(results.length, 1);
+    strictEqual(results[0].title, "Step 1");
+  });
+
+  it("includes quest when earlier storyline quest is done", () => {
+    const s = createStoryline(db, { title: "Ordered" });
+    const q1 = createQuest(db, {
+      title: "Step 1",
+      createdBy: "ghostpaw",
+      storylineId: s.id,
+    });
+    createQuest(db, {
+      title: "Step 2",
+      createdBy: "ghostpaw",
+      storylineId: s.id,
+    });
+    updateQuest(db, q1.id, { status: "done" });
+    const results = embarkEligible(db);
+    strictEqual(results.length, 1);
+    strictEqual(results[0].title, "Step 2");
+  });
+
+  it("uses storyline deadline when quest has no due_at", () => {
+    const futureDeadline = Date.now() + 86_400_000;
+    const s = createStoryline(db, { title: "Deadlined", dueAt: futureDeadline });
+    createQuest(db, {
+      title: "No own deadline",
+      createdBy: "ghostpaw",
+      storylineId: s.id,
+    });
+    createQuest(db, { title: "No deadline at all", createdBy: "ghostpaw" });
+    const results = embarkEligible(db);
+    strictEqual(results[0].title, "No own deadline");
   });
 });

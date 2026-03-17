@@ -51,6 +51,12 @@ class QuestCreateParams extends Schema {
     optional: true,
     description: "iCalendar RRULE for recurring quests, e.g. 'FREQ=WEEKLY;BYDAY=MO,WE,FR'.",
   });
+  position = Schema.Integer({
+    optional: true,
+    description:
+      "Position within storyline (1000, 2000, ...). Auto-assigned if omitted. " +
+      "Only meaningful when storylineId is set.",
+  });
 }
 
 export function createQuestCreateTool(db: DatabaseHandle) {
@@ -75,6 +81,7 @@ export function createQuestCreateTool(db: DatabaseHandle) {
         endsAt?: number;
         remindAt?: number;
         rrule?: string;
+        position?: number;
       };
 
       if (!a.title?.trim()) {
@@ -95,6 +102,7 @@ export function createQuestCreateTool(db: DatabaseHandle) {
           endsAt: a.endsAt,
           remindAt: a.remindAt,
           rrule: a.rrule,
+          position: a.position,
         });
         return { quest: formatQuest(quest) };
       } catch (err) {

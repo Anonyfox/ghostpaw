@@ -56,6 +56,8 @@ export function updateQuest(db: DatabaseHandle, id: number, input: UpdateQuestIn
   field("remind_at", input.remindAt);
   field("reminded_at", input.remindedAt);
   field("rrule", input.rrule === null ? null : input.rrule?.trim());
+  field("position", input.position);
+  field("turn_in_narrative", input.turnInNarrative === null ? null : input.turnInNarrative?.trim());
 
   const now = Date.now();
   if (

@@ -19,5 +19,7 @@ export function rowToQuest(row: Record<string, unknown>): Quest {
     remindedAt: (row.reminded_at as number) ?? null,
     completedAt: (row.completed_at as number) ?? null,
     rrule: (row.rrule as string) ?? null,
+    position: (row.position as number) ?? null,
+    turnInNarrative: (row.turn_in_narrative as string) ?? null,
   };
 }

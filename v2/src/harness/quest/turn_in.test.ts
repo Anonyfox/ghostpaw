@@ -1,7 +1,7 @@
 import { ok, strictEqual } from "node:assert";
 import { beforeEach, describe, it } from "node:test";
 import { initChatTables } from "../../core/chat/runtime/index.ts";
-import { completeQuest, createQuest } from "../../core/quests/api/write/index.ts";
+import { completeQuest, createQuest, updateQuest } from "../../core/quests/api/write/index.ts";
 import { initQuestTables } from "../../core/quests/runtime/index.ts";
 import { initSkillFragmentsTables } from "../../core/skills/runtime/index.ts";
 import { dropSoulshard } from "../../core/souls/api/write/index.ts";
@@ -39,6 +39,7 @@ describe("executeTurnIn", () => {
     strictEqual(summary.revealedShards, 2);
     strictEqual(summary.fragmentDropped, true);
     strictEqual(summary.xpEarned, 0);
+    strictEqual(summary.narrative, null);
 
     const sealed = db.prepare("SELECT COUNT(*) AS cnt FROM soul_shards WHERE sealed = 1").get() as {
       cnt: number;
@@ -68,6 +69,15 @@ describe("executeTurnIn", () => {
 
     const summary = executeTurnIn(db, q.id);
     ok(summary.xpEarned >= 42.5);
+  });
+
+  it("includes pre-computed narrative in summary", () => {
+    const q = createQuest(db, { title: "Narrated" });
+    completeQuest(db, q.id);
+    updateQuest(db, q.id, { turnInNarrative: "Great work on the feature." });
+
+    const summary = executeTurnIn(db, q.id);
+    strictEqual(summary.narrative, "Great work on the feature.");
   });
 
   it("still drops fragment when shards exist from other quests", () => {

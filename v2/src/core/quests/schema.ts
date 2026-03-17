@@ -42,12 +42,17 @@ export function initQuestTables(db: DatabaseHandle): void {
       remind_at     INTEGER,
       reminded_at   INTEGER,
       completed_at  INTEGER,
-      rrule         TEXT
+      rrule         TEXT,
+      position      INTEGER,
+      turn_in_narrative TEXT
     )
   `);
 
   db.exec("CREATE INDEX IF NOT EXISTS idx_quests_status ON quests(status)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_quests_storyline_id ON quests(storyline_id)");
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_quests_storyline_position ON quests(storyline_id, position) WHERE storyline_id IS NOT NULL",
+  );
   db.exec(
     "CREATE INDEX IF NOT EXISTS idx_quests_due_at ON quests(due_at) WHERE due_at IS NOT NULL",
   );

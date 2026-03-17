@@ -37,6 +37,10 @@ export default defineCommand({
         if (summary.xpEarned > 0) {
           console.log(style.cyan("xp".padStart(10)), ` ${summary.xpEarned} XP earned`);
         }
+        if (summary.narrative) {
+          console.log();
+          console.log(style.dim(summary.narrative));
+        }
       });
     } catch (err) {
       errorLine(err instanceof Error ? err.message : String(err));

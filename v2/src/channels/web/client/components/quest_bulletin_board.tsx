@@ -66,6 +66,9 @@ export function QuestBulletinBoard({ onQuestClick, boardCount }: Props) {
           <div class="small fw-semibold text-danger mb-1">Overdue</div>
           {ctx.overdue.map((q) => (
             <div key={q.id} class="small">
+              {q.marker && (
+                <span class={`fw-bold me-1 quest-marker-${q.marker.color}`}>{q.marker.symbol}</span>
+              )}
               <button
                 type="button"
                 class="btn btn-link p-0 text-body text-decoration-none border-0"
@@ -122,6 +125,9 @@ export function QuestBulletinBoard({ onQuestClick, boardCount }: Props) {
           <div class="small fw-semibold text-body-secondary mb-1">Due Soon</div>
           {ctx.dueSoon.map((q) => (
             <div key={q.id} class="small">
+              {q.marker && (
+                <span class={`fw-bold me-1 quest-marker-${q.marker.color}`}>{q.marker.symbol}</span>
+              )}
               <button
                 type="button"
                 class="btn btn-link p-0 text-body text-decoration-none border-0"

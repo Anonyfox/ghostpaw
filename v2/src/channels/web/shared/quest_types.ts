@@ -28,6 +28,8 @@ export interface QuestInfo {
   remindedAt: number | null;
   completedAt: number | null;
   rrule: string | null;
+  position: number | null;
+  marker: { symbol: string; color: string } | null;
 }
 
 export interface QuestOccurrenceInfo {
@@ -104,6 +106,7 @@ export interface TurnInResponse {
   revealedShards: number;
   fragmentDropped: boolean;
   xpEarned: number;
+  narrative: string | null;
 }
 
 export interface StorylineDetailResponse extends StorylineInfo {
@@ -135,6 +138,7 @@ export interface CreateQuestBody {
   dueAt?: number;
   remindAt?: number;
   rrule?: string;
+  position?: number;
 }
 
 export interface UpdateQuestBody {
@@ -149,6 +153,7 @@ export interface UpdateQuestBody {
   dueAt?: number | null;
   remindAt?: number | null;
   rrule?: string | null;
+  position?: number | null;
 }
 
 export interface CreateStorylineBody {

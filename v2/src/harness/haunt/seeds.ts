@@ -11,6 +11,7 @@ import {
 import type { Memory } from "../../core/memory/api/types.ts";
 import { sensePack } from "../../core/pack/api/read/index.ts";
 import {
+  computeQuestMarker,
   countQuestsByStatus,
   dueSoonQuests,
   getStreakInfo,
@@ -174,8 +175,10 @@ function buildQuestSeeds(db: DatabaseHandle): SeedCandidate[] {
   try {
     const overdue = overdueQuests(db, 1);
     if (overdue.length > 0) {
+      const m = computeQuestMarker(overdue[0]);
+      const prefix = m ? `${m.symbol} ` : "";
       seeds.push({
-        text: `Quest "${overdue[0].title}" is overdue. What's the situation?`,
+        text: `${prefix}Quest "${overdue[0].title}" is overdue. What's the situation?`,
         weight: 3,
       });
     }
@@ -185,16 +188,20 @@ function buildQuestSeeds(db: DatabaseHandle): SeedCandidate[] {
       const q = upcoming[0];
       const hoursLeft = Math.floor((q.dueAt! - Date.now()) / (60 * 60 * 1000));
       const timeLeft = hoursLeft < 24 ? `${hoursLeft}h` : `${Math.floor(hoursLeft / 24)}d`;
+      const m = computeQuestMarker(q);
+      const prefix = m ? `${m.symbol} ` : "";
       seeds.push({
-        text: `Quest "${q.title}" is due in ${timeLeft}. What needs to happen?`,
+        text: `${prefix}Quest "${q.title}" is due in ${timeLeft}. What needs to happen?`,
         weight: 2.5,
       });
     }
 
     const stale = staleQuests(db, 1);
     if (stale.length > 0) {
+      const m = computeQuestMarker(stale[0]);
+      const prefix = m ? `${m.symbol} ` : "";
       seeds.push({
-        text: `"${stale[0].title}" has been active but untouched for over a week. Still relevant?`,
+        text: `${prefix}"${stale[0].title}" has been active but untouched for over a week. Still relevant?`,
         weight: 2.5,
       });
     }

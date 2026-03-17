@@ -42,6 +42,7 @@ export function createQuestTurnInTool(db: DatabaseHandle) {
           revealedShards: summary.revealedShards,
           fragmentDropped: summary.fragmentDropped,
           xpEarned: summary.xpEarned,
+          narrative: summary.narrative,
         };
       } catch (err) {
         return {

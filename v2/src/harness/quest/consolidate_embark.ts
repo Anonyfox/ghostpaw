@@ -5,6 +5,7 @@ import {
   executeTurn,
 } from "../../core/chat/api/write/index.ts";
 import { getQuest } from "../../core/quests/api/read/index.ts";
+import { updateQuest } from "../../core/quests/api/write/index.ts";
 import { MANDATORY_SOUL_IDS } from "../../core/souls/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { createDropSoulshardTool } from "../../tools/souls/drop_soulshard.ts";
@@ -44,13 +45,20 @@ export async function consolidateEmbark(
       "- Note any patterns that could improve future quest execution.",
       "- Drop sealed soul shards for behavioral/cognitive patterns observed during quest execution — these will be revealed when the quest is turned in.",
       "",
+      "Conclude with a brief turn-in narrative (2-4 sentences) summarizing what was accomplished,",
+      "how it was done, and what was learned. This narrative will be shown to the user at turn-in.",
+      "",
       "Be brief. Only persist genuinely useful information.",
     ].join("\n");
 
-    await executeTurn(
+    const result = await executeTurn(
       { sessionId: sid, content, systemPrompt, model, maxIterations: 10 },
       { db, tools, createChat },
     );
+
+    if (result.content) {
+      updateQuest(db, questId, { turnInNarrative: result.content });
+    }
   } finally {
     closeSession(db, sid);
   }

@@ -48,9 +48,11 @@ export function listQuests(db: DatabaseHandle, options: ListQuestsOptions = {}):
   const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
   const limit = options.limit ?? 100;
   const offset = options.offset ?? 0;
+  const orderBy =
+    options.storylineId !== undefined ? "position ASC, id ASC" : "updated_at DESC, id DESC";
 
   const rows = db
-    .prepare(`SELECT * FROM quests ${where} ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?`)
+    .prepare(`SELECT * FROM quests ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`)
     .all(...values, limit, offset) as Record<string, unknown>[];
 
   return rows.map(rowToQuest);

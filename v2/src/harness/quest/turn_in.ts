@@ -18,19 +18,18 @@ export function executeTurnIn(db: DatabaseHandle, questId: number): TurnInSummar
     throw err;
   }
 
+  const narrative = quest.turnInNarrative;
+  const observation =
+    narrative || `Quest completed: "${quest.title}". ${quest.description ?? ""}`.trim();
+
   let fragmentDropped = false;
   try {
-    dropSkillFragment(
-      db,
-      "quest",
-      String(questId),
-      `Quest completed: "${quest.title}". ${quest.description ?? ""}`.trim(),
-    );
+    dropSkillFragment(db, "quest", String(questId), observation);
     fragmentDropped = true;
   } catch {
     // best-effort — fragment drop must not block turn-in
   }
 
   const xpEarned = getXPByQuest(db, questId);
-  return { quest, revealedShards, fragmentDropped, xpEarned };
+  return { quest, revealedShards, fragmentDropped, xpEarned, narrative };
 }

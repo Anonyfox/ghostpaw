@@ -12,20 +12,22 @@ export function getTemporalContext(db: DatabaseHandle): TemporalContext {
   const now = Date.now();
 
   const excludeList = "('offered','done','failed','abandoned')";
+  const joinSql = `FROM quests LEFT JOIN storylines ON quests.storyline_id = storylines.id`;
+  const effectiveDue = "COALESCE(quests.due_at, storylines.due_at)";
 
   const overdue = query(
     db,
-    `SELECT * FROM quests
-     WHERE due_at IS NOT NULL AND due_at < ? AND status NOT IN ${excludeList}
-     ORDER BY due_at ASC`,
+    `SELECT quests.* ${joinSql}
+     WHERE ${effectiveDue} IS NOT NULL AND ${effectiveDue} < ? AND quests.status NOT IN ${excludeList}
+     ORDER BY ${effectiveDue} ASC`,
     now,
   );
 
   const dueSoon = query(
     db,
-    `SELECT * FROM quests
-     WHERE due_at IS NOT NULL AND due_at >= ? AND due_at <= ? AND status NOT IN ${excludeList}
-     ORDER BY due_at ASC`,
+    `SELECT quests.* ${joinSql}
+     WHERE ${effectiveDue} IS NOT NULL AND ${effectiveDue} >= ? AND ${effectiveDue} <= ? AND quests.status NOT IN ${excludeList}
+     ORDER BY ${effectiveDue} ASC`,
     now,
     now + SEVEN_DAYS,
   );

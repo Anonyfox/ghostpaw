@@ -53,6 +53,8 @@ export interface Quest {
   remindedAt: number | null;
   completedAt: number | null;
   rrule: string | null;
+  position: number | null;
+  turnInNarrative: string | null;
 }
 
 export interface Storyline {
@@ -88,6 +90,7 @@ export interface CreateQuestInput {
   dueAt?: number;
   remindAt?: number;
   rrule?: string;
+  position?: number;
 }
 
 export interface UpdateQuestInput {
@@ -103,6 +106,8 @@ export interface UpdateQuestInput {
   remindAt?: number | null;
   remindedAt?: number | null;
   rrule?: string | null;
+  position?: number | null;
+  turnInNarrative?: string | null;
 }
 
 export interface CreateStorylineInput {

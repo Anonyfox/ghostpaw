@@ -1,6 +1,7 @@
 import type { IncomingMessage } from "node:http";
 import { getXPByQuest } from "../../../../core/chat/api/read/index.ts";
 import {
+  computeQuestMarker,
   estimateQuestCost,
   getQuest,
   getStoryline,
@@ -82,6 +83,8 @@ function toQuestInfo(q: Quest): QuestInfo {
     remindedAt: q.remindedAt,
     completedAt: q.completedAt,
     rrule: q.rrule,
+    position: q.position,
+    marker: computeQuestMarker(q),
   };
 }
 
@@ -152,6 +155,7 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
         dueAt,
         remindAt,
         rrule,
+        position,
       } = body as unknown as CreateQuestBody;
       if (!title?.trim()) return json(ctx, 400, { error: "Title is required." });
       try {
@@ -168,6 +172,7 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
           dueAt,
           remindAt,
           rrule,
+          position,
         });
         json(ctx, 201, toQuestInfo(q));
       } catch (err) {
@@ -222,6 +227,7 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
         dueAt,
         remindAt,
         rrule,
+        position,
       } = body as unknown as UpdateQuestBody;
       try {
         const q = updateQuest(db, id, {
@@ -236,6 +242,7 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
           dueAt,
           remindAt,
           rrule,
+          position,
         });
         json(ctx, 200, toQuestInfo(q));
       } catch (err) {
@@ -268,6 +275,7 @@ export function createQuestsApiHandlers(db: DatabaseHandle) {
           revealedShards: summary.revealedShards,
           fragmentDropped: summary.fragmentDropped,
           xpEarned: summary.xpEarned,
+          narrative: summary.narrative,
         });
       } catch (err) {
         json(ctx, 400, { error: (err as Error).message });

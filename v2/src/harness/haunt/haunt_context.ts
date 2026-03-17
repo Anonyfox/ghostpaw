@@ -1,6 +1,7 @@
 import type { ChatSession } from "../../core/chat/api/read/index.ts";
 import type { Memory } from "../../core/memory/api/types.ts";
 import {
+  computeQuestMarker,
   getTemporalContext,
   recentlyCompletedQuests,
   staleQuests,
@@ -137,6 +138,11 @@ function safeTemporalContext(db: DatabaseHandle): TemporalContext | null {
   }
 }
 
+function questMarkerPrefix(q: { status: string; rrule: string | null }): string {
+  const m = computeQuestMarker(q);
+  return m ? `${m.symbol} ` : "";
+}
+
 function formatQuestLandscape(db: DatabaseHandle, ctx: TemporalContext): string | null {
   const lines: string[] = [];
 
@@ -144,14 +150,14 @@ function formatQuestLandscape(db: DatabaseHandle, ctx: TemporalContext): string 
     lines.push(`**Overdue (${ctx.overdue.length}):**`);
     for (const q of ctx.overdue.slice(0, 5)) {
       const ago = formatQuestElapsed(Date.now() - q.dueAt!);
-      lines.push(`- #${q.id} ${q.title} (${ago} overdue, ${q.priority})`);
+      lines.push(`- ${questMarkerPrefix(q)}#${q.id} ${q.title} (${ago} overdue, ${q.priority})`);
     }
   }
 
   if (ctx.pendingReminders.length > 0) {
     lines.push(`**Pending reminders:**`);
     for (const q of ctx.pendingReminders.slice(0, 3)) {
-      lines.push(`- #${q.id} ${q.title}`);
+      lines.push(`- ${questMarkerPrefix(q)}#${q.id} ${q.title}`);
     }
   }
 
@@ -159,21 +165,21 @@ function formatQuestLandscape(db: DatabaseHandle, ctx: TemporalContext): string 
     lines.push(`**Due within 7 days (${ctx.dueSoon.length}):**`);
     for (const q of ctx.dueSoon) {
       const left = formatQuestElapsed(q.dueAt! - Date.now());
-      lines.push(`- #${q.id} ${q.title} (${left} left, ${q.priority})`);
+      lines.push(`- ${questMarkerPrefix(q)}#${q.id} ${q.title} (${left} left, ${q.priority})`);
     }
   }
 
   if (ctx.todayEvents.length > 0) {
     lines.push(`**Today's events:**`);
     for (const q of ctx.todayEvents) {
-      lines.push(`- #${q.id} ${q.title}`);
+      lines.push(`- ${questMarkerPrefix(q)}#${q.id} ${q.title}`);
     }
   }
 
   if (ctx.activeQuests.length > 0) {
     lines.push(`**Active quests (${ctx.activeQuests.length}):**`);
     for (const q of ctx.activeQuests.slice(0, 8)) {
-      lines.push(`- #${q.id} ${q.title} (${q.priority})`);
+      lines.push(`- ${questMarkerPrefix(q)}#${q.id} ${q.title} (${q.priority})`);
     }
   }
 

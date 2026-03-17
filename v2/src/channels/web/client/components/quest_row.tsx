@@ -25,6 +25,14 @@ export function QuestRow({ quest, isExpanded, onToggle }: Props) {
       onClick={() => onToggle(q.id)}
     >
       <QuestPriorityBadge priority={q.priority} />
+      {q.marker && (
+        <span
+          class={`fw-bold quest-marker-${q.marker.color}`}
+          style="min-width: 1em; text-align: center;"
+        >
+          {q.marker.symbol}
+        </span>
+      )}
       <span class="flex-grow-1 text-truncate">
         {q.title}
         {recurrence && (

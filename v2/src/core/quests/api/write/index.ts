@@ -6,6 +6,7 @@ export { createQuest } from "../../create_quest.ts";
 export { createStoryline } from "../../create_storyline.ts";
 export { dismissQuest } from "../../dismiss_quest.ts";
 export { removeSubgoal } from "../../remove_subgoal.ts";
+export { reorderStorylineQuests } from "../../reorder_storyline_quests.ts";
 export { reorderSubgoals } from "../../reorder_subgoals.ts";
 export { skipOccurrence } from "../../skip_occurrence.ts";
 export { turnInQuest } from "../../turn_in_quest.ts";

@@ -287,6 +287,9 @@ export function QuestDetail({ questId, storylines, onUpdated, onDone }: Props) {
   return (
     <div class="px-3 py-3 bg-body-tertiary border-bottom">
       {error && <div class="alert alert-danger py-1 small">{error}</div>}
+      {d.marker && (
+        <span class={`fw-bold fs-5 me-2 quest-marker-${d.marker.color}`}>{d.marker.symbol}</span>
+      )}
       {d.description && <p class="small mb-2">{d.description}</p>}
       <dl class="row small mb-2">
         <dt class="col-sm-3 text-body-secondary">Status</dt>
@@ -477,6 +480,7 @@ export function QuestDetail({ questId, storylines, onUpdated, onDone }: Props) {
           {turnInResult.xpEarned > 0 && (
             <span class="ms-2">| {Math.round(turnInResult.xpEarned)} XP earned</span>
           )}
+          {turnInResult.narrative && <p class="mt-2 mb-0 fst-italic">{turnInResult.narrative}</p>}
         </div>
       )}
 

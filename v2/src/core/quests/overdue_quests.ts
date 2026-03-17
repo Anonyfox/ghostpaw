@@ -5,10 +5,13 @@ import type { Quest } from "./types.ts";
 export function overdueQuests(db: DatabaseHandle, limit = 5): Quest[] {
   const rows = db
     .prepare(
-      `SELECT * FROM quests
-       WHERE due_at IS NOT NULL AND due_at < ?
-         AND status NOT IN ('offered','done','failed','abandoned')
-       ORDER BY due_at ASC LIMIT ?`,
+      `SELECT quests.*
+       FROM quests
+       LEFT JOIN storylines ON quests.storyline_id = storylines.id
+       WHERE COALESCE(quests.due_at, storylines.due_at) IS NOT NULL
+         AND COALESCE(quests.due_at, storylines.due_at) < ?
+         AND quests.status NOT IN ('offered','done','failed','abandoned')
+       ORDER BY COALESCE(quests.due_at, storylines.due_at) ASC LIMIT ?`,
     )
     .all(Date.now(), limit) as Record<string, unknown>[];
   return rows.map(rowToQuest);

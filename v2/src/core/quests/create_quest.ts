@@ -29,12 +29,20 @@ export function createQuest(db: DatabaseHandle, input: CreateQuestInput): Quest 
   }
 
   const now = Date.now();
+  let position: number | null = input.position ?? null;
+  if (input.storylineId && position == null) {
+    const maxRow = db
+      .prepare("SELECT COALESCE(MAX(position), 0) AS max_pos FROM quests WHERE storyline_id = ?")
+      .get(input.storylineId) as { max_pos: number };
+    position = maxRow.max_pos + 1000;
+  }
+
   const { lastInsertRowid } = db
     .prepare(
       `INSERT INTO quests
         (title, description, status, priority, storyline_id, tags, created_at, created_by,
-         updated_at, starts_at, ends_at, due_at, remind_at, rrule)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         updated_at, starts_at, ends_at, due_at, remind_at, rrule, position)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       title,
@@ -51,6 +59,7 @@ export function createQuest(db: DatabaseHandle, input: CreateQuestInput): Quest 
       input.dueAt ?? null,
       input.remindAt ?? null,
       input.rrule?.trim() ?? null,
+      position,
     );
 
   const row = db.prepare("SELECT * FROM quests WHERE id = ?").get(lastInsertRowid);

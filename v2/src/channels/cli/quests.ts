@@ -7,7 +7,7 @@ import questsBoard from "./quests_board.ts";
 import questsDismiss from "./quests_dismiss.ts";
 import questsDone from "./quests_done.ts";
 import questsEmbark from "./quests_embark.ts";
-import { formatDate, relativeAge, relativeDue } from "./quests_format.ts";
+import { formatDate, markerLabel, relativeAge, relativeDue } from "./quests_format.ts";
 import questsList from "./quests_list.ts";
 import questsOffer from "./quests_offer.ts";
 import questsProwl from "./quests_prowl.ts";
@@ -112,7 +112,7 @@ export default defineCommand({
         for (const q of ctx.overdue) {
           const id = `#${q.id}`.padStart(6);
           const due = q.dueAt ? relativeDue(q.dueAt) : "";
-          console.log(`  ${style.dim(id)} ${q.title}  ${due}`);
+          console.log(`  ${markerLabel(q)}${style.dim(id)} ${q.title}  ${due}`);
         }
         console.log();
       }
@@ -122,7 +122,7 @@ export default defineCommand({
         for (const q of ctx.pendingReminders) {
           const id = `#${q.id}`.padStart(6);
           const remind = q.remindAt ? formatDate(q.remindAt) : "";
-          console.log(`  ${style.dim(id)} ${q.title}  ${style.dim(remind)}`);
+          console.log(`  ${markerLabel(q)}${style.dim(id)} ${q.title}  ${style.dim(remind)}`);
         }
         console.log();
       }
@@ -132,7 +132,9 @@ export default defineCommand({
         for (const q of ctx.todayEvents) {
           const id = `#${q.id}`.padStart(6);
           const time = q.startsAt ? new Date(q.startsAt).toISOString().slice(11, 16) : "";
-          console.log(`  ${style.dim(id)} ${time ? `${style.cyan(time)} ` : ""}${q.title}`);
+          console.log(
+            `  ${markerLabel(q)}${style.dim(id)} ${time ? `${style.cyan(time)} ` : ""}${q.title}`,
+          );
         }
         console.log();
       }
@@ -142,7 +144,7 @@ export default defineCommand({
         for (const q of ctx.activeQuests) {
           const id = `#${q.id}`.padStart(6);
           const age = relativeAge(q.updatedAt);
-          console.log(`  ${style.dim(id)} ${q.title}  ${style.dim(age)}`);
+          console.log(`  ${markerLabel(q)}${style.dim(id)} ${q.title}  ${style.dim(age)}`);
         }
         console.log();
       }
@@ -152,7 +154,7 @@ export default defineCommand({
         for (const q of ctx.dueSoon) {
           const id = `#${q.id}`.padStart(6);
           const due = q.dueAt ? relativeDue(q.dueAt) : "";
-          console.log(`  ${style.dim(id)} ${q.title}  ${style.dim(due)}`);
+          console.log(`  ${markerLabel(q)}${style.dim(id)} ${q.title}  ${style.dim(due)}`);
         }
         console.log();
       }

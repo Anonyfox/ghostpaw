@@ -50,7 +50,10 @@ export default defineCommand({
       f("status", statusLabel(q.status));
       f("priority", q.priority);
       if (q.tags) f("tags", q.tags);
-      if (q.storylineId) f("storyline", `#${q.storylineId}`);
+      if (q.storylineId) {
+        const pos = q.position != null ? ` (position ${q.position})` : "";
+        f("storyline", `#${q.storylineId}${pos}`);
+      }
       f("created by", q.createdBy);
       f("created", `${formatDate(q.createdAt)} (${relativeAge(q.createdAt)} ago)`);
       f("updated", `${formatDate(q.updatedAt)} (${relativeAge(q.updatedAt)} ago)`);
