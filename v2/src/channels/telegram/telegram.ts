@@ -1,14 +1,15 @@
 import { Bot } from "grammy";
 import { listSessions, lookupByMessageId } from "../../core/chat/api/read/index.ts";
 import { getOrCreateSession } from "../../core/chat/api/write/index.ts";
+import { listStoredSecretKeys } from "../../core/secrets/api/read/index.ts";
+import { COMMANDS, executeCommand, parseSlashCommand } from "../../harness/commands/registry.ts";
+import type { CommandContext } from "../../harness/commands/types.ts";
 import { processHowlDismiss } from "../../harness/howl/index.ts";
 import { registerChannel, unregisterChannel } from "../../lib/channel_registry.ts";
 import type { HandleMessageDeps } from "./handle_message.ts";
 import { handleMessage } from "./handle_message.ts";
-import { handleReset } from "./handle_reset.ts";
-import { handleSkills } from "./handle_skills.ts";
-import { handleTrain } from "./handle_train.ts";
 import { sessionKeyForChat } from "./session_key.ts";
+import { splitMessage } from "./split_message.ts";
 import type {
   ReactionEmoji,
   TelegramChannel,
@@ -71,6 +72,18 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
       await bot.api.setMessageReaction(chatId, messageId, [{ type: "emoji", emoji }]);
     });
 
+  const deleteMessages =
+    config.deleteMessages ??
+    (async (chatId: number, messageIds: number[]) => {
+      for (const msgId of messageIds) {
+        try {
+          await bot.api.deleteMessage(chatId, msgId);
+        } catch {
+          // Telegram only allows deletion within 48h — silently skip failures
+        }
+      }
+    });
+
   function isAllowed(chatId: number): boolean {
     if (!allowedChatIds || allowedChatIds.length === 0) return true;
     return allowedChatIds.includes(chatId);
@@ -82,7 +95,10 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
   }
 
   const sendPlainMessage = async (chatId: number, text: string): Promise<void> => {
-    await sendMessage(chatId, text);
+    const parts = splitMessage(text);
+    for (const part of parts) {
+      await sendMessage(chatId, part);
+    }
   };
 
   const deps: HandleMessageDeps = {
@@ -99,29 +115,42 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
     process.stderr.write(`  telegram  error: ${msg}\n`);
   });
 
-  bot.command("reset", async (ctx) => {
-    const chatId = ctx.chat.id;
-    await handleReset({ db, isAllowed, sendMessage: sendPlainMessage }, chatId);
-  });
-
-  bot.command("skills", async (ctx) => {
-    const chatId = ctx.chat.id;
-    await handleSkills({ db, isAllowed, sendMessage: sendPlainMessage }, chatId);
-  });
-
-  bot.command("train", async (ctx) => {
-    const chatId = ctx.chat.id;
-    const skillName = ctx.match?.trim() || undefined;
-    await handleTrain({ db, isAllowed, sendMessage: sendPlainMessage }, chatId, skillName);
-  });
-
   bot.on("message:text", async (ctx) => {
     const chatId = ctx.chat.id;
     const messageId = ctx.message.message_id;
     const text = ctx.message.text;
     const replyToMessageId = ctx.message.reply_to_message?.message_id;
     lastActiveChatId = chatId;
-    if (text.startsWith("/")) return;
+
+    if (!isAllowed(chatId)) return;
+
+    const parsed = parseSlashCommand(text);
+    if (parsed) {
+      const sessionId = resolveSessionId(chatId);
+      const configuredKeys = new Set(listStoredSecretKeys(db));
+      const cmdCtx: CommandContext = {
+        db,
+        sessionId,
+        sessionKey: sessionKeyForChat(chatId),
+        configuredKeys,
+      };
+      const result = await executeCommand(parsed.name, parsed.args, cmdCtx);
+
+      await sendPlainMessage(chatId, result.text);
+
+      if (result.action?.type === "undo") {
+        const tgIds: number[] = [];
+        for (const internalId of result.action.removedMessageIds) {
+          const mappings = lookupByMessageId(db, internalId);
+          for (const m of mappings) {
+            if (m.channel === "telegram") tgIds.push(Number(m.channelMessageId));
+          }
+        }
+        if (tgIds.length > 0) await deleteMessages(chatId, tgIds);
+      }
+      return;
+    }
+
     await handleMessage(deps, chatId, messageId, text, replyToMessageId);
   });
 
@@ -148,6 +177,16 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
     }
   });
 
+  async function registerCommands(): Promise<void> {
+    try {
+      await bot.api.setMyCommands(
+        COMMANDS.map((c) => ({ command: c.name, description: c.description })),
+      );
+    } catch {
+      // Non-fatal — menu registration can fail without blocking the bot
+    }
+  }
+
   return {
     name: "telegram",
 
@@ -165,6 +204,7 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
             onStart: (info) => {
               clearTimeout(timeout);
               connectedUsername = info.username;
+              registerCommands();
               registerChannel(TELEGRAM_CHANNEL_ID, {
                 type: "telegram",
                 isConnected: () => running,
@@ -178,16 +218,16 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
                   const chatId = lastActiveChatId;
                   if (!chatId) throw new Error("No active Telegram chat");
 
-                  let replyToMessageId: number | undefined;
+                  let replyToMsgId: number | undefined;
                   if (originMessageId) {
                     const mappings = lookupByMessageId(db, originMessageId);
                     const tgMapping = mappings.find((m) => m.channel === "telegram");
-                    if (tgMapping) replyToMessageId = Number(tgMapping.channelMessageId);
+                    if (tgMapping) replyToMsgId = Number(tgMapping.channelMessageId);
                   }
 
                   const sent = await sendMessage(chatId, message, {
                     dismissHowlId: howlId,
-                    replyToMessageId,
+                    replyToMessageId: replyToMsgId,
                   });
                   return {
                     channel: "telegram" as const,

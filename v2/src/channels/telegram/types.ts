@@ -26,6 +26,7 @@ export interface TelegramChannelConfig {
   ) => Promise<TelegramSentMessage>;
   sendTyping?: (chatId: number) => Promise<void>;
   setReaction?: (chatId: number, messageId: number, emoji: ReactionEmoji) => Promise<void>;
+  deleteMessages?: (chatId: number, messageIds: number[]) => Promise<void>;
 }
 
 export interface TelegramChannel {

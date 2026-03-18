@@ -67,7 +67,7 @@ export function initChatTables(db: DatabaseHandle): void {
     CREATE TABLE IF NOT EXISTS channel_messages (
       id                 INTEGER PRIMARY KEY,
       session_id         INTEGER NOT NULL REFERENCES sessions(id),
-      message_id         INTEGER NOT NULL REFERENCES messages(id),
+      message_id         INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
       channel            TEXT    NOT NULL,
       channel_message_id TEXT    NOT NULL,
       direction          TEXT    NOT NULL CHECK(direction IN ('in', 'out')),

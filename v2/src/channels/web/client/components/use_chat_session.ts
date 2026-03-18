@@ -3,7 +3,7 @@ import type { ChatMessageInfo } from "../../shared/chat_message_info.ts";
 import type { ChatSessionInfo } from "../../shared/chat_session_info.ts";
 import { apiGet } from "../api_get.ts";
 import { apiPost } from "../api_post.ts";
-import type { ChatWsConnection } from "./connect_chat_ws.ts";
+import type { ChatWsConnection, CommandResultPayload } from "./connect_chat_ws.ts";
 import { connectChatWs } from "./connect_chat_ws.ts";
 
 export interface ToolActivity {
@@ -28,12 +28,14 @@ interface UseChatSessionOptions {
   sessionId?: number | null;
   onTitleGenerated?: (sessionId: number, title: string) => void;
   onSessionCreated?: (sessionId: number) => void;
+  onCommandAction?: (action: CommandResultPayload["action"]) => void;
 }
 
 export function useChatSession(options?: UseChatSessionOptions): UseChatSessionResult {
   const targetSessionId = options?.sessionId ?? null;
   const onTitleGenerated = options?.onTitleGenerated;
   const onSessionCreated = options?.onSessionCreated;
+  const onCommandAction = options?.onCommandAction;
 
   const [session, setSession] = useState<ChatSessionInfo | null>(null);
   const [messages, setMessages] = useState<ChatMessageInfo[]>([]);
@@ -51,8 +53,10 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
   const preserveWsRef = useRef(false);
   const onTitleRef = useRef(onTitleGenerated);
   const onCreatedRef = useRef(onSessionCreated);
+  const onCommandActionRef = useRef(onCommandAction);
   onTitleRef.current = onTitleGenerated;
   onCreatedRef.current = onSessionCreated;
+  onCommandActionRef.current = onCommandAction;
 
   const openWs = useCallback((sid: number): Promise<void> => {
     wsRef.current?.close();
@@ -80,6 +84,30 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
       onTitle: (id, title) => {
         setSession((prev) => (prev ? { ...prev, displayName: title } : prev));
         onTitleRef.current?.(id, title);
+      },
+      onCommandResult: (result) => {
+        setWaiting(false);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: -Date.now(),
+            role: "system",
+            content: result.text,
+            createdAt: Date.now(),
+            replyToId: null,
+          },
+        ]);
+        if (result.action?.type === "undo") {
+          const removedIds = result.action.removedMessageIds as number[];
+          if (Array.isArray(removedIds) && removedIds.length > 0) {
+            const idSet = new Set(removedIds);
+            setMessages((prev) => prev.filter((m) => !idSet.has(m.id)));
+          }
+        }
+        if (result.action?.type === "model_changed") {
+          setModel(result.action.model as string);
+        }
+        onCommandActionRef.current?.(result.action);
       },
       onToolStart: (tools) => {
         setWaiting(false);
@@ -160,16 +188,19 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
 
   const sendMessage = useCallback(
     async (text: string, overrideModel?: string, replyToId?: number) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          role: "user",
-          content: text,
-          createdAt: Date.now(),
-          replyToId: replyToId ?? null,
-        },
-      ]);
+      const isCommand = text.startsWith("/");
+      if (!isCommand) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now(),
+            role: "user",
+            content: text,
+            createdAt: Date.now(),
+            replyToId: replyToId ?? null,
+          },
+        ]);
+      }
       setError("");
 
       let sid = sessionIdRef.current;

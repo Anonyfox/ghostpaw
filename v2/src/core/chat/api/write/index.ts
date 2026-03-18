@@ -4,6 +4,8 @@ export { addMessage } from "../../add_message.ts";
 export type { ChatFactory, ChatInstance, CompactFn, TurnContext } from "../../chat_instance.ts";
 export { closeSession } from "../../close_session.ts";
 export { createSession } from "../../create_session.ts";
+export type { DeleteExchangeResult } from "../../delete_last_exchange.ts";
+export { deleteLastExchange } from "../../delete_last_exchange.ts";
 export { deleteOldDistilled } from "../../delete_old_distilled.ts";
 export { deleteSession } from "../../delete_session.ts";
 export { estimateTokens } from "../../estimate_tokens.ts";

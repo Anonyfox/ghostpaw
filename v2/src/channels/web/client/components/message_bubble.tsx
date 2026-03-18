@@ -16,6 +16,22 @@ function truncateQuote(text: string, maxLength = 80): string {
 
 export function MessageBubble({ message, streaming, allMessages, onReply }: MessageBubbleProps) {
   const isUser = message.role === "user";
+  const isSystem = message.role === "system";
+
+  if (isSystem) {
+    return (
+      <div class="d-flex mb-3 justify-content-center">
+        <div
+          class="card bg-body-tertiary border-0"
+          style="max-width: 90%; min-width: 120px; font-size: 0.88em;"
+        >
+          <div class="card-body py-2 px-3 text-muted" style="white-space: pre-wrap;">
+            {message.content}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleReply = useCallback(() => {
     onReply?.(message);

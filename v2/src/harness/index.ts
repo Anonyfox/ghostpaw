@@ -1,3 +1,15 @@
+export {
+  COMMANDS,
+  executeCommand as executeSlashCommand,
+  formatHelpText,
+  parseSlashCommand,
+} from "./commands/registry.ts";
+export type {
+  CommandAction,
+  CommandContext,
+  CommandResult as SlashCommandResult,
+  SlashCommandDef,
+} from "./commands/types.ts";
 export { assembleContext } from "./context.ts";
 export { distillPending } from "./distill_pending.ts";
 export type {

@@ -37,6 +37,17 @@ export function ChatPage() {
     setActiveSessionId(sessionId);
   }, []);
 
+  const handleCommandAction = useCallback(
+    (action: { type: string; [k: string]: unknown } | null) => {
+      if (!action) return;
+      if (action.type === "new_session") {
+        setActiveSessionId(action.sessionId as number);
+        setReplyToMessage(null);
+      }
+    },
+    [],
+  );
+
   const {
     messages,
     streamingContent,
@@ -52,6 +63,7 @@ export function ChatPage() {
     sessionId: activeSessionId,
     onTitleGenerated: handleTitleGenerated,
     onSessionCreated: handleSessionCreated,
+    onCommandAction: handleCommandAction,
   });
 
   const busy = waiting || streamingContent.length > 0 || toolActivity !== null;

@@ -35,6 +35,13 @@ Ghostpaw knows which message is being referenced and can quote it back into cont
 been compacted out of the active window. This is not a bolt-on threading feature. It is part of how
 the conversation stays coherent when the user wants to revisit something specific.
 
+**Instant control without leaving the conversation.** Slash commands — `/new`, `/undo`, `/model`,
+`/help`, `/costs` — execute mechanically at zero token cost. They do not route through the LLM. They
+are native to every channel that supports text input: Telegram exposes them in its command menu, the
+browser shows an autocomplete dropdown as you type `/`, and the TUI handles them inline before parsing
+anything else. This means the user can switch models, start a fresh session, or undo a bad exchange
+without breaking conversational flow and without spending a single token.
+
 **A chat that compounds.** Every live interaction becomes durable local state. Sessions persist human
 messages, assistant replies, tool traces, usage, and lineage. Ghostpaw does not just spend tokens.
 Ghostpaw turns tokens into state, and that state later makes direct chat better.
@@ -144,8 +151,11 @@ and industry evidence on tool overload shows why narrower contexts help routing 
 That leads to the runtime split Ghostpaw relies on:
 
 - `core/chat` owns sessions, messages, compaction, replay, and turn execution
-- `harness/` assembles prompts, chooses tools, and decides when specialist routing is worth it
-- `channels/` deliver Ghostpaw through Telegram, web, TUI, and CLI without defining the feature’s identity
+- `harness/` assembles prompts, chooses tools, decides when specialist routing is worth it, and owns
+  the slash command registry — a set of mechanical commands that execute without any LLM call
+- `channels/` deliver Ghostpaw through Telegram, web, TUI, and CLI without defining the feature’s
+  identity, and wire channel-native affordances for slash commands (Telegram’s command menu, the
+  web autocomplete, TUI inline dispatch)
 
 The main soul still routes specialist work when needed, but this is in service of better chat rather
 than in service of showcasing architecture. The coordinator keeps one conversational voice while using
@@ -244,12 +254,16 @@ Chat is omnichannel by design, but the channels are not equal copies of one anot
 **Telegram** is the clearest statement of the resident-chat thesis. Ghostpaw can live inside a
 third-party surface the user already inhabits, keep a stable per-chat thread there, and still remain
 the same Ghostpaw as everywhere else. Swipe-reply is native — the user replies to a specific message
-and Ghostpaw knows which one, and responds as a native Telegram reply in turn. That matters more than
-ornate product chrome.
+and Ghostpaw knows which one, and responds as a native Telegram reply in turn. Slash commands register
+in Telegram's native command menu via `setMyCommands`, so `/undo` deletes the corresponding Telegram
+messages alongside the internal records. That matters more than ornate product chrome.
 
 **TUI** is a terminal-native habitat. It keeps Ghostpaw local, focused, and legible. Messages are
 numbered sequentially, and the user can reference any earlier message by prefixing `@N` — a
-keyboard-native reply syntax that fits the terminal flow without visual clutter.
+keyboard-native reply syntax that fits the terminal flow without visual clutter. Slash commands work
+inline: `/new` clears the screen and starts fresh (the same action as `Ctrl+L`), `/model` prints
+available models or switches instantly, `/undo` removes the last exchange from both the display and the
+database.
 
 **CLI one-off runs** are compressed chat. They are still real expressions of the feature, even when
 the interaction is brief and command-shaped.
@@ -258,8 +272,10 @@ the interaction is brief and command-shaped.
 inspect transcripts, watch tool activity, and add richer affordances later. Reply interaction follows
 the messenger pattern: hover to reveal a reply icon, click to set a reply target with a preview bar
 above the input, and send to produce a message with a clickable quote block linking back to the
-original. But web richness should remain additive. It should not redefine what chat fundamentally is
-in Ghostpaw.
+original. Typing `/` triggers an autocomplete dropdown listing all available commands with descriptions
+— Tab or click to complete, Enter to execute. Command results appear as centered ephemeral system
+messages that never enter the LLM context. But web richness should remain additive. It should not
+redefine what chat fundamentally is in Ghostpaw.
 
 That means future browser additions such as uploads, richer message actions, stronger session/history
 management, inline tool transparency, or deeper output surfaces should be treated as useful extensions
@@ -400,7 +416,14 @@ and `api/read/delegation_metrics.ts`.
 `createSession()`, `getOrCreateSession()`, `addMessage()`, `recordTurn()`, `persistToolMessages()`,
 `accumulateUsage()`, `renameSession()`, `closeSession()`, `deleteSession()`, `finalizeDelegation()`,
 `markDistilled()`, `markMessagesDistilled()`, `deleteOldDistilled()`, `pruneEmptySessions()`,
-`storeChannelMessage()`, and `migrateHaunts()`.
+`storeChannelMessage()`, `deleteLastExchange()`, and `migrateHaunts()`.
+
+### Slash Commands
+
+`parseSlashCommand()`, `executeCommand()`, `formatHelpText()`, and the `COMMANDS` registry. These
+live in `harness/commands/` and execute mechanically without LLM calls. Each command returns a
+`CommandResult` with display text and an optional typed action (`new_session`, `undo`,
+`model_changed`) that channels interpret into native UI behavior.
 
 ### Runtime
 
@@ -410,13 +433,15 @@ and `api/read/delegation_metrics.ts`.
 
 ## User Surfaces
 
-- **Telegram:** persistent per-chat conversation, native message flow, native reply threading, and
-  howl delivery as native replies inside a third-party surface the user already inhabits
+- **Telegram:** persistent per-chat conversation, native message flow, native reply threading, slash
+  commands via native menu, and howl delivery as native replies inside a third-party surface the user
+  already inhabits
 - **TUI:** local streaming terminal chat with visible tool activity, session continuity, message
-  numbering, and `@N` reply syntax
+  numbering, `@N` reply syntax, and inline slash command dispatch
 - **CLI one-off:** ephemeral command-shaped chat runs that still use the same core substrate
 - **Web UI:** the richest current surface for session browsing, transcript inspection, live tool
-  activity, messenger-style reply interaction, and future additive chat affordances
+  activity, messenger-style reply interaction, slash command autocomplete, and future additive chat
+  affordances
 - **Chat modes:** haunt and howl as two special chat modes tied back to the same broader live feature
 
 ## Research Map

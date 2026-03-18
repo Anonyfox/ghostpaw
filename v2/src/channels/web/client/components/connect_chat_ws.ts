@@ -1,8 +1,14 @@
+export interface CommandResultPayload {
+  text: string;
+  action: { type: string; [k: string]: unknown } | null;
+}
+
 interface WsCallbacks {
   onChunk: (accumulated: string) => void;
   onDone: (messageId: number, content: string, totalTokens: number) => void;
   onError: (msg: string) => void;
   onTitle: (sessionId: number, title: string) => void;
+  onCommandResult?: (result: CommandResultPayload) => void;
   onToolStart?: (tools: string[]) => void;
   onToolEnd?: () => void;
   onBackgroundComplete?: (runId: number, specialist: string, status: string) => void;
@@ -76,6 +82,13 @@ export function connectChatWs(sessionId: number, callbacks: WsCallbacks): ChatWs
       }
       case "tool_end": {
         callbacks.onToolEnd?.();
+        break;
+      }
+      case "command_result": {
+        callbacks.onCommandResult?.({
+          text: typeof msg.text === "string" ? msg.text : "",
+          action: (msg.action as CommandResultPayload["action"]) ?? null,
+        });
         break;
       }
       case "background_complete": {

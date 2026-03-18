@@ -1,7 +1,10 @@
 import { emitKeypressEvents } from "node:readline";
 import type { TurnResult } from "../../core/chat/api/write/index.ts";
 import { closeSession, createSession } from "../../core/chat/api/write/index.ts";
+import { listStoredSecretKeys } from "../../core/secrets/api/read/index.ts";
 import { defaultChatFactory } from "../../harness/chat_factory.ts";
+import { executeCommand, parseSlashCommand } from "../../harness/commands/registry.ts";
+import type { CommandContext } from "../../harness/commands/types.ts";
 import type { Entity } from "../../harness/index.ts";
 import { resolveModel } from "../../harness/index.ts";
 import { handlePostSession } from "../../harness/post_session.ts";
@@ -148,7 +151,56 @@ export async function runTui(opts: TuiOptions): Promise<void> {
     process.stdin.pause();
   }
 
+  function startNewSession(): void {
+    if (sessionId !== null) {
+      closeSession(db, sessionId);
+      handlePostSession(db, sessionId, model, defaultChatFactory);
+      sessionId = null;
+    }
+    messages.length = 0;
+    totalTokens = 0;
+    scrollOffset = 0;
+  }
+
+  async function handleSlashInput(text: string): Promise<boolean> {
+    const parsed = parseSlashCommand(text);
+    if (!parsed) return false;
+
+    const configuredKeys = new Set(listStoredSecretKeys(db));
+    const sid = sessionId ?? 0;
+    const cmdCtx: CommandContext = {
+      db,
+      sessionId: sid,
+      sessionKey: sessionId !== null ? `tui:${sessionId}` : "tui:none",
+      configuredKeys,
+    };
+
+    const result = await executeCommand(parsed.name, parsed.args, cmdCtx);
+
+    if (result.action?.type === "new_session") {
+      startNewSession();
+    }
+
+    if (result.action?.type === "undo" && result.action.removedCount > 0) {
+      const removed = result.action.removedCount as number;
+      const toRemove = Math.min(removed, messages.length);
+      messages.splice(messages.length - toRemove, toRemove);
+    }
+
+    if (result.action?.type === "model_changed") {
+      model = result.action.model as string;
+    }
+
+    messages.push({ id: 0, role: "assistant", content: result.text });
+    scrollOffset = 0;
+    paint();
+    return true;
+  }
+
   async function handleSubmit(text: string): Promise<void> {
+    const wasCommand = await handleSlashInput(text);
+    if (wasCommand) return;
+
     streaming = true;
     streamContent = "";
     scrollOffset = 0;
@@ -248,14 +300,7 @@ export async function runTui(opts: TuiOptions): Promise<void> {
           entity.flush().finally(resolve);
           break;
         case "clear":
-          if (sessionId !== null) {
-            closeSession(db, sessionId);
-            handlePostSession(db, sessionId, model, defaultChatFactory);
-            sessionId = null;
-          }
-          messages.length = 0;
-          totalTokens = 0;
-          scrollOffset = 0;
+          startNewSession();
           paint();
           break;
         case "scroll":

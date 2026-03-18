@@ -1,4 +1,7 @@
 import type { TurnResult } from "../../../../core/chat/api/write/index.ts";
+import { listStoredSecretKeys } from "../../../../core/secrets/api/read/index.ts";
+import { executeCommand, parseSlashCommand } from "../../../../harness/commands/registry.ts";
+import type { CommandContext } from "../../../../harness/commands/types.ts";
 import type { Entity } from "../../../../harness/index.ts";
 import type { WsConnection } from "../../../../lib/ws.ts";
 
@@ -43,6 +46,13 @@ export function handleChatWs(sessionId: number, ws: WsConnection, entity: Entity
         wsSend(ws, { type: "error", message: "Empty message." });
         return;
       }
+
+      const parsed = parseSlashCommand(content);
+      if (parsed) {
+        handleSlashCommand(ws, entity, sessionId, parsed.name, parsed.args);
+        return;
+      }
+
       const replyToId = typeof msg.replyToId === "number" ? msg.replyToId : undefined;
       streaming = true;
       streamResponse(ws, entity, sessionId, content, msg.model, replyToId).finally(() => {
@@ -54,6 +64,29 @@ export function handleChatWs(sessionId: number, ws: WsConnection, entity: Entity
   ws.on("close", () => {
     chatWsConnections.remove(sessionId);
   });
+}
+
+async function handleSlashCommand(
+  ws: WsConnection,
+  entity: Entity,
+  sessionId: number,
+  name: string,
+  args: string,
+): Promise<void> {
+  try {
+    const configuredKeys = new Set(listStoredSecretKeys(entity.db));
+    const cmdCtx: CommandContext = {
+      db: entity.db,
+      sessionId,
+      sessionKey: `web:${sessionId}`,
+      configuredKeys,
+    };
+    const result = await executeCommand(name, args, cmdCtx);
+    wsSend(ws, { type: "command_result", text: result.text, action: result.action ?? null });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    wsSend(ws, { type: "error", message });
+  }
 }
 
 async function streamResponse(

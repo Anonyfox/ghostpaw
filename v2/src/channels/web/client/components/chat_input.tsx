@@ -1,6 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { ChatMessageInfo } from "../../shared/chat_message_info.ts";
 import { ModelPicker } from "./model_picker.tsx";
+
+const SLASH_COMMANDS = [
+  { name: "help", description: "List available commands", args: "[command]" },
+  { name: "new", description: "Start a fresh chat session" },
+  { name: "undo", description: "Remove the last message exchange" },
+  { name: "model", description: "List or switch models", args: "[name]" },
+  { name: "costs", description: "Show cost breakdown" },
+] as const;
 
 interface ChatInputProps {
   onSend: (text: string, model?: string, replyToId?: number) => void;
@@ -24,6 +32,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const [text, setText] = useState("");
   const [selectedModel, setSelectedModel] = useState(defaultModel);
+  const [selectedIdx, setSelectedIdx] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const adjustHeight = useCallback(() => {
@@ -33,9 +42,19 @@ export function ChatInput({
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   }, []);
 
+  const slashMatches = useMemo(() => {
+    if (!text.startsWith("/")) return [];
+    const typed = text.slice(1).toLowerCase();
+    if (typed.includes(" ")) return [];
+    return SLASH_COMMANDS.filter((c) => c.name.startsWith(typed));
+  }, [text]);
+
+  const showDropdown = slashMatches.length > 0;
+
   const handleInput = useCallback(
     (e: Event) => {
       setText((e.target as HTMLTextAreaElement).value);
+      setSelectedIdx(0);
       adjustHeight();
     },
     [adjustHeight],
@@ -53,18 +72,50 @@ export function ChatInput({
     }
   }, [text, disabled, onSend, selectedModel, defaultModel, replyTo, onCancelReply]);
 
+  const acceptCompletion = useCallback((cmd: (typeof SLASH_COMMANDS)[number]) => {
+    const hasArgs = "args" in cmd && cmd.args;
+    setText(`/${cmd.name}${hasArgs ? " " : ""}`);
+    textareaRef.current?.focus();
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "Escape" && replyTo) {
-        onCancelReply?.();
-        return;
+      if (e.key === "Escape") {
+        if (showDropdown) {
+          setText("");
+          return;
+        }
+        if (replyTo) {
+          onCancelReply?.();
+          return;
+        }
       }
+
+      if (showDropdown) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setSelectedIdx((i) => Math.min(i + 1, slashMatches.length - 1));
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setSelectedIdx((i) => Math.max(i - 1, 0));
+          return;
+        }
+        if (e.key === "Tab") {
+          e.preventDefault();
+          const match = slashMatches[selectedIdx];
+          if (match) acceptCompletion(match);
+          return;
+        }
+      }
+
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleSend();
       }
     },
-    [handleSend, replyTo, onCancelReply],
+    [handleSend, replyTo, onCancelReply, showDropdown, slashMatches, selectedIdx, acceptCompletion],
   );
 
   useEffect(() => {
@@ -91,9 +142,32 @@ export function ChatInput({
           />
         </div>
       )}
-      <div class="d-flex align-items-end gap-2">
+      <div class="d-flex align-items-end gap-2 position-relative">
         <ModelPicker value={selectedModel} onChange={setSelectedModel} disabled={disabled} />
-        <div class="flex-grow-1">
+        <div class="flex-grow-1 position-relative">
+          {showDropdown && (
+            <div
+              class="position-absolute bottom-100 start-0 w-100 mb-1 border rounded bg-body shadow-sm"
+              style="z-index: 10; max-height: 220px; overflow-y: auto;"
+            >
+              {slashMatches.map((cmd, i) => (
+                // biome-ignore lint/a11y/useKeyWithClickEvents: dropdown click
+                // biome-ignore lint/a11y/noStaticElementInteractions: dropdown click
+                <div
+                  key={cmd.name}
+                  class={`px-3 py-2 d-flex align-items-baseline gap-2 small ${i === selectedIdx ? "bg-primary text-white" : ""}`}
+                  style="cursor: pointer;"
+                  onClick={() => acceptCompletion(cmd)}
+                >
+                  <span class="fw-semibold">/{cmd.name}</span>
+                  {"args" in cmd && cmd.args ? <span class="text-muted">{cmd.args}</span> : null}
+                  <span class={`ms-auto ${i === selectedIdx ? "text-white-50" : "text-muted"}`}>
+                    {cmd.description}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           <textarea
             ref={textareaRef}
             class="form-control"
