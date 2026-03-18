@@ -51,6 +51,7 @@ function msg(role: "user" | "assistant", content: string): ChatMessage {
     id: 1,
     sessionId: 1,
     parentId: null,
+    replyToId: null,
     role,
     content,
     model: null,

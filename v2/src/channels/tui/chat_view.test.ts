@@ -5,14 +5,14 @@ import { stripAnsi } from "./wrap_text.ts";
 
 describe("renderChatMessages", () => {
   it("renders a user message with bold 'you:' label", () => {
-    const lines = renderChatMessages([{ role: "user", content: "hello" }], 80);
+    const lines = renderChatMessages([{ id: 1, role: "user", content: "hello" }], 80);
     const joined = lines.map(stripAnsi).join("\n");
     ok(joined.includes("you:"));
     ok(joined.includes("hello"));
   });
 
   it("renders an assistant message with 'ghostpaw:' label", () => {
-    const lines = renderChatMessages([{ role: "assistant", content: "hi" }], 80);
+    const lines = renderChatMessages([{ id: 1, role: "assistant", content: "hi" }], 80);
     const joined = lines.map(stripAnsi).join("\n");
     ok(joined.includes("ghostpaw:"));
     ok(joined.includes("hi"));
@@ -20,8 +20,8 @@ describe("renderChatMessages", () => {
 
   it("renders multiple messages in order", () => {
     const messages = [
-      { role: "user" as const, content: "question" },
-      { role: "assistant" as const, content: "answer" },
+      { id: 1, role: "user" as const, content: "question" },
+      { id: 2, role: "assistant" as const, content: "answer" },
     ];
     const lines = renderChatMessages(messages, 80);
     const joined = lines.map(stripAnsi).join("\n");
@@ -32,7 +32,7 @@ describe("renderChatMessages", () => {
 
   it("wraps long content to the specified width", () => {
     const longMsg = "word ".repeat(30).trim();
-    const lines = renderChatMessages([{ role: "user", content: longMsg }], 40);
+    const lines = renderChatMessages([{ id: 1, role: "user", content: longMsg }], 40);
     ok(lines.length > 3);
   });
 
@@ -43,7 +43,7 @@ describe("renderChatMessages", () => {
 
   it("renders markdown in assistant messages", () => {
     const lines = renderChatMessages(
-      [{ role: "assistant", content: "use **bold** and `code`" }],
+      [{ id: 1, role: "assistant", content: "use **bold** and `code`" }],
       80,
     );
     const plain = lines.map(stripAnsi).join(" ");

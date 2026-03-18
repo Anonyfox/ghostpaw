@@ -84,6 +84,7 @@ export function createEntity(options: EntityOptions): Entity {
       maxIterations: opts?.maxIterations,
       temperature: opts?.temperature,
       reasoning: opts?.reasoning,
+      replyToId: opts?.replyToId,
       onToolCallStart: opts?.onToolCallStart,
       onToolCallComplete: opts?.onToolCallComplete,
     };

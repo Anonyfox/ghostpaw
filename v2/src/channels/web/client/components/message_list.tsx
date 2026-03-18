@@ -8,6 +8,7 @@ interface MessageListProps {
   streamingContent: string;
   waiting?: boolean;
   toolActivity?: ToolActivity | null;
+  onReply?: (msg: ChatMessageInfo) => void;
 }
 
 export function MessageList({
@@ -15,6 +16,7 @@ export function MessageList({
   streamingContent,
   waiting,
   toolActivity,
+  onReply,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const hasTools = toolActivity !== null && toolActivity !== undefined;
@@ -25,7 +27,13 @@ export function MessageList({
 
   const streaming = streamingContent.length > 0;
   const streamMsg: ChatMessageInfo | null = streaming
-    ? { id: -1, role: "assistant", content: streamingContent, createdAt: Date.now() }
+    ? {
+        id: -1,
+        role: "assistant",
+        content: streamingContent,
+        createdAt: Date.now(),
+        replyToId: null,
+      }
     : null;
 
   const showThinking = waiting && !streaming && !hasTools;
@@ -39,7 +47,13 @@ export function MessageList({
         </div>
       )}
       {messages.map((msg) => (
-        <MessageBubble key={msg.id} message={msg} />
+        <div key={msg.id} id={`msg-${msg.id}`} class="message-row">
+          <MessageBubble
+            message={msg}
+            allMessages={messages}
+            onReply={msg.id > 0 ? onReply : undefined}
+          />
+        </div>
       ))}
       {streamMsg && <MessageBubble message={streamMsg} streaming />}
       {hasTools && <ToolActivityIndicator activity={toolActivity} />}

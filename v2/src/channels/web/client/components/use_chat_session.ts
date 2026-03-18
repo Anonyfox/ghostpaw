@@ -21,7 +21,7 @@ export interface UseChatSessionResult {
   error: string;
   totalTokens: number;
   model: string;
-  sendMessage: (text: string, model?: string) => void;
+  sendMessage: (text: string, model?: string, replyToId?: number) => void;
 }
 
 interface UseChatSessionOptions {
@@ -67,7 +67,7 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
         setTotalTokens((prev) => prev + tokens);
         setMessages((prev) => [
           ...prev,
-          { id: messageId, role: "assistant", content, createdAt: Date.now() },
+          { id: messageId, role: "assistant", content, createdAt: Date.now(), replyToId: null },
         ]);
         setStreamingContent("");
       },
@@ -159,10 +159,16 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
   }, [targetSessionId, openWs]);
 
   const sendMessage = useCallback(
-    async (text: string, overrideModel?: string) => {
+    async (text: string, overrideModel?: string, replyToId?: number) => {
       setMessages((prev) => [
         ...prev,
-        { id: Date.now(), role: "user", content: text, createdAt: Date.now() },
+        {
+          id: Date.now(),
+          role: "user",
+          content: text,
+          createdAt: Date.now(),
+          replyToId: replyToId ?? null,
+        },
       ]);
       setError("");
 
@@ -195,7 +201,7 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
 
       await conn.ready;
       setWaiting(true);
-      conn.send(text, overrideModel);
+      conn.send(text, overrideModel, replyToId);
     },
     [openWs],
   );

@@ -10,6 +10,7 @@ export interface TelegramSentMessage {
 
 export interface TelegramSendMessageOptions {
   dismissHowlId?: number;
+  replyToMessageId?: number;
 }
 
 export interface TelegramChannelConfig {

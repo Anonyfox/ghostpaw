@@ -8,6 +8,7 @@ describe("toRunResult", () => {
     const turn: TurnResult = {
       succeeded: true,
       messageId: 1,
+      userMessageId: 1,
       content: "Hello!",
       model: "gpt-4o",
       usage: {
@@ -32,6 +33,7 @@ describe("toRunResult", () => {
     const turn: TurnResult = {
       succeeded: true,
       messageId: 42,
+      userMessageId: 1,
       content: "test",
       model: "m",
       usage: {

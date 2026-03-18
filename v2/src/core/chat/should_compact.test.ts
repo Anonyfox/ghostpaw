@@ -8,6 +8,7 @@ function msg(content: string): ChatMessage {
     id: 1,
     sessionId: 1,
     parentId: null,
+    replyToId: null,
     role: "user",
     content,
     model: null,

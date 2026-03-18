@@ -12,13 +12,14 @@ export function addMessage(db: DatabaseHandle, input: AddMessageInput): ChatMess
   const costUsd = input.costUsd ?? 0;
   const isCompaction = input.isCompaction ? 1 : 0;
   const toolData = input.toolData ?? null;
+  const replyToId = input.replyToId ?? null;
 
   const result = db
     .prepare(
       `INSERT INTO messages
        (session_id, parent_id, role, content, model, tokens_in, tokens_out,
-        reasoning_tokens, cached_tokens, cost_usd, created_at, is_compaction, tool_data)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        reasoning_tokens, cached_tokens, cost_usd, created_at, is_compaction, tool_data, reply_to_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       input.sessionId,
@@ -34,6 +35,7 @@ export function addMessage(db: DatabaseHandle, input: AddMessageInput): ChatMess
       now,
       isCompaction,
       toolData,
+      replyToId,
     );
 
   const messageId = result.lastInsertRowid;
@@ -57,5 +59,6 @@ export function addMessage(db: DatabaseHandle, input: AddMessageInput): ChatMess
     createdAt: now,
     isCompaction: !!input.isCompaction,
     toolData,
+    replyToId,
   };
 }

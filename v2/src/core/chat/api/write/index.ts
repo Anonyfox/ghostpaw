@@ -17,6 +17,11 @@ export { persistToolMessages } from "../../persist_tool_messages.ts";
 export { pruneEmptySessions } from "../../prune_empty_sessions.ts";
 export { renameSession } from "../../rename_session.ts";
 export { shouldCompact } from "../../should_compact.ts";
+export type {
+  ChannelMessageRecord,
+  StoreChannelMessageInput,
+} from "../../store_channel_message.ts";
+export { storeChannelMessage } from "../../store_channel_message.ts";
 export { streamTurn } from "../../stream_turn.ts";
 export type {
   AddMessageInput,

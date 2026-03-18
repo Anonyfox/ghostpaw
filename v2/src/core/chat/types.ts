@@ -53,6 +53,7 @@ export interface ChatMessage {
   createdAt: number;
   isCompaction: boolean;
   toolData: string | null;
+  replyToId: number | null;
 }
 
 export interface CreateSessionInput {
@@ -76,6 +77,7 @@ export interface AddMessageInput {
   costUsd?: number;
   isCompaction?: boolean;
   toolData?: string;
+  replyToId?: number;
 }
 
 export interface ListSessionsFilter {
@@ -111,6 +113,7 @@ export interface TurnInput {
   maxTokens?: number;
   reasoning?: "off" | "low" | "medium" | "high";
   compactionThreshold?: number;
+  replyToId?: number;
   onToolCallStart?: (calls: ToolCallInfo[]) => void;
   onToolCallComplete?: (results: ToolResultInfo[]) => void;
 }
@@ -118,6 +121,7 @@ export interface TurnInput {
 export interface TurnResult {
   succeeded: boolean;
   messageId: number;
+  userMessageId: number;
   content: string;
   model: string;
   usage: {

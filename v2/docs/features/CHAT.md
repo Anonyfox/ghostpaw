@@ -29,6 +29,12 @@ real context and unmet needs, not when it becomes constant interruption
 ([arXiv:2601.09926](https://arxiv.org/abs/2601.09926),
 [arXiv:2602.04482](https://arxiv.org/html/2602.04482v2)).
 
+**Referencing earlier context is native, not afterthought.** When a user replies to a specific earlier
+message — by swiping in Telegram, clicking in the browser, or prefixing `@3` in the terminal —
+Ghostpaw knows which message is being referenced and can quote it back into context even if it has
+been compacted out of the active window. This is not a bolt-on threading feature. It is part of how
+the conversation stays coherent when the user wants to revisit something specific.
+
 **A chat that compounds.** Every live interaction becomes durable local state. Sessions persist human
 messages, assistant replies, tool traces, usage, and lineage. Ghostpaw does not just spend tokens.
 Ghostpaw turns tokens into state, and that state later makes direct chat better.
@@ -42,10 +48,12 @@ the user has to go. The stronger idea is that Ghostpaw can live where the user a
 the clearest example because it is a third-party surface the user already inhabits every day. The same
 principle extends to terminal-native use and future embedded surfaces.
 
-This is why channel-native form matters. Telegram should feel like Telegram. The TUI should feel like
-a terminal. CLI one-offs should feel command-shaped. The browser can become the richest surface, but
-it must not become the only place where Ghostpaw feels real. Channel coherence matters more than
-identical chrome.
+This is why channel-native form matters. Telegram should feel like Telegram — swipe-reply lands a
+native reply, not a prefixed quote hack. The TUI should feel like a terminal — message numbering and
+`@N` syntax fit the keyboard-driven flow. The browser should feel like a messenger — hover to reply,
+preview bar above input, clickable quote blocks in bubbles. CLI one-offs should feel command-shaped.
+The browser can become the richest surface, but it must not become the only place where Ghostpaw
+feels real. Channel coherence matters more than identical chrome.
 
 ## Chat Modes
 
@@ -103,10 +111,11 @@ Under the hood, Ghostpaw’s live center is the session/message substrate in
 [`src/core/chat/`](../../src/core/chat/).
 
 Every live turn persists:
-- the user message
+- the user message (including which earlier message it replies to, if any)
 - any tool-call and tool-result traces
 - the assistant result
 - usage and cost
+- channel-native message ID mappings so replies can bridge between internal and external identity
 
 That persistence model is the same broad substrate for direct chat, delegation, haunt, howl, and
 system work. Howl is not a sibling subsystem. It is a real `purpose: "howl"` chat session with
@@ -117,7 +126,9 @@ Two runtime truths matter a lot for how Ghostpaw chat behaves:
 **Bounded replay through compaction.** Future turns do not naively replay the entire lifetime of a
 conversation. `getHistory()` replays the active branch since the latest compaction marker, while
 `getFullHistory()` can still expose the full chain for humans. That is how Ghostpaw stays continuous
-without letting context grow unbounded.
+without letting context grow unbounded. When a user replies to a message that has been compacted out
+of the active window, the referenced content is quoted back into the LLM context at turn time so the
+model can see what is being responded to without expanding the window itself.
 
 **Explicit persistence access instead of blanket injection.** The normal live prompt is assembled
 mostly from soul, environment, skill index, and tool guidance. Ghostpaw does not automatically spray
@@ -210,8 +221,11 @@ resolve alone, a **fundamental curiosity** worth exploring with the user rather 
 or a **critical alert** about real danger or a breaking change.
 
 The important mechanics are simple:
-- a howl is born from an origin session
+- a howl is born from an origin session and tracks the specific message that triggered it
 - it stores origin coordinates plus delivery text and status
+- delivery uses the channel's native reply threading when the origin message has a known channel
+  identity — a Telegram howl arrives as a native reply to the message that prompted it, and a future
+  email howl will carry the correct `In-Reply-To` header
 - Ghostpaw does not wait for the reply
 - when the user replies or dismisses, that signal is processed back against the origin context
 - later consolidation turns that exchange into updated state
@@ -229,16 +243,23 @@ Chat is omnichannel by design, but the channels are not equal copies of one anot
 
 **Telegram** is the clearest statement of the resident-chat thesis. Ghostpaw can live inside a
 third-party surface the user already inhabits, keep a stable per-chat thread there, and still remain
-the same Ghostpaw as everywhere else. That matters more than ornate product chrome.
+the same Ghostpaw as everywhere else. Swipe-reply is native — the user replies to a specific message
+and Ghostpaw knows which one, and responds as a native Telegram reply in turn. That matters more than
+ornate product chrome.
 
-**TUI** is a terminal-native habitat. It keeps Ghostpaw local, focused, and legible.
+**TUI** is a terminal-native habitat. It keeps Ghostpaw local, focused, and legible. Messages are
+numbered sequentially, and the user can reference any earlier message by prefixing `@N` — a
+keyboard-native reply syntax that fits the terminal flow without visual clutter.
 
 **CLI one-off runs** are compressed chat. They are still real expressions of the feature, even when
 the interaction is brief and command-shaped.
 
 **Web** is the richest current inspector and control surface. It is the best place to browse sessions,
-inspect transcripts, watch tool activity, and add richer affordances later. But web richness should
-remain additive. It should not redefine what chat fundamentally is in Ghostpaw.
+inspect transcripts, watch tool activity, and add richer affordances later. Reply interaction follows
+the messenger pattern: hover to reveal a reply icon, click to set a reply target with a preview bar
+above the input, and send to produce a message with a clickable quote block linking back to the
+original. But web richness should remain additive. It should not redefine what chat fundamentally is
+in Ghostpaw.
 
 That means future browser additions such as uploads, richer message actions, stronger session/history
 management, inline tool transparency, or deeper output surfaces should be treated as useful extensions
@@ -344,7 +365,7 @@ before compaction, haunting, howls, and long-range improvement loops have much m
 
 ## Data Contract
 
-- **Primary tables:** `sessions`, `messages`, `howls`
+- **Primary tables:** `sessions`, `messages`, `howls`, `channel_messages`
 - **Session purposes:** `chat`, `command`, `delegate`, `train`, `scout`, `system`, `haunt`, `howl`
 - **Message roles:** `user`, `assistant`, `tool_call`, `tool_result`
 - **Canonical session model:** `ChatSession`
@@ -357,6 +378,11 @@ before compaction, haunting, howls, and long-range improvement loops have much m
   - tool activity is persisted as message-level trace data
   - active history can be compacted without destroying full historical retrieval
   - child conversational work is linked through `parent_session_id`
+  - reply threading is stored as `reply_to_id` on the message, separate from `parent_id` (which
+    tracks linear history); this means a reply can reference any earlier message in the session
+    regardless of compaction state
+  - `channel_messages` bridges internal message IDs to channel-native IDs (Telegram message IDs,
+    future email `Message-ID` headers) so that reply threading works bidirectionally across surfaces
 
 ## Interfaces
 
@@ -366,29 +392,31 @@ before compaction, haunting, howls, and long-range improvement loops have much m
 `listSessions()`, `querySessionsPage()`, `getSessionStats()`, `getSessionTokens()`,
 `getSpendInWindow()`, `getTokensInWindow()`, `getCostSummary()`, `getCostByModel()`,
 `getCostBySoul()`, `getCostByPurpose()`, `getDailyCostTrend()`, `listDistillableSessionIds()`,
-`countSubstantiveMessages()`, `deriveSessionTitle()`, and `api/read/delegation_metrics.ts`.
+`countSubstantiveMessages()`, `deriveSessionTitle()`, `lookupByChannelId()`, `lookupByMessageId()`,
+and `api/read/delegation_metrics.ts`.
 
 ### Write
 
 `createSession()`, `getOrCreateSession()`, `addMessage()`, `recordTurn()`, `persistToolMessages()`,
 `accumulateUsage()`, `renameSession()`, `closeSession()`, `deleteSession()`, `finalizeDelegation()`,
-`markDistilled()`, `markMessagesDistilled()`, `deleteOldDistilled()`, `pruneEmptySessions()`, and
-`migrateHaunts()`.
+`markDistilled()`, `markMessagesDistilled()`, `deleteOldDistilled()`, `pruneEmptySessions()`,
+`storeChannelMessage()`, and `migrateHaunts()`.
 
 ### Runtime
 
-`executeTurn()`, `streamTurn()`, `buildChat()`, `acquireSessionLock()`, `shouldCompact()`,
-`generateSessionTitle()`, `recoverOrphanedSessions()`, `initChatTables()`, `runHaunt()`,
-`processHowlReply()`, and `processHowlDismiss()`.
+`executeTurn()`, `streamTurn()`, `buildChat()`, `resolveReplyQuotes()`, `acquireSessionLock()`,
+`shouldCompact()`, `generateSessionTitle()`, `recoverOrphanedSessions()`, `initChatTables()`,
+`runHaunt()`, `processHowlReply()`, and `processHowlDismiss()`.
 
 ## User Surfaces
 
-- **Telegram:** persistent per-chat conversation, native message flow, and howl reply handling inside
-  a third-party surface the user already inhabits
-- **TUI:** local streaming terminal chat with visible tool activity and session continuity
+- **Telegram:** persistent per-chat conversation, native message flow, native reply threading, and
+  howl delivery as native replies inside a third-party surface the user already inhabits
+- **TUI:** local streaming terminal chat with visible tool activity, session continuity, message
+  numbering, and `@N` reply syntax
 - **CLI one-off:** ephemeral command-shaped chat runs that still use the same core substrate
 - **Web UI:** the richest current surface for session browsing, transcript inspection, live tool
-  activity, and future additive chat affordances
+  activity, messenger-style reply interaction, and future additive chat affordances
 - **Chat modes:** haunt and howl as two special chat modes tied back to the same broader live feature
 
 ## Research Map

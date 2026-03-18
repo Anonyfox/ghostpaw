@@ -1,5 +1,6 @@
 import { useCallback, useState } from "preact/hooks";
 import { useRoute } from "wouter-preact";
+import type { ChatMessageInfo } from "../../shared/chat_message_info.ts";
 import { ChatInput } from "../components/chat_input.tsx";
 import { ChatSidebar } from "../components/chat_sidebar.tsx";
 import { MessageList } from "../components/message_list.tsx";
@@ -18,6 +19,15 @@ export function ChatPage() {
     title: string;
   } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [replyToMessage, setReplyToMessage] = useState<ChatMessageInfo | null>(null);
+
+  const handleReply = useCallback((msg: ChatMessageInfo) => {
+    setReplyToMessage(msg);
+  }, []);
+
+  const handleCancelReply = useCallback(() => {
+    setReplyToMessage(null);
+  }, []);
 
   const handleTitleGenerated = useCallback((sessionId: number, title: string) => {
     setUpdatedTitle({ sessionId, title });
@@ -123,11 +133,14 @@ export function ChatPage() {
             streamingContent={streamingContent}
             waiting={waiting}
             toolActivity={toolActivity}
+            onReply={handleReply}
           />
           <ChatInput
             onSend={sendMessage}
             disabled={busy}
             defaultModel={model || "claude-sonnet-4-6"}
+            replyTo={replyToMessage}
+            onCancelReply={handleCancelReply}
           />
         </>
       )}

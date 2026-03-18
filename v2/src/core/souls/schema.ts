@@ -11,14 +11,10 @@ export function initSoulsTables(db: DatabaseHandle): void {
       level        INTEGER NOT NULL DEFAULT 0,
       created_at   INTEGER NOT NULL,
       updated_at   INTEGER NOT NULL,
-      deleted_at   INTEGER
+      deleted_at      INTEGER,
+      last_attuned_at INTEGER
     )
   `);
-  try {
-    db.exec("ALTER TABLE souls ADD COLUMN last_attuned_at INTEGER DEFAULT NULL");
-  } catch {
-    // column already exists
-  }
   db.exec(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_souls_name_active
     ON souls(name) WHERE deleted_at IS NULL

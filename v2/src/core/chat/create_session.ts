@@ -36,6 +36,7 @@ export function createSession(
     headMessageId: null,
     closedAt: null,
     distilledAt: null,
+    distillFailedAt: null,
     parentSessionId,
     soulId,
     questId,

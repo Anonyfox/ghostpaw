@@ -17,6 +17,7 @@ function rowToMessage(row: Record<string, unknown>): ChatMessage {
     createdAt: row.created_at as number,
     isCompaction: row.is_compaction === 1,
     toolData: (row.tool_data as string) ?? null,
+    replyToId: (row.reply_to_id as number) ?? null,
   };
 }
 

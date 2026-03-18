@@ -48,6 +48,7 @@ export function createChatApiHandlers(db: DatabaseHandle) {
         role: m.role,
         content: m.content,
         createdAt: m.createdAt,
+        replyToId: m.replyToId,
       }));
 
       const totalTokens = session.tokensIn + session.tokensOut;

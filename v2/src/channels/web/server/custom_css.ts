@@ -170,4 +170,10 @@ export const customCss = `
 .trail-banner { opacity: 0; transition: opacity 0.2s; }
 .trail-banner.loaded { opacity: 1; }
 .trail-omen-bar { height: 4px; border-radius: 2px; }
+
+/* Reply system */
+.message-row .reply-action { opacity: 0; transition: opacity 0.15s; z-index: 1; }
+.message-row:hover .reply-action { opacity: 1; }
+.reply-quote { border-radius: 0.25rem; }
+.reply-preview .btn-close-sm { width: 0.75em; height: 0.75em; }
 `;

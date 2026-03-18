@@ -56,6 +56,7 @@ const WRITE_IMPORT_ALLOWLIST = new Set([
   "src/channels/cli/souls_generate_description.ts",
   "src/channels/cli/souls_generate_name.ts",
   "src/channels/cli/to_run_result.ts",
+  "src/channels/telegram/handle_message.ts",
   "src/channels/telegram/handle_reset.ts",
   "src/channels/telegram/notify.ts",
   "src/channels/telegram/rotate_session.ts",

@@ -31,6 +31,7 @@ export interface EntityTurnOptions {
   maxIterations?: number;
   temperature?: number;
   reasoning?: "off" | "low" | "medium" | "high";
+  replyToId?: number;
   onTitleGenerated?: (title: string) => void;
   onToolCallStart?: (calls: ToolCallInfo[]) => void;
   onToolCallComplete?: (results: ToolResultInfo[]) => void;

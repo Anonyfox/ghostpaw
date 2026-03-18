@@ -1,5 +1,5 @@
 import { Bot } from "grammy";
-import { listSessions } from "../../core/chat/api/read/index.ts";
+import { listSessions, lookupByMessageId } from "../../core/chat/api/read/index.ts";
 import { getOrCreateSession } from "../../core/chat/api/write/index.ts";
 import { processHowlDismiss } from "../../harness/howl/index.ts";
 import { registerChannel, unregisterChannel } from "../../lib/channel_registry.ts";
@@ -49,8 +49,12 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
             ],
           }
         : undefined;
+      const replyParameters = options?.replyToMessageId
+        ? { message_id: options.replyToMessageId }
+        : undefined;
       const message = await bot.api.sendMessage(chatId, text, {
         reply_markup: replyMarkup,
+        reply_parameters: replyParameters,
       });
       return { messageId: message.message_id };
     });
@@ -85,7 +89,7 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
     entity,
     resolveSessionId,
     isAllowed,
-    sendMessage: sendPlainMessage,
+    sendMessage,
     sendTyping,
     setReaction,
   };
@@ -170,10 +174,21 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
                   explicitReply: true,
                   priority: 100,
                 }),
-                deliverHowl: async ({ howlId, message }) => {
+                deliverHowl: async ({ howlId, message, originMessageId }) => {
                   const chatId = lastActiveChatId;
                   if (!chatId) throw new Error("No active Telegram chat");
-                  const sent = await sendMessage(chatId, message, { dismissHowlId: howlId });
+
+                  let replyToMessageId: number | undefined;
+                  if (originMessageId) {
+                    const mappings = lookupByMessageId(db, originMessageId);
+                    const tgMapping = mappings.find((m) => m.channel === "telegram");
+                    if (tgMapping) replyToMessageId = Number(tgMapping.channelMessageId);
+                  }
+
+                  const sent = await sendMessage(chatId, message, {
+                    dismissHowlId: howlId,
+                    replyToMessageId,
+                  });
                   return {
                     channel: "telegram" as const,
                     delivered: true,

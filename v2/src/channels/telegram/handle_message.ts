@@ -2,10 +2,12 @@ import {
   getHowlByTelegramReplyTarget,
   getResolvableTelegramHowlFromPlainText,
 } from "../../core/chat/api/read/howls/index.ts";
+import { lookupByChannelId } from "../../core/chat/api/read/index.ts";
+import { storeChannelMessage } from "../../core/chat/api/write/index.ts";
 import { processHowlReply } from "../../harness/howl/index.ts";
 import type { Entity } from "../../harness/index.ts";
 import { splitMessage } from "./split_message.ts";
-import type { ReactionEmoji } from "./types.ts";
+import type { ReactionEmoji, TelegramSendMessageOptions, TelegramSentMessage } from "./types.ts";
 
 const TYPING_INTERVAL_MS = 4_000;
 
@@ -13,7 +15,11 @@ export interface HandleMessageDeps {
   entity: Entity;
   resolveSessionId: (chatId: number) => number;
   isAllowed: (chatId: number) => boolean;
-  sendMessage: (chatId: number, text: string) => Promise<unknown>;
+  sendMessage: (
+    chatId: number,
+    text: string,
+    options?: TelegramSendMessageOptions,
+  ) => Promise<TelegramSentMessage>;
   sendTyping: (chatId: number) => Promise<void>;
   setReaction: (chatId: number, messageId: number, emoji: ReactionEmoji) => Promise<void>;
 }
@@ -54,13 +60,35 @@ export async function handleMessage(
       }
     } else {
       const sessionId = deps.resolveSessionId(chatId);
-      const result = await deps.entity.executeTurn(sessionId, text);
+
+      let replyToId: number | undefined;
+      if (replyToMessageId) {
+        const lookup = lookupByChannelId(deps.entity.db, "telegram", String(replyToMessageId));
+        if (lookup) replyToId = lookup.messageId;
+      }
+
+      const result = await deps.entity.executeTurn(sessionId, text, { replyToId });
       clearInterval(typingInterval);
       await deps.setReaction(chatId, messageId, "\u{1F44D}");
 
+      storeChannelMessage(deps.entity.db, {
+        sessionId,
+        messageId: result.userMessageId,
+        channel: "telegram",
+        channelMessageId: String(messageId),
+        direction: "in",
+      });
+
       const parts = splitMessage(result.content);
       for (const part of parts) {
-        await deps.sendMessage(chatId, part);
+        const sent = await deps.sendMessage(chatId, part, { replyToMessageId: messageId });
+        storeChannelMessage(deps.entity.db, {
+          sessionId,
+          messageId: result.messageId,
+          channel: "telegram",
+          channelMessageId: String(sent.messageId),
+          direction: "out",
+        });
       }
     }
   } catch (err) {

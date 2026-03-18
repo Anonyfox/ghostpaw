@@ -24,6 +24,7 @@ export function recordTurn(
   lastResult: LastResult | null,
   model: string,
   parentId: number | null,
+  userMessageId: number,
   succeeded = true,
 ): TurnResult {
   const estimatedTokens = estimateTokens(content);
@@ -59,6 +60,7 @@ export function recordTurn(
   return {
     succeeded,
     messageId: message.id,
+    userMessageId,
     content,
     model: realModel,
     usage: {

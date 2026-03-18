@@ -23,6 +23,7 @@ export interface TuiOptions {
 }
 
 interface ChatMessage {
+  id: number;
   role: "user" | "assistant";
   content: string;
 }
@@ -151,15 +152,29 @@ export async function runTui(opts: TuiOptions): Promise<void> {
     streaming = true;
     streamContent = "";
     scrollOffset = 0;
-    messages.push({ role: "user", content: text });
+
+    let replyToId: number | undefined;
+    let content = text;
+    const replyMatch = /^@(\d+)\s+/.exec(text);
+    if (replyMatch) {
+      const n = Number(replyMatch[1]);
+      if (n >= 1 && n <= messages.length) {
+        replyToId = messages[n - 1]!.id;
+        content = text.slice(replyMatch[0].length);
+      }
+    }
+
+    const userIdx = messages.length;
+    messages.push({ id: 0, role: "user", content });
     paint();
 
     const sid = ensureSession();
     let fullText = "";
     const activeTools = new Set<string>();
     try {
-      const gen = entity.streamTurn(sid, text, {
+      const gen = entity.streamTurn(sid, content, {
         model: opts.model,
+        replyToId,
         onToolCallStart(calls) {
           for (const c of calls) activeTools.add(c.name);
           toolStatus = [...activeTools].join(", ");
@@ -177,6 +192,7 @@ export async function runTui(opts: TuiOptions): Promise<void> {
           const result: TurnResult = next.value;
           totalTokens += result.usage.totalTokens;
           model = result.model;
+          messages[userIdx]!.id = result.userMessageId;
           break;
         }
         fullText += next.value;
@@ -190,7 +206,7 @@ export async function runTui(opts: TuiOptions): Promise<void> {
     }
     toolStatus = "";
 
-    messages.push({ role: "assistant", content: fullText });
+    messages.push({ id: 0, role: "assistant", content: fullText });
     streaming = false;
     streamContent = "";
     scrollOffset = 0;

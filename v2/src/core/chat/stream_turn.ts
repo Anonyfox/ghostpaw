@@ -7,6 +7,7 @@ import { getHistory } from "./get_history.ts";
 import { getSession } from "./get_session.ts";
 import { persistToolMessages } from "./persist_tool_messages.ts";
 import { recordTurn } from "./record_turn.ts";
+import { resolveReplyQuotes } from "./resolve_reply_quotes.ts";
 import { shouldCompact } from "./should_compact.ts";
 import type { TurnInput, TurnResult } from "./types.ts";
 
@@ -41,9 +42,11 @@ export async function* streamTurn(
       content: input.content,
       parentId: headId ?? undefined,
       tokensIn: estimateTokens(input.content),
+      replyToId: input.replyToId,
     });
 
-    const history = getHistory(ctx.db, input.sessionId);
+    const rawHistory = getHistory(ctx.db, input.sessionId);
+    const history = resolveReplyQuotes(ctx.db, rawHistory);
     const chat = buildChat(history, input.systemPrompt, input.model, ctx.tools, ctx.createChat);
     const preGenerateCount = chat.messages.length;
 
@@ -83,6 +86,7 @@ export async function* streamTurn(
       lastResult,
       input.model,
       currentHead,
+      userMsg.id,
       succeeded,
     );
   } finally {

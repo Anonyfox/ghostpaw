@@ -10,7 +10,7 @@ interface WsCallbacks {
 
 export interface ChatWsConnection {
   ready: Promise<void>;
-  send: (content: string, model?: string) => void;
+  send: (content: string, model?: string, replyToId?: number) => void;
   close: () => void;
 }
 
@@ -91,13 +91,14 @@ export function connectChatWs(sessionId: number, callbacks: WsCallbacks): ChatWs
 
   return {
     ready,
-    send(content: string, model?: string) {
+    send(content: string, model?: string, replyToId?: number) {
       if (ws.readyState !== WebSocket.OPEN) {
         callbacks.onError("WebSocket not ready.");
         return;
       }
-      const payload: Record<string, string> = { type: "send", content };
+      const payload: Record<string, unknown> = { type: "send", content };
       if (model) payload.model = model;
+      if (replyToId !== undefined) payload.replyToId = replyToId;
       ws.send(JSON.stringify(payload));
     },
     close() {

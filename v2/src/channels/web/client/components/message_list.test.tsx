@@ -24,8 +24,8 @@ describe("MessageList", () => {
 
   it("renders messages", () => {
     const msgs: ChatMessageInfo[] = [
-      { id: 1, role: "user", content: "Hello", createdAt: Date.now() },
-      { id: 2, role: "assistant", content: "Hi!", createdAt: Date.now() },
+      { id: 1, role: "user", content: "Hello", createdAt: Date.now(), replyToId: null },
+      { id: 2, role: "assistant", content: "Hi!", createdAt: Date.now(), replyToId: null },
     ];
     render(<MessageList messages={msgs} streamingContent="" />, dom.container);
     assert.ok(dom.container.textContent!.includes("Hello"));
@@ -34,7 +34,7 @@ describe("MessageList", () => {
 
   it("shows streaming content as an additional bubble", () => {
     const msgs: ChatMessageInfo[] = [
-      { id: 1, role: "user", content: "Tell me", createdAt: Date.now() },
+      { id: 1, role: "user", content: "Tell me", createdAt: Date.now(), replyToId: null },
     ];
     render(<MessageList messages={msgs} streamingContent="Working on it..." />, dom.container);
     assert.ok(dom.container.textContent!.includes("Working on it..."));
@@ -49,7 +49,7 @@ describe("MessageList", () => {
 
   it("shows thinking indicator when waiting", () => {
     const msgs: ChatMessageInfo[] = [
-      { id: 1, role: "user", content: "Hello", createdAt: Date.now() },
+      { id: 1, role: "user", content: "Hello", createdAt: Date.now(), replyToId: null },
     ];
     render(<MessageList messages={msgs} streamingContent="" waiting />, dom.container);
     const spinners = dom.container.querySelectorAll(".spinner-grow");
@@ -58,7 +58,7 @@ describe("MessageList", () => {
 
   it("hides thinking indicator once streaming starts", () => {
     const msgs: ChatMessageInfo[] = [
-      { id: 1, role: "user", content: "Hello", createdAt: Date.now() },
+      { id: 1, role: "user", content: "Hello", createdAt: Date.now(), replyToId: null },
     ];
     render(<MessageList messages={msgs} streamingContent="Hi" waiting />, dom.container);
     const indicators = dom.container.querySelectorAll(".streaming-indicator");

@@ -8,9 +8,7 @@ export interface ResolvedPath {
 
 export function resolvePath(workspace: string, filePath: string): ResolvedPath {
   const expanded =
-    filePath === "~" || filePath.startsWith("~/")
-      ? homedir() + filePath.slice(1)
-      : filePath;
+    filePath === "~" || filePath.startsWith("~/") ? homedir() + filePath.slice(1) : filePath;
 
   const fullPath = isAbsolute(expanded) ? resolve(expanded) : resolve(workspace, expanded);
 

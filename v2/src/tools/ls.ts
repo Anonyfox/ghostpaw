@@ -19,8 +19,7 @@ const SKIP_DIRS = new Set([
 
 class LsParams extends Schema {
   path = Schema.String({
-    description:
-      "Directory path, relative to workspace root or absolute. Omit for workspace root.",
+    description: "Directory path, relative to workspace root or absolute. Omit for workspace root.",
     optional: true,
   });
   depth = Schema.Integer({

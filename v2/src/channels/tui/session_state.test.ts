@@ -54,8 +54,8 @@ describe("loadTuiMessages", () => {
     });
 
     deepStrictEqual(loadTuiMessages(db, session.id), [
-      { role: "user", content: "hello" },
-      { role: "assistant", content: "hi" },
+      { id: 1, role: "user", content: "hello" },
+      { id: 4, role: "assistant", content: "hi" },
     ]);
   });
 });

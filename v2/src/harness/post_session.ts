@@ -33,7 +33,9 @@ export function handlePostSession(
   return distillSession(db, sessionId, model, createChat)
     .then(() => {})
     .catch((err) => {
-      log.warn(`post-session distill ${sessionId} failed: ${err instanceof Error ? err.message : err}`);
+      log.warn(
+        `post-session distill ${sessionId} failed: ${err instanceof Error ? err.message : err}`,
+      );
       try {
         markDistillFailed(db, sessionId);
       } catch {

@@ -1,7 +1,7 @@
 import { deepStrictEqual, ok, strictEqual } from "node:assert";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { createHowl, updateHowlDelivery } from "../../core/chat/api/write/howls/index.ts";
-import { createSession, type TurnResult } from "../../core/chat/api/write/index.ts";
+import { addMessage, createSession, type TurnResult } from "../../core/chat/api/write/index.ts";
 import { initChatTables, initHowlTables } from "../../core/chat/runtime/index.ts";
 import type { Entity } from "../../harness/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
@@ -10,21 +10,31 @@ import type { HandleMessageDeps } from "./handle_message.ts";
 import { handleMessage } from "./handle_message.ts";
 import type { ReactionEmoji, TelegramSentMessage } from "./types.ts";
 
-const TURN_OK: TurnResult = {
-  succeeded: true,
-  messageId: 1,
-  content: "Hello from Ghostpaw!",
-  model: "test-model",
-  usage: {
-    inputTokens: 10,
-    outputTokens: 20,
-    reasoningTokens: 0,
-    cachedTokens: 0,
-    totalTokens: 30,
-  },
-  cost: { estimatedUsd: 0.001 },
-  iterations: 1,
-};
+function makeTurnOk(sessionId: number, db: DatabaseHandle): TurnResult {
+  const userMsg = addMessage(db, { sessionId, role: "user", content: "stub" });
+  const assistMsg = addMessage(db, {
+    sessionId,
+    role: "assistant",
+    content: "Hello from Ghostpaw!",
+    parentId: userMsg.id,
+  });
+  return {
+    succeeded: true,
+    messageId: assistMsg.id,
+    userMessageId: userMsg.id,
+    content: "Hello from Ghostpaw!",
+    model: "test-model",
+    usage: {
+      inputTokens: 10,
+      outputTokens: 20,
+      reasoningTokens: 0,
+      cachedTokens: 0,
+      totalTokens: 30,
+    },
+    cost: { estimatedUsd: 0.001 },
+    iterations: 1,
+  };
+}
 
 let sharedDb: DatabaseHandle;
 
@@ -39,13 +49,15 @@ afterEach(() => {
 });
 
 function stubEntity(executeTurn: Entity["executeTurn"], db?: DatabaseHandle): Entity {
+  const d = db ?? sharedDb;
   return {
-    db: db ?? sharedDb,
+    db: d,
     workspace: "/tmp",
     executeTurn,
     async *streamTurn() {
       yield "";
-      return { ...TURN_OK, content: "" };
+      const s = createSession(d, `tg:stream:${Date.now()}`);
+      return makeTurnOk(s.id as number, d);
     },
     async flush() {},
   };
@@ -60,9 +72,12 @@ function createMockDeps(overrides?: Partial<HandleMessageDeps>): HandleMessageDe
   const typings: number[] = [];
   const reactions: Array<{ chatId: number; messageId: number; emoji: ReactionEmoji }> = [];
 
+  const defaultSession = createSession(sharedDb, `tg:test:${Date.now()}`);
+  const defaultTurn = makeTurnOk(defaultSession.id as number, sharedDb);
+
   return {
-    resolveSessionId: () => 1,
-    entity: stubEntity(async () => TURN_OK),
+    resolveSessionId: () => defaultSession.id as number,
+    entity: stubEntity(async () => defaultTurn),
     isAllowed: () => true,
     sendMessage: async (chatId, text): Promise<TelegramSentMessage> => {
       sent.push({ chatId, text });
@@ -121,8 +136,11 @@ describe("handleMessage", () => {
 
   it("splits long responses into multiple messages", async () => {
     const longContent = "x".repeat(5000);
+    const longSession = createSession(sharedDb, `tg:long:${Date.now()}`);
+    const longTurn = makeTurnOk(longSession.id as number, sharedDb);
     const deps = createMockDeps({
-      entity: stubEntity(async () => ({ ...TURN_OK, content: longContent })),
+      resolveSessionId: () => longSession.id as number,
+      entity: stubEntity(async () => ({ ...longTurn, content: longContent })),
     });
     await handleMessage(deps, 42, 7, "tell me a lot");
     ok(deps.sent.length >= 2, `expected >=2 messages, got ${deps.sent.length}`);

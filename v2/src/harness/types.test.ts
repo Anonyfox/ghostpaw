@@ -60,6 +60,7 @@ describe("Entity", () => {
         return {
           succeeded: true,
           messageId: 1,
+          userMessageId: 1,
           content: "",
           model: "",
           usage: {
@@ -77,6 +78,7 @@ describe("Entity", () => {
         return {
           succeeded: true,
           messageId: 1,
+          userMessageId: 1,
           content: "",
           model: "",
           usage: {

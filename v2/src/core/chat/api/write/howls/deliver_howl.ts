@@ -25,6 +25,7 @@ export async function deliverHowl(
     sessionId: howl.sessionId,
     message: howl.message,
     urgency: howl.urgency,
+    originMessageId: howl.originMessageId ?? undefined,
   });
 
   updateHowlDelivery(db, howl.id, {

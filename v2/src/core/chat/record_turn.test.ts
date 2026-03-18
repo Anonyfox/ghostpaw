@@ -41,6 +41,7 @@ describe("recordTurn", () => {
       },
       "gpt-4o",
       userMsg.id,
+      userMsg.id,
     );
     ok(result.messageId > 0);
     strictEqual(result.content, "Hi there!");
@@ -73,6 +74,7 @@ describe("recordTurn", () => {
       },
       "gpt-4o",
       null,
+      1,
     );
     const updated = getSession(db, session.id);
     ok(updated);
@@ -95,8 +97,8 @@ describe("recordTurn", () => {
       model: "gpt-4o",
       iterations: 1,
     };
-    recordTurn(db, session.id, "r1", lastResult, "gpt-4o", null);
-    recordTurn(db, session.id, "r2", lastResult, "gpt-4o", null);
+    recordTurn(db, session.id, "r1", lastResult, "gpt-4o", null, 1);
+    recordTurn(db, session.id, "r2", lastResult, "gpt-4o", null, 1);
     const updated = getSession(db, session.id);
     ok(updated);
     strictEqual(updated.tokensIn, 200);
@@ -124,13 +126,14 @@ describe("recordTurn", () => {
       },
       "gpt-4o",
       null,
+      1,
     );
     strictEqual(result.model, "claude-sonnet-4-20250514");
   });
 
   it("falls back to estimates when lastResult is null", () => {
     const session = createSession(db, "k");
-    const result = recordTurn(db, session.id, "short response", null, "gpt-4o", null);
+    const result = recordTurn(db, session.id, "short response", null, "gpt-4o", null, 1);
     ok(result.usage.inputTokens > 0);
     ok(result.usage.outputTokens > 0);
     strictEqual(result.model, "gpt-4o");
@@ -139,7 +142,7 @@ describe("recordTurn", () => {
 
   it("updates session head_message_id to the new message", () => {
     const session = createSession(db, "k");
-    const result = recordTurn(db, session.id, "response", null, "gpt-4o", null);
+    const result = recordTurn(db, session.id, "response", null, "gpt-4o", null, 1);
     const updated = getSession(db, session.id);
     ok(updated);
     strictEqual(updated.headMessageId, result.messageId);
@@ -147,7 +150,7 @@ describe("recordTurn", () => {
 
   it("keeps failed turns at zero authoritative usage when provider usage is missing", () => {
     const session = createSession(db, "k");
-    const result = recordTurn(db, session.id, "Error: failed", null, "gpt-4o", null, false);
+    const result = recordTurn(db, session.id, "Error: failed", null, "gpt-4o", null, 1, false);
 
     strictEqual(result.succeeded, false);
     strictEqual(result.usage.inputTokens, 0);

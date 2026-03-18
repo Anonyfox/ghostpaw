@@ -22,6 +22,7 @@ describe("MessageBubble", () => {
     role: "user",
     content: "Hello",
     createdAt: Date.now(),
+    replyToId: null,
   };
 
   const assistantMsg: ChatMessageInfo = {
@@ -29,6 +30,7 @@ describe("MessageBubble", () => {
     role: "assistant",
     content: "Hi there!",
     createdAt: Date.now(),
+    replyToId: null,
   };
 
   it("renders user message right-aligned with primary bg", () => {

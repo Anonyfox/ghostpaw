@@ -51,6 +51,7 @@ function fakeEntity(opts?: { throws?: Error }): { entity: Entity; calls: TurnCal
         content: "",
         succeeded: true,
         messageId: 0,
+        userMessageId: 1,
         model: "test",
         iterations: 1,
         usage: {
@@ -72,6 +73,7 @@ function fakeEntity(opts?: { throws?: Error }): { entity: Entity; calls: TurnCal
         content: "Here is the summary.",
         succeeded: true,
         messageId: 0,
+        userMessageId: 1,
         model: "test",
         iterations: 1,
         usage: {

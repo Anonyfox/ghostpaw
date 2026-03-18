@@ -9,6 +9,7 @@ describe("ChatMessageInfo", () => {
       role: "user",
       content: "Hello",
       createdAt: Date.now(),
+      replyToId: null,
     };
     strictEqual(msg.role, "user");
   });
@@ -19,6 +20,7 @@ describe("ChatMessageInfo", () => {
       role: "assistant",
       content: "Hi there!",
       createdAt: Date.now(),
+      replyToId: null,
     };
     strictEqual(msg.role, "assistant");
   });

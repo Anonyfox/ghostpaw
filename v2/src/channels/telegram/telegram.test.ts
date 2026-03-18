@@ -36,6 +36,7 @@ describe("createTelegramChannel", () => {
           return {
             succeeded: true,
             messageId: 1,
+            userMessageId: 1,
             content: "ok",
             model: "test",
             usage: {

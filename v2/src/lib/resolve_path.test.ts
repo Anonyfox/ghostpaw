@@ -1,6 +1,6 @@
+import { strictEqual } from "node:assert/strict";
 import { homedir } from "node:os";
 import { resolve, sep } from "node:path";
-import { strictEqual } from "node:assert/strict";
 import { describe, it } from "node:test";
 import { resolvePath } from "./resolve_path.ts";
 

@@ -25,7 +25,7 @@ export function handleChatWs(sessionId: number, ws: WsConnection, entity: Entity
   let streaming = false;
 
   ws.on("message", (raw) => {
-    let msg: { type?: string; content?: string; model?: string };
+    let msg: { type?: string; content?: string; model?: string; replyToId?: number };
     try {
       msg = JSON.parse(raw);
     } catch {
@@ -43,8 +43,9 @@ export function handleChatWs(sessionId: number, ws: WsConnection, entity: Entity
         wsSend(ws, { type: "error", message: "Empty message." });
         return;
       }
+      const replyToId = typeof msg.replyToId === "number" ? msg.replyToId : undefined;
       streaming = true;
-      streamResponse(ws, entity, sessionId, content, msg.model).finally(() => {
+      streamResponse(ws, entity, sessionId, content, msg.model, replyToId).finally(() => {
         streaming = false;
       });
     }
@@ -61,10 +62,12 @@ async function streamResponse(
   sessionId: number,
   content: string,
   model?: string,
+  replyToId?: number,
 ): Promise<void> {
   try {
     const gen = entity.streamTurn(sessionId, content, {
       model,
+      replyToId,
       onTitleGenerated: (title) => {
         wsSend(ws, { type: "title", title });
       },

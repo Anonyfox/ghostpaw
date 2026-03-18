@@ -1,4 +1,4 @@
-export type ChannelType = "telegram" | "web";
+export type ChannelType = "telegram" | "web" | "email";
 
 export type HowlDeliveryMode = "push" | "inbox";
 
@@ -7,6 +7,7 @@ export interface HowlDeliveryRequest {
   sessionId: number;
   message: string;
   urgency: "low" | "high";
+  originMessageId?: number;
 }
 
 export interface HowlDeliveryReceipt {

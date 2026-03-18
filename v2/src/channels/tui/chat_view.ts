@@ -3,25 +3,28 @@ import { renderMarkdown } from "./render_markdown.ts";
 import { wrapText } from "./wrap_text.ts";
 
 export interface ChatMessage {
+  id: number;
   role: "user" | "assistant";
   content: string;
 }
 
 export function renderChatMessages(messages: ChatMessage[], width: number): string[] {
   const lines: string[] = [];
-  for (const msg of messages) {
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]!;
+    const num = style.dim(`${String(i + 1).padStart(3)}|`);
     lines.push("");
     if (msg.role === "user") {
-      lines.push(`  ${style.bold("you:")}`);
-      for (const line of wrapText(msg.content, width - 2)) {
-        lines.push(`  ${line}`);
+      lines.push(`${num} ${style.bold("you:")}`);
+      for (const line of wrapText(msg.content, width - 6)) {
+        lines.push(`     ${line}`);
       }
     } else {
-      lines.push(`  ${style.boldCyan("ghostpaw:")}`);
+      lines.push(`${num} ${style.boldCyan("ghostpaw:")}`);
       const rendered = renderMarkdown(msg.content);
       for (const raw of rendered.split("\n")) {
-        for (const line of wrapText(raw, width - 2)) {
-          lines.push(`  ${line}`);
+        for (const line of wrapText(raw, width - 6)) {
+          lines.push(`     ${line}`);
         }
       }
     }

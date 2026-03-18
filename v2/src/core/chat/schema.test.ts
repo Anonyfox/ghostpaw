@@ -15,10 +15,10 @@ afterEach(() => {
 });
 
 describe("initChatTables", () => {
-  it("creates sessions with all 20 columns", () => {
+  it("creates sessions with all 21 columns", () => {
     initChatTables(db);
     const cols = db.prepare("PRAGMA table_info(sessions)").all() as { name: string }[];
-    strictEqual(cols.length, 20);
+    strictEqual(cols.length, 21);
     const names = new Set(cols.map((c) => c.name));
     for (const expected of [
       "id",
@@ -41,15 +41,16 @@ describe("initChatTables", () => {
       "quest_id",
       "xp_earned",
       "error",
+      "distill_failed_at",
     ]) {
       ok(names.has(expected), `missing column: ${expected}`);
     }
   });
 
-  it("creates messages with all 15 columns", () => {
+  it("creates messages with all 16 columns", () => {
     initChatTables(db);
     const cols = db.prepare("PRAGMA table_info(messages)").all() as { name: string }[];
-    strictEqual(cols.length, 15);
+    strictEqual(cols.length, 16);
     const names = new Set(cols.map((c) => c.name));
     for (const expected of [
       "id",
@@ -67,6 +68,7 @@ describe("initChatTables", () => {
       "is_compaction",
       "tool_data",
       "distilled",
+      "reply_to_id",
     ]) {
       ok(names.has(expected), `missing column: ${expected}`);
     }
@@ -75,8 +77,8 @@ describe("initChatTables", () => {
   it("is idempotent", () => {
     initChatTables(db);
     initChatTables(db);
-    strictEqual((db.prepare("PRAGMA table_info(sessions)").all() as unknown[]).length, 20);
-    strictEqual((db.prepare("PRAGMA table_info(messages)").all() as unknown[]).length, 15);
+    strictEqual((db.prepare("PRAGMA table_info(sessions)").all() as unknown[]).length, 21);
+    strictEqual((db.prepare("PRAGMA table_info(messages)").all() as unknown[]).length, 16);
   });
 
   it("enforces NOT NULL on session key and timestamps", () => {
@@ -180,5 +182,23 @@ describe("initChatTables", () => {
     );
     ok(msgIdx.some((n) => n.includes("messages_session_role")));
     ok(msgIdx.some((n) => n.includes("messages_parent")));
+  });
+
+  it("creates channel_messages table", () => {
+    initChatTables(db);
+    const cols = db.prepare("PRAGMA table_info(channel_messages)").all() as { name: string }[];
+    strictEqual(cols.length, 7);
+    const names = new Set(cols.map((c) => c.name));
+    for (const expected of [
+      "id",
+      "session_id",
+      "message_id",
+      "channel",
+      "channel_message_id",
+      "direction",
+      "created_at",
+    ]) {
+      ok(names.has(expected), `missing column: ${expected}`);
+    }
   });
 });

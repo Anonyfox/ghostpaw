@@ -10,6 +10,7 @@ function msg(
     id: 1,
     sessionId: 1,
     parentId: null,
+    replyToId: null,
     model: null,
     tokensIn: 0,
     tokensOut: 0,

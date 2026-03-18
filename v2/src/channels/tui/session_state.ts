@@ -2,6 +2,7 @@ import { getHistory, listSessions } from "../../core/chat/api/read/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 
 export interface TuiChatLine {
+  id: number;
   role: "user" | "assistant";
   content: string;
 }
@@ -15,6 +16,7 @@ export function loadTuiMessages(db: DatabaseHandle, sessionId: number): TuiChatL
   for (const message of getHistory(db, sessionId)) {
     if (message.role !== "user" && message.role !== "assistant") continue;
     loaded.push({
+      id: message.id,
       role: message.role,
       content: message.content,
     });
