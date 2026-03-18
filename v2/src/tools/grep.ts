@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { relative, resolve } from "node:path";
 import { createTool, Schema } from "chatoyant";
-import { isInsideWorkspace } from "../lib/index.ts";
+import { resolvePath } from "../lib/index.ts";
 
 const DEFAULT_MAX_RESULTS = 20;
 const MAX_OUTPUT_BYTES = 200_000;
@@ -16,7 +16,7 @@ class GrepParams extends Schema {
   });
   path = Schema.String({
     description:
-      "File or directory to search in, relative to workspace root. Omit to search the entire workspace.",
+      "File or directory to search in, relative to workspace root or absolute. Omit for entire workspace.",
     optional: true,
   });
   glob = Schema.String({
@@ -167,13 +167,10 @@ export function createGrepTool(workspace: string) {
       }
 
       const targetPath = searchPath || ".";
-      if (targetPath !== "." && !isInsideWorkspace(workspace, targetPath)) {
-        return { error: `Access denied: "${targetPath}" is outside the workspace.` };
-      }
+      const { fullPath } = resolvePath(workspace, targetPath);
 
       const maxResults =
         maxResultsArg && maxResultsArg > 0 ? Math.min(maxResultsArg, 100) : DEFAULT_MAX_RESULTS;
-      const fullPath = resolve(workspace, targetPath);
       const useRg = detectRg();
 
       let rawOutput = "";

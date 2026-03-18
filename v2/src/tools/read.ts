@@ -1,11 +1,10 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { createTool, Schema } from "chatoyant";
-import { isInsideWorkspace } from "../lib/index.ts";
+import { resolvePath } from "../lib/index.ts";
 
 class ReadParams extends Schema {
   path = Schema.String({
-    description: "File path relative to the workspace root, e.g. 'src/index.ts' or 'README.md'",
+    description: "File path, relative to workspace root or absolute.",
   });
   startLine = Schema.Integer({
     description: "First line to return (1-indexed, inclusive). Omit to start from line 1.",
@@ -70,10 +69,10 @@ export function createReadTool(workspace: string, options?: ReadToolOptions) {
   return createTool({
     name: "read",
     description:
-      "Read a file's contents from the workspace. Returns line-numbered content " +
+      "Read a file's contents. Returns line-numbered content " +
       "(e.g. '  1|first line') plus metadata: total lines and byte size. " +
       "For large files, use startLine/endLine to read specific sections instead of " +
-      "loading everything. Returns an error for binary files and paths outside the workspace. " +
+      "loading everything. Returns an error for binary files. " +
       "Use ls to find files, grep to search content, and edit/write to modify files.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new ReadParams() as any,
@@ -94,11 +93,7 @@ export function createReadTool(workspace: string, options?: ReadToolOptions) {
         return { error: "Path must not be empty." };
       }
 
-      if (!isInsideWorkspace(workspace, filePath)) {
-        return { error: `Access denied: "${filePath}" is outside the workspace.` };
-      }
-
-      const fullPath = join(workspace, filePath);
+      const { fullPath } = resolvePath(workspace, filePath);
 
       let raw: string;
       try {

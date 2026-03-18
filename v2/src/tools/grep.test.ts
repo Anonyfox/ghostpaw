@@ -87,10 +87,13 @@ describe("Grep tool", () => {
     ok(result.matches.length <= 5);
   });
 
-  it("prevents path traversal", async () => {
-    const result = (await exec({ pattern: "test", path: "../../etc" })) as { error: string };
-    ok(result.error);
-    ok(result.error.includes("outside"));
+  it("allows paths outside workspace (searches real location)", async () => {
+    const result = (await exec({ pattern: "nonexistent_xyzzy_pattern", path: "/tmp" })) as {
+      matches: unknown[];
+      totalMatches: number;
+    };
+    ok(result.matches !== undefined, "should search, not return access-denied");
+    strictEqual(result.totalMatches, 0);
   });
 
   it("caps maxResults at 100", async () => {

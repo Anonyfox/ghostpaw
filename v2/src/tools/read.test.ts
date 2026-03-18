@@ -72,13 +72,12 @@ describe("read tool", () => {
     ok(result.content.includes("nested content"));
   });
 
-  it("prevents path traversal outside workspace", async () => {
-    const result = (await execute({ path: "../../etc/passwd" })) as { error: string };
+  it("allows paths outside workspace (resolves, may not exist)", async () => {
+    const result = (await execute({ path: "../../etc/nonexistent_test_file" })) as {
+      error: string;
+    };
     ok(result.error);
-    ok(
-      result.error.toLowerCase().includes("outside") ||
-        result.error.toLowerCase().includes("denied"),
-    );
+    ok(result.error.includes("Failed to read"), "should get file-not-found, not access-denied");
   });
 
   it("handles empty files", async () => {

@@ -1,7 +1,7 @@
 import { readdirSync, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, relative } from "node:path";
 import { createTool, Schema } from "chatoyant";
-import { isInsideWorkspace } from "../lib/index.ts";
+import { resolvePath } from "../lib/index.ts";
 
 const MAX_ENTRIES = 500;
 const MAX_DEPTH = 5;
@@ -20,8 +20,7 @@ const SKIP_DIRS = new Set([
 class LsParams extends Schema {
   path = Schema.String({
     description:
-      "Directory path relative to the workspace root, e.g. 'src' or 'src/tools'. " +
-      "Omit to list the workspace root.",
+      "Directory path, relative to workspace root or absolute. Omit for workspace root.",
     optional: true,
   });
   depth = Schema.Integer({
@@ -121,11 +120,10 @@ export function createLsTool(workspace: string) {
   return createTool({
     name: "ls",
     description:
-      "List directory contents in the workspace. Returns structured entries with name, " +
-      "type (file/dir), and size (bytes, files only). Recurses into subdirectories up to " +
+      "List directory contents. Defaults to workspace root. Returns structured entries with " +
+      "name, type (file/dir), and size (bytes, files only). Recurses into subdirectories up to " +
       "the specified depth. Automatically skips noise directories (.git, node_modules, dist, etc.). " +
-      "Omit path to list the workspace root. Use this for workspace orientation before " +
-      "reading or editing files. For content search, use grep instead.",
+      "Use this for orientation before reading or editing files. For content search, use grep.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new LsParams() as any,
     execute: async ({ args }) => {
@@ -140,11 +138,7 @@ export function createLsTool(workspace: string) {
       };
 
       const targetPath = dirPath || ".";
-      if (targetPath !== "." && !isInsideWorkspace(workspace, targetPath)) {
-        return { error: `Access denied: "${targetPath}" is outside the workspace.` };
-      }
-
-      const fullPath = resolve(workspace, targetPath);
+      const { fullPath } = resolvePath(workspace, targetPath);
       const depth = Math.max(0, Math.min(depthArg && depthArg > 0 ? depthArg : 2, MAX_DEPTH));
 
       let stat: ReturnType<typeof statSync>;

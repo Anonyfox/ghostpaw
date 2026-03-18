@@ -1,14 +1,13 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { createTool, Schema } from "chatoyant";
-import { isInsideWorkspace } from "../lib/index.ts";
+import { resolvePath } from "../lib/index.ts";
 import type { ReplaceResult } from "./find_and_replace.ts";
 import { findAndReplace } from "./find_and_replace.ts";
 import { sanitizeLlmContent } from "./sanitize_llm_content.ts";
 
 class EditParams extends Schema {
   path = Schema.String({
-    description: "File path relative to the workspace root, e.g. 'src/index.ts'",
+    description: "File path, relative to workspace root or absolute.",
   });
   search = Schema.String({
     description:
@@ -116,7 +115,8 @@ export function createEditTool(workspace: string) {
   return createTool({
     name: "edit",
     description:
-      "Edit a file in the workspace. Three modes — choose ONE per call: " +
+      "Edit a file. Prefers workspace — use relative paths. Absolute paths work for files " +
+      "elsewhere. Three modes — choose ONE per call: " +
       "(A) search + replacement: find an exact string and replace it (must be unique in the file). " +
       "(B) edits: JSON array for batch replacements, applied atomically. " +
       "(C) insertAfterLine + content: insert text after a specific line number (0 = beginning). " +
@@ -147,11 +147,7 @@ export function createEditTool(workspace: string) {
         return { error: "Path must not be empty." };
       }
 
-      if (!isInsideWorkspace(workspace, filePath)) {
-        return { error: `Access denied: "${filePath}" is outside the workspace.` };
-      }
-
-      const fullPath = join(workspace, filePath);
+      const { fullPath, outsideWorkspace } = resolvePath(workspace, filePath);
 
       let fileContent: string;
       try {
@@ -192,7 +188,8 @@ export function createEditTool(workspace: string) {
           insertedAtLine: clampedLine,
           linesInserted: cleanText.split("\n").length,
         };
-        if (notice) result.notice = notice;
+        if (outsideWorkspace) result.notice = "Operating outside workspace root.";
+        else if (notice) result.notice = notice;
         return result;
       }
 
@@ -216,6 +213,7 @@ export function createEditTool(workspace: string) {
           editsApplied: edits.length,
           matchKinds: validated.kinds,
         };
+        if (outsideWorkspace) result.notice = "Operating outside workspace root.";
         const warning = shrinkWarning(originalSize, validated.validatedContent.length);
         if (warning) result.warning = warning;
         writeFileSync(fullPath, validated.validatedContent, "utf-8");
@@ -253,6 +251,7 @@ export function createEditTool(workspace: string) {
           path: filePath,
           replacements: count,
         };
+        if (outsideWorkspace) result.notice = "Operating outside workspace root.";
         const warning = shrinkWarning(originalSize, newContent.length);
         if (warning) result.warning = warning;
         writeFileSync(fullPath, newContent, "utf-8");
@@ -270,6 +269,7 @@ export function createEditTool(workspace: string) {
           matchKind: result.matchKind,
           path: filePath,
         };
+        if (outsideWorkspace) response.notice = "Operating outside workspace root.";
         const warning = shrinkWarning(originalSize, result.newContent.length);
         if (warning) response.warning = warning;
         writeFileSync(fullPath, result.newContent, "utf-8");

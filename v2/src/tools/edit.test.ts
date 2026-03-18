@@ -72,13 +72,14 @@ describe("edit — single edit", () => {
     ok(result.error);
   });
 
-  it("prevents path traversal", async () => {
+  it("allows paths outside workspace (file-not-found, not access-denied)", async () => {
     const result = (await exec({
-      path: "../../etc/passwd",
+      path: "../../etc/nonexistent_test_file",
       search: "x",
       replacement: "y",
     })) as { error: string };
     ok(result.error);
+    ok(result.error.includes("Failed to read"), "should get file-not-found, not access-denied");
   });
 
   it("falls back to fuzzy whitespace match", async () => {

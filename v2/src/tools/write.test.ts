@@ -55,15 +55,21 @@ describe("write tool", () => {
     strictEqual(readFileSync(join(workDir, "existing.txt"), "utf-8"), "important data");
   });
 
-  it("prevents path traversal outside workspace", async () => {
-    const result = (await execute({ path: "../../etc/evil", content: "hacked" })) as {
-      error: string;
-    };
-    ok(result.error);
-    ok(
-      result.error.toLowerCase().includes("outside") ||
-        result.error.toLowerCase().includes("denied"),
-    );
+  it("writes outside workspace with notice", async () => {
+    const extDir = mkdtempSync(join(tmpdir(), "ghostpaw-write-ext-"));
+    try {
+      const absPath = join(extDir, "external.txt");
+      const result = (await execute({ path: absPath, content: "external data" })) as {
+        success: boolean;
+        notice?: string;
+      };
+      ok(result.success);
+      ok(result.notice);
+      ok(result.notice.includes("outside workspace"));
+      strictEqual(readFileSync(absPath, "utf-8"), "external data");
+    } finally {
+      rmSync(extDir, { recursive: true, force: true });
+    }
   });
 
   it("returns success confirmation with bytes", async () => {
