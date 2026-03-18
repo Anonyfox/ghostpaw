@@ -1,6 +1,7 @@
 import { listDistillableSessionIds } from "../core/chat/api/read/index.ts";
 import { type ChatFactory, deleteOldDistilled } from "../core/chat/api/write/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
+import { log } from "../lib/terminal/index.ts";
 import type { DistillPendingResult, DistillToolCalls } from "./distill_types.ts";
 import { ELIGIBLE_PURPOSES, MAX_SESSIONS_PER_SWEEP, STALE_THRESHOLD_MS } from "./distill_types.ts";
 import { distillSession } from "./oneshots/distill_session.ts";
@@ -28,6 +29,7 @@ export async function distillPending(
   const totals: DistillToolCalls = {};
   let processed = 0;
   let skipped = 0;
+  let failed = 0;
 
   for (const id of ids) {
     try {
@@ -40,8 +42,9 @@ export async function distillPending(
           totals[name] = (totals[name] ?? 0) + count;
         }
       }
-    } catch {
-      skipped++;
+    } catch (err) {
+      failed++;
+      log.warn(`distill session ${id} failed: ${err instanceof Error ? err.message : err}`);
     }
   }
 
@@ -56,6 +59,7 @@ export async function distillPending(
   return {
     sessionsProcessed: processed,
     sessionsSkipped: skipped,
+    sessionsFailed: failed,
     totalToolCalls: totals,
   };
 }

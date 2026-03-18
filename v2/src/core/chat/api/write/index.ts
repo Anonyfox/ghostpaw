@@ -10,6 +10,7 @@ export { estimateTokens } from "../../estimate_tokens.ts";
 export { executeTurn } from "../../execute_turn.ts";
 export { finalizeDelegation } from "../../finalize_delegation.ts";
 export { getOrCreateSession } from "../../get_or_create_session.ts";
+export { clearDistillFailed, markDistillFailed } from "../../mark_distill_failed.ts";
 export { markDistilled } from "../../mark_distilled.ts";
 export { markMessagesDistilled } from "../../mark_messages_distilled.ts";
 export { persistToolMessages } from "../../persist_tool_messages.ts";

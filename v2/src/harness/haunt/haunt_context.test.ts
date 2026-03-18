@@ -55,12 +55,12 @@ describe("assembleHauntContext", () => {
     ok(result.includes("Ghostpaw"));
   });
 
-  it("includes environment info with tools line", () => {
+  it("includes environment info with workspace and howl guidance", () => {
     const result = assembleHauntContext(db, "/tmp/test-workspace", makeAnalysis());
     ok(result.includes("Environment"));
     ok(result.includes("/tmp/test-workspace"));
-    ok(result.includes("memory, quests, pack"));
     ok(result.includes("howl"));
+    strictEqual(result.includes("Tools: filesystem"), false);
   });
 
   it("does not have a separate Tools section", () => {

@@ -101,6 +101,7 @@ describe("distillPending", () => {
     const result = await distillPending(db, mockFactory("ok"), "test-model");
     strictEqual(result.sessionsProcessed, 0);
     strictEqual(result.sessionsSkipped, 0);
+    strictEqual(result.sessionsFailed, 0);
     strictEqual(Object.keys(result.totalToolCalls).length, 0);
   });
 
@@ -183,7 +184,7 @@ describe("distillPending", () => {
     const result = await distillPending(db, mockFactory("Nothing."), "test-model", {
       maxSessions: 2,
     });
-    strictEqual(result.sessionsProcessed + result.sessionsSkipped, 2);
+    strictEqual(result.sessionsProcessed + result.sessionsSkipped + result.sessionsFailed, 2);
   });
 
   it("picks up continued sessions where distilled_at was reset", async () => {
@@ -274,6 +275,6 @@ describe("distillPending", () => {
     }
 
     const result = await distillPending(db, alternatingFactory, "test-model");
-    ok(result.sessionsProcessed + result.sessionsSkipped === 3);
+    ok(result.sessionsProcessed + result.sessionsSkipped + result.sessionsFailed === 3);
   });
 });

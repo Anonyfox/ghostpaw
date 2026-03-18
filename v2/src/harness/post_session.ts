@@ -3,10 +3,11 @@ import {
   countSubstantiveMessages,
   getSession,
 } from "../core/chat/api/read/index.ts";
-import type { ChatFactory } from "../core/chat/api/write/index.ts";
+import { type ChatFactory, markDistillFailed } from "../core/chat/api/write/index.ts";
 import { MANDATORY_SOUL_IDS } from "../core/souls/api/read/index.ts";
 import { dropSoulshard } from "../core/souls/api/write/index.ts";
 import type { DatabaseHandle } from "../lib/index.ts";
+import { log } from "../lib/terminal/index.ts";
 import { ELIGIBLE_PURPOSES, MIN_SUBSTANTIVE_MESSAGES } from "./distill_types.ts";
 import { distillSession } from "./oneshots/distill_session.ts";
 
@@ -31,7 +32,14 @@ export function handlePostSession(
 
   return distillSession(db, sessionId, model, createChat)
     .then(() => {})
-    .catch(() => {});
+    .catch((err) => {
+      log.warn(`post-session distill ${sessionId} failed: ${err instanceof Error ? err.message : err}`);
+      try {
+        markDistillFailed(db, sessionId);
+      } catch {
+        /* best-effort */
+      }
+    });
 }
 
 function dropStructuralShard(db: DatabaseHandle, sessionId: number, session: ChatSession): void {

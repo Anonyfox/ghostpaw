@@ -7,6 +7,7 @@ import { defaultChatFactory } from "./chat_factory.ts";
 import { checkSpendLimit } from "./check_spend_limit.ts";
 import { assembleContext } from "./context.ts";
 import { formatSessionBriefing } from "./format_session_briefing.ts";
+import { getWarmth } from "./get_warmth.ts";
 import { resolveModel } from "./model.ts";
 import { compactHistory } from "./oneshots/summarize_for_compaction.ts";
 import { handlePostTurn } from "./post_turn.ts";
@@ -64,11 +65,12 @@ export function createEntity(options: EntityOptions): Entity {
       try {
         const history = getHistory(db, sessionId);
         if (history.length === 0) {
-          const briefing = formatSessionBriefing(getSessionBriefing(db));
+          const warmth = getWarmth(db);
+          const briefing = formatSessionBriefing(getSessionBriefing(db), warmth);
           if (briefing) effectivePrompt = `${systemPrompt}\n\n${briefing}`;
         }
       } catch {
-        /* fail-open: trail tables may not exist yet */
+        /* fail-open: trail/pack/memory tables may not exist yet */
       }
     }
 

@@ -9,6 +9,7 @@ export interface DistillResult {
 export interface DistillPendingResult {
   sessionsProcessed: number;
   sessionsSkipped: number;
+  sessionsFailed: number;
   totalToolCalls: DistillToolCalls;
 }
 

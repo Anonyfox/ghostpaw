@@ -1,9 +1,11 @@
 import { getHistory, getSession, parseToolCallData } from "../../core/chat/api/read/index.ts";
 import {
   type ChatFactory,
+  clearDistillFailed,
   closeSession,
   createSession,
   executeTurn,
+  markDistillFailed,
   markDistilled,
   markMessagesDistilled,
 } from "../../core/chat/api/write/index.ts";
@@ -120,6 +122,7 @@ export async function distillSession(
     try {
       markMessagesDistilled(db, sessionId);
       markDistilled(db, sessionId);
+      clearDistillFailed(db, sessionId);
       db.exec("COMMIT");
     } catch (err) {
       db.exec("ROLLBACK");
@@ -127,6 +130,9 @@ export async function distillSession(
     }
 
     return { skipped: false, toolCalls };
+  } catch (err) {
+    markDistillFailed(db, sessionId);
+    throw err;
   } finally {
     closeSession(db, systemSessionId);
   }

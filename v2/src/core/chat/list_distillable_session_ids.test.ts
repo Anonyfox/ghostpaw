@@ -87,4 +87,29 @@ describe("listDistillableSessionIds", () => {
 
     deepStrictEqual(listDistillableSessionIds(db, { eligiblePurposes: ["system"] }), [s.id]);
   });
+
+  it("excludes sessions with a recent distill failure", () => {
+    const s = createSession(db, "k1", { purpose: "chat" });
+    addMessage(db, { sessionId: s.id, role: "user", content: "hello" });
+    db.prepare("UPDATE sessions SET closed_at = ?, distill_failed_at = ? WHERE id = ?").run(
+      Date.now(),
+      Date.now(),
+      s.id,
+    );
+
+    deepStrictEqual(listDistillableSessionIds(db), []);
+  });
+
+  it("includes sessions whose distill failure is older than 24h (retry)", () => {
+    const s = createSession(db, "k1", { purpose: "chat" });
+    addMessage(db, { sessionId: s.id, role: "user", content: "hello" });
+    const oldFailure = Date.now() - 2 * 86_400_000;
+    db.prepare("UPDATE sessions SET closed_at = ?, distill_failed_at = ? WHERE id = ?").run(
+      Date.now(),
+      oldFailure,
+      s.id,
+    );
+
+    deepStrictEqual(listDistillableSessionIds(db), [s.id]);
+  });
 });

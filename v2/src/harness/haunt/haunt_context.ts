@@ -81,7 +81,6 @@ function formatEnvironment(
   });
   let env =
     `## Environment\n\nDate: ${dateStr}, ${timeStr}\nWorkspace: ${workspace}` +
-    `\nTools: filesystem, web, bash, memory, quests, pack, delegation, config, MCP.` +
     `\nYou can howl at the user — but only for a genuine question you can't resolve alone, deep curiosity about something fundamental, or a critical alert. Never to report what you did. Write it like a companion with something worth talking about.`;
 
   if (recentHaunts.length > 0) {

@@ -22,5 +22,6 @@ export function rowToSession(row: Record<string, unknown>): ChatSession {
     questId: (row.quest_id as number) ?? null,
     xpEarned: (row.xp_earned as number) ?? 0,
     error: (row.error as string) ?? null,
+    distillFailedAt: (row.distill_failed_at as number) ?? null,
   };
 }

@@ -22,9 +22,15 @@ export function initChatTables(db: DatabaseHandle): void {
       soul_id           INTEGER,
       quest_id          INTEGER,
       xp_earned         REAL    NOT NULL DEFAULT 0,
-      error             TEXT
+      error             TEXT,
+      distill_failed_at INTEGER
     )
   `);
+  try {
+    db.exec("ALTER TABLE sessions ADD COLUMN distill_failed_at INTEGER");
+  } catch {
+    /* column already exists or table was just created with it */
+  }
   db.exec("CREATE INDEX IF NOT EXISTS idx_sessions_key ON sessions(key)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_sessions_quest_id ON sessions(quest_id)");
   db.exec("CREATE INDEX IF NOT EXISTS idx_sessions_purpose ON sessions(purpose)");

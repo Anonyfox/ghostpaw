@@ -35,6 +35,7 @@ export interface ChatSession {
   questId: number | null;
   xpEarned: number;
   error: string | null;
+  distillFailedAt: number | null;
 }
 
 export interface ChatMessage {

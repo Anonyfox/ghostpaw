@@ -1,7 +1,20 @@
 import type { SessionBriefing } from "../core/trail/api/read/index.ts";
+import type { WarmthData } from "./get_warmth.ts";
 
-export function formatSessionBriefing(briefing: SessionBriefing): string | null {
+export function formatSessionBriefing(
+  briefing: SessionBriefing,
+  warmth?: WarmthData | null,
+): string | null {
   const lines: string[] = [];
+
+  if (warmth) {
+    const bondSnippet = warmth.userBond ? ` — ${truncate(warmth.userBond, 100)}` : "";
+    lines.push(`Talking to: ${warmth.userName}${bondSnippet}`);
+
+    for (const b of warmth.beliefs) {
+      lines.push(`- [${b.category}] ${b.claim}`);
+    }
+  }
 
   if (briefing.chapter) {
     lines.push(`Current chapter: ${briefing.chapter.label} (${briefing.chapter.momentum})`);
@@ -19,4 +32,9 @@ export function formatSessionBriefing(briefing: SessionBriefing): string | null 
 
   if (lines.length === 0) return null;
   return `## Current Context\n\n${lines.join("\n")}`;
+}
+
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1)}…`;
 }

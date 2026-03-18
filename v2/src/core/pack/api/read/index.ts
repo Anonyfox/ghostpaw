@@ -5,6 +5,7 @@ export { detectDrift } from "../../detect_drift.ts";
 export { detectPatrol } from "../../detect_patrol.ts";
 export { findMembersByField, listFields } from "../../fields.ts";
 export { getMember } from "../../get_member.ts";
+export { getPackUser } from "../../get_pack_user.ts";
 export { getMemberBonds } from "../../get_member_bonds.ts";
 export { getMemberByName } from "../../get_member_by_name.ts";
 export { getMemberName } from "../../get_member_name.ts";

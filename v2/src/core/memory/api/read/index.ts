@@ -20,3 +20,4 @@ export {
 export { memoryStrength, projectMemory, projectRankedMemory } from "./project_memory.ts";
 export { searchMemories } from "./search_memories.ts";
 export { listSupersededMemories } from "./superseded_memories.ts";
+export { topBeliefs } from "./top_beliefs.ts";

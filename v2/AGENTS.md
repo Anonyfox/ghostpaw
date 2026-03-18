@@ -24,7 +24,6 @@ Additional docs not tied to a single module:
 
 | Doc | What it covers |
 |-----|----------------|
-| `docs/USP.md` | Product positioning and value proposition |
 | `docs/research/PROPRIOCEPTIVE_SENSING.md` | Research paper behind the sense system in `lib/sense/` |
 
 ## What's Built
