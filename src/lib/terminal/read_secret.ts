@@ -1,6 +1,9 @@
+const BRACKET_PASTE_START = "\x1b[200~";
+const BRACKET_PASTE_END = "\x1b[201~";
+
 /**
  * Read a line from stdin with masked echo (shows * for each character).
- * Handles backspace, Enter, and Ctrl+C. Requires a TTY.
+ * Handles backspace, Enter, Ctrl+C, and bracketed paste. Requires a TTY.
  */
 export function readSecret(prompt: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -16,33 +19,48 @@ export function readSecret(prompt: string): Promise<string> {
 
     let input = "";
 
-    const onData = (key: string) => {
-      if (key === "\u0003") {
+    const processChar = (ch: string) => {
+      if (ch === "\u0003") {
         cleanup();
         process.stdout.write("\n");
         reject(new Error("Cancelled"));
-        return;
+        return true;
       }
 
-      if (key === "\r" || key === "\n") {
+      if (ch === "\r" || ch === "\n") {
         cleanup();
         process.stdout.write("\n");
         resolve(input);
-        return;
+        return true;
       }
 
-      if (key === "\u007F" || key === "\b") {
+      if (ch === "\u007F" || ch === "\b") {
         if (input.length > 0) {
           input = input.slice(0, -1);
           process.stdout.write("\b \b");
         }
-        return;
+        return false;
       }
 
-      if (key.charCodeAt(0) < 32) return;
+      if (ch.charCodeAt(0) < 32) return false;
 
-      input += key;
+      input += ch;
       process.stdout.write("*");
+      return false;
+    };
+
+    const onData = (chunk: string) => {
+      let text = chunk;
+      if (text.startsWith(BRACKET_PASTE_START)) {
+        text = text.slice(BRACKET_PASTE_START.length);
+      }
+      if (text.endsWith(BRACKET_PASTE_END)) {
+        text = text.slice(0, -BRACKET_PASTE_END.length);
+      }
+
+      for (const ch of text) {
+        if (processChar(ch)) return;
+      }
     };
 
     const cleanup = () => {

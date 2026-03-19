@@ -177,13 +177,132 @@ Should print the version number. If you used npx, run `npx ghostpaw --version` i
 
 ---
 
-## 4. First Run
+## 4. Configure an LLM Provider
+
+Ghostpaw needs an API key from at least one LLM provider to function. It supports **Anthropic**, **OpenAI**, and **xAI** out of the box. Pick whichever you have.
+
+There are three ways to provide the key, depending on your setup:
+
+### Interactive (recommended for first time)
+
+Just run `ghostpaw`. If no key is configured, it detects this automatically and walks you through picking a provider and entering your key. The key is stored locally in `ghostpaw.db`, encrypted at rest, and never sent to the LLM in conversation.
+
+```bash
+ghostpaw
+# → "no API key found — let's set one up"
+# → pick a provider, paste your key, done
+```
+
+### CLI (scripted or headless)
+
+Use `ghostpaw secrets set` to store a key explicitly. Works with interactive input or piped values:
+
+```bash
+# Interactive — prompts for the value
+ghostpaw secrets set ANTHROPIC_API_KEY
+
+# Piped — for scripts, CI, automation
+echo "sk-ant-..." | ghostpaw secrets set ANTHROPIC_API_KEY
+```
+
+Ghostpaw recognizes common env var names and maps them to canonical internal names. `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and `XAI_API_KEY` all work.
+
+### Environment variable (servers, Docker, ephemeral)
+
+Set the variable before running. Ghostpaw picks it up at startup, syncs it to the database, and uses it immediately:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+ghostpaw run "hello"
+```
+
+For Docker:
+
+```bash
+docker run --rm -it \
+  -e ANTHROPIC_API_KEY="sk-ant-..." \
+  -v "$(pwd)":/workspace \
+  ghcr.io/anonyfox/ghostpaw
+```
+
+This is the right approach for servers and containers where you don't want an interactive prompt.
+
+### Optional: search provider
+
+Web search works out of the box via DuckDuckGo. For better reliability, add a key for one of these:
+
+```bash
+ghostpaw secrets set BRAVE_API_KEY     # Brave Search
+ghostpaw secrets set TAVILY_API_KEY    # Tavily
+ghostpaw secrets set SERPER_API_KEY    # Serper
+```
+
+### Verify your keys
+
+```bash
+ghostpaw secrets list
+```
+
+Shows all configured and unconfigured keys with their status.
+
+---
+
+## 5. Enable Channels (optional)
+
+Ghostpaw always starts the TUI when run in a terminal. Two additional channels — web UI and Telegram — are unlocked by setting their respective secrets. All channels run simultaneously from the same process and share the same database.
+
+### Web UI
+
+Set a password to enable the built-in web interface:
+
+```bash
+ghostpaw secrets set WEB_UI_PASSWORD
+```
+
+Pick any password you like. It gets hashed automatically on first use and is never stored in plaintext.
+
+On next launch, Ghostpaw starts the web UI at `http://127.0.0.1:3000`. Log in with the password you set. The interface gives you chat with real-time streaming, session history, soul inspection, memory search, cost dashboard, and training controls — all from a browser on your phone or desktop.
+
+To change the port:
+
+```bash
+export WEB_UI_PORT=8080
+```
+
+The web UI only binds to `127.0.0.1` (localhost). To expose it over a network, put it behind a reverse proxy.
+
+### Telegram
+
+To chat with Ghostpaw in Telegram:
+
+1. Open Telegram, find `@BotFather`, send `/newbot`
+2. Follow the prompts to name your bot
+3. BotFather gives you a token like `123456:ABC-DEF...`
+4. Store it:
+
+```bash
+ghostpaw secrets set TELEGRAM_BOT_TOKEN
+```
+
+On next launch, Ghostpaw connects via long-polling and your bot comes alive. Typing indicators, split replies, and background delegation notifications all work.
+
+To restrict which Telegram chats can talk to your bot (recommended if the bot is public):
+
+```bash
+ghostpaw config set telegram_allowed_chat_ids "123456789,987654321"
+```
+
+Find your chat ID by sending a message to your bot and checking `ghostpaw sessions list`.
+
+---
+
+## 6. First Run
 
 ```bash
 ghostpaw
 ```
 
-On first run, Ghostpaw detects that no API key is configured and walks you through setting one up interactively. After that it starts the TUI — the full terminal interface with streaming, scroll, and tool status.
+Starts the TUI — the full terminal interface with streaming, scroll, and tool status. If you already configured a key in step 4, it goes straight to chat. If not, it runs the interactive setup first.
 
 For a one-shot prompt without the TUI:
 
