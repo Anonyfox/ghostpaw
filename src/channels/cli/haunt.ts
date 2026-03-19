@@ -5,7 +5,7 @@ import { style } from "../../lib/terminal/index.ts";
 import { withRunDb } from "./with_run_db.ts";
 
 export default defineCommand({
-  meta: { name: "haunt", description: "Trigger a haunt cycle — the ghost thinks privately" },
+  meta: { name: "haunt", description: "Trigger a haunt cycle — ghostpaw thinks privately" },
   args: {
     model: {
       type: "string",

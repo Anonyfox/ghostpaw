@@ -340,7 +340,7 @@ export function HowlsPage() {
           {pendingHowls.length === 0 && resolvedHowls.length === 0 && (
             <div class="text-muted text-center py-5">
               <div style="font-size: 2rem; opacity: 0.3;">&#x1F43E;</div>
-              <p class="mt-2">No howls yet. The ghost hasn't reached out.</p>
+              <p class="mt-2">No howls yet. Ghostpaw hasn't reached out.</p>
             </div>
           )}
 

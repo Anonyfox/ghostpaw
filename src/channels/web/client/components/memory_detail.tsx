@@ -5,10 +5,10 @@ import { relativeTime } from "../relative_time.ts";
 import { MemoryCommandBox } from "./memory_command_box.tsx";
 
 const SOURCE_EXPLANATIONS: Record<string, string> = {
-  explicit: "You told the ghost this directly",
-  observed: "The ghost verified this by observation",
+  explicit: "You told ghostpaw this directly",
+  observed: "Ghostpaw verified this by observation",
   distilled: "Distilled from conversation",
-  inferred: "The ghost concluded this on its own",
+  inferred: "Ghostpaw concluded this on its own",
 };
 
 const CATEGORY_EXPLANATIONS: Record<string, string> = {
@@ -79,7 +79,7 @@ export function MemoryDetail({ memoryId, onSuccess }: MemoryDetailProps) {
             </span>
           </div>
           <div class="text-body-tertiary" style="font-size: 0.75rem;">
-            How strongly the ghost believes this
+            How strongly ghostpaw believes this
           </div>
         </div>
 

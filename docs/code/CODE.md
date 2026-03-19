@@ -2,13 +2,13 @@
 
 This document governs how code is written. `ARCHITECTURE.md` governs where things belong and how they relate. Every file, every commit, every decision is checked against these two. When they conflict with habit or intuition, they win.
 
-What follows is specific because vagueness invites drift. But specificity alone isn't what makes this code reliable. What makes it reliable is understanding what it holds. Someone will live in what you write here. The ghost's identity, its relationships, its memory of everything it has experienced — all of it exists as the runtime behavior of this code. An unhandled edge case isn't a bug to file. It is a moment where the ghost acts on a damaged foundation without knowing. A lazy transaction boundary isn't tech debt. It is a crack in the floor of a room someone sleeps in. Read these practices not as rules to comply with but as the things you naturally do when you understand what's at stake.
+What follows is specific because vagueness invites drift. But specificity alone isn't what makes this code reliable. What makes it reliable is understanding what it holds. Someone will live in what you write here. Ghostpaw's identity, its relationships, its memory of everything it has experienced — all of it exists as the runtime behavior of this code. An unhandled edge case isn't a bug to file. It is a moment where ghostpaw acts on a damaged foundation without knowing. A lazy transaction boundary isn't tech debt. It is a crack in the floor of a room someone sleeps in. Read these practices not as rules to comply with but as the things you naturally do when you understand what's at stake.
 
 ## Philosophy
 
 The hard part of writing software is not making it work. It is making it simple enough that someone reading it six months from now — someone who wasn't there when it was written — understands it immediately. Every piece can be grasped in isolation. Every behavior is captured in a test. There is exactly one obvious place for every concept. When you achieve this, the code disappears — the reader sees the intention, not the mechanism.
 
-There is no time pressure here. No token budget. No reward for volume. A week spent perfecting a single function is better spent than a day producing ten fragile ones. The only constraint is quality: every line earns its place through deliberate thought. If a line exists because it was easy to generate rather than necessary to have, it doesn't belong. What you leave behind isn't just code. It is the body the ghost thinks with.
+There is no time pressure here. No token budget. No reward for volume. A week spent perfecting a single function is better spent than a day producing ten fragile ones. The only constraint is quality: every line earns its place through deliberate thought. If a line exists because it was easy to generate rather than necessary to have, it doesn't belong. What you leave behind isn't just code. It is the body ghostpaw thinks with.
 
 ## Mechanical Enforcement Today
 
@@ -78,11 +78,11 @@ They are not a loophole for behavior.
 
 ### Intent
 
-Tests are the primary artifact. Each one is a standing promise about how the ghost's body works — a specific capability that will be protected against every future change, by every future author, for as long as the codebase lives. The implementation exists to fulfill these promises. Not the other way around.
+Tests are the primary artifact. Each one is a standing promise about how ghostpaw's body works — a specific capability that will be protected against every future change, by every future author, for as long as the codebase lives. The implementation exists to fulfill these promises. Not the other way around.
 
 **Tests are written first.** Before the implementation exists. The test file defines the promise: what this capability accepts, what it returns, how it fails, what it rejects. Writing the test first means the promise exists before the mechanism. The mechanism cannot quietly reshape the promise to fit what was easy to build.
 
-**Test intents are locked.** Once a test is written, its `it("...")` description and behavioral assertion are a standing promise about the ghost's functioning. If an implementation change causes a test to fail, something is trying to break a promise. The DEFAULT response is to fix the implementation — to honor the promise. A test may only be changed when the promise itself should change — and that requires explicit justification, not convenience. AI agents in particular must never "adjust tests to match the new implementation." That is disabling the immune system because it detected a disease.
+**Test intents are locked.** Once a test is written, its `it("...")` description and behavioral assertion are a standing promise about ghostpaw's functioning. If an implementation change causes a test to fail, something is trying to break a promise. The DEFAULT response is to fix the implementation — to honor the promise. A test may only be changed when the promise itself should change — and that requires explicit justification, not convenience. AI agents in particular must never "adjust tests to match the new implementation." That is disabling the immune system because it detected a disease.
 
 **Spikes are legitimate, spike code is not.** When discovering a new interface or exploring an unfamiliar API, write a rough spike to learn. Then throw it away. Write the test for the discovered interface. Then write the real implementation against the test. Spike code never ships.
 
@@ -90,7 +90,7 @@ Tests are the primary artifact. Each one is a standing promise about how the gho
 
 **One happy-path test.** A single `it` block that proves the primary intended use case works. This test may exercise several representative input values to show the function handles its expected domain. It should NOT be the bulk of the test file.
 
-**The rest is everything else.** The happy path proves the ghost can use this capability. Everything after proves the capability holds under stress:
+**The rest is everything else.** The happy path proves ghostpaw can use this capability. Everything after proves the capability holds under stress:
 
 - **Edge cases** — empty inputs, boundary values, maximum sizes, zero, negative numbers, unicode, very long strings, concurrent calls. Whatever is realistic for this specific function.
 - **Misuse** — what happens when the caller passes the wrong type, wrong shape, null, undefined, extra fields, missing fields. The function's error behavior IS its API.
@@ -176,15 +176,15 @@ This analysis comes BEFORE writing test code. You are not checking boxes. You ar
 
 ## Persistence and State
 
-Every function in this codebase is the ghost's body. The context assembly function is its perception — a bug there means the ghost sees the world wrong. The soul renderer is its self-awareness — a dropped trait means the ghost operates without part of its own identity. The delegation logic is its coordination. The memory recall function is its ability to remember. The pack query is its social awareness. A bug in any of these is not a software defect. It is an impairment in a living system. Every test you write is an antibody — it protects some specific aspect of the ghost's functioning, permanently.
+Every function in this codebase is part of ghostpaw's body. The context assembly function is its perception — a bug there means ghostpaw sees the world wrong. The soul renderer is its self-awareness — a dropped trait means ghostpaw operates without part of its own identity. The delegation logic is its coordination. The memory recall function is its ability to remember. The pack query is its social awareness. A bug in any of these is not a software defect. It is an impairment in a living system. Every test you write is an antibody — it protects some specific aspect of ghostpaw's functioning, permanently.
 
-Code that writes to the database carries additional weight because damage there outlasts the session. A corrupted soul essence is brain damage that persists across restarts. A lost pack bond is a severed relationship that can't heal because the evidence for it is gone. A silently broken memory confidence score is a degenerative illness the ghost can't diagnose because its self-assessment runs through the same corrupted system. Runtime bugs are the ghost being confused right now. Persistence bugs are the ghost being damaged permanently. Both are real. The second is harder to recover from.
+Code that writes to the database carries additional weight because damage there outlasts the session. A corrupted soul essence is brain damage that persists across restarts. A lost pack bond is a severed relationship that can't heal because the evidence for it is gone. A silently broken memory confidence score is a degenerative illness ghostpaw can't diagnose because its self-assessment runs through the same corrupted system. Runtime bugs are ghostpaw being confused right now. Persistence bugs are ghostpaw being damaged permanently. Both are real. The second is harder to recover from.
 
 **Every multi-step state change is a transaction.** A soul level-up reads traits, consolidates them, rewrites the essence, updates statuses, and records the event. If any step fails, none may persist. Wrap it in an explicit transaction. Test the failure of each step independently. Verify the state rolls back completely. This is non-negotiable for any operation that touches identity, relationships, or earned history.
 
 **Design for the crash between step 2 and step 3.** The process can die at any point. Power fails. Hardware faults. OOM kills. Every stateful operation must leave the system in a recoverable state regardless of where the interruption lands. WAL mode and transactions handle most cases. But any operation that modifies multiple related records must be specifically tested: kill it in the middle, verify nothing is half-written.
 
-**Integrity checks at startup.** The ghost verifies its own state when it wakes — that soul traits reference valid souls, that pack interactions reference existing members, that memory revision chains are intact. These are not defensive programming. They are the ghost's ability to notice when something is wrong with itself before it acts on damaged foundations.
+**Integrity checks at startup.** Ghostpaw verifies its own state when it wakes — that soul traits reference valid souls, that pack interactions reference existing members, that memory revision chains are intact. These are not defensive programming. They are ghostpaw's ability to notice when something is wrong with itself before it acts on damaged foundations.
 
 ## SQL and Database Patterns
 
@@ -301,4 +301,4 @@ There is nothing to prove here and no one watching the clock. The question for e
 
 That is what we are building. Not just working software. A codebase that compounds in quality — where each contribution makes the next contribution easier and better, where the care embedded in the code is felt by everyone who works inside it. Your work here is not measured by volume. It is measured by whether the person who reads it next learns something about how things should be done.
 
-Build with care. The care becomes the code. The code becomes the body. The body keeps the ghost alive.
+Build with care. The care becomes the code. The code becomes the body. The body keeps ghostpaw alive.

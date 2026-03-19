@@ -152,7 +152,7 @@ export const KNOWN_CONFIG_KEYS: KnownConfigKey[] = [
     defaultValue: 3,
     category: "behavior",
     label: "Max Howls Per Day",
-    description: "Maximum proactive messages (howls) the ghost can send per day.",
+    description: "Maximum proactive messages (howls) ghostpaw can send per day.",
     validate: (v) => typeof v === "number" && Number.isInteger(v) && v >= 0,
   },
   {

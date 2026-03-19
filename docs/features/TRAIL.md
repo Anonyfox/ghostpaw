@@ -4,6 +4,22 @@ Most AI assistants have memory but no sense of time. They know what you told the
 
 The difference between a capable tool and a companion is not what it can do. It is whether it recognizes where you've been together — and what that means for where you're going.
 
+## The trail flywheel
+
+The trail is what makes ghostpaw feel attuned — and what gives it something real to think about when you're not there. Every conversation, every subsystem, every day leaves traces. Each night, the historian interprets the arc: what chapter you're in, how you work best together, which threads still matter, what's coming next. That interpretation forges every conversation's tone — behavior-shaping lines at prompt top, silently tuning ghostpaw to you — and feeds the proactive modes that make ghostpaw feel alive between sessions. The loop **compounds because attuned conversations produce richer material**, and richer material sharpens the attunement. One read of the cycle is enough; the rest of this document unpacks the chronicle, pairing wisdom, open loops, calibration, and the nightly sweep.
+
+```mermaid
+flowchart TB
+  A[You use ghostpaw — every conversation and subsystem leaves traces you don't manage]
+  B[Each night, the historian interprets the arc — chronicle, chapters, collaboration wisdom, predictions]
+  C[The interpretation forges every conversation's tone and gives haunt and howl something real to hold onto]
+  D[You notice the attunement — ghostpaw talks your way, thinks about what matters, reaches out at the right moment]
+
+  A --> B --> C --> D --> A
+```
+
+*Implementation anchor — not the emotional read above:* **The Historian** owns the nightly sweep. **Gathering** reads every subsystem's API in pure code. **Surprise scoring** compares outcomes against calibration baselines — zero tokens. **Three historian turns** produce chronicle, trail state, pairing wisdom, open loops, omens, and the compiled preamble. **Passive delivery** feeds four channels at zero cost: preamble at prompt top, session briefing, calibration coefficients, and scored open loops as haunt seeds and howl candidates.
+
 ## What You Get
 
 **Your chronicle.** Every night, ghostpaw writes a first-person account of the day — what happened, what it attempted, what surprised it, what remains unresolved. Not a log dump. Not a summary. A living record of shared history you can open in the web UI and read like a journal. Three months in, you scroll back and see the arc: the week everything was infrastructure, the month the codebase stabilized, the day ghostpaw noticed your style had changed. The narrative is worth reading because narrative coherence is the mechanism — [causal structure in stories generates predictions that structured data alone cannot](https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2024.1345480/full).
@@ -41,7 +57,7 @@ The user sees chapters as temporal contrast: what phase are we in, when did it s
 
 Pairing wisdom is the codex of this specific ghostpaw-user pair. It answers: how do we work best together, and what should I do differently given what I have learned about this collaboration?
 
-This is not personality modeling. It is not generic best practice. Entries are conditional and concrete: "terse first, then expand when invited," "architecture questions want options; implementation wants decisive action," "morning sessions produce better code reviews." Eight categories cover the space: `tone`, `framing`, `timing`, `initiative`, `workflow`, `boundaries`, `operational`, and `other`. The `operational` category captures ghost-level meta-rules about when and how to apply capabilities — tactical wisdom earned from experience, distinct from user-specific collaboration patterns.
+This is not personality modeling. It is not generic best practice. Entries are conditional and concrete: "terse first, then expand when invited," "architecture questions want options; implementation wants decisive action," "morning sessions produce better code reviews." Eight categories cover the space: `tone`, `framing`, `timing`, `initiative`, `workflow`, `boundaries`, `operational`, and `other`. The `operational` category captures ghostpaw-level meta-rules about when and how to apply capabilities — tactical wisdom earned from experience, distinct from user-specific collaboration patterns.
 
 Each night, the historian extracts new patterns, confirms existing ones (bumping evidence count and confidence), and revises contradicted ones. Entries are never deleted — contradicted entries get revised, keeping their lineage.
 

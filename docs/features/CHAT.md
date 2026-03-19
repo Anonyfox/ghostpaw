@@ -10,6 +10,29 @@ and howl are not rival concepts. They are three directions of the same feature u
 receiver conditions. The surrounding systems matter because they make this chat more capable, more
 personal, more proactive, and more effective over time. They do not get to replace it as the center.
 
+## The chat flywheel
+
+Chat is where ghostpaw lives — and the three modes are what make it alive. Direct conversation is what you initiate. Haunt is ghostpaw processing on its own. Howl is ghostpaw reaching out when it matters. All three feed the surrounding systems — memory, souls, skills, trail, quests, pack — and all six systems feed improvement back into every mode. The loop **compounds across all three directions at once**: conversations get more capable, private thinking gets deeper, outreach gets sharper. One read of the cycle is enough; the rest of this document unpacks how the three modes work, what carries across channels, and how the substrate grows.
+
+```mermaid
+flowchart TB
+  DC[Direct — you talk, ghostpaw responds]
+  H[Haunt — ghostpaw thinks without a receiver]
+  HW[Howl — ghostpaw reaches out when it matters]
+  S[All three feed the surrounding systems — beliefs, judgment, procedures, attunement, commitments, relationships]
+  R[Every system feeds all three back — conversations sharpen, thinking deepens, outreach gains purpose]
+
+  DC --> S
+  H --> S
+  HW --> S
+  S --> R
+  R --> DC
+  R --> H
+  R --> HW
+```
+
+*Implementation anchor — not the emotional read above:* **Ghostpaw** (coordinator) owns direct chat. **Haunt** runs as `purpose: "haunt"` sessions — bounded autonomous processing, later consolidated by the warden. **Howl** runs as `purpose: "howl"` sessions — origin-linked outreach, delivered through channel-native threading. All three persist to the same session/message substrate. The surrounding systems read that substrate and write artifacts that improve all future modes.
+
 ## What You Get
 
 **One Ghostpaw across the surfaces you already use.** The core promise is not a maximal browser shell.

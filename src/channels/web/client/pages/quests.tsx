@@ -376,7 +376,7 @@ function BoardTab({
         <div class="text-body-tertiary small">Loading board...</div>
       ) : quests.length === 0 ? (
         <div class="text-body-tertiary text-center py-5">
-          No quests on the board. Drop ideas here or let the ghost propose some.
+          No quests on the board. Drop ideas here or let ghostpaw propose some.
         </div>
       ) : (
         <div class="border rounded">

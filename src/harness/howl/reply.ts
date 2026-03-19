@@ -18,7 +18,7 @@ import { formatHowlOriginContext } from "./format_origin_context.ts";
 
 const MAX_ITERATIONS = 10;
 
-const REPLY_INSTRUCTION = `The user replied to a howl — a proactive question the ghost sent earlier.
+const REPLY_INSTRUCTION = `The user replied to a howl — a proactive question ghostpaw sent earlier.
 
 Process this interaction:
 - **Memory**: Extract beliefs from the user's answer. Recall first to check for duplicates, then remember or revise. Use source "explicit" for direct user statements.
@@ -75,7 +75,7 @@ export async function processHowlReply(
       REPLY_INSTRUCTION,
       formatHowlOriginContext(db, howl),
       `Howl session #${howl.sessionId}`,
-      `Question the ghost asked:\n${howl.message}`,
+      `Question ghostpaw asked:\n${howl.message}`,
       `User's reply${options?.replyChannel ? ` via ${options.replyChannel}` : ""}:\n${replyText}`,
     ].join("\n\n");
 

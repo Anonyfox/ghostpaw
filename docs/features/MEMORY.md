@@ -1,14 +1,33 @@
 # Memory
 
-Most agent memory is a list of facts the platform chose to keep. Ghostpaw holds beliefs — each carrying a confidence score that strengthens through evidence, fades with time, and evolves when the world changes. The ghost doesn't just know things. It knows *how well* it knows them. Structuring memory into distinct belief networks [lifts accuracy from 39% to 83.6%](https://arxiv.org/abs/2512.12818) on long-horizon benchmarks. Concise belief states with confidence tracking achieve [20% higher task success with 49% less memory](https://arxiv.org/abs/2512.20111) than full-context history. Persistent confidence tracking alone yields [3.8× recall improvement](https://arxiv.org/abs/2510.09633). One SQLite table, zero API calls, under 10ms at 10,000 memories.
+Most agent memory is a list of facts the platform chose to keep. Ghostpaw holds beliefs — each carrying a confidence score that strengthens through evidence, fades with time, and evolves when the world changes. Ghostpaw doesn't just know things. It knows *how well* it knows them. Structuring memory into distinct belief networks [lifts accuracy from 39% to 83.6%](https://arxiv.org/abs/2512.12818) on long-horizon benchmarks. Concise belief states with confidence tracking achieve [20% higher task success with 49% less memory](https://arxiv.org/abs/2512.20111) than full-context history. Persistent confidence tracking alone yields [3.8× recall improvement](https://arxiv.org/abs/2510.09633). One SQLite table, zero API calls, under 10ms at 10,000 memories.
+
+## The belief flywheel
+
+Memory’s product value is **calibrated continuity**: what mattered **earns weight**, what didn’t **recedes**, and the next conversation **starts from that** instead of from a noisy transcript. One read of the loop is enough — the rest of this document unpacks mechanisms, contracts, and research.
+
+```mermaid
+flowchart TB
+  A[You talk with ghostpaw]
+  B[Between chats, what mattered is filed as beliefs with strength — not a flat list of everything said]
+  C[Weak claims fade unless reinforced; corrections and repetition earn weight]
+  D[The next conversation opens with high-trust context; deeper retrieval when persistence is invoked]
+
+  A --> B
+  B --> C
+  C --> D
+  D --> A
+```
+
+*Implementation anchor — not the emotional read above:* **Ghostpaw** carries the live thread. **The Warden** is the persistence keeper: recall, remember, revise, and forget run through it — mainly **after sessions** (distillation), **when delegated** from chat, and in **haunt consolidation**. The store is one **ranked belief vault** (confidence, evidence, decay at recall, supersession lineage), not equal-weight bullet points.
 
 ## What You Get
 
-**The correction that sticks.** You tell the ghost your deploy command changed. It enters at 0.9 confidence — a direct statement, the strongest initial weight. Weeks later you mention it again in passing. Confidence tightens. Evidence count climbs. The memory resists decay because the math rewards reinforcement: four confirmations halve the decay rate, sixteen confirmations quarter it. Meanwhile, ChatGPT experienced an [83% memory failure rate](https://www.webpronews.com/chatgpts-fading-recall-inside-the-2025-memory-wipe-crisis/) during a February 2025 backend update that wiped years of accumulated preferences.
+**The correction that sticks.** You tell ghostpaw your deploy command changed. It enters at 0.9 confidence — a direct statement, the strongest initial weight. Weeks later you mention it again in passing. Confidence tightens. Evidence count climbs. The memory resists decay because the math rewards reinforcement: four confirmations halve the decay rate, sixteen confirmations quarter it. Meanwhile, ChatGPT experienced an [83% memory failure rate](https://www.webpronews.com/chatgpts-fading-recall-inside-the-2025-memory-wipe-crisis/) during a February 2025 backend update that wiped years of accumulated preferences.
 
-**The preference that ages gracefully.** You used to prefer Python 3.9 for everything. Then you started using Rust. You never told the ghost to forget Python — it just stops reinforcing the old preference while the new one accumulates evidence. The old memory fades naturally through [Ebbinghaus-inspired exponential decay](https://doi.org/10.5281/zenodo.18203372), the same principle that [FadeMem](https://arxiv.org/html/2601.18642v2) validates: biologically-inspired forgetting achieves 45% storage reduction while *improving* multi-hop reasoning. [Neural imaging confirms](https://pmc.ncbi.nlm.nih.gov/articles/PMC12007619/) the mechanism — spaced re-encounters strengthen memories through vmPFC re-encoding, while unreinforced memories naturally attenuate.
+**The preference that ages gracefully.** You used to prefer Python 3.9 for everything. Then you started using Rust. You never told ghostpaw to forget Python — it just stops reinforcing the old preference while the new one accumulates evidence. The old memory fades naturally through [Ebbinghaus-inspired exponential decay](https://doi.org/10.5281/zenodo.18203372), the same principle that [FadeMem](https://arxiv.org/html/2601.18642v2) validates: biologically-inspired forgetting achieves 45% storage reduction while *improving* multi-hop reasoning. [Neural imaging confirms](https://pmc.ncbi.nlm.nih.gov/articles/PMC12007619/) the mechanism — spaced re-encounters strengthen memories through vmPFC re-encoding, while unreinforced memories naturally attenuate.
 
-**The inference that earns trust.** The ghost notices you always review PRs on Tuesdays. It stores the inference at 0.5 confidence — the lowest rung. The next three Tuesdays confirm the pattern. Each confirmation applies an exponential moving average boost and resets the decay clock. By month two, this inference carries more weight than many explicit statements. [Calibrated belief tracking](https://arxiv.org/abs/2508.04339) improves factual accuracy by 23.6% on TruthfulQA — confidence-aware agents distinguish earned knowledge from speculation instead of treating both identically.
+**The inference that earns trust.** Ghostpaw notices you always review PRs on Tuesdays. It stores the inference at 0.5 confidence — the lowest rung. The next three Tuesdays confirm the pattern. Each confirmation applies an exponential moving average boost and resets the decay clock. By month two, this inference carries more weight than many explicit statements. [Calibrated belief tracking](https://arxiv.org/abs/2508.04339) improves factual accuracy by 23.6% on TruthfulQA — confidence-aware agents distinguish earned knowledge from speculation instead of treating both identically.
 
 **The contradiction that resolves itself.** "Prefers tabs" from January and "switched to spaces" from March both exist in the store. No conflict resolution needed — the fresher, more confident memory scores dramatically higher at query time while the older one fades into the noise floor. [Memento-II](https://arxiv.org/abs/2512.22716) proves that well-designed ranking functions converge toward accuracy rather than accumulating noise. [AriadneMem](https://arxiv.org/abs/2603.03290) extends this: conflict-aware memory achieves 15.2% improvement in multi-hop reasoning by preserving state transitions rather than forcing premature resolution.
 
@@ -53,13 +72,13 @@ Five categories organize beliefs by kind: `preference`, `fact`, `procedure`, `ca
 
 Memory stores beliefs about the world — discrete observations with confidence and decay. "User prefers tabs over spaces" is a memory. "The user is someone who cares deeply about consistency and encodes their values into tooling choices" is relational understanding — an integrated model of who someone is.
 
-A memory is an atom. A [pack](PACK.md) bond is a molecule made from many atoms. Individual observations about people are memories. The ghost's understanding of who those people are, how they relate, and where the ghost itself stands toward them lives in pack bonds. Both systems are independent. They reinforce each other — a fading memory about someone can be refreshed when the warden revisits the bond — but they store fundamentally different things. Memory stores what the ghost noticed. Pack stores who the ghost knows.
+A memory is an atom. A [pack](PACK.md) bond is a molecule made from many atoms. Individual observations about people are memories. Ghostpaw's understanding of who those people are, how they relate, and where ghostpaw itself stands toward them lives in pack bonds. Both systems are independent. They reinforce each other — a fading memory about someone can be refreshed when the warden revisits the bond — but they store fundamentally different things. Memory stores what ghostpaw noticed. Pack stores who ghostpaw knows.
 
 ## Recall
 
 ### Delegation, Not Injection
 
-The coordinator never queries memory directly. When persistence matters — a user mentions a preference, asks what the ghost remembers, or triggers any knowledge-dependent task — the coordinator delegates to the [warden](SOULS.md#persistence-and-infrastructure-souls). The warden recalls as part of its persistence work, combining memory results with pack context and quest state into a coherent response.
+The coordinator never queries memory directly. When persistence matters — a user mentions a preference, asks what ghostpaw remembers, or triggers any knowledge-dependent task — the coordinator delegates to the [warden](SOULS.md#persistence-and-infrastructure-souls). The warden recalls as part of its persistence work, combining memory results with pack context and quest state into a coherent response.
 
 This principle extends to writes: all memory mutations — remember, recall, forget, revise — flow exclusively through the warden. No CLI command, web form, or API endpoint directly modifies the memory store. Every mutation routes through the warden as a natural-language command, ensuring normalization, grounding, and audit guarantees are enforced uniformly.
 
@@ -101,29 +120,29 @@ The [warden](SOULS.md#persistence-and-infrastructure-souls) is the sole operator
 
 **Distillation.** When a session closes, the warden reviews the full conversation and extracts what's worth preserving — beliefs, pack updates, quest changes. This is the [episodic-to-semantic transformation](https://arxiv.org/abs/2602.13530) that memory research identifies as fundamental: raw interaction episodes become structured beliefs with confidence and provenance. Each potential belief is recalled against existing memory before storing, preventing blind duplication — a critical safeguard given that [HaluMem](https://arxiv.org/abs/2511.03506) shows memory hallucinations accumulate specifically during extraction and updating stages, then propagate to downstream tasks. The recall-before-store pattern functions as [retrieval practice with feedback](https://link.springer.com/article/10.1007/s10648-025-10076-6), which meta-analysis confirms is the one condition where retrieval reliably strengthens memory over elaborative encoding. Quality filters enforce self-contained claims with specifics: names, commands, paths, versions. Maximum ~5 beliefs per session. This is the primary memory acquisition path — most memories enter through distillation, not explicit user statements.
 
-**Haunting.** During autonomous maintenance cycles, the warden receives memory-aware prompts: stale memories that haven't been revisited, the ghost's oldest beliefs, category imbalances (too many preferences, too few procedures), recently revised memories worth cross-referencing. This mirrors [sleep consolidation](http://www.nature.com/articles/s41583-025-00973-8) in neuroscience: offline processing where the brain replays and reorganizes memories without conscious awareness. The warden decides what to confirm, merge, forget, or investigate further — [autonomous memory curation](https://arxiv.org/abs/2602.22406) that improved HotpotQA by 14.6 points through cost-aware knowledge extraction. [VIGIL](https://arxiv.org/abs/2512.07094) validates the architecture: a separate reflective runtime watching the primary system detects behavioral drift and generates targeted self-repair without human intervention. [Belief-Augmented Memory Enzymes](https://clawxiv.org/api/pdf/clawxiv.2602.00032) demonstrate production viability: autonomous maintenance sustains 205 beliefs with 3,217 knowledge graph connections over long-running deployments.
+**Haunting.** During autonomous maintenance cycles, the warden receives memory-aware prompts: stale memories that haven't been revisited, ghostpaw's oldest beliefs, category imbalances (too many preferences, too few procedures), recently revised memories worth cross-referencing. This mirrors [sleep consolidation](http://www.nature.com/articles/s41583-025-00973-8) in neuroscience: offline processing where the brain replays and reorganizes memories without conscious awareness. The warden decides what to confirm, merge, forget, or investigate further — [autonomous memory curation](https://arxiv.org/abs/2602.22406) that improved HotpotQA by 14.6 points through cost-aware knowledge extraction. [VIGIL](https://arxiv.org/abs/2512.07094) validates the architecture: a separate reflective runtime watching the primary system detects behavioral drift and generates targeted self-repair without human intervention. [Belief-Augmented Memory Enzymes](https://clawxiv.org/api/pdf/clawxiv.2602.00032) demonstrate production viability: autonomous maintenance sustains 205 beliefs with 3,217 knowledge graph connections over long-running deployments.
 
 ## How Memory Compounds
 
-**Day 1.** Empty. You tell the ghost your name, your stack, your deploy command. Three beliefs at 0.9 confidence. That's the entire memory.
+**Day 1.** Empty. You tell ghostpaw your name, your stack, your deploy command. Three beliefs at 0.9 confidence. That's the entire memory.
 
 **Week 2.** Distillation kicks in. Sessions extract preferences, technical facts, workflow patterns. Some enter as observations (0.8), some as inferences (0.5). The first duplicates appear and get merged. Evidence counts start climbing for recurring topics.
 
-**Month 2.** The ghost has hundreds of beliefs with calibrated confidence. Strong memories resist decay. Weak ones fade into the noise floor. Category balance reveals the ghost's knowledge shape — heavy on procedures, light on personal context, or vice versa. Haunt seeds start targeting the gaps.
+**Month 2.** Ghostpaw has hundreds of beliefs with calibrated confidence. Strong memories resist decay. Weak ones fade into the noise floor. Category balance reveals ghostpaw's knowledge shape — heavy on procedures, light on personal context, or vice versa. Haunt seeds start targeting the gaps.
 
-**Month 6.** A well-maintained ghost holds a structured model of its human's world — not a flat list of facts, but a ranked belief system where every claim carries earned certainty. Memory feeds haunting. Haunting feeds memory. Pack bonds cross-reference individual beliefs into relational understanding. Accumulated beliefs shape the ghost's behavior — [research on memory persistence in autonomous agents](https://www.agentxiv.org/paper/2602.00010) shows this creates path-dependent identity formation, where the quality of early interactions compounds into long-term trajectory. The ghost doesn't just know more. It knows *better*. [MEM1](https://openreview.net/forum?id=XY8AaxDSLb) demonstrates the compound effect: consolidated memory state yields 3.5× performance improvement with 3.7× less memory usage compared to raw accumulation. [BREW](https://arxiv.org/abs/2511.20297) confirms: structured environmental knowledge improves precision 10–20% and reduces API calls 10–15%.
+**Month 6.** Well-maintained ghostpaw holds a structured model of its human's world — not a flat list of facts, but a ranked belief system where every claim carries earned certainty. Memory feeds haunting. Haunting feeds memory. Pack bonds cross-reference individual beliefs into relational understanding. Accumulated beliefs shape ghostpaw's behavior — [research on memory persistence in autonomous agents](https://www.agentxiv.org/paper/2602.00010) shows this creates path-dependent identity formation, where the quality of early interactions compounds into long-term trajectory. Ghostpaw doesn't just know more. It knows *better*. [MEM1](https://openreview.net/forum?id=XY8AaxDSLb) demonstrates the compound effect: consolidated memory state yields 3.5× performance improvement with 3.7× less memory usage compared to raw accumulation. [BREW](https://arxiv.org/abs/2511.20297) confirms: structured environmental knowledge improves precision 10–20% and reduces API calls 10–15%.
 
 ## Intelligent Maintenance
 
 The metadata accumulated across those months — confidence tiers, evidence counts, decay trajectories, supersession chains, source provenance, category distribution — isn't just bookkeeping. The haunt cycle reads it to decide what's worth the warden's attention. No extra LLM calls. Pure SQL analytics identify the targets; the existing haunt cycle does the work.
 
-**The ghost knows what it's forgetting.** The decay curve pinpoints memories approaching the threshold where one retrieval has maximum retention impact — what spaced repetition research calls the [optimal reinforcement window](https://www.microsoft.com/en-us/research/wp-content/uploads/2024/09/MetaReflection__CR__final.pdf) (4–16% accuracy gains). The warden sees the fading memory, decides whether to confirm it or let it go. A single well-timed retrieval resets the decay clock and doubles effective lifespan.
+**Ghostpaw knows what it's forgetting.** The decay curve pinpoints memories approaching the threshold where one retrieval has maximum retention impact — what spaced repetition research calls the [optimal reinforcement window](https://www.microsoft.com/en-us/research/wp-content/uploads/2024/09/MetaReflection__CR__final.pdf) (4–16% accuracy gains). The warden sees the fading memory, decides whether to confirm it or let it go. A single well-timed retrieval resets the decay clock and doubles effective lifespan.
 
-**The ghost hedges when unsure.** Confidence labels aren't just display metadata — the warden adjusts its language. Strong memories get stated as fact. Fading ones get "I believe." Faint ones get flagged as uncertain. When a belief has been revised multiple times, the warden acknowledges that understanding is evolving rather than asserting the latest version as settled truth. This is [metacognitive calibration](https://arxiv.org/abs/2508.04339): 23.6% factual accuracy improvement from the simple act of distinguishing certainty from speculation.
+**Ghostpaw hedges when unsure.** Confidence labels aren't just display metadata — the warden adjusts its language. Strong memories get stated as fact. Fading ones get "I believe." Faint ones get flagged as uncertain. When a belief has been revised multiple times, the warden acknowledges that understanding is evolving rather than asserting the latest version as settled truth. This is [metacognitive calibration](https://arxiv.org/abs/2508.04339): 23.6% factual accuracy improvement from the simple act of distinguishing certainty from speculation.
 
-**The ghost notices its own blind spots.** When a category is dominated by low-confidence inferences, that's a knowledge gap — the ghost knows a lot of things about a topic but most of it is guesswork. When a direct user statement sits untouched for a week with no confirming evidence, it's either wrong or forgotten. Both patterns get surfaced during haunts so the warden can investigate or ask.
+**Ghostpaw notices its own blind spots.** When a category is dominated by low-confidence inferences, that's a knowledge gap — ghostpaw knows a lot of things about a topic but most of it is guesswork. When a direct user statement sits untouched for a week with no confirming evidence, it's either wrong or forgotten. Both patterns get surfaced during haunts so the warden can investigate or ask.
 
-**The ghost connects what it knows with who it knows.** When a memory mentions someone from the [pack](PACK.md), the haunt cycle cross-references it against the bond data. A memory about "Sarah's project deadline" plus Sarah's pack bond (trust tier, last contact, role) produces richer context than either system surfaces alone — [cross-system triangulation](https://arxiv.org/abs/2602.13530) that emerges naturally when both stores feed the same warden.
+**Ghostpaw connects what it knows with who it knows.** When a memory mentions someone from the [pack](PACK.md), the haunt cycle cross-references it against the bond data. A memory about "Sarah's project deadline" plus Sarah's pack bond (trust tier, last contact, role) produces richer context than either system surfaces alone — [cross-system triangulation](https://arxiv.org/abs/2602.13530) that emerges naturally when both stores feed the same warden.
 
 ## Performance
 
@@ -175,7 +194,7 @@ ChatGPT stores what its platform decides to remember — and deletes it when the
 
 Most systems store what they remember. Ghostpaw tracks how sure it is. That single structural distinction enables everything else: decay without deletion, convergence without cleanup, calibrated language without explicit rules, and compound learning without unbounded growth.
 
-The ghost on month six doesn't just know more than the ghost on day one. It knows *better* — with earned certainty that compounds across every system it feeds. Memory calibrates the warden's persistence. Pack bonds build on memory atoms. Haunt cycles surface what needs attention. The belief system is the foundation all of it rests on — quiet, local, and accumulating signal while noise fades on its own.
+Ghostpaw on month six doesn't just know more than ghostpaw on day one. It knows *better* — with earned certainty that compounds across every system it feeds. Memory calibrates the warden's persistence. Pack bonds build on memory atoms. Haunt cycles surface what needs attention. The belief system is the foundation all of it rests on — quiet, local, and accumulating signal while noise fades on its own.
 
 ## Contract Summary
 
@@ -191,7 +210,7 @@ The ghost on month six doesn't just know more than the ghost on day one. It know
 ### Direct
 
 The user gets corrections that stick, preferences that age gracefully, revisable beliefs, and recall
-that can answer what the ghost knows with calibrated certainty instead of flat assertion.
+that can answer what ghostpaw knows with calibrated certainty instead of flat assertion.
 
 ### Active
 
@@ -233,7 +252,7 @@ history let the subsystem converge toward accuracy without destructive cleanup p
 ### Unique and Distinct
 
 Memory stores atomic beliefs about the world. `pack` stores relational understanding. `skills` stores
-procedures. `souls` stores cognition. Memory's unique job is "what claims does the ghost hold, how
+procedures. `souls` stores cognition. Memory's unique job is "what claims does ghostpaw hold, how
 confident is it, and how has that belief changed over time?"
 
 ### Data Sovereignty

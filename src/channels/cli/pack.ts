@@ -186,7 +186,7 @@ export default defineCommand({
   meta: {
     name: "pack",
     description:
-      'Manage the ghost\'s social world. Usage: pack [subcommand] or pack "instruction" or pack <id> "instruction"',
+      'Manage ghostpaw\'s pack (social world). Usage: pack [subcommand] or pack "instruction" or pack <id> "instruction"',
   },
   args: {
     model: {

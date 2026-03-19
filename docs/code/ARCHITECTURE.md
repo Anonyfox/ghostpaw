@@ -23,7 +23,7 @@ Five layers, strictly ordered. Each layer may depend on layers below it. Never a
 - `lib/` depends on `node:` built-ins and bundled npm dependencies (`chatoyant`, `marked`, etc.). These are foundational packages the project vendors — not arbitrary third-party code. No database access.
 - `core/` depends on `lib/`. Never on tools, harness, or channels. Core modules never make discretionary LLM calls — `core/chat` executes the mechanical turn pipeline it's given, but all semantic judgment (summarization, title generation, classification) lives in the harness as oneshots.
 - `tools/` depends on `core/` and `lib/`. Never on harness or channels. When a tool needs a capability that lives above it (e.g. delegation), the harness injects a callback at wiring time.
-- `harness/` depends on `core/`, `tools/`, and `lib/`. Never on channels. The harness is the ghost in operational form — it composes core modules, registers tools, assembles context, and provides the entity that channels drive.
+- `harness/` depends on `core/`, `tools/`, and `lib/`. Never on channels. The harness is ghostpaw in operational form — it composes core modules, registers tools, assembles context, and provides the entity that channels drive.
 - `channels/` depends on `harness/` for entity operations and `core/` for direct data reads (session listing, history retrieval). Never on tools directly.
 
 **Namespace boundary rules:**
@@ -69,8 +69,8 @@ Meaning:
 `api/types.ts` and, when truly needed, `api/constants.ts` are also valid public surface files for
 shared declarations. They are the exception, not a second miscellaneous namespace.
 
-Today the explicitly namespaced core subsystems are `chat`, `config`, `memory`, `pack`, `schedule`,
-`secrets`, `skills`, and `souls`.
+Today the explicitly namespaced core subsystems are `chat`, `config`, `memory`, `pack`, `quests`,
+`schedule`, `secrets`, `skills`, `souls`, and `trail`.
 
 Features include (not exhaustive — grows as the system grows):
 
@@ -87,8 +87,11 @@ Features include (not exhaustive — grows as the system grows):
 - **secrets/** — local secret storage, provider key management, and runtime-only value access.
 - **pack/** — social bonds, contacts, identity resolution, member merging, Theory of Mind.
 - **quests/** — unified task/event/calendar system, temporal awareness, quest board, FTS5 search.
+  See `docs/features/QUESTS.md` for the product-level feature contract.
 - **schedule/** — job scheduling with CAS-based at-most-once locking, builtin + custom schedules, interval management.
 - **skills/** — skill storage, craft/train/scout pipeline, default skills (as .ts files).
+- **trail/** — longitudinal signals, chronicle, calibration, preamble compilation, Historian-facing
+  read/write surfaces. See `docs/features/TRAIL.md` for the product-level feature contract.
 
 `SETTINGS` is a product umbrella, not its own `src/core/settings/` namespace. Its implementation is
 split across `core/config/`, `core/secrets/`, and `core/schedule/`.
@@ -153,7 +156,7 @@ Other layers import tool factories from `public/` only.
 
 ## src/harness/
 
-The ghost in operational form. The harness composes core modules into a working entity — the thing channels actually talk to.
+Ghostpaw in operational form: the harness composes core modules into a working entity — the thing channels actually talk to.
 
 **Entity.** The main composition. `createEntity(options)` produces an `Entity` with `streamTurn` and `executeTurn` methods. A channel hands it a session ID and user message; the entity handles everything: soul loading, memory recall, context assembly, tool registration, model resolution, compaction, and post-turn operations. The entity is a thin coordinator — it delegates every operation to a dedicated function, staying under 50 lines.
 

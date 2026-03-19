@@ -1,6 +1,6 @@
 # Features — Core Subsystems
 
-Ghostpaw's features are engineered subsystems — not plugins, not extensions, not skills thrown together ad-hoc. Each is a distinct module that uniquely improves what the LLM can do, how well it does it, and how fast it learns. Together they form a harness that compounds: the ghost on day 100 is qualitatively different from day 1, independent of underlying model improvements.
+Ghostpaw's features are engineered subsystems — not plugins, not extensions, not skills thrown together ad-hoc. Each is a distinct module that uniquely improves what the LLM can do, how well it does it, and how fast it learns. Together they form a harness that compounds: ghostpaw on day 100 is qualitatively different from day 1, independent of underlying model improvements.
 
 Every subsystem in this folder exists because it passed the same bar. If it can't clearly demonstrate value across all four dimensions below AND meet all six quality criteria, it doesn't belong here.
 
@@ -12,7 +12,7 @@ Every subsystem must deliver value across all four. A module that only serves on
 
 The user interacts with the subsystem through all channels — chat first, but also web UI, TUI, CLI, notifications, whatever channels exist. The value is obvious. The user understands what it does and why it's useful without explanation. The UI/UX is optimized for each channel: fast, clear, zero friction.
 
-A subsystem that only benefits the ghost internally but gives the user nothing visible is infrastructure, not a feature. Infrastructure belongs in the kernel. Features live here because users want them.
+A subsystem that only benefits ghostpaw internally but gives the user nothing visible is infrastructure, not a feature. Infrastructure belongs in the kernel. Features live here because users want them.
 
 ### Active — Ghostpaw Has Explicit Reasons to Delegate
 
@@ -29,7 +29,7 @@ Ongoing usage of the subsystem builds up capabilities that transparently improve
 - Interactive content pools to draw from intelligently (codex entries, patterns)
 - Behavioral shaping through accumulated evidence
 
-The user never triggers these improvements. They happen as a side effect of the subsystem doing its job. The ghost gets better because the subsystem exists, even when nobody asks it anything.
+The user never triggers these improvements. They happen as a side effect of the subsystem doing its job. Ghostpaw gets better because the subsystem exists, even when nobody asks it anything.
 
 ### Synergies — Mechanical Cross-System Integration
 
@@ -72,7 +72,7 @@ Bad situations must be fixable without human intervention. Corrupted data, overf
 - Rollback capability for recent changes
 - The subsystem must detect when it is making things *worse* and back off
 
-Self-healing is not optional robustness. It is a core design requirement. A subsystem that can silently degrade the ghost without detection is a liability.
+Self-healing is not optional robustness. It is a core design requirement. A subsystem that can silently degrade ghostpaw without detection is a liability.
 
 ### 4. Unique and Distinct
 
@@ -103,11 +103,8 @@ the four value dimensions, quality criteria compliance, data contract, interface
 grounding every major design decision.
 
 These documents are feature contracts, not a guaranteed 1:1 mirror of `src/core/` folder names.
-Most do map directly to a core namespace. Some are umbrella or spec documents:
-
-- `SETTINGS.md` is the product umbrella over `src/core/config`, `src/core/secrets`, and
-  `src/core/schedule`.
-- `QUESTS.md` lives one level up in `docs/` because it predates this folder layout.
+Most map directly to a core namespace. The exception is `SETTINGS.md`, the product umbrella over
+`src/core/config`, `src/core/secrets`, and `src/core/schedule`.
 
 | Subsystem | One-Line | Managing Soul |
 |-----------|----------|---------------|

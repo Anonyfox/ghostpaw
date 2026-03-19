@@ -6,6 +6,22 @@ A soul defines how an agent approaches problems, reasons through ambiguity, and 
 
 Ghostpaw runs multiple souls as a coordinated team: a coordinator that holds the conversation, specialists that handle deep work, infrastructure souls that govern persistence and operations, and meta-souls that improve the others. Each soul has a focused role, a scoped toolset, and its own evolutionary trajectory. All of them level up. The whole system gets measurably better over time — and the rate of improvement itself improves.
 
+## The soul flywheel
+
+Ghostpaw doesn't just learn what you tell it — that's memory. It learns how to *think* from working with you. Correct something once, and weeks later, on a different task entirely, ghostpaw applies the lesson — not because it filed a rule, but because the correction reshaped how it approaches every similar problem. You don't manage this. You just use ghostpaw, and the thinking improves. The loop **closes through trust**: an agent whose thinking fits your way of working earns harder tasks, and harder tasks are where the deepest growth comes from. One read of the cycle is enough; the rest of this document unpacks traits, soulshards, level-ups, and the research behind them.
+
+```mermaid
+flowchart TB
+  A[You work with ghostpaw — conversations, corrections, delegated tasks happen naturally]
+  B[Lessons don't become rules — they reshape how ghostpaw approaches every similar problem]
+  C[Growth compounds in the background — earned traits deepen judgment, each level-up distills everything into a sharper mind]
+  D[Ghostpaw thinks your way — and you trust it with more, which is where the deepest learning happens]
+
+  A --> B --> C --> D --> A
+```
+
+*Implementation anchor — not the emotional read above:* **The Mentor** owns refinement. **Soulshards** — behavioral observations from distillation, haunting, delegation outcomes, and quest turn-in — are the evidence currency. **Crystallization** gates trait proposals behind source diversity and temporal spread. **Level-up** consolidates earned traits into richer identity, resetting the growth ceiling. **The attunement cycle** ticks every 5 minutes: pure SQL 99% of the time, conditional mentor invocation only when evidence justifies it.
+
 ## How It Works
 
 ### The Character Sheet
@@ -292,12 +308,12 @@ For a personal agent used over months, trajectory wins. The agent that is 10% be
 
 ## The Predefined Souls
 
-The ghost's existence has four aspects, and each aspect has at least one dedicated soul:
+Ghostpaw's existence has four aspects, and each aspect has at least one dedicated soul:
 
-- **Play** — what the ghost does (conversations, tasks, code) → Ghostpaw, JS Engineer
-- **Evolution** — what the ghost becomes (identity refinement, skill building) → Mentor, Trainer
-- **Persistence** — what the ghost carries (beliefs, relationships, commitments) → Warden
-- **Infrastructure** — what supports the ghost (config, secrets, budget, scheduling) → Chamberlain
+- **Play** — what ghostpaw does in session (conversations, tasks, code) → Ghostpaw (coordinator), JS Engineer
+- **Evolution** — what ghostpaw becomes over time (identity refinement, skill building) → Mentor, Trainer
+- **Persistence** — what ghostpaw carries forward (beliefs, relationships, commitments) → Warden
+- **Infrastructure** — what supports ghostpaw (config, secrets, budget, scheduling) → Chamberlain
 
 Six souls ship with every installation. All start at level 0. All earn traits from evidence. All level up through the same consolidation mechanic. Together they form the minimum viable party for a self-improving agent.
 
@@ -315,7 +331,7 @@ Six souls ship with every installation. All start at level 0. All earn traits fr
 
 ### Persistence and Infrastructure Souls
 
-**Warden** — the persistence keeper and the ghost's most tool-dense soul (23 tools). Manages memory, pack bonds, and quests. Sees across systems where others see within them — a question about a person spans memory (beliefs), pack (relationships), and quests (commitments). The warden is the only soul that queries all three, which makes it the only soul that can detect when they disagree. It serves dual roles: as an active operator handling persistence requests during conversations, and as a maintenance soul running data hygiene during quiet times — merging duplicate memories, reconciling stale quests, distilling undistilled sessions. Both roles exercise the same expertise, and the evidence from both feeds its evolution.
+**Warden** — the persistence keeper and ghostpaw's most tool-dense soul (23 tools). Manages memory, pack bonds, and quests. Sees across systems where others see within them — a question about a person spans memory (beliefs), pack (relationships), and quests (commitments). The warden is the only soul that queries all three, which makes it the only soul that can detect when they disagree. It serves dual roles: as an active operator handling persistence requests during conversations, and as a maintenance soul running data hygiene during quiet times — merging duplicate memories, reconciling stale quests, distilling undistilled sessions. Both roles exercise the same expertise, and the evidence from both feeds its evolution.
 
 **Chamberlain** — the infrastructure governor. Config safety, secret isolation, budget authority, scheduling. Holds the keys and controls the purse. API keys exist only within the chamberlain's ephemeral context — no other soul can access or leak them. A prompt injection in the coordinator's conversation cannot reach what it cannot see. The chamberlain validates config mutations against known ranges before applying them, enforces spending limits, and maintains undo/reset as safety nets. It is the only soul that touches secrets, the only soul that manages the schedule, and the only soul with budget authority.
 
@@ -416,7 +432,7 @@ The soul on day 100 is genuinely different from the soul on day 1 — not becaus
 
 ### Direct
 
-The user gets a ghost that meaningfully changes over time: stronger backstories, clearer specialist
+Ghostpaw meaningfully changes for the user over time: stronger backstories, clearer specialist
 roles, visible levels, trait slots, shard progress, and rollbackable refinement instead of a frozen
 system prompt.
 

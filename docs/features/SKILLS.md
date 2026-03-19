@@ -10,6 +10,22 @@ The research is unambiguous. [Curated skills raise pass rates by +16.2 percentag
 
 Managed by the **Trainer** soul. The trainer reads work patterns, distills proven procedures into skills, creates new ones from user requests, coordinator observations, or stoke proposals, and maintains quality through validation, repair, and evidence-grounded refinement. Skills are ghostpaw's operational knowledge — the difference between improvising from scratch and executing from earned competence.
 
+## The skill flywheel
+
+Skills are literal capabilities — not background knowledge, not abstract judgment, but concrete procedures ghostpaw follows when doing real work. They grow from your work: every correction, every workaround, every pattern ghostpaw notices during normal use drops evidence into the system. That evidence ripens over days. When it's ready, you forge — pick an improvement path from real evidence, watch the procedure sharpen, hear the rank-up. The loop **closes because better procedures make ghostpaw literally more capable** at your specific work, and more capable work drops the richest evidence. One read of the cycle is enough; the rest of this document unpacks ranks, fragments, training, and the nightly forge.
+
+```mermaid
+flowchart TB
+  A[You work with ghostpaw — it notices patterns you don't even name]
+  B[Patterns become real procedures — concrete steps, not notes]
+  C[You forge them sharper — pick when, pick how, watch the rank climb]
+  D[Ghostpaw stops improvising and starts executing — literal new capabilities from your work]
+
+  A --> B --> C --> D --> A
+```
+
+*Implementation anchor — not the emotional read above:* **The Trainer** owns all skill mutations. **Fragments** — raw observations from quests, sessions, coordinator, and historian — are the evidence currency. **Stoke** runs nightly: validates, routes fragments, computes readiness, queues proposals — zero LLM tokens when idle. **Training** is 2-phase propose/execute: evidence-grounded, human-curated, checkpointed. **Rank** advances through tiers that mechanically change what the system does.
+
 ## What You Get
 
 **Your procedures get better.** A deploy skill refined through 10 real encounters handles the environment variable edge case that tripped you up in week two, the rollback sequence that finally worked in week four, and the monitoring check that the historian flagged as a recurring friction signal. [Failure-driven skill evolution yields +7.3–12.1% improvement](https://arxiv.org/abs/2603.02766) over static skills that never change — and every refinement in ghostpaw comes from real evidence, not speculation. Training readiness tells you when a skill is ripe: orange means guaranteed improvement, grey means don't bother. You click train. You pick an improvement path from evidence-backed proposals. The procedure ghostpaw follows tomorrow is measurably sharper because of what you just did. Rank advances. `▲ deploy-vercel reached Journeyman (rank 3)!` — and Journeyman is not a badge. It means the skill is now composable as a dependency for other skills. At Expert, it enforces tool restrictions. At Master, it compiles to a token-efficient summary. Each tier changes what the system *does*.
@@ -350,7 +366,7 @@ No model update will ever teach an LLM how YOU deploy to YOUR infrastructure. A 
 
 Of 14 self-improvement mechanisms in the skills subsystem, 8 cost zero LLM tokens and require zero user action. The system mostly improves itself through code — pure SQL for readiness, pure filesystem for validation, pure git for versioning, pure code for tier checks and rank-up notifications. The two things the user does — train (the reward) and create (the curiosity) — are the two things worth doing. Everything else runs in the background, silently making every training session richer and every skill read more effective.
 
-Skills encode procedure. [Souls](SOULS.md) encode cognition. [Memory](MEMORY.md) encodes beliefs. [Quests](../QUESTS.md) encode commitments. [Trail](TRAIL.md) encodes patterns. The boundary is sharp: if it is a reusable procedure with steps, it is a skill. If it is a principle without steps, it is a trait. If it is a fact, it is a memory. If it is a pattern, it is wisdom.
+Skills encode procedure. [Souls](SOULS.md) encode cognition. [Memory](MEMORY.md) encodes beliefs. [Quests](QUESTS.md) encode commitments. [Trail](TRAIL.md) encodes patterns. The boundary is sharp: if it is a reusable procedure with steps, it is a skill. If it is a principle without steps, it is a trait. If it is a fact, it is a memory. If it is a pattern, it is wisdom.
 
 Ghostpaw on day 100 does not just know more. It executes from earned competence — procedures no model update will ever capture, refined through the specific life of this specific instance, compounding with every session. That is the thesis.
 
