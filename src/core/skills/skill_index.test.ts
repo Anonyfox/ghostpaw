@@ -76,20 +76,22 @@ describe("formatSkillIndex", () => {
     strictEqual(formatSkillIndex([]), "");
   });
 
-  it("formats a single entry", () => {
-    const result = formatSkillIndex([{ name: "deploy", description: "Deploy the app." }]);
+  it("formats a single entry with tier label", () => {
+    const result = formatSkillIndex([
+      { name: "deploy", description: "Deploy the app.", tier: "Apprentice" },
+    ]);
     strictEqual(result.includes("## Skills"), true);
     strictEqual(result.includes("1 skill"), true);
-    strictEqual(result.includes("skills/deploy/: Deploy the app."), true);
+    strictEqual(result.includes("skills/deploy/ [Apprentice]: Deploy the app."), true);
   });
 
   it("formats multiple entries with correct plural", () => {
     const result = formatSkillIndex([
-      { name: "deploy", description: "Deploy." },
-      { name: "testing", description: "Test." },
+      { name: "deploy", description: "Deploy.", tier: "Expert" },
+      { name: "testing", description: "Test.", tier: "Journeyman" },
     ]);
     strictEqual(result.includes("2 skills"), true);
-    strictEqual(result.includes("skills/deploy/"), true);
-    strictEqual(result.includes("skills/testing/"), true);
+    strictEqual(result.includes("skills/deploy/ [Expert]"), true);
+    strictEqual(result.includes("skills/testing/ [Journeyman]"), true);
   });
 });

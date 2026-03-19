@@ -131,6 +131,7 @@ function formatToolGuidance(soulId: number): string {
     "For soul development, delegate to the Mentor.",
     "For skill development, delegate to the Trainer.",
     "For trail analysis and chronicle work, delegate to the Historian.",
+    "Check your skill index before multi-step tasks — earned procedures prevent repeated mistakes.",
   ];
 
   if (soulId === MANDATORY_SOUL_IDS.mentor) {

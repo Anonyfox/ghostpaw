@@ -44,6 +44,7 @@ export interface SkillSummary {
 export interface SkillIndexEntry {
   name: string;
   description: string;
+  tier: string;
 }
 
 export interface CheckpointResult {
