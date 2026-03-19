@@ -16,7 +16,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22.5"
+          node-version: "24"
           cache: npm
           registry-url: "https://registry.npmjs.org"
 
@@ -33,7 +33,7 @@ jobs:
 
       - name: Verify artifact version matches tag
         run: |
-          ARTIFACT_VERSION=$(node --experimental-sqlite dist/ghostpaw.mjs --version)
+          ARTIFACT_VERSION=$(node dist/ghostpaw.mjs --version)
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           if [ "$ARTIFACT_VERSION" != "$TAG_VERSION" ]; then
             echo "Version mismatch: artifact=$ARTIFACT_VERSION tag=$TAG_VERSION"

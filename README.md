@@ -52,23 +52,19 @@ Three modes, one system.
 
 **Craft** — the agent writes skills during normal conversation. You correct it, it captures the lesson. Skills emerge from doing.
 
-**Train** — `ghostpaw train`. Retrospective that processes accumulated sessions into sharper skills. Three phases: absorb learnings, refine skills, clean up. You decide when to run it.
+**Train** — `ghostpaw skills train`. Retrospective that processes accumulated sessions into sharper skills. Three phases: absorb learnings, refine skills, clean up. You decide when to run it.
 
-**Scout** — `ghostpaw scout`. Forward-looking ideation that mines your context for friction and capability gaps you haven't noticed. Returns evidence-grounded suggestions, then deep-researches the one you pick.
+**Stoke** — `ghostpaw skills stoke`. Forward-looking ideation that mines your context for friction and capability gaps you haven't noticed. Returns evidence-grounded suggestions, then deep-researches the one you pick.
 
-Skills are plain markdown in `skills/`, version-controlled by git for integrity and rollback. No plugins. No marketplace. No supply chain attack surface.
-
-[How the skill system works →](docs/SKILLS.md)
+Skills are plain markdown, version-controlled by git for integrity and rollback. No plugins. No marketplace. No supply chain attack surface.
 
 ## Souls
 
 Skills teach the agent *what* to do. Souls teach it *how to think*. Every agent — the main coordinator and each specialist — has a soul: a markdown file defining its cognitive identity, judgment calls, and reasoning style.
 
-Ghostpaw runs as a **coordinator with souled specialists**. The main soul routes tasks. Specialist souls (`agents/*.md`) define how each expert thinks — not just their role, but their cognitive mode. A JS engineer soul that says "always validate inputs at boundaries" catches constraints the coordinator didn't mention, because it's baked into the specialist's identity.
+Ghostpaw runs as a **coordinator with souled specialists**. The main soul routes tasks. Specialist souls define how each expert thinks — not just their role, but their cognitive mode. Six mandatory souls ship by default: ghostpaw (coordinator), js-engineer (builder), mentor (soul refiner), trainer (skill builder), warden (persistence keeper), chamberlain (infrastructure governor).
 
-Souls improve through evidence-driven refinement: the system analyzes delegation outcomes and memories, proposes focused changes, and commits revisions to a separate git history. Every refinement is diffable and rollback-able. The commit count is the soul's **level** — a level-7 soul has been refined seven times from real-world evidence. This is [Loop 4](#four-learning-loops) — the cognition loop that makes the agent think better over time, not just know more.
-
-[How souls and delegation work →](docs/SOULS.md)
+Souls improve through evidence-driven refinement: the system analyzes delegation outcomes and memories, proposes focused changes, and tracks revisions with full rollback. The soul's **level** reflects how many times it has been refined from real-world evidence. This is [Loop 4](#four-learning-loops) — the cognition loop that makes the agent think better over time, not just know more.
 
 ## Memory
 
@@ -78,7 +74,7 @@ Memories are stored in SQLite (Node.js built-in), embedded using a lightweight t
 
 The agent uses memory transparently: ask "what concerts are near me?" and it already knows your city, your bands, your preferences — because it recalled them before drafting its answer.
 
-[How memory works →](docs/MEMORY.md)
+Memory is belief-based with confidence decay — recent corrections outrank stale context naturally.
 
 ## Web Tools
 
@@ -88,7 +84,7 @@ Search works out of the box with DuckDuckGo. Add an API key for **Brave Search**
 
 That's the zero-dependency core. Since the agent has shell access and learns through skills, nothing stops it from driving Playwright, puppeteer, or `curl` pipelines if they're installed — you teach it once, it writes a skill, and the capability sticks. The built-in tools cover 95% of web tasks without any of that.
 
-[Web tools, modes, and providers →](docs/WEB.md) · [API key setup →](docs/SECRETS.md)
+API keys are managed via `ghostpaw secrets` — stored locally, never sent to the LLM.
 
 ## Communication
 
@@ -98,7 +94,7 @@ Talk to Ghostpaw from anywhere. Channels are persistent messaging integrations t
 
 **Web UI** — built-in control plane at `localhost:3000`. Set a password, open a browser. Full chat with real-time streaming, live training, skill scouting, memory search, session inspection — from your phone or desktop. Password-authenticated, rate-limited, CSP-hardened. Everything embedded in the single `.mjs` artifact.
 
-[Telegram setup, Discord, and more →](docs/COMMUNICATION.md) · [Web UI details →](docs/WEB_UI.md)
+All channels run simultaneously — TUI, web, and Telegram from a single process.
 
 ## Cost Controls
 
@@ -106,7 +102,7 @@ Every LLM call is tracked with real provider-reported token counts and costs. Se
 
 No surprise bills. No midnight-reset loopholes. No hope-based cost management.
 
-[How cost tracking works →](docs/COSTS.md)
+Manage limits via `ghostpaw costs` or the web UI dashboard.
 
 ## Deployment Philosophy
 
@@ -118,13 +114,13 @@ Ghostpaw reads `SOUL.md` and `skills/` natively — the same workspace format Op
 
 ## Install
 
-Requires **Node.js 22.5+** (or Docker).
+Requires **Node.js 24+** (or Docker).
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Anonyfox/ghostpaw/main/install.sh | sh
 ```
 
-The installer detects your OS, installs Node.js 22.5+ if missing, and sets up `ghostpaw` in `~/.local/bin`. True one-shot — works on macOS, Linux, and WSL.
+The installer detects your OS, installs Node.js 24+ if missing, and sets up `ghostpaw` in `~/.local/bin`. True one-shot — works on macOS, Linux, and WSL.
 
 Already have Node.js?
 
@@ -136,7 +132,7 @@ npm install -g ghostpaw       # global install
 Docker (no Node.js needed):
 
 ```bash
-docker run --rm -it -v "$(pwd)":/workspace -v ~/.ghostpaw:/root/.ghostpaw ghcr.io/anonyfox/ghostpaw
+docker run --rm -it -v "$(pwd)":/workspace ghcr.io/anonyfox/ghostpaw
 ```
 
 [Setup guide & troubleshooting →](docs/SETUP.md)
@@ -144,22 +140,15 @@ docker run --rm -it -v "$(pwd)":/workspace -v ~/.ghostpaw:/root/.ghostpaw ghcr.i
 ## Usage
 
 ```bash
-ghostpaw                     # interactive chat
-ghostpaw run "do the thing"  # one-shot, exits when done
-ghostpaw train               # level up from experience
-ghostpaw scout               # discover new capabilities
-ghostpaw init                # create workspace, set API keys
-ghostpaw secrets             # manage API keys (masked input, persistent)
-ghostpaw service install     # systemd/launchd background service
-```
-
-As a library:
-
-```javascript
-import { createAgent } from "ghostpaw";
-
-const agent = createAgent({ workspace: "./my-workspace" });
-const result = await agent.run("analyze this codebase");
+ghostpaw                        # interactive chat (auto-setup on first run)
+ghostpaw run "do the thing"     # one-shot, exits when done
+ghostpaw skills train           # level up from experience
+ghostpaw skills stoke           # discover new capabilities
+ghostpaw secrets                # manage API keys
+ghostpaw souls                  # inspect and refine souls
+ghostpaw memory                 # browse memories
+ghostpaw quests                 # tasks, events, deadlines
+ghostpaw service install        # systemd/launchd background service
 ```
 
 ## Architecture
@@ -168,14 +157,14 @@ const result = await agent.run("analyze this codebase");
 src/index.ts  →  esbuild  →  dist/ghostpaw.mjs
 ```
 
-One artifact. CLI, runtime, and importable library in a single self-contained `.mjs` file. All npm dependencies bundled at build time — no `node_modules` at runtime. Built on Node built-in APIs (`node:sqlite`, `node:http`, `node:fs`, `node:child_process`).
+One artifact. Single self-contained `.mjs` file with embedded web UI. All npm dependencies bundled at build time — no `node_modules` at runtime. Built on Node built-in APIs (`node:sqlite`, `node:http`, `node:fs`, `node:child_process`).
+
+Five layers: `lib/` (utilities) → `core/` (domain logic) → `tools/` (agent syscalls) → `harness/` (entity composition) → `channels/` (TUI, web, Telegram, CLI).
 
 ```
-~/.ghostpaw/
-  config.json       # providers, models, cost controls
-  ghostpaw.db       # SQLite: sessions, memory
-  SOUL.md           # agent personality
-  skills/           # procedural knowledge (markdown)
+./                            # workspace directory
+  ghostpaw.db                 # SQLite: sessions, memory, souls, pack, quests, config, secrets
+  skills/                     # procedural knowledge (markdown, git-versioned)
 ```
 
 ## Development

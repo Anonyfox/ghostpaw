@@ -1,6 +1,7 @@
 node_modules/
 dist/
+playground/
 *.tgz
 .DS_Store
-playground/
 .env
+docs/haunt-journals/

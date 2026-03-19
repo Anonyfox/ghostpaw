@@ -3,8 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
-
-import { createEditTool } from "./edit.js";
+import { createEditTool } from "./edit.ts";
 
 let workDir: string;
 let editTool: ReturnType<typeof createEditTool>;
@@ -22,9 +21,7 @@ afterEach(() => {
   rmSync(workDir, { recursive: true, force: true });
 });
 
-// ── Original single-edit tests ─────────────────────────────────────────
-
-describe("Edit tool - single edit", () => {
+describe("edit — single edit", () => {
   it("has correct tool metadata", () => {
     strictEqual(editTool.name, "edit");
     ok(editTool.description.length > 0);
@@ -32,11 +29,9 @@ describe("Edit tool - single edit", () => {
 
   it("replaces a unique string in a file", async () => {
     writeFileSync(join(workDir, "test.txt"), "hello world");
-    const result = (await exec({
-      path: "test.txt",
-      search: "world",
-      replacement: "universe",
-    })) as { success: boolean };
+    const result = (await exec({ path: "test.txt", search: "world", replacement: "universe" })) as {
+      success: boolean;
+    };
     ok(result.success);
     strictEqual(readFileSync(join(workDir, "test.txt"), "utf-8"), "hello universe");
   });
@@ -54,42 +49,37 @@ describe("Edit tool - single edit", () => {
 
   it("returns error when search string is ambiguous", async () => {
     writeFileSync(join(workDir, "dup.txt"), "foo bar foo baz");
-    const result = (await exec({
-      path: "dup.txt",
-      search: "foo",
-      replacement: "qux",
-    })) as { error: string };
+    const result = (await exec({ path: "dup.txt", search: "foo", replacement: "qux" })) as {
+      error: string;
+    };
     ok(result.error);
     ok(result.error.includes("2 matches"));
   });
 
   it("returns error when search string is not found", async () => {
     writeFileSync(join(workDir, "test.txt"), "hello world");
-    const result = (await exec({
-      path: "test.txt",
-      search: "goodbye",
-      replacement: "x",
-    })) as { error: string };
+    const result = (await exec({ path: "test.txt", search: "goodbye", replacement: "x" })) as {
+      error: string;
+    };
     ok(result.error);
     ok(result.error.includes("not found"));
   });
 
   it("returns error for non-existent file", async () => {
-    const result = (await exec({
-      path: "nope.txt",
-      search: "x",
-      replacement: "y",
-    })) as { error: string };
+    const result = (await exec({ path: "nope.txt", search: "x", replacement: "y" })) as {
+      error: string;
+    };
     ok(result.error);
   });
 
-  it("prevents path traversal", async () => {
+  it("allows paths outside workspace (file-not-found, not access-denied)", async () => {
     const result = (await exec({
-      path: "../../etc/passwd",
+      path: "../../etc/nonexistent_test_file",
       search: "x",
       replacement: "y",
     })) as { error: string };
     ok(result.error);
+    ok(result.error.includes("Failed to read"), "should get file-not-found, not access-denied");
   });
 
   it("falls back to fuzzy whitespace match", async () => {
@@ -101,8 +91,7 @@ describe("Edit tool - single edit", () => {
     })) as { success: boolean; matchKind: string };
     ok(result.success);
     strictEqual(result.matchKind, "fuzzy");
-    const content = readFileSync(join(workDir, "ws.txt"), "utf-8");
-    ok(content.includes("return false"));
+    ok(readFileSync(join(workDir, "ws.txt"), "utf-8").includes("return false"));
   });
 
   it("reports match kind in result", async () => {
@@ -122,9 +111,7 @@ describe("Edit tool - single edit", () => {
   });
 });
 
-// ── No-op detection ────────────────────────────────────────────────────
-
-describe("Edit tool - no-op detection", () => {
+describe("edit — no-op detection", () => {
   it("rejects when search equals replacement", async () => {
     writeFileSync(join(workDir, "test.txt"), "hello world");
     const result = (await exec({
@@ -138,9 +125,7 @@ describe("Edit tool - no-op detection", () => {
   });
 });
 
-// ── Empty file protection ──────────────────────────────────────────────
-
-describe("Edit tool - empty file protection", () => {
+describe("edit — empty file protection", () => {
   it("rejects edit that would empty the file", async () => {
     writeFileSync(join(workDir, "test.txt"), "only content");
     const result = (await exec({
@@ -154,9 +139,7 @@ describe("Edit tool - empty file protection", () => {
   });
 });
 
-// ── Size shrink warning ────────────────────────────────────────────────
-
-describe("Edit tool - size warnings", () => {
+describe("edit — size warnings", () => {
   it("warns when file shrinks significantly", async () => {
     const big = `${"A".repeat(200)}\nkeep\n`;
     writeFileSync(join(workDir, "big.txt"), big);
@@ -171,9 +154,7 @@ describe("Edit tool - size warnings", () => {
   });
 });
 
-// ── Replace-all ────────────────────────────────────────────────────────
-
-describe("Edit tool - replaceAll", () => {
+describe("edit — replaceAll", () => {
   it("replaces all occurrences", async () => {
     writeFileSync(join(workDir, "test.txt"), "foo bar foo baz foo");
     const result = (await exec({
@@ -227,9 +208,7 @@ describe("Edit tool - replaceAll", () => {
   });
 });
 
-// ── Insert at line ─────────────────────────────────────────────────────
-
-describe("Edit tool - insertAfterLine", () => {
+describe("edit — insertAfterLine", () => {
   it("inserts at the beginning of file (line 0)", async () => {
     writeFileSync(join(workDir, "test.txt"), "line1\nline2\n");
     const result = (await exec({
@@ -239,8 +218,7 @@ describe("Edit tool - insertAfterLine", () => {
     })) as { success: boolean; insertedAtLine: number };
     ok(result.success);
     strictEqual(result.insertedAtLine, 0);
-    const content = readFileSync(join(workDir, "test.txt"), "utf-8");
-    ok(content.startsWith("inserted\nline1"));
+    ok(readFileSync(join(workDir, "test.txt"), "utf-8").startsWith("inserted\nline1"));
   });
 
   it("inserts after a specific line", async () => {
@@ -302,9 +280,7 @@ describe("Edit tool - insertAfterLine", () => {
   });
 });
 
-// ── Batch edits ────────────────────────────────────────────────────────
-
-describe("Edit tool - batch edits", () => {
+describe("edit — batch edits", () => {
   it("applies multiple edits atomically", async () => {
     writeFileSync(join(workDir, "test.txt"), "alpha beta gamma delta");
     const result = (await exec({
@@ -350,10 +326,7 @@ describe("Edit tool - batch edits", () => {
 
   it("rejects invalid JSON in edits", async () => {
     writeFileSync(join(workDir, "test.txt"), "content");
-    const result = (await exec({
-      path: "test.txt",
-      edits: "not json",
-    })) as { error: string };
+    const result = (await exec({ path: "test.txt", edits: "not json" })) as { error: string };
     ok(result.error);
     ok(result.error.includes("valid JSON"));
   });
@@ -370,10 +343,7 @@ describe("Edit tool - batch edits", () => {
 
   it("rejects empty edits array", async () => {
     writeFileSync(join(workDir, "test.txt"), "content");
-    const result = (await exec({
-      path: "test.txt",
-      edits: "[]",
-    })) as { error: string };
+    const result = (await exec({ path: "test.txt", edits: "[]" })) as { error: string };
     ok(result.error);
     ok(result.error.includes("non-empty"));
   });
@@ -401,13 +371,25 @@ describe("Edit tool - batch edits", () => {
   });
 });
 
-// ── Missing parameters ─────────────────────────────────────────────────
-
-describe("Edit tool - parameter validation", () => {
+describe("edit — parameter validation", () => {
   it("returns error when no mode parameters given", async () => {
     writeFileSync(join(workDir, "test.txt"), "content");
     const result = (await exec({ path: "test.txt" })) as { error: string };
     ok(result.error);
     ok(result.error.includes("Missing"));
+  });
+
+  it("returns error for empty path", async () => {
+    const result = (await exec({ path: "", search: "x", replacement: "y" })) as { error: string };
+    ok(result.error);
+    ok(result.error.includes("empty"));
+  });
+
+  it("returns error for whitespace-only path", async () => {
+    const result = (await exec({ path: "  ", search: "x", replacement: "y" })) as {
+      error: string;
+    };
+    ok(result.error);
+    ok(result.error.includes("empty"));
   });
 });

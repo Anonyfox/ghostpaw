@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { createTool, Schema } from "chatoyant";
-import { KNOWN_KEYS } from "../core/secrets.js";
+import { KNOWN_KEYS } from "../core/secrets/api/read/index.ts";
 
 const DEFAULT_TIMEOUT_S = 120;
 const MAX_OUTPUT_BYTES = 100_000;
@@ -19,23 +19,31 @@ function scrubSecrets(text: string): string {
   return result;
 }
 
-class BashParams extends Schema {
-  command = Schema.String({ description: "Shell command to execute" });
-  timeout = Schema.Integer({
-    description: `Timeout in seconds (default: ${DEFAULT_TIMEOUT_S})`,
-    optional: true,
-  });
-}
-
 function truncate(s: string): string {
   return s.length > MAX_OUTPUT_BYTES ? s.slice(0, MAX_OUTPUT_BYTES) : s;
 }
 
-export function createBashTool(workspacePath: string) {
+class BashParams extends Schema {
+  command = Schema.String({
+    description:
+      "Shell command to execute (passed to /bin/sh -c). Supports pipes, redirects, and chaining.",
+  });
+  timeout = Schema.Integer({
+    description: `Timeout in seconds (default: ${DEFAULT_TIMEOUT_S}). Command is killed if it exceeds this.`,
+    optional: true,
+  });
+}
+
+export function createBashTool(workspace: string) {
   return createTool({
     name: "bash",
-    description: `Execute a shell command in the workspace directory. Default timeout: ${DEFAULT_TIMEOUT_S}s. Output is truncated at ${MAX_OUTPUT_BYTES} bytes.`,
-    // biome-ignore lint: TS index-signature limitation on class instances vs SchemaInstance
+    description:
+      "Execute a shell command. The working directory is the workspace root. Output is " +
+      `automatically truncated at ${MAX_OUTPUT_BYTES} bytes and API key values are scrubbed. ` +
+      `Default timeout: ${DEFAULT_TIMEOUT_S}s. Prefer dedicated tools (read, write, edit, ` +
+      "grep, ls) for file operations — bash is for git, npm, build commands, and anything " +
+      "the other tools cannot do.",
+    // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new BashParams() as any,
     execute: async ({ args }) => {
       const { command, timeout } = args as { command: string; timeout?: number };
@@ -47,7 +55,7 @@ export function createBashTool(workspacePath: string) {
       const timeoutMs = (timeout && timeout > 0 ? timeout : DEFAULT_TIMEOUT_S) * 1000;
 
       const result = spawnSync("/bin/sh", ["-c", command], {
-        cwd: workspacePath,
+        cwd: workspace,
         timeout: timeoutMs,
         maxBuffer: MAX_OUTPUT_BYTES * 2,
         encoding: "utf-8",

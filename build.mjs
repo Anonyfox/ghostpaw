@@ -1,66 +1,83 @@
 import { chmodSync, readFileSync } from "node:fs";
-import { build, context } from "esbuild";
+import { build, buildSync, context } from "esbuild";
 
 const isWatch = process.argv.includes("--watch");
 const pkg = JSON.parse(readFileSync("package.json", "utf-8"));
 
-// CJS deps (grammy) use require("http") etc. In ESM output, esbuild's __require
-// shim throws because `require` is undefined. Injecting createRequire makes the
-// real require() available so CJS interop works.
-const BANNER = [
-  "#!/usr/bin/env node",
-  "import { createRequire as __createRequire } from 'node:module';",
-  "const require = __createRequire(import.meta.url);",
-].join("\n");
+// Phase 1: Bundle the Preact SPA client for the browser.
+// Output stays in memory — no temp files.
+const clientResult = buildSync({
+  entryPoints: ["src/channels/web/client/index.tsx"],
+  bundle: true,
+  format: "esm",
+  platform: "browser",
+  target: ["es2022"],
+  jsx: "automatic",
+  jsxImportSource: "preact",
+  minify: true,
+  write: false,
+});
+const CLIENT_JS = clientResult.outputFiles[0].text;
+const BOOTSTRAP_CSS = readFileSync("node_modules/bootstrap/dist/css/bootstrap.min.css", "utf-8");
 
-// grammY depends on node-fetch, but the bundled polyfill's Request class rejects
-// Node's native AbortSignal (instanceof mismatch). Since Node 22 has native fetch,
-// we replace the polyfill with re-exports of the built-in globals.
-const nativeFetchPlugin = {
-  name: "native-fetch",
+// Phase 2: Bundle the server, embedding client assets as virtual modules.
+const embeddedAssets = {
+  "embedded:client-js": CLIENT_JS,
+  "embedded:bootstrap-css": BOOTSTRAP_CSS,
+};
+
+/** @type {import('esbuild').Plugin} */
+const embeddedAssetPlugin = {
+  name: "embedded-asset",
   setup(build) {
-    build.onResolve({ filter: /^node-fetch$/ }, () => ({
-      path: "node-fetch",
-      namespace: "native-fetch",
+    build.onResolve({ filter: /^embedded:/ }, (args) => ({
+      path: args.path,
+      namespace: "embedded",
     }));
-    build.onLoad({ filter: /.*/, namespace: "native-fetch" }, () => ({
-      contents: [
-        "const _f = globalThis.fetch;",
-        "const _R = globalThis.Request;",
-        "const _Rs = globalThis.Response;",
-        "const _H = globalThis.Headers;",
-        "export default _f;",
-        "export { _f as fetch, _R as Request, _Rs as Response, _H as Headers };",
-      ].join("\n"),
+    build.onLoad({ filter: /.*/, namespace: "embedded" }, (args) => ({
+      contents: `export default ${JSON.stringify(embeddedAssets[args.path])};`,
       loader: "js",
     }));
   },
 };
 
-// Resolve npm package files to their content as text strings.
-// Uses direct node_modules paths to bypass package.json "exports" restrictions.
-// Usage: import css from "text-asset:bootstrap/dist/css/bootstrap.min.css";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const textAssetPlugin = {
-  name: "text-asset",
+/** @type {import('esbuild').Plugin} */
+const nativePolyfillPlugin = {
+  name: "native-polyfill",
   setup(build) {
-    build.onResolve({ filter: /^text-asset:/ }, (args) => ({
-      path: args.path.slice("text-asset:".length),
-      namespace: "text-asset",
+    // Replace node-fetch with native fetch (Node 22+ has it built-in).
+    // grammY ships with node-fetch v2 + abort-controller polyfills that
+    // produce AbortSignal instances incompatible with each other when bundled.
+    build.onResolve({ filter: /^node-fetch$/ }, () => ({
+      path: "node-fetch",
+      namespace: "native-polyfill",
     }));
-    build.onLoad({ filter: /.*/, namespace: "text-asset" }, (args) => {
-      const resolved = join(__dirname, "node_modules", args.path);
-      const content = readFileSync(resolved, "utf-8");
-      return {
-        contents: `export default ${JSON.stringify(content)};`,
-        loader: "js",
-      };
-    });
+    build.onResolve({ filter: /^abort-controller$/ }, () => ({
+      path: "abort-controller",
+      namespace: "native-polyfill",
+    }));
+    build.onLoad({ filter: /^node-fetch$/, namespace: "native-polyfill" }, () => ({
+      contents: [
+        "const f = globalThis.fetch;",
+        "export default f;",
+        "export const Headers = globalThis.Headers;",
+        "export const Request = globalThis.Request;",
+        "export const Response = globalThis.Response;",
+      ].join("\n"),
+      loader: "js",
+    }));
+    build.onLoad({ filter: /^abort-controller$/, namespace: "native-polyfill" }, () => ({
+      contents: "export const AbortController = globalThis.AbortController;",
+      loader: "js",
+    }));
   },
 };
+
+const BANNER = [
+  "#!/usr/bin/env node",
+  "import { createRequire as __createRequire } from 'node:module';",
+  "const require = __createRequire(import.meta.url);",
+].join("\n");
 
 /** @type {import('esbuild').BuildOptions} */
 const buildOptions = {
@@ -68,10 +85,10 @@ const buildOptions = {
   bundle: true,
   format: "esm",
   platform: "node",
-  target: "node22.5",
+  target: "node24",
   outfile: "dist/ghostpaw.mjs",
   banner: { js: BANNER },
-  plugins: [nativeFetchPlugin, textAssetPlugin],
+  plugins: [nativePolyfillPlugin, embeddedAssetPlugin],
   define: { __VERSION__: JSON.stringify(pkg.version) },
   minify: false,
   sourcemap: false,
@@ -89,5 +106,6 @@ if (isWatch) {
 
   const out = Object.entries(result.metafile.outputs)[0];
   const kb = (out[1].bytes / 1024).toFixed(1);
-  console.log(`built ${out[0]} (${kb} KB)`);
+  const clientKB = (Buffer.byteLength(CLIENT_JS) / 1024).toFixed(1);
+  console.log(`built ${out[0]} (${kb} KB, client: ${clientKB} KB)`);
 }

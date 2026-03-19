@@ -1,10 +1,8 @@
-FROM node:22-slim
+FROM node:24-slim
 
 LABEL org.opencontainers.image.source="https://github.com/Anonyfox/ghostpaw"
 LABEL org.opencontainers.image.description="Single-file AI agent runtime"
 LABEL org.opencontainers.image.licenses="MIT"
-
-ENV NODE_OPTIONS="--experimental-sqlite"
 
 COPY dist/ghostpaw.mjs /usr/local/bin/ghostpaw
 

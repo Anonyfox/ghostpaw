@@ -3,7 +3,7 @@
 set -e
 
 # ── Ghostpaw installer ──────────────────────────────────────────────────────
-# Downloads and installs ghostpaw. Installs Node.js 22.5+ if missing.
+# Downloads and installs ghostpaw. Installs Node.js 24+ if missing.
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/Anonyfox/ghostpaw/main/install.sh | sh
@@ -15,8 +15,8 @@ set -e
 
 REPO="Anonyfox/ghostpaw"
 INSTALL_DIR="${GHOSTPAW_INSTALL_DIR:-$HOME/.local/bin}"
-MIN_NODE_MAJOR=22
-MIN_NODE_MINOR=5
+MIN_NODE_MAJOR=24
+MIN_NODE_MINOR=0
 REQUIRED_NODE="${MIN_NODE_MAJOR}.${MIN_NODE_MINOR}.0"
 
 # ── Colors (disabled if not a terminal) ──────────────────────────────────────
@@ -332,7 +332,7 @@ print_manual_install_options() {
       elif has_cmd dnf; then
         echo "    NodeSource   — https://github.com/nodesource/distributions#fedora"
       elif has_cmd pacman; then
-        echo "    pacman       — sudo pacman -S nodejs-lts-jod npm"
+        echo "    pacman       — sudo pacman -S nodejs npm"
       elif has_cmd apk; then
         echo "    apk          — sudo apk add nodejs npm"
       fi
@@ -527,7 +527,7 @@ main() {
     fi
     NODE_V=$(node --version 2>/dev/null || echo "unknown")
     error "Could not run ghostpaw (node ${NODE_V}).
-  Try manually:  node --experimental-sqlite ${INSTALL_DIR}/ghostpaw --version"
+  Try manually:  node ${INSTALL_DIR}/ghostpaw --version"
   fi
 
   ok "ghostpaw v${INSTALLED_VERSION}"
@@ -541,14 +541,14 @@ main() {
   echo "  Get started:"
   echo ""
   if [ "$PATH_OK" = true ]; then
-    echo "    ghostpaw init              # scaffold workspace"
+    echo "    ghostpaw                   # interactive chat (auto-setup on first run)"
+    echo "    ghostpaw run \"do the thing\" # one-shot prompt"
     echo "    ghostpaw service install   # register as OS service (auto-start + restart)"
-    echo "    ghostpaw service status    # check if running"
     echo "    ghostpaw --help            # see all commands"
   else
-    echo "    ${INSTALL_DIR}/ghostpaw init              # scaffold workspace"
+    echo "    ${INSTALL_DIR}/ghostpaw                   # interactive chat (auto-setup on first run)"
+    echo "    ${INSTALL_DIR}/ghostpaw run \"do the thing\" # one-shot prompt"
     echo "    ${INSTALL_DIR}/ghostpaw service install   # register as OS service"
-    echo "    ${INSTALL_DIR}/ghostpaw service status    # check if running"
     echo "    ${INSTALL_DIR}/ghostpaw --help            # see all commands"
   fi
   echo ""

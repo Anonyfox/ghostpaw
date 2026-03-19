@@ -3,8 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
-
-import { createBashTool } from "./bash.js";
+import { createBashTool } from "./bash.ts";
 
 let workDir: string;
 let bashTool: ReturnType<typeof createBashTool>;

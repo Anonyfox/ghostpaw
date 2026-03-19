@@ -1,7 +1,7 @@
 import { readdirSync, statSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { join, relative } from "node:path";
 import { createTool, Schema } from "chatoyant";
-import { isInsideWorkspace } from "../lib/workspace.js";
+import { resolvePath } from "../lib/index.ts";
 
 const MAX_ENTRIES = 500;
 const MAX_DEPTH = 5;
@@ -19,15 +19,17 @@ const SKIP_DIRS = new Set([
 
 class LsParams extends Schema {
   path = Schema.String({
-    description: "Directory path relative to workspace (default: workspace root)",
+    description: "Directory path, relative to workspace root or absolute. Omit for workspace root.",
     optional: true,
   });
   depth = Schema.Integer({
-    description: "Max directory depth to list (default: 2, max: 5)",
+    description:
+      "Max directory depth to recurse into (default: 2, max: 5). Use 0 for top-level only.",
     optional: true,
   });
   glob = Schema.String({
-    description: 'Filter entries by pattern, e.g. "*.ts" or "*.test.*"',
+    description:
+      'Filter files by name pattern, e.g. "*.ts" or "*.{ts,tsx}". Directories are still traversed but not listed unless they match.',
     optional: true,
   });
 }
@@ -38,8 +40,14 @@ export interface LsEntry {
   size?: number;
 }
 
+function expandBraces(pattern: string): string[] {
+  const braceMatch = pattern.match(/^(.*)\{([^}]+)\}(.*)$/);
+  if (!braceMatch) return [pattern];
+  const [, prefix, inner, suffix] = braceMatch;
+  return inner!.split(",").map((alt) => `${prefix}${alt.trim()}${suffix}`);
+}
+
 function globToRegex(pattern: string): RegExp {
-  // Handle brace expansion first: *.{ts,tsx} → *.ts|*.tsx → regex alternation
   const expanded = expandBraces(pattern);
   const alternatives = expanded.map((p) => {
     const escaped = p
@@ -52,13 +60,6 @@ function globToRegex(pattern: string): RegExp {
   return new RegExp(`^${joined}$`, "i");
 }
 
-function expandBraces(pattern: string): string[] {
-  const braceMatch = pattern.match(/^(.*)\{([^}]+)\}(.*)$/);
-  if (!braceMatch) return [pattern];
-  const [, prefix, inner, suffix] = braceMatch;
-  return inner!.split(",").map((alt) => `${prefix}${alt.trim()}${suffix}`);
-}
-
 function walkDir(
   basePath: string,
   currentPath: string,
@@ -66,14 +67,14 @@ function walkDir(
   currentDepth: number,
   entries: LsEntry[],
   filter: RegExp | null,
-): number {
-  if (currentDepth > maxDepth || entries.length >= MAX_ENTRIES) return entries.length;
+): void {
+  if (currentDepth > maxDepth || entries.length >= MAX_ENTRIES) return;
 
   let items: string[];
   try {
     items = readdirSync(currentPath);
   } catch {
-    return entries.length;
+    return;
   }
 
   items.sort();
@@ -81,11 +82,7 @@ function walkDir(
   for (const item of items) {
     if (entries.length >= MAX_ENTRIES) break;
 
-    if (SKIP_DIRS.has(item) && currentDepth === 0) continue;
-
     const fullPath = join(currentPath, item);
-    const relPath = relative(basePath, fullPath);
-
     let stat: ReturnType<typeof statSync> | null;
     try {
       stat = statSync(fullPath);
@@ -94,8 +91,9 @@ function walkDir(
     }
 
     const isDir = stat.isDirectory();
-
     if (isDir && SKIP_DIRS.has(item)) continue;
+
+    const relPath = relative(basePath, fullPath);
 
     if (filter) {
       if (isDir) {
@@ -115,18 +113,17 @@ function walkDir(
       walkDir(basePath, fullPath, maxDepth, currentDepth + 1, entries, filter);
     }
   }
-
-  return entries.length;
 }
 
-export function createLsTool(workspacePath: string) {
+export function createLsTool(workspace: string) {
   return createTool({
     name: "ls",
     description:
-      "List directory contents with structured output. " +
-      "Returns file/directory names, types, and sizes. " +
-      "Use this for workspace orientation instead of bash ls/find.",
-    // biome-ignore lint: TS index-signature limitation on class instances vs SchemaInstance
+      "List directory contents. Defaults to workspace root. Returns structured entries with " +
+      "name, type (file/dir), and size (bytes, files only). Recurses into subdirectories up to " +
+      "the specified depth. Automatically skips noise directories (.git, node_modules, dist, etc.). " +
+      "Use this for orientation before reading or editing files. For content search, use grep.",
+    // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new LsParams() as any,
     execute: async ({ args }) => {
       const {
@@ -140,11 +137,7 @@ export function createLsTool(workspacePath: string) {
       };
 
       const targetPath = dirPath || ".";
-      if (targetPath !== "." && !isInsideWorkspace(workspacePath, targetPath)) {
-        return { error: `Access denied: "${targetPath}" is outside the workspace.` };
-      }
-
-      const fullPath = resolve(workspacePath, targetPath);
+      const { fullPath } = resolvePath(workspace, targetPath);
       const depth = Math.max(0, Math.min(depthArg && depthArg > 0 ? depthArg : 2, MAX_DEPTH));
 
       let stat: ReturnType<typeof statSync>;
@@ -163,12 +156,12 @@ export function createLsTool(workspacePath: string) {
       walkDir(fullPath, fullPath, depth, 0, entries, filter);
 
       const truncated = entries.length >= MAX_ENTRIES;
-
-      return {
+      const result: Record<string, unknown> = {
         entries,
         total: entries.length,
-        ...(truncated ? { truncated: true } : {}),
       };
+      if (truncated) result.truncated = true;
+      return result;
     },
   });
 }

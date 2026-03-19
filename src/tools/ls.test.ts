@@ -3,8 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
-
-import { createLsTool, type LsEntry } from "./ls.js";
+import type { LsEntry } from "./ls.ts";
+import { createLsTool } from "./ls.ts";
 
 let workDir: string;
 let lsTool: ReturnType<typeof createLsTool>;
@@ -22,7 +22,7 @@ afterEach(() => {
   rmSync(workDir, { recursive: true, force: true });
 });
 
-describe("Ls tool", () => {
+describe("ls tool", () => {
   it("has correct tool metadata", () => {
     strictEqual(lsTool.name, "ls");
     ok(lsTool.description.length > 0);
@@ -114,10 +114,10 @@ describe("Ls tool", () => {
     ok(result.error.includes("not a directory"));
   });
 
-  it("prevents path traversal", async () => {
-    const result = (await exec({ path: "../../etc" })) as { error: string };
-    ok(result.error);
-    ok(result.error.includes("outside") || result.error.includes("denied"));
+  it("allows paths outside workspace (resolves to real location)", async () => {
+    const result = (await exec({ path: "/tmp" })) as { entries: unknown[]; total: number };
+    ok(result.entries, "should list contents, not return access-denied");
+    ok(result.total >= 0);
   });
 
   it("lists subdirectory contents", async () => {

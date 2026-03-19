@@ -1,16 +1,16 @@
 # Setup Guide
 
-Ghostpaw requires **Node.js 22.5 or later**. That's the only prerequisite.
+Ghostpaw requires **Node.js 24 or later**. That's the only prerequisite.
 
 ---
 
-## 1. Install Node.js 22.5+
+## 1. Install Node.js 24+
 
 Check if you already have it:
 
 ```bash
 node --version
-# needs to print v22.5.0 or higher
+# needs to print v24.0.0 or higher
 ```
 
 If you need to install or upgrade:
@@ -19,26 +19,26 @@ If you need to install or upgrade:
 
 ```bash
 curl -fsSL https://fnm.vercel.app/install | bash
-fnm install 22
-fnm use 22
+fnm install 24
+fnm use 24
 ```
 
 **Using nvm:**
 
 ```bash
-nvm install 22
-nvm use 22
+nvm install 24
+nvm use 24
 ```
 
 **Direct download:**
 
-Go to [nodejs.org](https://nodejs.org) and grab the LTS installer for your OS. Make sure it's version 22.5 or later.
+Go to [nodejs.org](https://nodejs.org) and grab the installer for your OS. Make sure it's version 24 or later.
 
 ---
 
 ## 2. Install Ghostpaw
 
-Pick one of three methods:
+Pick one of four methods:
 
 ### Option A: npx (zero install)
 
@@ -68,7 +68,7 @@ curl -fsSL https://raw.githubusercontent.com/Anonyfox/ghostpaw/main/install.sh |
 The install script handles everything automatically:
 
 - Detects your OS (macOS, Linux, WSL) and architecture
-- Checks for Node.js 22.5+ — if missing or too old, offers to install it via fnm, nvm, or Homebrew (macOS)
+- Checks for Node.js 24+ — if missing or too old, offers to install it via fnm, nvm, or Homebrew (macOS)
 - Downloads `ghostpaw.mjs` from the latest GitHub Release into `~/.local/bin/ghostpaw`
 - Verifies the install works
 - Tells you if your PATH needs updating
@@ -95,8 +95,8 @@ Add that line to your `~/.bashrc`, `~/.zshrc`, or equivalent.
 **Pinning a specific version:**
 
 ```bash
-# Replace v0.1.0 with the version you want
-curl -fsSL https://github.com/Anonyfox/ghostpaw/releases/download/v0.1.0/ghostpaw.mjs \
+# Replace v0.8.0 with the version you want
+curl -fsSL https://github.com/Anonyfox/ghostpaw/releases/download/v0.8.0/ghostpaw.mjs \
   -o ~/.local/bin/ghostpaw
 chmod +x ~/.local/bin/ghostpaw
 ```
@@ -108,16 +108,10 @@ If you have Docker installed, you don't need Node.js at all:
 ```bash
 docker run --rm -it \
   -v "$(pwd)":/workspace \
-  -v ~/.ghostpaw:/root/.ghostpaw \
   ghcr.io/anonyfox/ghostpaw
 ```
 
-This mounts:
-
-- **Your current directory** → `/workspace` — the project the agent works on
-- **~/.ghostpaw** → `/root/.ghostpaw` — persistent config, sessions, extensions
-
-The image is from GitHub Container Registry (`ghcr.io/anonyfox/ghostpaw`), multi-arch (amd64 + arm64), and auto-published on every release.
+This mounts your current directory as the workspace. Ghostpaw stores its database (`ghostpaw.db`) and skills in the workspace directory.
 
 **Passing commands:**
 
@@ -125,13 +119,7 @@ The image is from GitHub Container Registry (`ghcr.io/anonyfox/ghostpaw`), multi
 # One-shot prompt
 docker run --rm -it \
   -v "$(pwd)":/workspace \
-  -v ~/.ghostpaw:/root/.ghostpaw \
   ghcr.io/anonyfox/ghostpaw run "analyze this project"
-
-# Init workspace
-docker run --rm -it \
-  -v ~/.ghostpaw:/root/.ghostpaw \
-  ghcr.io/anonyfox/ghostpaw init
 
 # Version check
 docker run --rm ghcr.io/anonyfox/ghostpaw --version
@@ -140,7 +128,7 @@ docker run --rm ghcr.io/anonyfox/ghostpaw --version
 **Shell alias** (add to your `.bashrc` / `.zshrc`):
 
 ```bash
-alias ghostpaw='docker run --rm -it -v "$(pwd)":/workspace -v ~/.ghostpaw:/root/.ghostpaw ghcr.io/anonyfox/ghostpaw'
+alias ghostpaw='docker run --rm -it -v "$(pwd)":/workspace ghcr.io/anonyfox/ghostpaw'
 ```
 
 Then just use `ghostpaw` as if it were installed natively.
@@ -148,7 +136,7 @@ Then just use `ghostpaw` as if it were installed natively.
 **Pinning a version:**
 
 ```bash
-docker run --rm ghcr.io/anonyfox/ghostpaw:0.1.0 --version
+docker run --rm ghcr.io/anonyfox/ghostpaw:0.8.0 --version
 ```
 
 **File permissions on Linux:** files created by the agent inside `/workspace` are owned by root. If that's a problem, add `--user "$(id -u):$(id -g)"`:
@@ -157,7 +145,6 @@ docker run --rm ghcr.io/anonyfox/ghostpaw:0.1.0 --version
 docker run --rm -it \
   --user "$(id -u):$(id -g)" \
   -v "$(pwd)":/workspace \
-  -v ~/.ghostpaw:/tmp/.ghostpaw \
   ghcr.io/anonyfox/ghostpaw
 ```
 
@@ -168,14 +155,14 @@ On macOS and Windows (Docker Desktop), file ownership is handled automatically.
 The curl install script works inside WSL. For native Windows:
 
 ```powershell
-winget install OpenJS.NodeJS --version 22.12.0
+winget install OpenJS.NodeJS
 npm install -g ghostpaw
 ```
 
 Or download `ghostpaw.mjs` directly from [GitHub Releases](https://github.com/Anonyfox/ghostpaw/releases/latest) and run with:
 
 ```powershell
-node --experimental-sqlite ghostpaw.mjs --version
+node ghostpaw.mjs --version
 ```
 
 ---
@@ -193,14 +180,36 @@ Should print the version number. If you used npx, run `npx ghostpaw --version` i
 ## 4. First Run
 
 ```bash
-ghostpaw init
+ghostpaw
 ```
 
-This creates the workspace at `~/.ghostpaw/` and walks you through setting up your LLM API key. After that:
+On first run, Ghostpaw detects that no API key is configured and walks you through setting one up interactively. After that it starts the TUI — the full terminal interface with streaming, scroll, and tool status.
+
+For a one-shot prompt without the TUI:
 
 ```bash
-ghostpaw          # interactive chat
-ghostpaw --help   # see all commands
+ghostpaw run "explain what this project does"
+```
+
+To see all available commands:
+
+```bash
+ghostpaw --help
+```
+
+Key subcommands:
+
+```bash
+ghostpaw run "..."         # one-shot prompt
+ghostpaw secrets           # manage API keys
+ghostpaw config            # view/change configuration
+ghostpaw souls             # inspect and manage souls
+ghostpaw memory            # browse and search memories
+ghostpaw pack              # view social bonds
+ghostpaw skills            # manage skills (train, stoke, create, validate)
+ghostpaw quests            # task and calendar management
+ghostpaw costs             # spending dashboard
+ghostpaw service install   # register as OS service (auto-start + restart)
 ```
 
 ---
@@ -215,7 +224,7 @@ ghostpaw --help   # see all commands
 
 **"Node.js X.Y is too old"**
 
-Ghostpaw requires Node.js 22.5+. Upgrade via nvm, fnm, or download from nodejs.org.
+Ghostpaw requires Node.js 24+. Upgrade via nvm, fnm, or download from nodejs.org.
 
 **Permission errors on global install**
 
@@ -228,17 +237,3 @@ export PATH="$HOME/.npm-global/bin:$PATH"
 ```
 
 Add the PATH export to your shell profile.
-
-**"--experimental-sqlite" warnings**
-
-Normal. Node's SQLite module is experimental in the 22.x line. Ghostpaw enables the flag automatically when run as a CLI. If you're using it as a library, pass the flag yourself:
-
-```bash
-node --experimental-sqlite your-script.mjs
-```
-
-Or set it globally:
-
-```bash
-export NODE_OPTIONS="--experimental-sqlite"
-```

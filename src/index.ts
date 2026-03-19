@@ -1,614 +1,270 @@
-import { spawnSync } from "node:child_process";
-import { realpathSync } from "node:fs";
 import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { parseArgs } from "node:util";
-import { style } from "./lib/terminal.js";
+import { defineCommand, runMain } from "citty";
+import { deleteOldDistilled } from "./core/chat/api/write/index.ts";
+import {
+  initChatTables,
+  initHowlTables,
+  recoverOrphanedSessions,
+} from "./core/chat/runtime/index.ts";
+import { initConfigTable } from "./core/config/runtime/index.ts";
+import { initMemoryTable } from "./core/memory/runtime/index.ts";
+import { initPackTables } from "./core/pack/runtime/index.ts";
+import { initQuestTables } from "./core/quests/runtime/index.ts";
+import { ensureDefaultSchedules, initScheduleTables } from "./core/schedule/runtime/index.ts";
+import {
+  initSecretsTable,
+  loadSecretsIntoEnv,
+  syncProviderKeys,
+} from "./core/secrets/runtime/index.ts";
+import {
+  bootstrapSkills,
+  initSkillEventsTables,
+  initSkillFragmentsTables,
+  initSkillHealthTables,
+} from "./core/skills/runtime/index.ts";
+import {
+  ensureMandatorySouls,
+  initSoulShardTables,
+  initSoulsTables,
+} from "./core/souls/runtime/index.ts";
+import { initTrailTables } from "./core/trail/runtime/index.ts";
+import { isEntrypoint, openDatabase, suppressWarnings } from "./lib/index.ts";
+import { banner, log } from "./lib/terminal/index.ts";
 
-declare const __VERSION__: string;
-const VERSION = __VERSION__;
+declare const __VERSION__: string | undefined;
+const VERSION = typeof __VERSION__ === "string" ? __VERSION__ : "0.0.0-dev";
 
-// ── CLI detection ────────────────────────────────────────────────────────────
+const subCommands = {
+  run: () => import("./channels/cli/run.ts").then((m) => m.default),
+  secrets: () => import("./channels/cli/secrets.ts").then((m) => m.default),
+  config: () => import("./channels/cli/config.ts").then((m) => m.default),
+  souls: () => import("./channels/cli/souls.ts").then((m) => m.default),
+  memory: () => import("./channels/cli/memory.ts").then((m) => m.default),
+  pack: () => import("./channels/cli/pack.ts").then((m) => m.default),
+  sessions: () => import("./channels/cli/sessions.ts").then((m) => m.default),
+  skills: () => import("./channels/cli/skills.ts").then((m) => m.default),
+  costs: () => import("./channels/cli/costs.ts").then((m) => m.default),
+  distill: () => import("./channels/cli/distill.ts").then((m) => m.default),
+  haunt: () => import("./channels/cli/haunt.ts").then((m) => m.default),
+  howls: () => import("./channels/cli/howls.ts").then((m) => m.default),
+  quests: () => import("./channels/cli/quests.ts").then((m) => m.default),
+  schedules: () => import("./channels/cli/schedules.ts").then((m) => m.default),
+  service: () => import("./channels/cli/service.ts").then((m) => m.default),
+  trail: () => import("./channels/cli/trail.ts").then((m) => m.default),
+};
 
-function isCLI(): boolean {
-  try {
-    const self = realpathSync(fileURLToPath(import.meta.url));
-    const invoked = realpathSync(process.argv[1]);
-    return self === invoked;
-  } catch {
-    return false;
-  }
-}
-
-// ── SQLite bootstrap ─────────────────────────────────────────────────────────
-
-function suppressNoiseWarnings(): void {
-  const originalEmit = process.emit.bind(process);
-  process.emit = ((event: string, ...args: unknown[]) => {
-    if (event === "warning") {
-      const w = args[0] as { name?: string; message?: string };
-      if (w?.name === "ExperimentalWarning") return false;
-      if (w?.name === "DeprecationWarning" && w?.message?.includes("punycode")) return false;
-    }
-    return originalEmit(event, ...args);
-  }) as typeof process.emit;
-}
-
-function ensureSqliteFlag(): void {
-  suppressNoiseWarnings();
-
-  if (process.execArgv.includes("--experimental-sqlite")) return;
-
-  const result = spawnSync(
-    process.execPath,
-    ["--experimental-sqlite", ...process.execArgv, process.argv[1], ...process.argv.slice(2)],
-    { stdio: "inherit" },
-  );
-
-  process.exit(result.status ?? 1);
-}
-
-// ── Public API ──────────────────────────────────────────────────────────────
-
-export { createTool, Schema } from "chatoyant";
-export type { ChannelAdapter, ChannelRuntime, ChannelRuntimeConfig } from "./channels/runtime.js";
-export { createChannelRuntime } from "./channels/runtime.js";
-export type {
-  TelegramChannelConfig,
-  TelegramNotificationOptions,
-  TelegramStartResult,
-} from "./channels/telegram.js";
-export {
-  chatIdFromSessionKey,
-  createTelegramChannel,
-  sendTelegramNotification,
-  sessionKeyForChat,
-  splitMessage,
-} from "./channels/telegram.js";
-export type { AbsorbConfig, AbsorbResult } from "./core/absorb.js";
-export { absorbSessions, countUnabsorbedSessions } from "./core/absorb.js";
-export type { AgentProfile } from "./core/agents.js";
-export { getAgentProfile, listAgentProfiles } from "./core/agents.js";
-export type { CostControls, GhostpawConfig } from "./core/config.js";
-export { DEFAULT_CONFIG, loadConfig } from "./core/config.js";
-export type { BudgetTracker, TokenUsage } from "./core/cost.js";
-export { createBudgetTracker, estimateTokens } from "./core/cost.js";
-export type { CostGuard, SpendBreakdown, SpendStatus } from "./core/cost-guard.js";
-export {
-  createCostGuard,
-  getSpendBreakdown,
-  getSpendStatus,
-  isSpendBlocked,
-} from "./core/cost-guard.js";
-export { startDaemon } from "./core/daemon.js";
-export type { GhostpawDatabase } from "./core/database.js";
-export { createDatabase } from "./core/database.js";
-export type { AgentEventMap, EventBus } from "./core/events.js";
-export { createEventBus } from "./core/events.js";
-export type { InitResult } from "./core/init.js";
-export { ensureWorkspace, initWorkspace } from "./core/init.js";
-export type { AgentLoopHandle, ChatFactory, ChatInstance, RunResult } from "./core/loop.js";
-export { createAgentLoop } from "./core/loop.js";
-export type {
-  Memory,
-  MemoryMatch,
-  MemoryStore,
-  SearchOptions,
-  StoreOptions,
-} from "./core/memory.js";
-export { createMemoryStore } from "./core/memory.js";
-export type { TrainChange, TrainResult } from "./core/reflect.js";
-export { printTrainReport, runTrain, train } from "./core/reflect.js";
-export { startRepl } from "./core/repl.js";
-export type { Run, RunStatus, RunStore } from "./core/runs.js";
-export { createRunStore } from "./core/runs.js";
-export type { ScoutResult, ScoutTrail } from "./core/scout.js";
-export { runScout, scout } from "./core/scout.js";
-export type { SecretStore } from "./core/secrets.js";
-export { createSecretStore } from "./core/secrets.js";
-export type { InitSystem, ServiceConfig, ServiceResult, ServiceStatus } from "./core/service.js";
-export {
-  detectInitSystem,
-  installService,
-  serviceLogs,
-  serviceStatus,
-  uninstallService,
-} from "./core/service.js";
-export type {
-  Message,
-  MessageRole,
-  Session,
-  SessionPurpose,
-  SessionStore,
-} from "./core/session.js";
-export { createSessionStore, getOrCreateSystemSession } from "./core/session.js";
-export { DEFAULT_SOUL } from "./core/soul.js";
-export { StreamFormatter } from "./core/stream_format.js";
-export type { EmbeddingProvider } from "./lib/embedding.js";
-export { createEmbeddingProvider } from "./lib/embedding.js";
-export type { GhostpawErrorCode } from "./lib/errors.js";
-export {
-  BudgetExceededError,
-  ConfigError,
-  DatabaseError,
-  GhostpawError,
-  ProviderError,
-  SpendLimitError,
-  ToolError,
-  ValidationError,
-} from "./lib/errors.js";
-export {
-  commitSkills,
-  diffSkills as diffSkillHistory,
-  getAllSkillRanks,
-  getGitFlags as getSkillHistoryFlags,
-  getSkillLog,
-  getSkillRank,
-  hasHistory as hasSkillHistory,
-  initHistory as initSkillHistory,
-  isGitAvailable,
-} from "./lib/skill-history.js";
-export { banner, blank, label, log, style } from "./lib/terminal.js";
-export { createBashTool } from "./tools/bash.js";
-export { createCheckRunTool } from "./tools/check_run.js";
-export { createDelegateTool } from "./tools/delegate.js";
-export { createEditTool } from "./tools/edit.js";
-export { createGrepTool } from "./tools/grep.js";
-export { createLsTool } from "./tools/ls.js";
-export { createMcpTool } from "./tools/mcp.js";
-export type { MemoryToolConfig } from "./tools/memory.js";
-export { createMemoryTool } from "./tools/memory.js";
-export { createReadTool } from "./tools/read.js";
-export type { ToolRegistry } from "./tools/registry.js";
-export { createToolRegistry } from "./tools/registry.js";
-export type { SearchProvider, SearchResponse, SearchResult } from "./tools/search.js";
-export {
-  createBraveSearch,
-  createDDGSearch,
-  createSerperSearch,
-  createTavilySearch,
-  createWebSearchTool,
-  resolveSearchProvider,
-} from "./tools/search.js";
-export { createSecretsTool } from "./tools/secrets.js";
-export { createSkillsTool } from "./tools/skills.js";
-export { createWebFetchTool } from "./tools/web.js";
-export { createWriteTool } from "./tools/write.js";
-export type { WebChannelConfig, WebStartResult } from "./web/index.js";
-export { createWebChannel } from "./web/index.js";
-
-// ── Agent factory ───────────────────────────────────────────────────────────
-
-export interface AgentOptions {
-  workspace?: string;
-  model?: string;
-  /** Tool names to exclude from this agent's registry (prevents recursion). */
-  excludeTools?: string[];
-  /** Session purpose marker (default: "chat"). */
-  purpose?: "chat" | "delegate" | "train" | "scout" | "refine" | "system";
-}
-
-export interface Agent {
-  run(prompt: string): Promise<string>;
-  stream(prompt: string): AsyncGenerator<string>;
-  sessionId: string;
-  tools: import("./tools/registry.js").ToolRegistry;
-  memory: import("./core/memory.js").MemoryStore;
-  eventBus: import("./core/events.js").EventBus;
-  runs: import("./core/runs.js").RunStore;
-}
-
-export async function createAgent(options: AgentOptions = {}): Promise<Agent> {
-  const workspace = resolve(options.workspace ?? ".");
-
-  const { loadConfig } = await import("./core/config.js");
-  const { createDatabase } = await import("./core/database.js");
-  const { createSecretStore } = await import("./core/secrets.js");
-  const { createSessionStore } = await import("./core/session.js");
-  const { createToolRegistry } = await import("./tools/registry.js");
-  const { createBudgetTracker } = await import("./core/cost.js");
-  const { createAgentLoop } = await import("./core/loop.js");
-  const { createReadTool } = await import("./tools/read.js");
-  const { createWriteTool } = await import("./tools/write.js");
-  const { createEditTool } = await import("./tools/edit.js");
-  const { createBashTool } = await import("./tools/bash.js");
-  const { createWebFetchTool } = await import("./tools/web.js");
-  const { createWebSearchTool } = await import("./tools/search.js");
-  const { createDelegateTool } = await import("./tools/delegate.js");
-  const { createCheckRunTool } = await import("./tools/check_run.js");
-  const { createSecretsTool } = await import("./tools/secrets.js");
-  const { createMemoryTool } = await import("./tools/memory.js");
-  const { createSkillsTool } = await import("./tools/skills.js");
-  const { createTrainTool } = await import("./tools/train.js");
-  const { createScoutTool } = await import("./tools/scout.js");
-  const { createGrepTool } = await import("./tools/grep.js");
-  const { createLsTool } = await import("./tools/ls.js");
-  const { createMemoryStore } = await import("./core/memory.js");
-  const { createEmbeddingProvider } = await import("./lib/embedding.js");
-  const { createEventBus } = await import("./core/events.js");
-  const { createRunStore } = await import("./core/runs.js");
-
-  const dbPath = resolve(workspace, "ghostpaw.db");
-  const db = await createDatabase(dbPath);
-
-  // Secrets: load from DB into env, then sync shell overrides back
-  const secrets = createSecretStore(db);
-  secrets.loadIntoEnv();
-  secrets.syncProviderKeys();
-
-  const config = await loadConfig(workspace);
-
-  const sessions = createSessionStore(db);
-  const memory = createMemoryStore(db);
-  const tools = createToolRegistry();
-  const eventBus = createEventBus();
-  const runStore = createRunStore(db);
-
-  tools.register(createGrepTool(workspace));
-  tools.register(createLsTool(workspace));
-  tools.register(createReadTool(workspace));
-  tools.register(createWriteTool(workspace));
-  tools.register(createEditTool(workspace));
-  tools.register(createBashTool(workspace));
-  tools.register(createWebFetchTool(workspace));
-  tools.register(createWebSearchTool());
-  tools.register(createSecretsTool(secrets));
-  tools.register(createMemoryTool({ memory, sessions, embedding: createEmbeddingProvider() }));
-  tools.register(createSkillsTool({ workspacePath: workspace, sessions, memory }));
-  const exclude = new Set(options.excludeTools ?? []);
-  if (!exclude.has("train")) tools.register(createTrainTool(workspace));
-  if (!exclude.has("scout")) tools.register(createScoutTool(workspace));
-
-  const { createMcpTool } = await import("./tools/mcp.js");
-  const mcpResult = createMcpTool({
-    resolveSecret: (name) => secrets.get(name) ?? process.env[name] ?? null,
-  });
-  tools.register(mcpResult.tool);
-
-  const budget = createBudgetTracker(config.costControls);
-  const model = options.model ?? config.models.default;
-  const purpose = options.purpose ?? "chat";
-
-  const { createCostGuard } = await import("./core/cost-guard.js");
-  const costGuard = createCostGuard(db.sqlite, config.costControls.maxCostPerDay);
-
-  let session: import("./core/session.js").Session | null = null;
-  function getOrCreateSession() {
-    if (!session) {
-      session = sessions.createSession(`agent-${Date.now()}`, { model, purpose });
-    }
-    return session;
-  }
-
-  const coreTools = tools.list();
-  tools.register(
-    createDelegateTool({
-      workspacePath: workspace,
-      tools: coreTools,
-      defaultModel: model,
-      sessions,
-      runs: runStore,
-      parentSessionId: () => getOrCreateSession().id,
-      eventBus,
-      budget,
-      costGuard,
-    }),
-  );
-  tools.register(createCheckRunTool(runStore));
-
-  const loop = createAgentLoop({
-    model,
-    sessions,
-    tools,
-    budget,
-    workspacePath: workspace,
-    eventBus,
-    runs: runStore,
-    costGuard,
-  });
-
-  return {
-    get sessionId() {
-      return getOrCreateSession().id;
+const main = defineCommand({
+  meta: {
+    name: "ghostpaw",
+    version: VERSION,
+    description: "Spectral wolf, not a bloated beast. Single-file AI agent runtime.",
+  },
+  args: {
+    workspace: {
+      type: "string",
+      alias: "w",
+      default: ".",
+      description: "Workspace directory",
     },
-    tools,
-    memory,
-    eventBus,
-    runs: runStore,
-    async run(prompt: string): Promise<string> {
-      const result = await loop.run(getOrCreateSession().id, prompt);
-      return result.text ?? "(no response)";
+    model: {
+      type: "string",
+      alias: "m",
+      description: "Override the LLM model for this session",
     },
-    async *stream(prompt: string): AsyncGenerator<string> {
-      yield* loop.stream(getOrCreateSession().id, prompt);
-    },
-  };
-}
+  },
+  setup({ args }) {
+    process.env.GHOSTPAW_WORKSPACE = resolve(args.workspace ?? ".");
+  },
+  async run() {
+    // citty v0.2.1 falls through to parent run() after a subcommand — bail out
+    const firstPositional = process.argv.slice(2).find((a) => !a.startsWith("-"));
+    if (firstPositional && firstPositional in subCommands) return;
 
-// ── CLI ──────────────────────────────────────────────────────────────────────
+    banner("ghostpaw", VERSION);
 
-function printHelp(): void {
-  const h = style.bold;
-  const d = style.dim;
-  console.log(`
-${h("ghostpaw")} ${d(`v${VERSION}`)} — single-file AI agent runtime
+    const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
+    const db = await openDatabase(resolve(workspace, "ghostpaw.db"));
+    initSecretsTable(db);
+    initConfigTable(db);
+    initChatTables(db);
+    initMemoryTable(db);
+    initSoulsTables(db);
+    initSoulShardTables(db);
+    initPackTables(db);
+    initHowlTables(db);
+    initQuestTables(db);
+    initTrailTables(db);
+    initScheduleTables(db);
+    initSkillEventsTables(db);
+    initSkillFragmentsTables(db);
+    initSkillHealthTables(db);
+    recoverOrphanedSessions(db);
+    ensureMandatorySouls(db);
+    ensureDefaultSchedules(db);
+    loadSecretsIntoEnv(db);
+    syncProviderKeys(db);
 
-${h("Usage")}
-  ghostpaw ${d("[command] [options]")}
+    const { ensureReady } = await import("./channels/cli/ensure_ready.ts");
+    await ensureReady(db);
 
-${h("Commands")}
-  ${d("(default)")}        Interactive chat ${d("(TTY)")} or daemon ${d("(headless)")}
-  run ${d("<prompt>")}      One-shot prompt, exits when done
-  train             Review recent experience, level up skills
-  scout ${d("[direction]")}  Explore new skill possibilities
-  init              Re-scaffold workspace ${d("(auto-runs on first use)")}
-  secrets ${d("[sub]")}     list | set <KEY> | delete <KEY>
-  service ${d("<sub>")}     install | uninstall | status | logs
+    const created = bootstrapSkills(workspace, db);
+    if (created.length > 0) log.info(`bootstrapped ${created.length} default skills`);
 
-${h("Options")}
-  -w, --workspace   Workspace directory ${d("(default: .)")}
-  -m, --model       Model override ${d("(default: from config)")}
-  -h, --help        Show this help
-  -v, --version     Show version`);
-}
+    const { notifySession } = await import("./channels/web/server/routes/chat_ws.ts");
+    const { getSession } = await import("./core/chat/api/read/index.ts");
+    const { autoResumeDelegation } = await import("./harness/auto_resume_delegation.ts");
+    const { formatDelegationMessage } = await import("./harness/notify_background_complete.ts");
 
-async function main(): Promise<void> {
-  const { values, positionals } = parseArgs({
-    allowPositionals: true,
-    strict: false,
-    options: {
-      help: { type: "boolean", short: "h" },
-      version: { type: "boolean", short: "v" },
-      workspace: { type: "string", short: "w", default: "." },
-      model: { type: "string", short: "m" },
-    },
-  });
+    const { createEntity } = await import("./harness/index.ts");
+    const entity = createEntity({
+      db,
+      workspace,
+      onBackgroundComplete: (_parentSessionId, outcome) => {
+        const channelNotify = (pid: number, o: typeof outcome) => {
+          notifySession(pid, {
+            type: "background_complete",
+            runId: o.childSessionId,
+            specialist: o.specialist,
+            status: o.status,
+          });
 
-  if (values.version) {
-    console.log(VERSION);
-    return;
-  }
+          const parentSession = getSession(db, pid);
+          if (parentSession?.key?.startsWith("telegram:")) {
+            const chatIdStr = parentSession.key.split(":")[1];
+            const chatId = Number(chatIdStr);
+            const token = process.env.TELEGRAM_BOT_TOKEN;
+            if (token && !Number.isNaN(chatId)) {
+              import("./channels/telegram/notify.ts").then(({ sendNotification }) => {
+                sendNotification({
+                  token,
+                  chatId,
+                  text: formatDelegationMessage(o),
+                }).catch(() => {});
+              });
+            }
+          }
+        };
 
-  if (values.help) {
-    printHelp();
-    return;
-  }
+        autoResumeDelegation(db, entity, outcome, channelNotify).catch(() => {});
+      },
+    });
 
-  const command = positionals[0];
-  const workspace = resolve(values.workspace as string);
+    const { defaultChatFactory } = await import("./harness/chat_factory.ts");
+    const { resolveModel } = await import("./harness/model.ts");
+    const { distillPending } = await import("./harness/distill_pending.ts");
+    distillPending(db, defaultChatFactory, resolveModel(db)).catch(() => {});
+    deleteOldDistilled(db);
 
-  switch (command) {
-    case undefined: {
-      const { ensureWorkspace } = await import("./core/init.js");
-      await ensureWorkspace(workspace);
-      const isTTY = process.stdin.isTTY && process.stdout.isTTY;
-      if (isTTY) {
-        const { startRepl } = await import("./core/repl.js");
-        await startRepl(workspace);
-      } else {
-        const { startDaemon } = await import("./core/daemon.js");
-        await startDaemon(workspace);
-      }
-      break;
-    }
-    case "run": {
-      const prompt = positionals.slice(1).join(" ");
-      if (!prompt) {
-        console.error(`Usage: ghostpaw run ${style.dim('"your prompt here"')}`);
-        process.exit(1);
-      }
-      const { ensureWorkspace } = await import("./core/init.js");
-      await ensureWorkspace(workspace);
-      const agent = await createAgent({
-        workspace: values.workspace as string,
-        model: values.model as string | undefined,
+    const { startScheduler } = await import("./harness/scheduler.ts");
+    const scheduler = startScheduler(db, workspace);
+
+    let httpServer: import("node:http").Server | undefined;
+    let telegramChannel:
+      | { start(): Promise<{ username: string }>; stop(): Promise<void> }
+      | undefined;
+
+    const { prepareWeb } = await import("./channels/cli/prepare_web.ts");
+    const webConfig = await prepareWeb(db, VERSION);
+
+    if (webConfig) {
+      const clientJs = (await import("embedded:client-js")).default;
+      const bootstrapCss = (await import("embedded:bootstrap-css")).default;
+      const { createWebServer } = await import("./channels/web/index.ts");
+
+      const { customCss } = await import("./channels/web/server/custom_css.ts");
+      httpServer = createWebServer({
+        ...webConfig,
+        clientJs,
+        bootstrapCss,
+        customCss,
+        db,
+        entity,
       });
-      const result = await agent.run(prompt);
-      console.log(result);
-      if (process.stdout.isTTY) {
-        const { label, blank, formatTokens } = await import("./lib/terminal.js");
-        blank();
-        label("", formatTokens(Math.ceil(result.length / 4)), style.dim);
-      }
-      break;
-    }
-    case "train": {
-      const { ensureWorkspace } = await import("./core/init.js");
-      await ensureWorkspace(workspace);
-      const { train } = await import("./core/reflect.js");
-      await train(workspace);
-      break;
-    }
-    case "scout": {
-      const { ensureWorkspace } = await import("./core/init.js");
-      await ensureWorkspace(workspace);
-      const { scout } = await import("./core/scout.js");
-      const direction = positionals.slice(1).join(" ").trim() || undefined;
-      await scout(workspace, { stream: process.stdout.isTTY === true, direction });
-      break;
-    }
-    case "init": {
-      const { initWorkspace, promptApiKey } = await import("./core/init.js");
-      const { log, blank } = await import("./lib/terminal.js");
-      blank();
-      const result = initWorkspace(workspace);
-      for (const p of result.created) log.created(p);
-      for (const p of result.skipped) log.exists(p);
-      blank();
-      log.done(`Workspace ready at ${style.dim(workspace)}`);
-      await promptApiKey(workspace);
-      break;
-    }
-    case "secrets": {
-      const sub = positionals[1];
-      const { createDatabase } = await import("./core/database.js");
-      const { createSecretStore, KNOWN_KEYS, activeSearchProvider } = await import(
-        "./core/secrets.js"
-      );
-      const { log, blank } = await import("./lib/terminal.js");
 
-      const db = await createDatabase(resolve(workspace, "ghostpaw.db"));
-      const secrets = createSecretStore(db);
-      secrets.loadIntoEnv();
+      await new Promise<void>((resolve, reject) => {
+        httpServer!.on("error", (err: NodeJS.ErrnoException) => {
+          if (err.code === "EADDRINUSE") {
+            log.error(`port ${webConfig.port} is already in use (set WEB_UI_PORT to change)`);
+            process.exit(1);
+          }
+          reject(err);
+        });
+        httpServer!.listen(webConfig.port, webConfig.host, () => {
+          log.done(`web ui: http://${webConfig.host}:${webConfig.port}`);
+          resolve();
+        });
+      });
+    } else {
+      log.info("web ui disabled (set WEB_UI_PASSWORD to enable)");
+    }
+
+    const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (telegramToken) {
+      const { getConfig } = await import("./core/config/api/read/index.ts");
+      const { createTelegramChannel } = await import("./channels/telegram/index.ts");
+
+      const allowedRaw = String(getConfig(db, "telegram_allowed_chat_ids") ?? "");
+      const allowedChatIds = allowedRaw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map(Number)
+        .filter((n) => !Number.isNaN(n));
+
+      telegramChannel = createTelegramChannel({
+        token: telegramToken,
+        db,
+        entity,
+        allowedChatIds: allowedChatIds.length > 0 ? allowedChatIds : undefined,
+      });
 
       try {
-        if (sub === "set") {
-          const keyName = positionals[2];
-          if (!keyName) {
-            console.error(`Usage: ghostpaw secrets set ${style.dim("<KEY>")}`);
-            blank();
-            console.error(`  Known keys:`);
-            for (const k of KNOWN_KEYS) {
-              console.error(`    ${k.canonical.padEnd(20)} ${style.dim(k.label)}`);
-            }
-            process.exit(1);
-          }
-          if (!process.stdin.isTTY) {
-            const chunks: Buffer[] = [];
-            for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
-            const raw = Buffer.concat(chunks).toString("utf-8").trim();
-            if (!raw) {
-              log.error("No value provided on stdin");
-              process.exit(1);
-            }
-            const result = secrets.set(keyName, raw);
-            if (!result.value) {
-              log.error(result.warning ?? "Empty value");
-              process.exit(1);
-            }
-            if (result.warning) log.warn(result.warning);
-            log.done(`${keyName} stored`);
-          } else {
-            const { readSecret } = await import("./lib/terminal.js");
-            const raw = await readSecret(`  Value for ${style.bold(keyName)}: `);
-            if (!raw) {
-              log.warn("Empty value, skipping");
-              process.exit(0);
-            }
-            const result = secrets.set(keyName, raw);
-            if (!result.value) {
-              log.error(result.warning ?? "Empty value");
-              process.exit(1);
-            }
-            if (result.warning) log.warn(result.warning);
-            log.done(`${keyName} stored`);
-          }
-        } else if (sub === "delete") {
-          const keyName = positionals[2];
-          if (!keyName) {
-            console.error(`Usage: ghostpaw secrets delete ${style.dim("<KEY>")}`);
-            process.exit(1);
-          }
-          secrets.delete(keyName);
-          log.done(`${keyName} deleted`);
+        const info = await telegramChannel.start();
+        if (info.username === "failed") {
+          log.error("telegram failed to connect (check TELEGRAM_BOT_TOKEN)");
+        } else if (info.username === "unknown") {
+          log.warn("telegram connecting (timed out waiting for confirmation)");
         } else {
-          const stored = new Set(secrets.keys());
-          const activeSearch = activeSearchProvider();
-
-          const categories = [
-            { title: "LLM", keys: KNOWN_KEYS.filter((k) => k.category === "llm") },
-            { title: "Search", keys: KNOWN_KEYS.filter((k) => k.category === "search") },
-          ];
-
-          blank();
-          for (const cat of categories) {
-            console.log(`  ${style.bold(cat.title)}`);
-            for (const k of cat.keys) {
-              const configured = stored.has(k.canonical);
-              const isActive = cat.title === "Search" && activeSearch?.canonical === k.canonical;
-
-              const marker = configured ? style.green("✓") : style.dim("·");
-              const nameStr = configured ? k.label : style.dim(k.label);
-              const keyStr = style.dim(k.canonical);
-              const tag = isActive ? ` ${style.cyan("active")}` : "";
-
-              console.log(`    ${marker} ${nameStr.padEnd(22)} ${keyStr}${tag}`);
-            }
-            blank();
-          }
-
-          // Show any custom (non-known) keys
-          const customKeys = [...stored].filter((s) => !KNOWN_KEYS.some((k) => k.canonical === s));
-          if (customKeys.length > 0) {
-            console.log(`  ${style.bold("Custom")}`);
-            for (const name of customKeys) {
-              console.log(`    ${style.green("✓")} ${name}`);
-            }
-            blank();
-          }
-
-          if (!activeSearch) {
-            console.log(
-              `  ${style.dim("Search: DDG free fallback (set a key above for better results)")}`,
-            );
-          }
-          console.log(
-            `  ${style.dim(`Use ${style.bold("ghostpaw secrets set <KEY>")} to configure`)}`,
-          );
-          blank();
+          log.done(`telegram: @${info.username}`);
         }
-      } finally {
-        db.close();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        log.error(`telegram failed: ${msg}`);
       }
-      break;
+    } else {
+      log.info("telegram disabled (set TELEGRAM_BOT_TOKEN to enable)");
     }
-    case "service": {
-      const sub = positionals[1];
-      const { installService, uninstallService, serviceStatus, serviceLogs } = await import(
-        "./core/service.js"
-      );
-      switch (sub) {
-        case "install": {
-          const config = {
-            workspace,
-            nodePath: process.execPath,
-            ghostpawPath: realpathSync(process.argv[1]),
-          };
-          const r = installService(config);
-          console.log(`[${r.initSystem}] ${r.message}`);
-          if (r.path) console.log(`  → ${r.path}`);
-          if (!r.success) process.exit(1);
-          break;
-        }
-        case "uninstall": {
-          const r = uninstallService(workspace);
-          console.log(`[${r.initSystem}] ${r.message}`);
-          break;
-        }
-        case "status": {
-          const s = serviceStatus(workspace);
-          console.log(`init system: ${s.initSystem}`);
-          console.log(`installed:   ${s.installed}`);
-          console.log(`running:     ${s.running}`);
-          if (s.pid) console.log(`pid:         ${s.pid}`);
-          break;
-        }
-        case "logs":
-          await serviceLogs(workspace);
-          break;
-        default:
-          console.error(`Unknown service command: ${sub ?? "(none)"}`);
-          console.error("Usage: ghostpaw service install|uninstall|status|logs");
-          process.exit(1);
-      }
-      break;
-    }
-    default: {
-      const { log } = await import("./lib/terminal.js");
-      log.error(`Unknown command: ${command}`);
-      printHelp();
-      process.exit(1);
-    }
-  }
-}
 
-// ── Entry point ──────────────────────────────────────────────────────────────
+    if (process.stdin.isTTY && process.stdout.isTTY) {
+      const { runTui } = await import("./channels/tui/index.ts");
+      const modelOverride = process.argv
+        .slice(2)
+        .find((a) => a.startsWith("--model="))
+        ?.split("=")[1];
+      const mIdx = process.argv.indexOf("-m");
+      const modelFlag = modelOverride ?? (mIdx >= 0 ? process.argv[mIdx + 1] : undefined);
+      await runTui({ db, version: VERSION, entity, model: modelFlag });
+    } else {
+      log.info("daemon mode (no TTY)");
+      await new Promise<void>((resolve) => {
+        const shutdown = () => {
+          resolve();
+        };
+        process.on("SIGTERM", shutdown);
+        process.on("SIGINT", shutdown);
+      });
+    }
 
-if (isCLI()) {
-  ensureSqliteFlag();
-  main().catch((err: unknown) => {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error(`fatal: ${msg}`);
-    process.exit(1);
-  });
+    log.info("shutting down");
+    await scheduler.stop();
+    if (telegramChannel) await telegramChannel.stop();
+    if (httpServer) httpServer.close();
+    await entity.flush();
+  },
+  subCommands,
+});
+
+if (isEntrypoint(import.meta.url)) {
+  suppressWarnings();
+  runMain(main);
 }

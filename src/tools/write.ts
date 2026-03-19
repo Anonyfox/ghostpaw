@@ -1,80 +1,42 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import { createTool, Schema } from "chatoyant";
-import { isInsideWorkspace } from "../lib/workspace.js";
+import { resolvePath } from "../lib/index.ts";
+import { sanitizeLlmContent } from "./sanitize_llm_content.ts";
 
 class WriteParams extends Schema {
-  path = Schema.String({ description: "File path relative to workspace" });
-  content = Schema.String({ description: "File content to write" });
+  path = Schema.String({
+    description: "File path, relative to workspace root or absolute.",
+  });
+  content = Schema.String({
+    description:
+      "The complete file content to write. This replaces the entire file — not a diff or patch.",
+  });
 }
 
-const HTML_ENTITIES: Record<string, string> = {
-  "&amp;": "&",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&quot;": '"',
-  "&#39;": "'",
-  "&apos;": "'",
-  "&#x27;": "'",
-  "&#x2F;": "/",
-};
-
-const HTML_ENTITY_DETECT = /&(?:amp|lt|gt|quot|apos|#39|#x27|#x2F);/;
-const HTML_ENTITY_REPLACE = /&(?:amp|lt|gt|quot|apos|#39|#x27|#x2F);/g;
-
-function hasHtmlEntities(text: string): boolean {
-  return HTML_ENTITY_DETECT.test(text);
-}
-
-function unescapeHtmlEntities(text: string): string {
-  return text.replace(HTML_ENTITY_REPLACE, (m) => HTML_ENTITIES[m] ?? m);
-}
-
-function hasLiteralEscapes(text: string): boolean {
-  return text.includes("\\n") && !text.includes("\n");
-}
-
-function unescapeLiteralSequences(text: string): string {
-  return text.replaceAll("\\n", "\n");
-}
-
-/**
- * Detect and repair common LLM garbling patterns in file content:
- * 1. HTML entities (&amp; &lt; &gt;) in non-HTML files
- * 2. Literal \n sequences instead of actual newlines
- */
-export function sanitizeLlmContent(content: string, filePath: string): string {
-  if (!content || content.length < 2) return content;
-
-  const isHtml = /\.html?$/i.test(filePath);
-  let result = content;
-
-  if (!isHtml && hasHtmlEntities(result)) {
-    result = unescapeHtmlEntities(result);
-  }
-
-  if (hasLiteralEscapes(result)) {
-    result = unescapeLiteralSequences(result);
-  }
-
-  return result;
-}
-
-export function createWriteTool(workspacePath: string) {
+export function createWriteTool(workspace: string) {
   return createTool({
     name: "write",
-    description: "Create or overwrite a file. Automatically creates parent directories.",
-    // biome-ignore lint: TS index-signature limitation on class instances vs SchemaInstance
+    description:
+      "Create or overwrite a file. Prefers workspace — use relative paths. Absolute paths " +
+      "work for files elsewhere. Parent directories are created automatically. WARNING: this " +
+      "replaces the entire file contents — for partial changes to existing files, use edit " +
+      "instead (much more token-efficient). Returns the written path and byte count. " +
+      "Refuses to write empty content to an existing file.",
+    // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new WriteParams() as any,
     execute: async ({ args }) => {
-      const { path: filePath, content: rawContent } = args as { path: string; content: string };
+      const { path: filePath, content: rawContent } = args as {
+        path: string;
+        content: string;
+      };
 
-      if (!isInsideWorkspace(workspacePath, filePath)) {
-        return { error: `Access denied: "${filePath}" is outside the workspace.` };
+      if (!filePath || !filePath.trim()) {
+        return { error: "Path must not be empty." };
       }
 
+      const { fullPath, outsideWorkspace } = resolvePath(workspace, filePath);
       const content = sanitizeLlmContent(rawContent, filePath);
-      const fullPath = join(workspacePath, filePath);
 
       if (!content && existsSync(fullPath)) {
         return {
@@ -90,9 +52,8 @@ export function createWriteTool(workspacePath: string) {
           path: filePath,
           bytes: Buffer.byteLength(content, "utf-8"),
         };
-        if (content !== rawContent) {
-          result.sanitized = true;
-        }
+        if (outsideWorkspace) result.notice = "Operating outside workspace root.";
+        if (content !== rawContent) result.sanitized = true;
         return result;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

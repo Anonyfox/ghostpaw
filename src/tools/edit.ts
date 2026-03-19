@@ -1,37 +1,44 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { createTool, Schema } from "chatoyant";
-import { findAndReplace } from "../lib/diff.js";
-import { isInsideWorkspace } from "../lib/workspace.js";
-import { sanitizeLlmContent } from "./write.js";
+import { resolvePath } from "../lib/index.ts";
+import type { ReplaceResult } from "./find_and_replace.ts";
+import { findAndReplace } from "./find_and_replace.ts";
+import { sanitizeLlmContent } from "./sanitize_llm_content.ts";
 
 class EditParams extends Schema {
-  path = Schema.String({ description: "File path relative to workspace" });
+  path = Schema.String({
+    description: "File path, relative to workspace root or absolute.",
+  });
   search = Schema.String({
     description:
-      "Exact string to find (must be unique in the file). Omit when using insertAfterLine.",
+      "Exact string to find in the file (must appear exactly once). " +
+      "Include enough surrounding context to ensure uniqueness. Omit when using insertAfterLine.",
     optional: true,
   });
   replacement = Schema.String({
-    description: "Replacement string. Omit when using insertAfterLine.",
+    description:
+      "String to replace the search match with. Use empty string to delete. Omit for insert mode.",
     optional: true,
   });
   replaceAll = Schema.Boolean({
-    description: "Replace ALL occurrences instead of requiring uniqueness (default: false)",
+    description:
+      "Replace ALL occurrences of search instead of requiring uniqueness (default: false)",
     optional: true,
   });
   insertAfterLine = Schema.Integer({
     description:
-      "Insert content after this line number (0 = beginning of file). Alternative to search/replace.",
+      "Insert content after this line number (0 = beginning of file). " +
+      "Requires the 'content' parameter. Alternative to search/replace.",
     optional: true,
   });
   content = Schema.String({
-    description: "Text to insert (used with insertAfterLine)",
+    description: "Text to insert when using insertAfterLine mode",
     optional: true,
   });
   edits = Schema.String({
     description:
-      'JSON array of edits: [{"search":"old","replacement":"new"}, ...]. Apply multiple edits atomically.',
+      'JSON array for batch edits: [{"search":"old","replacement":"new"}, ...]. ' +
+      "All edits are validated before any are applied — atomic.",
     optional: true,
   });
 }
@@ -39,6 +46,13 @@ class EditParams extends Schema {
 interface EditEntry {
   search: string;
   replacement: string;
+}
+
+function shrinkWarning(originalSize: number, newSize: number): string | undefined {
+  if (newSize < originalSize * 0.5 && originalSize > 100) {
+    return `File shrank from ${originalSize} to ${newSize} chars (>50% reduction). Verify the edit is correct.`;
+  }
+  return undefined;
 }
 
 function parseEdits(raw: string): EditEntry[] {
@@ -68,12 +82,12 @@ function parseEdits(raw: string): EditEntry[] {
 }
 
 function validateAllEdits(
-  content: string,
+  fileContent: string,
   edits: EditEntry[],
   filePath: string,
-): { validatedContent: string; kinds: ("exact" | "fuzzy")[] } | { error: string } {
-  let working = content;
-  const kinds: ("exact" | "fuzzy")[] = [];
+): { validatedContent: string; kinds: ReplaceResult["matchKind"][] } | { error: string } {
+  let working = fileContent;
+  const kinds: ReplaceResult["matchKind"][] = [];
 
   for (let i = 0; i < edits.length; i++) {
     const edit = edits[i]!;
@@ -97,14 +111,18 @@ function validateAllEdits(
   return { validatedContent: working, kinds };
 }
 
-export function createEditTool(workspacePath: string) {
+export function createEditTool(workspace: string) {
   return createTool({
     name: "edit",
     description:
-      "Edit a file: search-and-replace (single or batch), insert at line, or replace-all. " +
-      "Prefer this over write for modifying existing files — much more token-efficient. " +
-      "For batch edits, pass a JSON array in the edits parameter.",
-    // biome-ignore lint: TS index-signature limitation on class instances vs SchemaInstance
+      "Edit a file. Prefers workspace — use relative paths. Absolute paths work for files " +
+      "elsewhere. Three modes — choose ONE per call: " +
+      "(A) search + replacement: find an exact string and replace it (must be unique in the file). " +
+      "(B) edits: JSON array for batch replacements, applied atomically. " +
+      "(C) insertAfterLine + content: insert text after a specific line number (0 = beginning). " +
+      "Much more token-efficient than rewriting the whole file with 'write'. " +
+      "Set replaceAll=true in mode A to replace every occurrence instead of requiring uniqueness.",
+    // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new EditParams() as any,
     execute: async ({ args }) => {
       const {
@@ -125,11 +143,11 @@ export function createEditTool(workspacePath: string) {
         edits?: string;
       };
 
-      if (!isInsideWorkspace(workspacePath, filePath)) {
-        return { error: `Access denied: "${filePath}" is outside the workspace.` };
+      if (!filePath || !filePath.trim()) {
+        return { error: "Path must not be empty." };
       }
 
-      const fullPath = join(workspacePath, filePath);
+      const { fullPath, outsideWorkspace } = resolvePath(workspace, filePath);
 
       let fileContent: string;
       try {
@@ -141,22 +159,16 @@ export function createEditTool(workspacePath: string) {
 
       const originalSize = fileContent.length;
 
-      // ── Mode: insert after line ──────────────────────────────────
-      // Guard: Schema defaults omitted integers to 0, which collides with
-      // "insert at beginning." Require `content` parameter as the explicit
-      // signal for insert mode — this prevents misrouted search-and-replace
-      // calls from accidentally triggering insert.
+      // ── Insert after line ──
       const hasInsert =
         typeof insertContent === "string" &&
         typeof insertAfterLine === "number" &&
         insertAfterLine >= 0;
       if (hasInsert) {
-        const text = insertContent;
-        if (!text) {
+        if (!insertContent) {
           return { error: "Nothing to insert: provide content or replacement." };
         }
-
-        const cleanText = sanitizeLlmContent(text, filePath);
+        const cleanText = sanitizeLlmContent(insertContent, filePath);
         const lines = fileContent.split("\n");
         const totalLines = lines.length;
         const clampedLine = Math.min(insertAfterLine, totalLines);
@@ -164,27 +176,24 @@ export function createEditTool(workspacePath: string) {
           clampedLine !== insertAfterLine
             ? `Line ${insertAfterLine} exceeds file length (${totalLines} lines), inserted at end.`
             : undefined;
-
         lines.splice(clampedLine, 0, ...cleanText.split("\n"));
         const newContent = lines.join("\n");
-
         if (newContent.length === 0) {
           return { error: "Insert would result in an empty file. Aborting." };
         }
-
         writeFileSync(fullPath, newContent, "utf-8");
-
         const result: Record<string, unknown> = {
           success: true,
           path: filePath,
           insertedAtLine: clampedLine,
           linesInserted: cleanText.split("\n").length,
         };
-        if (notice) result.notice = notice;
+        if (outsideWorkspace) result.notice = "Operating outside workspace root.";
+        else if (notice) result.notice = notice;
         return result;
       }
 
-      // ── Mode: batch edits ────────────────────────────────────────
+      // ── Batch edits ──
       if (editsRaw) {
         let edits: EditEntry[];
         try {
@@ -193,34 +202,30 @@ export function createEditTool(workspacePath: string) {
           const msg = err instanceof Error ? err.message : String(err);
           return { error: msg };
         }
-
         const validated = validateAllEdits(fileContent, edits, filePath);
         if ("error" in validated) return { error: validated.error };
-
         if (validated.validatedContent.length === 0) {
           return { error: "Batch edits would result in an empty file. Aborting." };
         }
-
         const result: Record<string, unknown> = {
           success: true,
           path: filePath,
           editsApplied: edits.length,
           matchKinds: validated.kinds,
         };
-
-        if (validated.validatedContent.length < originalSize * 0.5 && originalSize > 100) {
-          result.warning = `File shrank from ${originalSize} to ${validated.validatedContent.length} chars (>${50}% reduction). Verify the edits are correct.`;
-        }
-
+        if (outsideWorkspace) result.notice = "Operating outside workspace root.";
+        const warning = shrinkWarning(originalSize, validated.validatedContent.length);
+        if (warning) result.warning = warning;
         writeFileSync(fullPath, validated.validatedContent, "utf-8");
         return result;
       }
 
-      // ── Mode: single edit (search + replacement required) ────────
+      // ── Single edit (search + replacement required) ──
       if (!search) {
         return {
           error:
-            "Missing parameters. Provide: (1) search + replacement for single edit, (2) edits for batch, or (3) insertAfterLine + content for insert.",
+            "Missing parameters. Provide: (1) search + replacement for single edit, " +
+            "(2) edits for batch, or (3) insertAfterLine + content for insert.",
         };
       }
 
@@ -231,50 +236,42 @@ export function createEditTool(workspacePath: string) {
         return { error: "search and replacement are identical — nothing to do." };
       }
 
-      // ── Mode: replace all ──────────────────────────────────
+      // ── Replace all ──
       if (replaceAllFlag) {
         const count = fileContent.split(cleanSearch).length - 1;
         if (count === 0) {
           return { error: "Search string not found in file content." };
         }
-
         const newContent = fileContent.replaceAll(cleanSearch, cleanReplacement);
         if (newContent.length === 0) {
           return { error: "Replace-all would result in an empty file. Aborting." };
         }
-
         const result: Record<string, unknown> = {
           success: true,
           path: filePath,
           replacements: count,
         };
-
-        if (newContent.length < originalSize * 0.5 && originalSize > 100) {
-          result.warning = `File shrank from ${originalSize} to ${newContent.length} chars (>${50}% reduction). Verify the replacement is correct.`;
-        }
-
+        if (outsideWorkspace) result.notice = "Operating outside workspace root.";
+        const warning = shrinkWarning(originalSize, newContent.length);
+        if (warning) result.warning = warning;
         writeFileSync(fullPath, newContent, "utf-8");
         return result;
       }
 
-      // ── Mode: single unique replace (original behavior) ──────────
+      // ── Single unique replace ──
       try {
         const result = findAndReplace(fileContent, cleanSearch, cleanReplacement);
-
         if (result.newContent.length === 0) {
           return { error: "Edit would result in an empty file. Aborting." };
         }
-
         const response: Record<string, unknown> = {
           success: true,
           matchKind: result.matchKind,
           path: filePath,
         };
-
-        if (result.newContent.length < originalSize * 0.5 && originalSize > 100) {
-          response.warning = `File shrank from ${originalSize} to ${result.newContent.length} chars (>${50}% reduction). Verify the edit is correct.`;
-        }
-
+        if (outsideWorkspace) response.notice = "Operating outside workspace root.";
+        const warning = shrinkWarning(originalSize, result.newContent.length);
+        if (warning) response.warning = warning;
         writeFileSync(fullPath, result.newContent, "utf-8");
         return response;
       } catch (err) {

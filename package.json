@@ -1,6 +1,6 @@
 {
   "name": "ghostpaw",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Single-file AI agent runtime. Independent, model-agnostic, self-contained.",
   "type": "module",
   "main": "./dist/ghostpaw.mjs",
@@ -14,20 +14,20 @@
     "dist/ghostpaw.mjs"
   ],
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=24"
   },
   "scripts": {
     "build": "node build.mjs",
     "dev": "node build.mjs --watch",
-    "start": "node --experimental-sqlite dist/ghostpaw.mjs",
-    "smoke": "node --experimental-sqlite dist/ghostpaw.mjs --version && node --experimental-sqlite dist/ghostpaw.mjs --help",
+    "start": "node dist/ghostpaw.mjs",
+    "smoke": "node dist/ghostpaw.mjs --version && node dist/ghostpaw.mjs --help",
     "typecheck": "tsc --noEmit",
-    "lint": "biome check src build.mjs",
-    "lint:fix": "biome check --fix src build.mjs",
-    "format": "biome format --write src build.mjs",
-    "test": "node --experimental-sqlite --import tsx --test 'src/**/*.test.ts'",
-    "test:coverage": "node --experimental-sqlite --import tsx --test --experimental-test-coverage 'src/**/*.test.ts'",
-    "check": "biome check src build.mjs && tsc --noEmit",
+    "lint": "biome check",
+    "lint:fix": "biome check --fix",
+    "format": "biome format --write",
+    "test": "node --import ./tsx-loader.mjs --test-reporter=dot --test 'src/**/*.test.ts' 'src/**/*.test.tsx'",
+    "check": "node ./scripts/check_boundaries.mjs && biome check && tsc --noEmit",
+    "deploy": "npm run build && mkdir -p playground && cp dist/ghostpaw.mjs playground/",
     "prepublishOnly": "npm run check && npm run build",
     "release:patch": "npm version patch && git push && git push --tags",
     "release:minor": "npm version minor && git push && git push --tags",
@@ -63,15 +63,19 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.4",
     "@types/node": "^25.3.0",
-    "bootstrap": "^5.3.8",
     "esbuild": "^0.27.3",
-    "tsx": "^4.21.0",
+    "happy-dom": "^20.7.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "bootstrap": "^5.3.8",
     "chatoyant": "^0.6.0",
-    "grammy": "^1.40.0",
-    "magpie-html": "^0.2.2",
-    "marked": "^17.0.3"
+    "citty": "^0.2.1",
+    "grammy": "^1.41.1",
+    "magpie-html": "^0.2.3",
+    "marked": "^17.0.0",
+    "preact": "^10.28.4",
+    "preact-render-to-string": "^6.6.6",
+    "wouter-preact": "^3.9.0"
   }
 }
