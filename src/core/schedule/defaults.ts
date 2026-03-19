@@ -7,7 +7,7 @@ export const DEFAULT_SCHEDULES: CreateScheduleInput[] = [
     command: "haunt",
     intervalMs: 1_800_000,
     timeoutMs: 600_000,
-    enabled: false,
+    enabled: true,
   },
   {
     name: "distill",
@@ -47,7 +47,7 @@ export const DEFAULT_SCHEDULES: CreateScheduleInput[] = [
     command: "quests prowl",
     intervalMs: 60_000,
     timeoutMs: 30_000,
-    enabled: false,
+    enabled: true,
   },
   {
     name: "tend",
@@ -55,6 +55,6 @@ export const DEFAULT_SCHEDULES: CreateScheduleInput[] = [
     command: "quests tend",
     intervalMs: 1_800_000,
     timeoutMs: 60_000,
-    enabled: false,
+    enabled: true,
   },
 ];
