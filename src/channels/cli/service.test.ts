@@ -25,7 +25,15 @@ describe("service CLI command", () => {
     ok("logs" in service.subCommands!);
   });
 
-  it("has exactly four subcommands", () => {
-    strictEqual(Object.keys(service.subCommands!).length, 4);
+  it("has restart subcommand", () => {
+    ok("restart" in service.subCommands!);
+  });
+
+  it("has stop subcommand", () => {
+    ok("stop" in service.subCommands!);
+  });
+
+  it("has exactly six subcommands", () => {
+    strictEqual(Object.keys(service.subCommands!).length, 6);
   });
 });

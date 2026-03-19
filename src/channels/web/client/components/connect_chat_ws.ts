@@ -12,6 +12,8 @@ interface WsCallbacks {
   onToolStart?: (tools: string[]) => void;
   onToolEnd?: () => void;
   onBackgroundComplete?: (runId: number, specialist: string, status: string) => void;
+  onReconnecting?: () => void;
+  onReconnected?: () => void;
 }
 
 export interface ChatWsConnection {
@@ -21,89 +23,151 @@ export interface ChatWsConnection {
 }
 
 const WS_OPEN_TIMEOUT_MS = 5000;
+const RECONNECT_BASE_MS = 2000;
+const RECONNECT_MAX_MS = 30_000;
 
 export function connectChatWs(sessionId: number, callbacks: WsCallbacks): ChatWsConnection {
-  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-  const ws = new WebSocket(`${protocol}//${location.host}/ws/chat/${sessionId}`);
-
+  let ws: WebSocket;
   let accumulated = "";
+  let intentionalClose = false;
+  let reconnectDelay = RECONNECT_BASE_MS;
+  let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+  let currentReady: Promise<void>;
+  let resolveReady: (() => void) | null = null;
 
-  const ready = new Promise<void>((resolve) => {
-    const timeout = setTimeout(resolve, WS_OPEN_TIMEOUT_MS);
-    ws.addEventListener(
+  function makeReady(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      resolveReady = resolve;
+    });
+  }
+
+  function wireWs(socket: WebSocket): void {
+    socket.addEventListener(
       "open",
       () => {
-        clearTimeout(timeout);
-        resolve();
+        reconnectDelay = RECONNECT_BASE_MS;
+        resolveReady?.();
+        resolveReady = null;
       },
       { once: true },
     );
-  });
 
-  ws.addEventListener("error", () => {
-    callbacks.onError("WebSocket connection failed.");
-  });
+    socket.addEventListener("error", () => {
+      if (!intentionalClose) callbacks.onError("WebSocket connection failed.");
+    });
 
-  ws.addEventListener("message", (e) => {
-    let msg: { type?: string; content?: string; [k: string]: unknown };
-    try {
-      msg = JSON.parse(String(e.data));
-    } catch {
-      return;
-    }
+    socket.addEventListener("close", (e) => {
+      if (intentionalClose || e.code === 1000) return;
+      callbacks.onReconnecting?.();
+      scheduleReconnect();
+    });
 
-    switch (msg.type) {
-      case "chunk": {
-        const chunk = typeof msg.content === "string" ? msg.content : "";
-        accumulated += chunk;
-        callbacks.onChunk(accumulated);
-        break;
+    socket.addEventListener("message", (e) => {
+      let msg: { type?: string; content?: string; [k: string]: unknown };
+      try {
+        msg = JSON.parse(String(e.data));
+      } catch {
+        return;
       }
-      case "done": {
-        const usage = (msg.usage ?? {}) as { totalTokens?: number };
-        const finalContent = typeof msg.content === "string" ? msg.content : accumulated;
-        callbacks.onDone(msg.messageId as number, finalContent, usage.totalTokens ?? 0);
-        accumulated = "";
-        break;
+
+      switch (msg.type) {
+        case "chunk": {
+          const chunk = typeof msg.content === "string" ? msg.content : "";
+          accumulated += chunk;
+          callbacks.onChunk(accumulated);
+          break;
+        }
+        case "done": {
+          const usage = (msg.usage ?? {}) as { totalTokens?: number };
+          const finalContent = typeof msg.content === "string" ? msg.content : accumulated;
+          callbacks.onDone(msg.messageId as number, finalContent, usage.totalTokens ?? 0);
+          accumulated = "";
+          break;
+        }
+        case "error": {
+          callbacks.onError(typeof msg.message === "string" ? msg.message : "Unknown error");
+          accumulated = "";
+          break;
+        }
+        case "title": {
+          callbacks.onTitle(sessionId, msg.title as string);
+          break;
+        }
+        case "tool_start": {
+          const tools = Array.isArray(msg.tools) ? (msg.tools as string[]) : [];
+          callbacks.onToolStart?.(tools);
+          break;
+        }
+        case "tool_end": {
+          callbacks.onToolEnd?.();
+          break;
+        }
+        case "command_result": {
+          callbacks.onCommandResult?.({
+            text: typeof msg.text === "string" ? msg.text : "",
+            action: (msg.action as CommandResultPayload["action"]) ?? null,
+          });
+          break;
+        }
+        case "background_complete": {
+          callbacks.onBackgroundComplete?.(
+            msg.runId as number,
+            msg.specialist as string,
+            msg.status as string,
+          );
+          break;
+        }
       }
-      case "error": {
-        callbacks.onError(typeof msg.message === "string" ? msg.message : "Unknown error");
-        accumulated = "";
-        break;
-      }
-      case "title": {
-        callbacks.onTitle(sessionId, msg.title as string);
-        break;
-      }
-      case "tool_start": {
-        const tools = Array.isArray(msg.tools) ? (msg.tools as string[]) : [];
-        callbacks.onToolStart?.(tools);
-        break;
-      }
-      case "tool_end": {
-        callbacks.onToolEnd?.();
-        break;
-      }
-      case "command_result": {
-        callbacks.onCommandResult?.({
-          text: typeof msg.text === "string" ? msg.text : "",
-          action: (msg.action as CommandResultPayload["action"]) ?? null,
-        });
-        break;
-      }
-      case "background_complete": {
-        callbacks.onBackgroundComplete?.(
-          msg.runId as number,
-          msg.specialist as string,
-          msg.status as string,
-        );
-        break;
-      }
-    }
-  });
+    });
+  }
+
+  function createWs(): WebSocket {
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    return new WebSocket(`${protocol}//${location.host}/ws/chat/${sessionId}`);
+  }
+
+  function scheduleReconnect(): void {
+    clearTimeout(reconnectTimer);
+    const jitter = Math.random() * 500;
+    reconnectTimer = setTimeout(() => {
+      if (intentionalClose) return;
+      currentReady = makeReady();
+      ws = createWs();
+      wireWs(ws);
+
+      ws.addEventListener(
+        "open",
+        () => {
+          callbacks.onReconnected?.();
+        },
+        { once: true },
+      );
+
+      reconnectDelay = Math.min(reconnectDelay * 2, RECONNECT_MAX_MS);
+    }, reconnectDelay + jitter);
+  }
+
+  currentReady = makeReady();
+
+  const openTimeout = setTimeout(() => {
+    resolveReady?.();
+    resolveReady = null;
+  }, WS_OPEN_TIMEOUT_MS);
+
+  ws = createWs();
+  wireWs(ws);
+  ws.addEventListener(
+    "open",
+    () => {
+      clearTimeout(openTimeout);
+    },
+    { once: true },
+  );
 
   return {
-    ready,
+    get ready() {
+      return currentReady;
+    },
     send(content: string, model?: string, replyToId?: number) {
       if (ws.readyState !== WebSocket.OPEN) {
         callbacks.onError("WebSocket not ready.");
@@ -115,6 +179,8 @@ export function connectChatWs(sessionId: number, callbacks: WsCallbacks): ChatWs
       ws.send(JSON.stringify(payload));
     },
     close() {
+      intentionalClose = true;
+      clearTimeout(reconnectTimer);
       ws.close();
     },
   };

@@ -296,7 +296,44 @@ Find your chat ID by sending a message to your bot and checking `ghostpaw sessio
 
 ---
 
-## 6. First Run
+## 6. Process Reliability (built-in)
+
+Ghostpaw supervises itself. When you run `ghostpaw`, the process automatically forks into a lightweight supervisor and a worker. If the worker crashes, the supervisor restarts it with exponential backoff. No configuration needed — it's active from first run.
+
+What it does:
+
+- **Auto-restart on crash** with exponential backoff (1s, 2s, 4s... up to 30s). Resets after 60s of stable uptime.
+- **Heartbeat watchdog** — the worker sends periodic heartbeats. If the supervisor hears nothing for 120s (hung event loop, blocked I/O), it kills and restarts the worker.
+- **Single-instance guarantee** — a Unix socket lock prevents two Ghostpaw processes from running in the same workspace. The second one gets a clear error message.
+- **Crash circuit breaker** — if the worker crashes 5 times within 2 minutes, the supervisor stops entirely instead of looping.
+- **Graceful self-restart** — the agent can restart itself (e.g., after a self-update) by exiting with a special code.
+
+Remote control from a second terminal:
+
+```bash
+ghostpaw service restart   # graceful restart
+ghostpaw service stop      # graceful shutdown
+ghostpaw service status    # PID, uptime, crash count
+```
+
+For boot persistence (start Ghostpaw on reboot), register it as a system service:
+
+```bash
+ghostpaw service install   # systemd (Linux), launchd (macOS), or cron (fallback)
+ghostpaw service uninstall # remove the service
+```
+
+The service registration and the built-in supervisor are independent — the supervisor handles crash recovery, the service registration handles boot persistence. Both work together automatically.
+
+To disable the supervisor for debugging:
+
+```bash
+GHOSTPAW_NO_SUPERVISOR=1 ghostpaw
+```
+
+---
+
+## 7. First Run
 
 ```bash
 ghostpaw
@@ -328,7 +365,10 @@ ghostpaw pack              # view social bonds
 ghostpaw skills            # manage skills (train, stoke, create, validate)
 ghostpaw quests            # task and calendar management
 ghostpaw costs             # spending dashboard
-ghostpaw service install   # register as OS service (auto-start + restart)
+ghostpaw service install   # register as OS service (auto-start on boot)
+ghostpaw service restart   # restart the running process
+ghostpaw service stop      # graceful shutdown
+ghostpaw service status    # live supervisor status
 ```
 
 ---

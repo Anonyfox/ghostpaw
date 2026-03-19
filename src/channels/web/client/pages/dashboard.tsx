@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "preact/hooks";
 import { apiGet } from "../api_get.ts";
 import { apiPost } from "../api_post.ts";
+import { ProcessCard } from "../components/process_card.tsx";
 
 interface DashboardStats {
   version: string;
@@ -128,6 +129,7 @@ export function DashboardPage() {
           <div class="col-md-4">
             <HauntButton />
           </div>
+          <ProcessCard />
         </div>
       )}
     </div>

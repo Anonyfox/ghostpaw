@@ -21,6 +21,7 @@ export interface UseChatSessionResult {
   error: string;
   totalTokens: number;
   model: string;
+  reconnected: boolean;
   sendMessage: (text: string, model?: string, replyToId?: number) => void;
 }
 
@@ -46,6 +47,7 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
   const [model, setModel] = useState("");
   const [waiting, setWaiting] = useState(false);
   const [toolActivity, setToolActivity] = useState<ToolActivity | null>(null);
+  const [reconnected, setReconnected] = useState(false);
 
   const wsRef = useRef<ChatWsConnection | null>(null);
   const sessionIdRef = useRef<number | null>(null);
@@ -127,6 +129,10 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
             setMessages(resp.messages);
           })
           .catch(() => {});
+      },
+      onReconnected: () => {
+        setReconnected(true);
+        setTimeout(() => setReconnected(false), 3000);
       },
     });
     wsRef.current = conn;
@@ -247,6 +253,7 @@ export function useChatSession(options?: UseChatSessionOptions): UseChatSessionR
     error,
     totalTokens,
     model,
+    reconnected,
     sendMessage,
   };
 }

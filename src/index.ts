@@ -30,9 +30,7 @@ import {
 import { initTrailTables } from "./core/trail/runtime/index.ts";
 import { isEntrypoint, openDatabase, suppressWarnings } from "./lib/index.ts";
 import { banner, log } from "./lib/terminal/index.ts";
-
-declare const __VERSION__: string | undefined;
-const VERSION = typeof __VERSION__ === "string" ? __VERSION__ : "0.0.0-dev";
+import { VERSION } from "./lib/version.ts";
 
 const subCommands = {
   run: () => import("./channels/cli/run.ts").then((m) => m.default),
@@ -185,7 +183,7 @@ const main = defineCommand({
         httpServer!.on("error", (err: NodeJS.ErrnoException) => {
           if (err.code === "EADDRINUSE") {
             log.error(`port ${webConfig.port} is already in use (set WEB_UI_PORT to change)`);
-            process.exit(1);
+            process.exit(78);
           }
           reject(err);
         });
@@ -235,6 +233,37 @@ const main = defineCommand({
       log.info("telegram disabled (set TELEGRAM_BOT_TOKEN to enable)");
     }
 
+    const { startHeartbeat } = await import("./lib/supervisor.js");
+    startHeartbeat();
+
+    {
+      const { getConfig } = await import("./core/config/api/read/index.ts");
+      const { resetConfig } = await import("./core/config/api/write/index.ts");
+      const raw = getConfig(db, "_restart_context");
+      if (typeof raw === "string") {
+        try {
+          const ctx = JSON.parse(raw) as { channel: string; sessionKey: string; timestamp: number };
+          const age = Date.now() - ctx.timestamp;
+          if (age < 60_000 && ctx.channel === "telegram" && telegramToken) {
+            const chatIdStr = ctx.sessionKey.split(":")[1];
+            const chatId = Number(chatIdStr);
+            if (!Number.isNaN(chatId)) {
+              import("./channels/telegram/notify.ts").then(({ sendNotification }) => {
+                sendNotification({
+                  token: telegramToken,
+                  chatId,
+                  text: "Ghostpaw restarted successfully.",
+                }).catch(() => {}); // best-effort notification; user sees the bot reconnect regardless
+              });
+            }
+          }
+        } catch {
+          // malformed context — ignore
+        }
+        resetConfig(db, "_restart_context");
+      }
+    }
+
     if (process.stdin.isTTY && process.stdout.isTTY) {
       const { runTui } = await import("./channels/tui/index.ts");
       const modelOverride = process.argv
@@ -266,5 +295,18 @@ const main = defineCommand({
 
 if (isEntrypoint(import.meta.url)) {
   suppressWarnings();
-  runMain(main);
+  const argv = process.argv.slice(2);
+  const hasInfoFlag = argv.includes("--version") || argv.includes("--help") || argv.includes("-h");
+  const firstArg = argv.find((a) => !a.startsWith("-"));
+  const isDaemon = !firstArg || !(firstArg in subCommands);
+  if (
+    isDaemon &&
+    !hasInfoFlag &&
+    !process.env.GHOSTPAW_SUPERVISED &&
+    !process.env.GHOSTPAW_NO_SUPERVISOR
+  ) {
+    import("./lib/supervisor.js").then((m) => m.runSupervised());
+  } else {
+    runMain(main);
+  }
 }

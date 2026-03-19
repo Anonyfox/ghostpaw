@@ -18,7 +18,14 @@ afterEach(() => {
 });
 
 function makeCtx(): CommandContext {
-  return { db, sessionId: 0, sessionKey: "test", configuredKeys: new Set() };
+  return {
+    db,
+    sessionId: 0,
+    sessionKey: "test",
+    configuredKeys: new Set(),
+    workspace: ".",
+    version: "0.0.0-dev",
+  };
 }
 
 describe("executeCosts", () => {

@@ -48,14 +48,18 @@ describe("parseSlashCommand", () => {
 });
 
 describe("COMMANDS", () => {
-  it("contains all 5 expected commands", () => {
-    strictEqual(COMMANDS.length, 5);
+  it("contains all expected commands", () => {
+    strictEqual(COMMANDS.length, 9);
     const names = COMMANDS.map((c) => c.name);
     ok(names.includes("help"));
     ok(names.includes("new"));
     ok(names.includes("undo"));
     ok(names.includes("model"));
     ok(names.includes("costs"));
+    ok(names.includes("restart"));
+    ok(names.includes("status"));
+    ok(names.includes("install"));
+    ok(names.includes("uninstall"));
   });
 
   it("every command has a name and description", () => {
@@ -75,6 +79,10 @@ describe("formatHelpText", () => {
     ok(text.includes("/undo"));
     ok(text.includes("/model"));
     ok(text.includes("/costs"));
+    ok(text.includes("/restart"));
+    ok(text.includes("/status"));
+    ok(text.includes("/install"));
+    ok(text.includes("/uninstall"));
   });
 
   it("shows details for a specific command", () => {

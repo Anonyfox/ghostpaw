@@ -6,6 +6,7 @@ import { COMMANDS, executeCommand, parseSlashCommand } from "../../harness/comma
 import type { CommandContext } from "../../harness/commands/types.ts";
 import { processHowlDismiss } from "../../harness/howl/index.ts";
 import { registerChannel, unregisterChannel } from "../../lib/channel_registry.ts";
+import { VERSION } from "../../lib/version.ts";
 import type { HandleMessageDeps } from "./handle_message.ts";
 import { handleMessage } from "./handle_message.ts";
 import { sessionKeyForChat } from "./session_key.ts";
@@ -20,6 +21,8 @@ import type {
 
 const CONNECTION_TIMEOUT_MS = 10_000;
 const TELEGRAM_CHANNEL_ID = "telegram";
+const CONFLICT_RETRY_DELAY_MS = 5_000;
+const CONFLICT_MAX_RETRIES = 3;
 
 function recoverChatId(db: Parameters<typeof getOrCreateSession>[0]): number | null {
   const sessions = listSessions(db, { keyPrefix: "telegram:", limit: 1 });
@@ -133,10 +136,18 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
         sessionId,
         sessionKey: sessionKeyForChat(chatId),
         configuredKeys,
+        workspace: entity.workspace,
+        version: VERSION,
       };
       const result = await executeCommand(parsed.name, parsed.args, cmdCtx);
 
       await sendPlainMessage(chatId, result.text);
+
+      if (result.action?.type === "restart") {
+        const { requestRestart } = await import("../../lib/supervisor.ts");
+        requestRestart();
+        return;
+      }
 
       if (result.action?.type === "undo") {
         const tgIds: number[] = [];
@@ -194,62 +205,79 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
       if (running) return { username: connectedUsername ?? "unknown" };
       running = true;
 
-      return new Promise<{ username: string }>((resolve) => {
-        const timeout = setTimeout(() => {
-          resolve({ username: connectedUsername ?? "unknown" });
-        }, CONNECTION_TIMEOUT_MS);
+      for (let attempt = 0; attempt < CONFLICT_MAX_RETRIES; attempt++) {
+        const result = await new Promise<{ username: string; retry: boolean }>((resolve) => {
+          const timeout = setTimeout(() => {
+            resolve({ username: connectedUsername ?? "unknown", retry: false });
+          }, CONNECTION_TIMEOUT_MS);
 
-        bot
-          .start({
-            onStart: (info) => {
+          bot
+            .start({
+              onStart: (info) => {
+                clearTimeout(timeout);
+                connectedUsername = info.username;
+                registerCommands();
+                registerChannel(TELEGRAM_CHANNEL_ID, {
+                  type: "telegram",
+                  isConnected: () => running,
+                  getHowlCapabilities: () => ({
+                    canPush: lastActiveChatId !== null,
+                    canInbox: false,
+                    explicitReply: true,
+                    priority: 100,
+                  }),
+                  deliverHowl: async ({ howlId, message, originMessageId }) => {
+                    const chatId = lastActiveChatId;
+                    if (!chatId) throw new Error("No active Telegram chat");
+
+                    let replyToMsgId: number | undefined;
+                    if (originMessageId) {
+                      const mappings = lookupByMessageId(db, originMessageId);
+                      const tgMapping = mappings.find((m) => m.channel === "telegram");
+                      if (tgMapping) replyToMsgId = Number(tgMapping.channelMessageId);
+                    }
+
+                    const sent = await sendMessage(chatId, message, {
+                      dismissHowlId: howlId,
+                      replyToMessageId: replyToMsgId,
+                    });
+                    return {
+                      channel: "telegram" as const,
+                      delivered: true,
+                      mode: "push" as const,
+                      address: String(chatId),
+                      messageId: String(sent.messageId),
+                    };
+                  },
+                });
+                resolve({ username: info.username, retry: false });
+              },
+              allowed_updates: ["message", "callback_query"],
+            })
+            .catch((err) => {
               clearTimeout(timeout);
-              connectedUsername = info.username;
-              registerCommands();
-              registerChannel(TELEGRAM_CHANNEL_ID, {
-                type: "telegram",
-                isConnected: () => running,
-                getHowlCapabilities: () => ({
-                  canPush: lastActiveChatId !== null,
-                  canInbox: false,
-                  explicitReply: true,
-                  priority: 100,
-                }),
-                deliverHowl: async ({ howlId, message, originMessageId }) => {
-                  const chatId = lastActiveChatId;
-                  if (!chatId) throw new Error("No active Telegram chat");
+              running = false;
+              const msg = err instanceof Error ? err.message : String(err);
+              const isConflict = msg.includes("409") || msg.toLowerCase().includes("conflict");
+              if (isConflict && attempt < CONFLICT_MAX_RETRIES - 1) {
+                process.stderr.write(
+                  `  telegram  conflict, retrying in ${CONFLICT_RETRY_DELAY_MS / 1000}s (${attempt + 1}/${CONFLICT_MAX_RETRIES})\n`,
+                );
+                resolve({ username: "failed", retry: true });
+              } else {
+                process.stderr.write(`  telegram  fatal: ${msg}\n`);
+                resolve({ username: "failed", retry: false });
+              }
+            });
+        });
 
-                  let replyToMsgId: number | undefined;
-                  if (originMessageId) {
-                    const mappings = lookupByMessageId(db, originMessageId);
-                    const tgMapping = mappings.find((m) => m.channel === "telegram");
-                    if (tgMapping) replyToMsgId = Number(tgMapping.channelMessageId);
-                  }
+        if (!result.retry) return { username: result.username };
 
-                  const sent = await sendMessage(chatId, message, {
-                    dismissHowlId: howlId,
-                    replyToMessageId: replyToMsgId,
-                  });
-                  return {
-                    channel: "telegram" as const,
-                    delivered: true,
-                    mode: "push" as const,
-                    address: String(chatId),
-                    messageId: String(sent.messageId),
-                  };
-                },
-              });
-              resolve({ username: info.username });
-            },
-            allowed_updates: ["message", "callback_query"],
-          })
-          .catch((err) => {
-            clearTimeout(timeout);
-            running = false;
-            const msg = err instanceof Error ? err.message : String(err);
-            process.stderr.write(`  telegram  fatal: ${msg}\n`);
-            resolve({ username: "failed" });
-          });
-      });
+        running = true;
+        await new Promise((r) => setTimeout(r, CONFLICT_RETRY_DELAY_MS));
+      }
+
+      return { username: "failed" };
     },
 
     async stop(): Promise<void> {

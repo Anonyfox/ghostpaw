@@ -22,7 +22,14 @@ afterEach(() => {
 });
 
 function makeCtx(): CommandContext {
-  return { db, sessionId, sessionKey: "test:undo", configuredKeys: new Set() };
+  return {
+    db,
+    sessionId,
+    sessionKey: "test:undo",
+    configuredKeys: new Set(),
+    workspace: ".",
+    version: "0.0.0-dev",
+  };
 }
 
 describe("executeUndo", () => {

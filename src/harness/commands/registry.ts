@@ -1,8 +1,12 @@
 import { executeCosts } from "./cmd_costs.ts";
 import { executeHelp } from "./cmd_help.ts";
+import { executeInstall } from "./cmd_install.ts";
 import { executeModel } from "./cmd_model.ts";
 import { executeNew } from "./cmd_new.ts";
+import { executeRestart } from "./cmd_restart.ts";
+import { executeStatus } from "./cmd_status.ts";
 import { executeUndo } from "./cmd_undo.ts";
+import { executeUninstall } from "./cmd_uninstall.ts";
 import type { CommandContext, CommandResult, SlashCommandDef } from "./types.ts";
 
 export const COMMANDS: readonly SlashCommandDef[] = [
@@ -32,6 +36,26 @@ export const COMMANDS: readonly SlashCommandDef[] = [
     name: "costs",
     description: "Show cost breakdown (today / week / total)",
     execute: executeCosts,
+  },
+  {
+    name: "restart",
+    description: "Restart the ghostpaw process",
+    execute: executeRestart,
+  },
+  {
+    name: "status",
+    description: "Show version, uptime, service, and disk info",
+    execute: executeStatus,
+  },
+  {
+    name: "install",
+    description: "Install ghostpaw as a system service (auto-start on boot)",
+    execute: executeInstall,
+  },
+  {
+    name: "uninstall",
+    description: "Remove ghostpaw system service",
+    execute: executeUninstall,
   },
 ];
 

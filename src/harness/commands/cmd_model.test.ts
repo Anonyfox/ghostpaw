@@ -50,7 +50,14 @@ afterEach(() => {
 });
 
 function makeCtx(): CommandContext {
-  return { db, sessionId: 1, sessionKey: "test", configuredKeys: new Set(["API_KEY_ANTHROPIC"]) };
+  return {
+    db,
+    sessionId: 1,
+    sessionKey: "test",
+    configuredKeys: new Set(["API_KEY_ANTHROPIC"]),
+    workspace: ".",
+    version: "0.0.0-dev",
+  };
 }
 
 describe("executeModel", () => {

@@ -96,6 +96,20 @@ Talk to Ghostpaw from anywhere. Channels are persistent messaging integrations t
 
 All channels run simultaneously — TUI, web, and Telegram from a single process.
 
+## Built-in Reliability
+
+Ghostpaw supervises itself. The single `.mjs` process forks into a lightweight supervisor and a worker — no external process manager needed, no setup required. Active from first run.
+
+- **Auto-restart on crash** — exponential backoff (1s to 30s), resets after sustained uptime
+- **Heartbeat watchdog** — detects hung event loops and force-restarts after 120s of silence
+- **Single-instance guarantee** — only one Ghostpaw runs per workspace, enforced via OS-level socket lock
+- **Graceful self-restart** — the agent, web UI, or CLI can trigger a full restart on command
+- **Remote control** — `ghostpaw service restart`, `stop`, and `status` work via IPC, cross-platform
+- **Crash circuit breaker** — 5 crashes in 2 minutes stops the loop instead of burning resources
+- **Orphan detection** — if the supervisor dies, the worker shuts itself down cleanly
+
+The `ghostpaw service install` command registers Ghostpaw with your OS (systemd, launchd, or cron) for boot persistence. The built-in supervisor handles everything else.
+
 ## Cost Controls
 
 Every LLM call is tracked with real provider-reported token counts and costs. Set a hard dollar limit on a rolling 24-hour window — the agent blocks itself before it overspends. A live dashboard in the web UI shows spend per model, per day, and how much budget remains. Adjust the limit in real time, no restart needed.
@@ -149,6 +163,8 @@ ghostpaw souls                  # inspect and refine souls
 ghostpaw memory                 # browse memories
 ghostpaw quests                 # tasks, events, deadlines
 ghostpaw service install        # systemd/launchd background service
+ghostpaw service restart        # restart the running process
+ghostpaw service status         # supervisor status
 ```
 
 ## Architecture

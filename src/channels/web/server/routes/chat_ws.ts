@@ -3,6 +3,7 @@ import { listStoredSecretKeys } from "../../../../core/secrets/api/read/index.ts
 import { executeCommand, parseSlashCommand } from "../../../../harness/commands/registry.ts";
 import type { CommandContext } from "../../../../harness/commands/types.ts";
 import type { Entity } from "../../../../harness/index.ts";
+import { VERSION } from "../../../../lib/version.ts";
 import type { WsConnection } from "../../../../lib/ws.ts";
 
 const connections = new Map<number, WsConnection>();
@@ -80,9 +81,17 @@ async function handleSlashCommand(
       sessionId,
       sessionKey: `web:${sessionId}`,
       configuredKeys,
+      workspace: entity.workspace,
+      version: VERSION,
     };
     const result = await executeCommand(name, args, cmdCtx);
     wsSend(ws, { type: "command_result", text: result.text, action: result.action ?? null });
+    if (result.action?.type === "restart") {
+      setTimeout(async () => {
+        const { requestRestart } = await import("../../../../lib/supervisor.ts");
+        requestRestart();
+      }, 500);
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     wsSend(ws, { type: "error", message });

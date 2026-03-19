@@ -58,6 +58,7 @@ export function ChatPage() {
     totalTokens,
     model,
     session,
+    reconnected,
     sendMessage,
   } = useChatSession({
     sessionId: activeSessionId,
@@ -138,6 +139,11 @@ export function ChatPage() {
 
           <TrailBanner />
 
+          {reconnected && (
+            <div class="alert alert-info alert-dismissible m-3 mb-0 py-1 px-2 small fade show">
+              Reconnected
+            </div>
+          )}
           {error && <div class="alert alert-danger m-3 mb-0 py-1 px-2 small">{error}</div>}
 
           <MessageList

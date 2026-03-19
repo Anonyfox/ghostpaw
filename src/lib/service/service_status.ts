@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { detectInitSystem } from "./detect_init_system.ts";
@@ -53,26 +53,14 @@ function statusLaunchd(): ServiceStatus {
   return { installed, running, initSystem: "launchd", pid };
 }
 
+export function statusCronFromOutput(workspace: string, crontabOutput: string): ServiceStatus {
+  const installed = crontabOutput.includes(workspace);
+  return { installed, running: false, initSystem: "cron" };
+}
+
 function statusCron(workspace: string): ServiceStatus {
-  const path = join(workspace, ".ghostpaw", "watchdog.sh");
-  const installed = existsSync(path);
-  if (!installed) return { installed: false, running: false, initSystem: "cron" };
-
-  const pidFile = join(workspace, ".ghostpaw", "watchdog.pid");
-  if (!existsSync(pidFile)) return { installed, running: false, initSystem: "cron" };
-
-  const raw = readFileSync(pidFile, "utf-8").trim();
-  if (!/^\d+$/.test(raw)) return { installed, running: false, initSystem: "cron" };
-
-  const pid = Number.parseInt(raw, 10);
-  let alive = false;
-  try {
-    process.kill(pid, 0);
-    alive = true;
-  } catch {
-    // not running
-  }
-  return { installed, running: alive, initSystem: "cron", pid: alive ? pid : undefined };
+  const existing = exec("crontab", ["-l"]);
+  return statusCronFromOutput(workspace, existing.ok ? existing.stdout : "");
 }
 
 export function serviceStatus(workspace: string): ServiceStatus {

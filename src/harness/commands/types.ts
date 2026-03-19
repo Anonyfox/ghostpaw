@@ -5,12 +5,15 @@ export interface CommandContext {
   sessionId: number;
   sessionKey: string;
   configuredKeys: Set<string>;
+  workspace: string;
+  version: string;
 }
 
 export type CommandAction =
   | { type: "new_session"; sessionId: number; sessionKey: string }
   | { type: "undo"; removedCount: number; removedMessageIds: number[] }
-  | { type: "model_changed"; model: string };
+  | { type: "model_changed"; model: string }
+  | { type: "restart" };
 
 export interface CommandResult {
   text: string;

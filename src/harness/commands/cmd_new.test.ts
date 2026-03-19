@@ -26,6 +26,8 @@ describe("executeNew", () => {
       sessionId: 0,
       sessionKey: "old",
       configuredKeys: new Set(),
+      workspace: ".",
+      version: "0.0.0-dev",
     };
     const result = await executeNew(ctx, "");
 
@@ -45,6 +47,8 @@ describe("executeNew", () => {
       sessionId: existing.id as number,
       sessionKey: "test:existing",
       configuredKeys: new Set(),
+      workspace: ".",
+      version: "0.0.0-dev",
     };
 
     await executeNew(ctx, "");
@@ -59,6 +63,8 @@ describe("executeNew", () => {
       sessionId: 999,
       sessionKey: "missing",
       configuredKeys: new Set(),
+      workspace: ".",
+      version: "0.0.0-dev",
     };
     const result = await executeNew(ctx, "");
     ok(result.action);

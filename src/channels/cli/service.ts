@@ -7,6 +7,7 @@ import {
   serviceStatus,
   uninstallService,
 } from "../../lib/service/index.ts";
+import { sendCommand } from "../../lib/supervisor.ts";
 import { log, style } from "../../lib/terminal/index.ts";
 
 const install = defineCommand({
@@ -43,10 +44,61 @@ const uninstall = defineCommand({
   },
 });
 
+const restart = defineCommand({
+  meta: { name: "restart", description: "Restart the running ghostpaw process" },
+  async run() {
+    const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
+    try {
+      const resp = await sendCommand(workspace, "restart");
+      if (resp.ok) {
+        log.done("restart signal sent");
+      } else {
+        log.error(String(resp.error ?? "unknown error"));
+        process.exitCode = 1;
+      }
+    } catch {
+      log.error("ghostpaw is not running");
+      process.exitCode = 1;
+    }
+  },
+});
+
+const stop = defineCommand({
+  meta: { name: "stop", description: "Stop the running ghostpaw process" },
+  async run() {
+    const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
+    try {
+      const resp = await sendCommand(workspace, "stop");
+      if (resp.ok) {
+        log.done("stop signal sent");
+      } else {
+        log.error(String(resp.error ?? "unknown error"));
+        process.exitCode = 1;
+      }
+    } catch {
+      log.error("ghostpaw is not running");
+      process.exitCode = 1;
+    }
+  },
+});
+
 const status = defineCommand({
   meta: { name: "status", description: "Check ghostpaw service status" },
   async run() {
     const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
+
+    try {
+      const resp = await sendCommand(workspace, "status");
+      if (resp.ok) {
+        console.log(`  supervisor   ${style.green("running")}`);
+        console.log(`  pid          ${resp.pid}`);
+        if (resp.childPid) console.log(`  worker pid   ${resp.childPid}`);
+        console.log(`  uptime       ${resp.uptime}s`);
+        console.log(`  crashes      ${resp.crashes}`);
+        return;
+      }
+    } catch {}
+
     const s = serviceStatus(workspace);
     console.log(`  init system  ${style.cyan(s.initSystem)}`);
     console.log(`  installed    ${s.installed ? style.green("yes") : style.dim("no")}`);
@@ -65,5 +117,5 @@ const logs = defineCommand({
 
 export default defineCommand({
   meta: { name: "service", description: "Manage ghostpaw as a system service" },
-  subCommands: { install, uninstall, status, logs },
+  subCommands: { install, uninstall, restart, stop, status, logs },
 });

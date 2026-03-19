@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { detectInitSystem } from "./detect_init_system.ts";
 import { generateLaunchdPlist, launchdLabel } from "./generate_plist.ts";
 import { generateSystemdUnit } from "./generate_unit.ts";
-import { generateWatchdogScript } from "./generate_watchdog.ts";
 import type { ServiceConfig, ServiceResult } from "./types.ts";
 
 const SYSTEMD_SERVICE_NAME = "ghostpaw.service";
@@ -53,19 +52,18 @@ function installLaunchd(config: ServiceConfig): ServiceResult {
 }
 
 function installCron(config: ServiceConfig): ServiceResult {
-  const dir = join(config.workspace, ".ghostpaw");
-  mkdirSync(dir, { recursive: true });
-
-  const path = join(dir, "watchdog.sh");
-  writeFileSync(path, generateWatchdogScript(config), { mode: 0o755 });
+  const flags = config.nodeFlags.length > 0 ? ` ${config.nodeFlags.join(" ")}` : "";
+  const cmd = `"${config.nodePath}"${flags} "${config.ghostpawPath}"`;
 
   const existing = exec("crontab", ["-l"]);
   const lines = existing.ok ? existing.stdout : "";
-  if (lines.includes(path)) {
-    return { success: true, message: "Service already installed", initSystem: "cron", path };
+  if (lines.includes(config.ghostpawPath)) {
+    return { success: true, message: "Service already installed", initSystem: "cron" };
   }
 
-  const entry = `@reboot ${path}`;
+  const entry = `@reboot cd "${config.workspace}" && ${cmd} >> "${join(config.workspace, ".ghostpaw", "stderr.log")}" 2>&1`;
+  mkdirSync(join(config.workspace, ".ghostpaw"), { recursive: true });
+
   const newCrontab = lines ? `${lines}\n${entry}\n` : `${entry}\n`;
   const write = spawnSync("crontab", ["-"], {
     input: newCrontab,
@@ -74,13 +72,16 @@ function installCron(config: ServiceConfig): ServiceResult {
   });
 
   if (write.status !== 0) {
-    return { success: false, message: "Failed to update crontab", initSystem: "cron", path };
+    return { success: false, message: "Failed to update crontab", initSystem: "cron" };
   }
 
-  const child = spawn("sh", [path], { stdio: "ignore", detached: true });
+  const child = spawn("sh", ["-c", `cd "${config.workspace}" && ${cmd}`], {
+    stdio: "ignore",
+    detached: true,
+  });
   child.unref();
 
-  return { success: true, message: "Watchdog installed and started", initSystem: "cron", path };
+  return { success: true, message: "Service installed and started", initSystem: "cron" };
 }
 
 export function installService(config: ServiceConfig): ServiceResult {

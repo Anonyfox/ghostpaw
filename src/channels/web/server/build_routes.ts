@@ -22,6 +22,7 @@ import { createSoulGenerateHandlers } from "./routes/soul_generate.ts";
 import { createSoulTraitsApiHandlers } from "./routes/soul_traits_api.ts";
 import { createSoulsApiHandlers } from "./routes/souls_api.ts";
 import { createStaticHandlers } from "./routes/static.ts";
+import { createSupervisorApiHandlers } from "./routes/supervisor_api.ts";
 import { createTrailApiHandlers } from "./routes/trail_api.ts";
 import { createTrainerApiHandlers } from "./routes/trainer_api.ts";
 import type { Route, RouteHandler } from "./types.ts";
@@ -73,6 +74,8 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
   const quests = createQuestsApiHandlers(config.db);
   const skills = createSkillsApiHandlers(config.db, config.entity);
   const trail = createTrailApiHandlers(config.db);
+  const workspace = config.entity?.workspace ?? process.cwd();
+  const supervisor = createSupervisorApiHandlers({ version: config.version, workspace });
 
   return {
     checkSession: auth.checkSession,
@@ -186,6 +189,11 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
       createRoute("GET", "/api/trail/curiosity", trail.curiosity, true),
       createRoute("GET", "/api/trail/pair-summary", trail.pairSummary, true),
       createRoute("GET", "/api/trail/quest-hints", trail.questHints, true),
+      createRoute("GET", "/api/supervisor/status", supervisor.status, true),
+      createRoute("POST", "/api/supervisor/restart", supervisor.restart, true),
+      createRoute("POST", "/api/supervisor/stop", supervisor.stop, true),
+      createRoute("POST", "/api/supervisor/install", supervisor.install, true),
+      createRoute("POST", "/api/supervisor/uninstall", supervisor.uninstall, true),
       createRoute("GET", "/assets/app.js", statics.serveAppJs, false),
       createRoute("GET", "/assets/style.css", statics.serveStyleCss, false),
     ],

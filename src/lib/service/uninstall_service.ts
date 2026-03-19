@@ -35,26 +35,24 @@ function isNumericPid(s: string): boolean {
 
 function uninstallCron(workspace: string): ServiceResult {
   const dir = join(workspace, ".ghostpaw");
-  const path = join(dir, "watchdog.sh");
-  const pidFile = join(dir, "watchdog.pid");
+  const legacyWatchdog = join(dir, "watchdog.sh");
+  const legacyPidFile = join(dir, "watchdog.pid");
 
-  if (existsSync(pidFile)) {
-    const raw = readFileSync(pidFile, "utf-8").trim();
+  if (existsSync(legacyPidFile)) {
+    const raw = readFileSync(legacyPidFile, "utf-8").trim();
     if (isNumericPid(raw)) {
       try {
         process.kill(Number.parseInt(raw, 10), "SIGTERM");
-      } catch {
-        // already dead
-      }
+      } catch {}
     }
-    unlinkSync(pidFile);
+    unlinkSync(legacyPidFile);
   }
 
   const existing = spawnSync("crontab", ["-l"], { stdio: "pipe", encoding: "utf-8" });
-  if (existing.status === 0 && existing.stdout.includes(path)) {
+  if (existing.status === 0 && existing.stdout.includes(workspace)) {
     const filtered = existing.stdout
       .split("\n")
-      .filter((l) => !l.includes(path))
+      .filter((l) => !l.includes(workspace))
       .join("\n");
     spawnSync("crontab", ["-"], {
       input: `${filtered}\n`,
@@ -63,7 +61,7 @@ function uninstallCron(workspace: string): ServiceResult {
     });
   }
 
-  if (existsSync(path)) unlinkSync(path);
+  if (existsSync(legacyWatchdog)) unlinkSync(legacyWatchdog);
   return { success: true, message: "Service removed", initSystem: "cron" };
 }
 

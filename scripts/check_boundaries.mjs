@@ -98,6 +98,7 @@ const WRITE_IMPORT_ALLOWLIST = new Set([
   "src/harness/oneshots/summarize_for_compaction.ts",
   "src/harness/commands/cmd_model.ts",
   "src/harness/commands/cmd_new.ts",
+  "src/harness/commands/cmd_restart.ts",
   "src/harness/commands/cmd_undo.ts",
   "src/harness/post_turn.ts",
   "src/harness/types.ts",

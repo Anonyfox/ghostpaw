@@ -173,6 +173,8 @@ export async function runTui(opts: TuiOptions): Promise<void> {
       sessionId: sid,
       sessionKey: sessionId !== null ? `tui:${sessionId}` : "tui:none",
       configuredKeys,
+      workspace: entity.workspace,
+      version,
     };
 
     const result = await executeCommand(parsed.name, parsed.args, cmdCtx);
@@ -189,6 +191,15 @@ export async function runTui(opts: TuiOptions): Promise<void> {
 
     if (result.action?.type === "model_changed") {
       model = result.action.model as string;
+    }
+
+    if (result.action?.type === "restart") {
+      messages.push({ id: 0, role: "assistant", content: result.text });
+      paint();
+      cleanup();
+      const { requestRestart } = await import("../../lib/supervisor.ts");
+      requestRestart();
+      return true;
     }
 
     messages.push({ id: 0, role: "assistant", content: result.text });
