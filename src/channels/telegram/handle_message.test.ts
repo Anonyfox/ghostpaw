@@ -64,11 +64,11 @@ function stubEntity(executeTurn: Entity["executeTurn"], db?: DatabaseHandle): En
 }
 
 function createMockDeps(overrides?: Partial<HandleMessageDeps>): HandleMessageDeps & {
-  sent: Array<{ chatId: number; text: string }>;
+  sent: Array<{ chatId: number; text: string; parseMode?: string }>;
   typings: number[];
   reactions: Array<{ chatId: number; messageId: number; emoji: ReactionEmoji }>;
 } {
-  const sent: Array<{ chatId: number; text: string }> = [];
+  const sent: Array<{ chatId: number; text: string; parseMode?: string }> = [];
   const typings: number[] = [];
   const reactions: Array<{ chatId: number; messageId: number; emoji: ReactionEmoji }> = [];
 
@@ -79,8 +79,8 @@ function createMockDeps(overrides?: Partial<HandleMessageDeps>): HandleMessageDe
     resolveSessionId: () => defaultSession.id as number,
     entity: stubEntity(async () => defaultTurn),
     isAllowed: () => true,
-    sendMessage: async (chatId, text): Promise<TelegramSentMessage> => {
-      sent.push({ chatId, text });
+    sendMessage: async (chatId, text, options): Promise<TelegramSentMessage> => {
+      sent.push({ chatId, text, parseMode: options?.parseMode });
       return { messageId: sent.length };
     },
     sendTyping: async (chatId) => {
@@ -166,6 +166,25 @@ describe("handleMessage", () => {
     const deps = createMockDeps({ isAllowed: () => true });
     await handleMessage(deps, 999, 1, "hello");
     ok(deps.sent.length > 0);
+  });
+
+  it("sends chat turn responses with parseMode HTML", async () => {
+    const deps = createMockDeps();
+    await handleMessage(deps, 42, 7, "hi");
+    strictEqual(deps.sent.length, 1);
+    strictEqual(deps.sent[0]!.parseMode, "HTML");
+  });
+
+  it("renders markdown in chat turn responses as HTML", async () => {
+    const mdSession = createSession(sharedDb, `tg:md:${Date.now()}`);
+    const mdTurn = makeTurnOk(mdSession.id as number, sharedDb);
+    const deps = createMockDeps({
+      resolveSessionId: () => mdSession.id as number,
+      entity: stubEntity(async () => ({ ...mdTurn, content: "**bold** and *italic*" })),
+    });
+    await handleMessage(deps, 42, 7, "format this");
+    strictEqual(deps.sent[0]!.text, "<b>bold</b> and <i>italic</i>");
+    strictEqual(deps.sent[0]!.parseMode, "HTML");
   });
 
   it("keeps plain text as direct chat when telegram howl fallback is ambiguous", async () => {

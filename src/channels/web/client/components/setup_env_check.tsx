@@ -39,12 +39,13 @@ export function SetupEnvCheck({ onNext, onBack }: SetupEnvCheckProps) {
       ) : (
         <ul class="list-group mb-4">
           {checks.map((c) => (
-            <li class="list-group-item d-flex justify-content-between align-items-start" key={c.name}>
+            <li
+              class="list-group-item d-flex justify-content-between align-items-start"
+              key={c.name}
+            >
               <div>
                 <strong>{c.name}</strong>
-                {c.found && c.version && (
-                  <span class="text-muted ms-2 small">{c.version}</span>
-                )}
+                {c.found && c.version && <span class="text-muted ms-2 small">{c.version}</span>}
                 {!c.found && c.hint && (
                   <div class="text-muted small mt-1">
                     <code>{c.hint}</code>

@@ -6,6 +6,7 @@ import { lookupByChannelId } from "../../core/chat/api/read/index.ts";
 import { storeChannelMessage } from "../../core/chat/api/write/index.ts";
 import { processHowlReply } from "../../harness/howl/index.ts";
 import type { Entity } from "../../harness/index.ts";
+import { renderTelegramHtml } from "./render_telegram.ts";
 import { splitMessage } from "./split_message.ts";
 import type { ReactionEmoji, TelegramSendMessageOptions, TelegramSentMessage } from "./types.ts";
 
@@ -56,7 +57,7 @@ export async function handleMessage(
 
       const parts = splitMessage(reply.summary);
       for (const part of parts) {
-        await deps.sendMessage(chatId, part);
+        await deps.sendMessage(chatId, renderTelegramHtml(part), { parseMode: "HTML" });
       }
     } else {
       const sessionId = deps.resolveSessionId(chatId);
@@ -81,7 +82,10 @@ export async function handleMessage(
 
       const parts = splitMessage(result.content);
       for (const part of parts) {
-        const sent = await deps.sendMessage(chatId, part, { replyToMessageId: messageId });
+        const sent = await deps.sendMessage(chatId, renderTelegramHtml(part), {
+          replyToMessageId: messageId,
+          parseMode: "HTML",
+        });
         storeChannelMessage(deps.entity.db, {
           sessionId,
           messageId: result.messageId,

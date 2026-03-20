@@ -11,6 +11,7 @@ export interface TelegramSentMessage {
 export interface TelegramSendMessageOptions {
   dismissHowlId?: number;
   replyToMessageId?: number;
+  parseMode?: "HTML";
 }
 
 export interface TelegramChannelConfig {

@@ -9,6 +9,7 @@ import { registerChannel, unregisterChannel } from "../../lib/channel_registry.t
 import { VERSION } from "../../lib/version.ts";
 import type { HandleMessageDeps } from "./handle_message.ts";
 import { handleMessage } from "./handle_message.ts";
+import { renderTelegramHtml } from "./render_telegram.ts";
 import { sessionKeyForChat } from "./session_key.ts";
 import { splitMessage } from "./split_message.ts";
 import type {
@@ -57,6 +58,7 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
         ? { message_id: options.replyToMessageId }
         : undefined;
       const message = await bot.api.sendMessage(chatId, text, {
+        parse_mode: options?.parseMode,
         reply_markup: replyMarkup,
         reply_parameters: replyParameters,
       });
@@ -237,7 +239,9 @@ export function createTelegramChannel(config: TelegramChannelConfig): TelegramCh
                       if (tgMapping) replyToMsgId = Number(tgMapping.channelMessageId);
                     }
 
-                    const sent = await sendMessage(chatId, message, {
+                    const html = renderTelegramHtml(message);
+                    const sent = await sendMessage(chatId, html, {
+                      parseMode: "HTML",
                       dismissHowlId: howlId,
                       replyToMessageId: replyToMsgId,
                     });

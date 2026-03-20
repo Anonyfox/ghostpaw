@@ -1,9 +1,9 @@
 import { execFile } from "node:child_process";
 import { platform } from "node:os";
 import { listSecretStatus } from "../../../../core/secrets/api/read/index.ts";
+import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { fetchProviderModels } from "../../../../lib/models/fetch_provider_models.ts";
 import { isProviderId } from "../../../../lib/models/types.ts";
-import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { readJsonBody } from "../body_parser.ts";
 import type { RouteContext } from "../types.ts";
 

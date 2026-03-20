@@ -26,10 +26,16 @@ describe("App", () => {
     });
   });
 
-  it("renders the login page at /login path", () => {
+  it("renders the login page at /login path", async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: happy-dom fetch shim for test
+    (globalThis as any).fetch = async () =>
+      new Response(JSON.stringify({ hasLlmKey: true }), {
+        headers: { "Content-Type": "application/json" },
+      });
     (dom.window as unknown as { location: { href: string } }).location.href =
       "http://localhost/login";
     render(<App />, dom.container);
+    await new Promise((r) => setTimeout(r, 50));
     assert.ok(dom.container.innerHTML.length > 0);
   });
 });
