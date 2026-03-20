@@ -28,4 +28,5 @@ export interface WebServerConfig {
   customCss?: string;
   secure?: boolean;
   version?: string;
+  noAuth?: boolean;
 }

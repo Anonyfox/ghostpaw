@@ -1,0 +1,27 @@
+[package]
+name = "ghostpaw-desktop"
+version = "0.8.0"
+description = "Ghostpaw Desktop — AI agent runtime"
+authors = ["Anonyfox <max@anonyfox.com>"]
+license = "MIT"
+repository = "https://github.com/Anonyfox/ghostpaw"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2.5", features = [] }
+
+[dependencies]
+tauri = { version = "2.10", features = [] }
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["time"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1

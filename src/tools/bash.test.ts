@@ -147,4 +147,36 @@ describe("Bash tool", () => {
       else process.env.SERPER_API_KEY = original;
     }
   });
+
+  it("uses cwd parameter for working directory", async () => {
+    const result = (await exec({ command: "pwd", cwd: "/tmp" })) as {
+      stdout: string;
+      exitCode: number;
+    };
+    strictEqual(result.exitCode, 0);
+    ok(
+      result.stdout.trim().includes("/tmp") || result.stdout.trim().includes("\\tmp"),
+      `Expected cwd /tmp, got ${result.stdout.trim()}`,
+    );
+  });
+
+  it("resolves relative cwd from workspace", async () => {
+    const result = (await exec({ command: "pwd", cwd: "." })) as {
+      stdout: string;
+      exitCode: number;
+    };
+    strictEqual(result.exitCode, 0);
+    ok(
+      result.stdout.trim().endsWith(workDir) || result.stdout.trim() === workDir,
+      `Expected workspace dir, got ${result.stdout.trim()}`,
+    );
+  });
+
+  it("defaults to workspace when cwd is absent", async () => {
+    const result = (await exec({ command: "pwd" })) as { stdout: string };
+    ok(
+      result.stdout.trim().endsWith(workDir) || result.stdout.trim() === workDir,
+      `Expected workspace dir, got ${result.stdout.trim()}`,
+    );
+  });
 });

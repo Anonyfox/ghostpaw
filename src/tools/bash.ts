@@ -1,6 +1,8 @@
 import { spawnSync } from "node:child_process";
+import { platform } from "node:os";
 import { createTool, Schema } from "chatoyant";
 import { KNOWN_KEYS } from "../core/secrets/api/read/index.ts";
+import { resolvePath } from "../lib/resolve_path.ts";
 
 const DEFAULT_TIMEOUT_S = 120;
 const MAX_OUTPUT_BYTES = 100_000;
@@ -28,6 +30,11 @@ class BashParams extends Schema {
     description:
       "Shell command to execute (passed to /bin/sh -c). Supports pipes, redirects, and chaining.",
   });
+  cwd = Schema.String({
+    description:
+      "Working directory for the command. Supports ~, absolute, and relative paths. Defaults to workspace root.",
+    optional: true,
+  });
   timeout = Schema.Integer({
     description: `Timeout in seconds (default: ${DEFAULT_TIMEOUT_S}). Command is killed if it exceeds this.`,
     optional: true,
@@ -46,16 +53,25 @@ export function createBashTool(workspace: string) {
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new BashParams() as any,
     execute: async ({ args }) => {
-      const { command, timeout } = args as { command: string; timeout?: number };
+      const { command, cwd, timeout } = args as {
+        command: string;
+        cwd?: string;
+        timeout?: number;
+      };
 
       if (!command || command.trim().length === 0) {
         return { error: "Command cannot be empty", exitCode: 1, stdout: "", stderr: "" };
       }
 
+      const effectiveCwd = cwd ? resolvePath(workspace, cwd).fullPath : workspace;
       const timeoutMs = (timeout && timeout > 0 ? timeout : DEFAULT_TIMEOUT_S) * 1000;
 
-      const result = spawnSync("/bin/sh", ["-c", command], {
-        cwd: workspace,
+      const isWindows = platform() === "win32";
+      const shell = isWindows ? "cmd.exe" : "/bin/sh";
+      const shellArgs = isWindows ? ["/d", "/s", "/c", command] : ["-c", command];
+
+      const result = spawnSync(shell, shellArgs, {
+        cwd: effectiveCwd,
         timeout: timeoutMs,
         maxBuffer: MAX_OUTPUT_BYTES * 2,
         encoding: "utf-8",

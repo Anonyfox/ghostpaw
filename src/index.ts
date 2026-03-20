@@ -1,3 +1,4 @@
+import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { defineCommand, runMain } from "citty";
 import { deleteOldDistilled } from "./core/chat/api/write/index.ts";
@@ -72,7 +73,13 @@ const main = defineCommand({
     },
   },
   setup({ args }) {
-    process.env.GHOSTPAW_WORKSPACE = resolve(args.workspace ?? ".");
+    if (process.env.GHOSTPAW_WORKSPACE) return;
+    const isDesktop = process.env.GHOSTPAW_DESKTOP === "1";
+    if (isDesktop && args.workspace === ".") {
+      process.env.GHOSTPAW_WORKSPACE = homedir();
+    } else {
+      process.env.GHOSTPAW_WORKSPACE = resolve(args.workspace ?? ".");
+    }
   },
   async run() {
     // citty v0.2.1 falls through to parent run() after a subcommand — bail out
@@ -103,8 +110,12 @@ const main = defineCommand({
     loadSecretsIntoEnv(db);
     syncProviderKeys(db);
 
-    const { ensureReady } = await import("./channels/cli/ensure_ready.ts");
-    await ensureReady(db);
+    const isDesktop = process.env.GHOSTPAW_DESKTOP === "1";
+
+    if (!isDesktop) {
+      const { ensureReady } = await import("./channels/cli/ensure_ready.ts");
+      await ensureReady(db);
+    }
 
     const created = bootstrapSkills(workspace, db);
     if (created.length > 0) log.info(`bootstrapped ${created.length} default skills`);
@@ -180,6 +191,7 @@ const main = defineCommand({
         entity,
       });
 
+      const listenPort = isDesktop ? 0 : webConfig.port;
       await new Promise<void>((resolve, reject) => {
         httpServer!.on("error", (err: NodeJS.ErrnoException) => {
           if (err.code === "EADDRINUSE") {
@@ -188,8 +200,13 @@ const main = defineCommand({
           }
           reject(err);
         });
-        httpServer!.listen(webConfig.port, webConfig.host, () => {
-          log.done(`web ui: http://${webConfig.host}:${webConfig.port}`);
+        httpServer!.listen(listenPort, webConfig.host, () => {
+          const addr = httpServer!.address();
+          const actualPort = typeof addr === "object" && addr ? addr.port : listenPort;
+          log.done(`web ui: http://${webConfig.host}:${actualPort}`);
+          if (isDesktop) {
+            process.stdout.write(`GHOSTPAW_READY port=${actualPort}\n`);
+          }
           resolve();
         });
       });
@@ -265,7 +282,7 @@ const main = defineCommand({
       }
     }
 
-    if (process.stdin.isTTY && process.stdout.isTTY) {
+    if (!isDesktop && process.stdin.isTTY && process.stdout.isTTY) {
       const { runTui } = await import("./channels/tui/index.ts");
       const modelOverride = process.argv
         .slice(2)
@@ -275,7 +292,8 @@ const main = defineCommand({
       const modelFlag = modelOverride ?? (mIdx >= 0 ? process.argv[mIdx + 1] : undefined);
       await runTui({ db, version: VERSION, entity, model: modelFlag });
     } else {
-      log.info("daemon mode (no TTY)");
+      if (isDesktop) log.info("desktop mode");
+      else log.info("daemon mode (no TTY)");
       await new Promise<void>((resolve) => {
         const shutdown = () => {
           resolve();
@@ -306,6 +324,7 @@ if (isEntrypoint(import.meta.url)) {
   if (
     isDaemon &&
     !hasInfoFlag &&
+    !process.env.GHOSTPAW_DESKTOP &&
     !process.env.GHOSTPAW_SUPERVISED &&
     !process.env.GHOSTPAW_NO_SUPERVISOR
   ) {

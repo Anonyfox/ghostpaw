@@ -1,0 +1,74 @@
+name: Desktop Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+
+      - name: Cache Node sidecar downloads
+        uses: actions/cache@v4
+        with:
+          path: desktop/.cache
+          key: node-sidecar-${{ hashFiles('desktop/scripts/prepare-sidecar.mjs') }}
+
+      - name: Build ghostpaw.mjs
+        run: npm ci && npm run build
+
+      - name: Prepare sidecar (universal)
+        run: node desktop/scripts/prepare-sidecar.mjs
+        env:
+          TAURI_TARGET_TRIPLE: universal-apple-darwin
+
+      - name: Install desktop deps
+        run: cd desktop && npm ci
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: desktop
+          tauriScript: npx tauri
+          args: --target universal-apple-darwin
+
+      - name: Upload DMG to release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload stable-named DMG
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          DMG_FILE=$(ls desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -1)
+          if [ -n "$DMG_FILE" ]; then
+            cp "$DMG_FILE" "/tmp/Ghostpaw-macos.dmg"
+            gh release upload "$TAG" "/tmp/Ghostpaw-macos.dmg" --clobber
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

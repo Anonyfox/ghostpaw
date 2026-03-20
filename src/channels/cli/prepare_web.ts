@@ -8,12 +8,15 @@ export interface PrepareWebResult {
   port: number;
   host: string;
   version: string;
+  noAuth: boolean;
 }
 
 export async function prepareWeb(
   db: DatabaseHandle,
   version: string,
 ): Promise<PrepareWebResult | null> {
+  const isDesktop = process.env.GHOSTPAW_DESKTOP === "1";
+
   let raw = getSecretValue(db, "WEB_UI_PASSWORD");
 
   if (!raw && process.env.WEB_UI_PASSWORD) {
@@ -21,10 +24,12 @@ export async function prepareWeb(
     setProtectedSecret(db, "WEB_UI_PASSWORD", raw);
   }
 
-  if (!raw) return null;
+  if (!raw && !isDesktop) return null;
 
   let passwordHash: string;
-  if (isHashedPassword(raw)) {
+  if (!raw) {
+    passwordHash = "desktop-no-auth";
+  } else if (isHashedPassword(raw)) {
     passwordHash = raw;
   } else {
     passwordHash = await hashPassword(raw);
@@ -34,5 +39,5 @@ export async function prepareWeb(
   const port = Number.parseInt(process.env.WEB_UI_PORT ?? "3000", 10);
   const host = "127.0.0.1";
 
-  return { passwordHash, port, host, version };
+  return { passwordHash, port, host, version, noAuth: isDesktop };
 }

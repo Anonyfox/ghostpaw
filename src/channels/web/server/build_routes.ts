@@ -7,6 +7,7 @@ import { createChatSessionsApiHandlers } from "./routes/chat_sessions_api.ts";
 import { createConfigApiHandlers } from "./routes/config_api.ts";
 import { createCostsApiHandlers } from "./routes/costs_api.ts";
 import { createDashboardHandler } from "./routes/dashboard_api.ts";
+import { createHealthHandler } from "./routes/health_api.ts";
 import { createDistillApiHandlers } from "./routes/distill_api.ts";
 import { createHauntApiHandlers } from "./routes/haunt_api.ts";
 import { createHowlsApiHandlers } from "./routes/howls_api.ts";
@@ -16,6 +17,7 @@ import { createModelsApiHandlers } from "./routes/models_api.ts";
 import { createPackApiHandlers } from "./routes/pack_api.ts";
 import { createQuestsApiHandlers } from "./routes/quests_api.ts";
 import { createSecretsApiHandlers } from "./routes/secrets_api.ts";
+import { createSetupApiHandlers } from "./routes/setup_api.ts";
 import { createSessionsApiHandlers } from "./routes/sessions_api.ts";
 import { createSkillsApiHandlers } from "./routes/skills_api.ts";
 import { createSoulGenerateHandlers } from "./routes/soul_generate.ts";
@@ -38,6 +40,7 @@ interface BuildRoutesConfig {
   db: DatabaseHandle;
   entity?: Entity;
   spaHandler: RouteHandler;
+  noAuth?: boolean;
 }
 
 interface BuiltRoutes {
@@ -47,13 +50,16 @@ interface BuiltRoutes {
 
 export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
   const auth = createAuthHandlers({ passwordHash: config.passwordHash, secure: config.secure });
+  const checkSession = config.noAuth ? () => true : auth.checkSession;
   const statics = createStaticHandlers({
     clientJs: config.clientJs,
     bootstrapCss: config.bootstrapCss,
     customCss: config.customCss,
     bootId: config.bootId,
   });
+  const health = createHealthHandler({ version: config.version, noAuth: config.noAuth ?? false });
   const dashboard = createDashboardHandler({ version: config.version, db: config.db });
+  const setup = createSetupApiHandlers(config.db);
   const secrets = createSecretsApiHandlers(config.db);
   const cfg = createConfigApiHandlers(config.db);
   const models = createModelsApiHandlers(config.db);
@@ -78,8 +84,12 @@ export function buildRoutes(config: BuildRoutesConfig): BuiltRoutes {
   const supervisor = createSupervisorApiHandlers({ version: config.version, workspace });
 
   return {
-    checkSession: auth.checkSession,
+    checkSession,
     routes: [
+      createRoute("GET", "/api/health", health, false),
+      createRoute("GET", "/api/setup/status", setup.status, true),
+      createRoute("POST", "/api/setup/test-key", setup.testKey, true),
+      createRoute("GET", "/api/setup/env-check", setup.envCheck, true),
       createRoute("POST", "/api/auth/login", auth.login, false),
       createRoute("POST", "/api/auth/logout", auth.logout, true),
       createRoute("GET", "/api/dashboard", dashboard, true),

@@ -1,5 +1,7 @@
-import { Redirect, Route, Switch } from "wouter-preact";
+import { useEffect, useState } from "preact/hooks";
+import { Redirect, Route, Switch, useLocation } from "wouter-preact";
 import { Layout } from "./components/layout.tsx";
+import { isDesktop } from "./is_desktop.ts";
 import { ChatPage } from "./pages/chat.tsx";
 import { CostsPage } from "./pages/costs.tsx";
 import { DashboardPage } from "./pages/dashboard.tsx";
@@ -10,6 +12,7 @@ import { PackPage } from "./pages/pack.tsx";
 import { PackDetailPage } from "./pages/pack_detail.tsx";
 import { QuestsPage } from "./pages/quests.tsx";
 import { SessionsPage } from "./pages/sessions.tsx";
+import { SetupPage } from "./pages/setup.tsx";
 import { SettingsPage } from "./pages/settings.tsx";
 import { SoulDetailPage } from "./pages/soul_detail.tsx";
 import { SoulsPage } from "./pages/souls.tsx";
@@ -48,11 +51,43 @@ function AuthenticatedRoutes() {
   );
 }
 
+function LoginOrRedirect() {
+  if (isDesktop()) return <Redirect to="/dashboard" />;
+  return <LoginPage />;
+}
+
+function DesktopSetupGate({ children }: { children: preact.ComponentChildren }) {
+  const [checked, setChecked] = useState(false);
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!isDesktop()) {
+      setChecked(true);
+      return;
+    }
+    fetch("/api/setup/status")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.hasLlmKey) {
+          navigate("/setup");
+        }
+        setChecked(true);
+      })
+      .catch(() => setChecked(true));
+  }, [navigate]);
+
+  if (!checked) return null;
+  return <>{children}</>;
+}
+
 export function App() {
   return (
-    <Switch>
-      <Route path="/login" component={LoginPage} />
-      <Route component={AuthenticatedRoutes} />
-    </Switch>
+    <DesktopSetupGate>
+      <Switch>
+        <Route path="/login" component={LoginOrRedirect} />
+        <Route path="/setup" component={SetupPage} />
+        <Route component={AuthenticatedRoutes} />
+      </Switch>
+    </DesktopSetupGate>
   );
 }

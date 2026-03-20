@@ -15,12 +15,14 @@ describe("prepareWeb", () => {
     initSecretsTable(db);
     delete process.env.WEB_UI_PASSWORD;
     delete process.env.WEB_UI_PORT;
+    delete process.env.GHOSTPAW_DESKTOP;
   });
 
   afterEach(() => {
     db.close();
     delete process.env.WEB_UI_PASSWORD;
     delete process.env.WEB_UI_PORT;
+    delete process.env.GHOSTPAW_DESKTOP;
   });
 
   it("returns null when no WEB_UI_PASSWORD exists anywhere", async () => {
@@ -91,5 +93,33 @@ describe("prepareWeb", () => {
     const result = await prepareWeb(db, VERSION);
     assert.ok(result);
     assert.equal(result.host, "127.0.0.1");
+  });
+
+  it("returns noAuth: false when not in desktop mode", async () => {
+    setProtectedSecret(db, "WEB_UI_PASSWORD", "test");
+
+    const result = await prepareWeb(db, VERSION);
+    assert.ok(result);
+    assert.equal(result.noAuth, false);
+  });
+
+  it("returns valid config with noAuth: true in desktop mode without password", async () => {
+    process.env.GHOSTPAW_DESKTOP = "1";
+
+    const result = await prepareWeb(db, VERSION);
+    assert.ok(result, "desktop mode returns config even without password");
+    assert.equal(result.noAuth, true);
+    assert.equal(result.host, "127.0.0.1");
+    assert.equal(result.passwordHash, "desktop-no-auth");
+  });
+
+  it("returns noAuth: true in desktop mode even with password set", async () => {
+    process.env.GHOSTPAW_DESKTOP = "1";
+    setProtectedSecret(db, "WEB_UI_PASSWORD", "test");
+
+    const result = await prepareWeb(db, VERSION);
+    assert.ok(result);
+    assert.equal(result.noAuth, true);
+    assert.ok(result.passwordHash !== "desktop-no-auth", "password was still hashed");
   });
 });

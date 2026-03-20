@@ -1,0 +1,14 @@
+{
+  "name": "ghostpaw-desktop",
+  "private": true,
+  "version": "0.8.0",
+  "scripts": {
+    "prepare-sidecar": "node scripts/prepare-sidecar.mjs",
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.10.1"
+  }
+}

@@ -21,12 +21,12 @@ const WEB_CHANNEL_ID = "web";
 const WS_CHAT_PATTERN = /^\/ws\/chat\/(\d+)$/;
 
 export function createWebServer(config: WebServerConfig): Server {
-  if (!config.passwordHash) {
+  if (!config.passwordHash && !config.noAuth) {
     throw new Error("WEB_UI_PASSWORD must be set before starting the web server.");
   }
 
   const bootId = randomBytes(8).toString("hex");
-  const spaHandler = createSpaHandler(renderShell, bootId);
+  const spaHandler = createSpaHandler(renderShell, bootId, config.noAuth ?? false);
   const { routes, checkSession } = buildRoutes({
     ...config,
     secure: config.secure ?? false,
@@ -66,11 +66,13 @@ export function createWebServer(config: WebServerConfig): Server {
       return;
     }
 
-    const cookies = parseCookies(req.headers.cookie);
-    const token = cookies.ghostpaw_session;
-    if (!token || !verifySessionToken(token, config.passwordHash)) {
-      socket.end("HTTP/1.1 401 Unauthorized\r\n\r\n");
-      return;
+    if (!config.noAuth) {
+      const cookies = parseCookies(req.headers.cookie);
+      const token = cookies.ghostpaw_session;
+      if (!token || !verifySessionToken(token, config.passwordHash)) {
+        socket.end("HTTP/1.1 401 Unauthorized\r\n\r\n");
+        return;
+      }
     }
 
     if (!config.entity) {
