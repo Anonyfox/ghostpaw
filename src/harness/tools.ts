@@ -18,7 +18,7 @@ import {
 } from "../tools/config/index.ts";
 import { createCostCheckTool, createCostSummaryTool } from "../tools/cost/index.ts";
 import { createDatetimeTool } from "../tools/datetime.ts";
-import { createDelegateTool } from "../tools/delegate.ts";
+import { createSpecialistDelegateTool } from "../tools/delegate.ts";
 import { createEditTool } from "../tools/edit.ts";
 import { createGrepTool } from "../tools/grep.ts";
 import {
@@ -166,10 +166,6 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
   const historianOndemand = createHistorianOndemandTools(db);
   const stokeOnly = createStokeTools(db);
 
-  const specialists = listSouls(db)
-    .filter((s) => s.id !== MANDATORY_SOUL_IDS.ghostpaw)
-    .map((s) => s.name);
-
   const delegateHandler = createDelegateHandler({
     db,
     workspace,
@@ -184,12 +180,31 @@ export function createEntityToolSets(config: EntityToolsConfig): EntityToolSets 
     onBackgroundComplete: config.onBackgroundComplete,
   });
 
-  const delegateTool = createDelegateTool(delegateHandler, specialists);
+  const STATE_SUFFIX: Partial<Record<number, string>> = {
+    [MANDATORY_SOUL_IDS.warden]:
+      "All agent state (memory, pack, quests, storylines) is only accessible through this tool.",
+    [MANDATORY_SOUL_IDS.chamberlain]:
+      "System config, secrets, and scheduling are only accessible through this tool.",
+  };
+
+  const specialistTools = listSouls(db)
+    .filter((s) => s.id !== MANDATORY_SOUL_IDS.ghostpaw)
+    .map((s) => {
+      const slug = s.name.toLowerCase().replace(/\s+/g, "_");
+      return createSpecialistDelegateTool(
+        `ask_${slug}`,
+        s.name,
+        s.description,
+        delegateHandler,
+        STATE_SUFFIX[s.id],
+      );
+    });
+
   const checkRunTool = createCheckRunTool(db);
 
-  const baseTools = [...sharedTools, howlTool, delegateTool, checkRunTool];
-  const allToolsWithMentor = [...sharedTools, ...mentorOnly, delegateTool, checkRunTool];
-  const allToolsWithTrainer = [...sharedTools, ...trainerOnly, delegateTool, checkRunTool];
+  const baseTools = [...specialistTools, checkRunTool, ...sharedTools, howlTool];
+  const allToolsWithMentor = [...sharedTools, ...mentorOnly];
+  const allToolsWithTrainer = [...sharedTools, ...trainerOnly];
   const allToolsWithHistorian = [...sharedTools, ...historianOndemand];
 
   return {

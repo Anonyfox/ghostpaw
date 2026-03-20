@@ -47,9 +47,9 @@ export async function validateStep(
       "Evaluate the coordinator's work against the quest objectives:",
       "- Use quest_subgoals to mark completed subgoals as done, add new ones, or remove irrelevant ones.",
       "- If ALL objectives are met, call quest_done to complete the quest.",
-      "- If the quest is blocked or impossible, call quest_update to set status to blocked/failed with a reason.",
       "- If progress was made but more work needed, describe what should happen next.",
-      "- Do NOT change status unless you are certain the quest is complete, blocked, or failed.",
+      "- NEVER set a quest to blocked or failed. Only the user or the embark loop can block a quest.",
+      "  Incomplete subgoals are normal — the embark runs multiple turns. Just give feedback.",
     ].join("\n");
 
     const result = await executeTurn(

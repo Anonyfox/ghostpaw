@@ -1,7 +1,7 @@
 import { deepStrictEqual, ok, strictEqual } from "node:assert";
 import { describe, it } from "node:test";
 import type { DelegateArgs, DelegateHandler } from "./delegate.ts";
-import { createDelegateTool } from "./delegate.ts";
+import { createDelegateTool, createSpecialistDelegateTool } from "./delegate.ts";
 
 function mockHandler(response: string | Record<string, unknown>): DelegateHandler {
   return async () => response;
@@ -70,5 +70,105 @@ describe("createDelegateTool", () => {
     const input = { args: { task: "   " } } as Parameters<typeof tool.execute>[0];
     const result = (await tool.execute(input)) as { error: string };
     strictEqual(result.error, "Task cannot be empty.");
+  });
+});
+
+describe("createSpecialistDelegateTool", () => {
+  it("uses the provided tool name", () => {
+    const tool = createSpecialistDelegateTool(
+      "ask_warden",
+      "Warden",
+      "Memory keeper.",
+      mockHandler("ok"),
+    );
+    strictEqual(tool.name, "ask_warden");
+  });
+
+  it("includes soul name and description in tool description", () => {
+    const tool = createSpecialistDelegateTool(
+      "ask_warden",
+      "Warden",
+      "Memory keeper.",
+      mockHandler("ok"),
+    );
+    ok(tool.description.includes("Delegate to Warden"));
+    ok(tool.description.includes("Memory keeper."));
+  });
+
+  it("appends description suffix when provided", () => {
+    const tool = createSpecialistDelegateTool(
+      "ask_warden",
+      "Warden",
+      "Memory keeper.",
+      mockHandler("ok"),
+      "All agent state is only accessible through this tool.",
+    );
+    ok(tool.description.includes("All agent state is only accessible through this tool."));
+  });
+
+  it("omits suffix when not provided", () => {
+    const tool = createSpecialistDelegateTool(
+      "ask_mentor",
+      "Mentor",
+      "Soul dev.",
+      mockHandler("ok"),
+    );
+    ok(!tool.description.includes("All agent state"));
+  });
+
+  it("bakes in specialist name when calling handler", async () => {
+    let received: DelegateArgs | null = null;
+    const handler: DelegateHandler = async (args) => {
+      received = args;
+      return "done";
+    };
+    const tool = createSpecialistDelegateTool("ask_warden", "Warden", "Memory keeper.", handler);
+    const input = { args: { task: "recall my name" } } as Parameters<typeof tool.execute>[0];
+    await tool.execute(input);
+    ok(received);
+    strictEqual((received as DelegateArgs).specialist, "Warden");
+    strictEqual((received as DelegateArgs).task, "recall my name");
+  });
+
+  it("passes optional model, timeout, background to handler", async () => {
+    let received: DelegateArgs | null = null;
+    const handler: DelegateHandler = async (args) => {
+      received = args;
+      return "done";
+    };
+    const tool = createSpecialistDelegateTool("ask_warden", "Warden", "Memory keeper.", handler);
+    const input = {
+      args: { task: "check", model: "gpt-4o", timeout: 300, background: true },
+    } as Parameters<typeof tool.execute>[0];
+    await tool.execute(input);
+    ok(received);
+    const r = received as DelegateArgs;
+    strictEqual(r.model, "gpt-4o");
+    strictEqual(r.timeout, 300);
+    strictEqual(r.background, true);
+  });
+
+  it("returns error for empty task", async () => {
+    const tool = createSpecialistDelegateTool(
+      "ask_warden",
+      "Warden",
+      "Memory keeper.",
+      mockHandler("ok"),
+    );
+    const input = { args: { task: "   " } } as Parameters<typeof tool.execute>[0];
+    const result = (await tool.execute(input)) as { error: string };
+    strictEqual(result.error, "Task cannot be empty.");
+  });
+
+  it("returns handler result unchanged", async () => {
+    const tool = createSpecialistDelegateTool(
+      "ask_mentor",
+      "Mentor",
+      "Soul dev.",
+      mockHandler("trait proposed"),
+    );
+    const input = { args: { task: "propose trait" } } as Parameters<typeof tool.execute>[0];
+    const result = await tool.execute(input);
+    strictEqual(result, "trait proposed");
   });
 });

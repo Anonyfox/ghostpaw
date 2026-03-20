@@ -31,11 +31,16 @@ afterEach(() => {
 });
 
 const EXPECTED_BASE_TOOLS = [
+  "ask_chamberlain",
+  "ask_historian",
+  "ask_js_engineer",
+  "ask_mentor",
+  "ask_trainer",
+  "ask_warden",
   "bash",
   "calc",
   "check_run",
   "datetime",
-  "delegate",
   "edit",
   "grep",
   "howl",
@@ -190,6 +195,10 @@ describe("createEntityToolSets", () => {
       ok(allNames.has(shared), `${shared} should be in allToolsWithMentor`);
     }
     ok(!allNames.has("howl"), "howl should not be in allToolsWithMentor (coordinator-only)");
+    ok(!allNames.has("check_run"), "check_run should not be in allToolsWithMentor");
+    for (const name of allNames) {
+      ok(!name.startsWith("ask_"), `${name} should not be in allToolsWithMentor`);
+    }
   });
 
   it("mentorTools has exactly 7 tools", () => {
@@ -235,6 +244,10 @@ describe("createEntityToolSets", () => {
       ok(allNames.has(shared), `${shared} should be in allToolsWithTrainer`);
     }
     ok(!allNames.has("howl"), "howl should not be in allToolsWithTrainer (coordinator-only)");
+    ok(!allNames.has("check_run"), "check_run should not be in allToolsWithTrainer");
+    for (const name of allNames) {
+      ok(!name.startsWith("ask_"), `${name} should not be in allToolsWithTrainer`);
+    }
   });
 
   it("trainerTools has exactly 8 tools", () => {
@@ -284,10 +297,12 @@ describe("createEntityToolSets", () => {
       "web_fetch",
       "web_search",
       "mcp",
-      "delegate",
       "check_run",
     ]) {
       ok(!names.has(excluded), `${excluded} should not be in wardenTools`);
+    }
+    for (const name of names) {
+      ok(!name.startsWith("ask_"), `${name} should not be in wardenTools`);
     }
   });
 
@@ -366,10 +381,12 @@ describe("createEntityToolSets", () => {
       "web_fetch",
       "web_search",
       "mcp",
-      "delegate",
       "check_run",
     ]) {
       ok(!names.has(excluded), `${excluded} should not be in chamberlainTools`);
+    }
+    for (const name of names) {
+      ok(!name.startsWith("ask_"), `${name} should not be in chamberlainTools`);
     }
   });
 });
