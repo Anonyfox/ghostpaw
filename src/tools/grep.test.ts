@@ -88,12 +88,18 @@ describe("Grep tool", () => {
   });
 
   it("allows paths outside workspace (searches real location)", async () => {
-    const result = (await exec({ pattern: "nonexistent_xyzzy_pattern", path: "/tmp" })) as {
-      matches: unknown[];
-      totalMatches: number;
-    };
-    ok(result.matches !== undefined, "should search, not return access-denied");
-    strictEqual(result.totalMatches, 0);
+    const externalDir = mkdtempSync(join(tmpdir(), "ghostpaw-grep-ext-"));
+    try {
+      writeFileSync(join(externalDir, "probe.txt"), "xyzzy_external_marker\n");
+      const result = (await exec({ pattern: "xyzzy_external_marker", path: externalDir })) as {
+        matches: GrepMatch[];
+        totalMatches: number;
+      };
+      ok(result.matches !== undefined, "should search, not return access-denied");
+      ok(result.matches.length > 0, "should find match in external directory");
+    } finally {
+      rmSync(externalDir, { recursive: true, force: true });
+    }
   });
 
   it("caps maxResults at 100", async () => {
