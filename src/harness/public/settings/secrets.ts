@@ -12,14 +12,6 @@ export interface SecretSetResult {
 
 export function setManagedSecret(db: DatabaseHandle, key: string, value: string): SecretSetResult {
   const canonical = canonicalKeyName(key);
-  if (isProtectedKey(canonical)) {
-    return {
-      success: false,
-      canonical,
-      aliased: canonical !== key,
-      error: "Cannot modify internal keys.",
-    };
-  }
 
   const result = setSecret(db, key, value);
   if (!result.value) {
@@ -44,15 +36,8 @@ export function deleteManagedSecret(
   key: string,
 ): { canonical: string; existed: boolean } {
   const canonical = canonicalKeyName(key);
-  if (isProtectedKey(canonical)) {
-    throw new Error("Cannot modify internal keys.");
-  }
 
   const existed = listStoredSecretKeys(db).includes(canonical);
   deleteSecret(db, canonical);
   return { canonical, existed };
-}
-
-function isProtectedKey(key: string): boolean {
-  return key.toUpperCase().startsWith("WEB_UI_");
 }

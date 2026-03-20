@@ -236,6 +236,22 @@ install_fnm_then_node() {
     error "Node.js >= ${REQUIRED_NODE} is required."
   fi
 
+  # fnm ships as a zip — ensure unzip is available
+  if ! has_cmd unzip; then
+    if has_cmd apt-get; then
+      info "Installing unzip (required by fnm)..."
+      sudo apt-get update -qq && sudo apt-get install -y -qq unzip > /dev/null 2>&1
+    elif has_cmd dnf; then
+      sudo dnf install -y -q unzip > /dev/null 2>&1
+    elif has_cmd apk; then
+      sudo apk add --quiet unzip > /dev/null 2>&1
+    fi
+    if ! has_cmd unzip; then
+      error "fnm requires 'unzip' but it could not be installed automatically.
+  Install it manually (e.g. apt install unzip) and retry."
+    fi
+  fi
+
   info "Downloading fnm..."
 
   # Download fnm installer — run directly, don't pipe through while (preserves exit code)
@@ -475,6 +491,47 @@ check_path() {
   esac
 }
 
+# On Linux, ensure critical dirs are in /etc/environment so non-interactive
+# shells (systemd, SSH remote commands, cron) can find node and ghostpaw.
+ensure_system_path() {
+  [ "$OS_TYPE" = "linux" ] || [ "$OS_TYPE" = "wsl" ] || return 0
+  [ -f /etc/environment ] || return 0
+
+  NODE_BIN_DIR=$(dirname "$(command -v node 2>/dev/null)")
+  DIRS_TO_ADD=""
+
+  for dir in "$NODE_BIN_DIR" "$INSTALL_DIR"; do
+    [ -n "$dir" ] || continue
+    [ -d "$dir" ] || continue
+    CURRENT=$(grep '^PATH=' /etc/environment 2>/dev/null | sed 's/^PATH="//' | sed 's/"$//' || true)
+    case ":${CURRENT}:" in
+      *":${dir}:"*) ;;
+      *) DIRS_TO_ADD="${DIRS_TO_ADD}:${dir}" ;;
+    esac
+  done
+
+  [ -n "$DIRS_TO_ADD" ] || return 0
+
+  if [ -w /etc/environment ] || has_cmd sudo; then
+    if grep -q '^PATH=' /etc/environment 2>/dev/null; then
+      OLD_PATH=$(grep '^PATH=' /etc/environment | sed 's/^PATH="//' | sed 's/"$//')
+      NEW_PATH="${OLD_PATH}${DIRS_TO_ADD}"
+    else
+      OLD_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      NEW_PATH="${OLD_PATH}${DIRS_TO_ADD}"
+    fi
+    if [ -w /etc/environment ]; then
+      sed -i "s|^PATH=.*|PATH=\"${NEW_PATH}\"|" /etc/environment 2>/dev/null \
+        || echo "PATH=\"${NEW_PATH}\"" >> /etc/environment
+    else
+      sudo sed -i "s|^PATH=.*|PATH=\"${NEW_PATH}\"|" /etc/environment 2>/dev/null \
+        || echo "PATH=\"${NEW_PATH}\"" | sudo tee -a /etc/environment > /dev/null
+    fi
+    export PATH="${NEW_PATH}"
+    ok "Updated /etc/environment (node + ghostpaw in system PATH)"
+  fi
+}
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 main() {
@@ -510,6 +567,9 @@ main() {
       error "Node.js >= ${REQUIRED_NODE} is required."
     fi
   fi
+
+  # On Linux, make node + install dir visible to all shells (systemd, cron, SSH)
+  ensure_system_path
 
   # ── Step 3: Download ghostpaw ──
   step 3 "Installing ghostpaw"

@@ -10,6 +10,14 @@ import {
 import { sendCommand } from "../../lib/supervisor.ts";
 import { log, style } from "../../lib/terminal/index.ts";
 
+function ensureXdgRuntime(): void {
+  if (process.env.XDG_RUNTIME_DIR || process.platform !== "linux") return;
+  const uid = process.getuid?.();
+  if (uid != null) {
+    process.env.XDG_RUNTIME_DIR = `/run/user/${uid}`;
+  }
+}
+
 function detectNpx(): boolean {
   const script = process.argv[1] ?? "";
   return script.includes("_npx") || script.includes("node_modules/.cache");
@@ -18,6 +26,7 @@ function detectNpx(): boolean {
 const install = defineCommand({
   meta: { name: "install", description: "Install ghostpaw as a system service" },
   async run() {
+    ensureXdgRuntime();
     if (detectNpx()) {
       log.error("cannot register a service from npx — the binary path is temporary");
       console.log("");
@@ -52,6 +61,7 @@ const install = defineCommand({
 const uninstall = defineCommand({
   meta: { name: "uninstall", description: "Remove ghostpaw system service" },
   async run() {
+    ensureXdgRuntime();
     const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
     const result = uninstallService(workspace);
     if (result.success) {
@@ -104,6 +114,7 @@ const stop = defineCommand({
 const status = defineCommand({
   meta: { name: "status", description: "Check ghostpaw service status" },
   async run() {
+    ensureXdgRuntime();
     const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
 
     try {
@@ -129,6 +140,7 @@ const status = defineCommand({
 const logs = defineCommand({
   meta: { name: "logs", description: "Tail ghostpaw service logs" },
   async run() {
+    ensureXdgRuntime();
     const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
     serviceLogs(workspace);
   },

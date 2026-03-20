@@ -217,19 +217,11 @@ describe("secrets API", () => {
       strictEqual(res.status, 400);
     });
 
-    it("rejects WEB_UI_ prefixed keys", async () => {
+    it("allows WEB_UI_ prefixed keys from web API", async () => {
       const res = mockRes();
-      await handlers.set(ctx(mockReq({ key: "WEB_UI_PASSWORD_HASH", value: "malicious" }), res));
+      await handlers.set(ctx(mockReq({ key: "WEB_UI_PASSWORD", value: "new-pass" }), res));
 
-      strictEqual(res.status, 403);
-      ok(JSON.parse(res.body).error.includes("internal"));
-    });
-
-    it("rejects WEB_UI_ prefixed keys case-insensitively", async () => {
-      const res = mockRes();
-      await handlers.set(ctx(mockReq({ key: "web_ui_secret", value: "test" }), res));
-
-      strictEqual(res.status, 403);
+      strictEqual(res.status, 200);
     });
 
     it("updates an existing secret", async () => {
@@ -278,7 +270,7 @@ describe("secrets API", () => {
       strictEqual(process.env.BRAVE_API_KEY, undefined);
     });
 
-    it("rejects WEB_UI_ prefixed keys", () => {
+    it("allows removing WEB_UI_ prefixed keys from web API", () => {
       db.prepare("INSERT INTO secrets (key, value, updated_at) VALUES (?, ?, ?)").run(
         "WEB_UI_PASSWORD_HASH",
         "real-hash",
@@ -288,11 +280,7 @@ describe("secrets API", () => {
       const res = mockRes();
       handlers.remove(ctx(mockReq(), res, { key: "WEB_UI_PASSWORD_HASH" }));
 
-      strictEqual(res.status, 403);
-      ok(JSON.parse(res.body).error.includes("internal"));
-
-      const row = db.prepare("SELECT * FROM secrets WHERE key = ?").get("WEB_UI_PASSWORD_HASH");
-      ok(row, "WEB_UI_ key was NOT deleted");
+      strictEqual(res.status, 200);
     });
   });
 });

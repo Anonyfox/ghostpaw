@@ -5,6 +5,7 @@ import type { DatabaseHandle } from "../lib/index.ts";
 
 export interface AssembleContextOptions {
   soulId?: number;
+  channel?: string;
 }
 
 export function assembleContext(
@@ -25,7 +26,9 @@ export function assembleContext(
     effectiveSoulId === MANDATORY_SOUL_IDS.warden ||
     effectiveSoulId === MANDATORY_SOUL_IDS.chamberlain
   ) {
-    return [soul, formatEnvironment(), formatToolGuidance(effectiveSoulId)].join("\n\n");
+    return [soul, formatEnvironment(opts.channel), formatToolGuidance(effectiveSoulId)].join(
+      "\n\n",
+    );
   }
 
   const sections: string[] = [];
@@ -36,7 +39,7 @@ export function assembleContext(
     /* fail-open: trail tables may not exist yet */
   }
   sections.push(soul);
-  sections.push(formatEnvironment());
+  sections.push(formatEnvironment(opts.channel));
 
   const skillEntries = buildSkillIndex(workspace);
   if (skillEntries.length > 0) {
@@ -47,7 +50,7 @@ export function assembleContext(
   return sections.join("\n\n");
 }
 
-function formatEnvironment(): string {
+function formatEnvironment(channel?: string): string {
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-US", {
     weekday: "long",
@@ -55,7 +58,9 @@ function formatEnvironment(): string {
     month: "long",
     day: "numeric",
   });
-  return `## Environment\n\nCurrent date: ${dateStr}`;
+  const lines = [`## Environment`, "", `Current date: ${dateStr}`];
+  if (channel) lines.push(`Channel: ${channel}`);
+  return lines.join("\n");
 }
 
 function formatToolGuidance(soulId: number): string {
@@ -102,6 +107,7 @@ function formatToolGuidance(soulId: number): string {
       "- quest_subgoals manages dynamic execution checkpoints during autonomous embark (list, add, done, remove, reorder).",
       "- storyline_create and storyline_list manage quest groupings with ordered positions.",
       "- Storyline deadlines propagate to child quests. Position ordering determines execution sequence.",
+      "- When 2+ quests share a theme or goal, proactively group them into a storyline.",
       "",
       "You cannot delegate or access the filesystem.",
     ].join("\n");
@@ -131,6 +137,7 @@ function formatToolGuidance(soulId: number): string {
     "For soul development, delegate to the Mentor.",
     "For skill development, delegate to the Trainer.",
     "For trail analysis and chronicle work, delegate to the Historian.",
+    "For recurring tasks, delegate scheduling to the Chamberlain — never use OS cron or crontab.",
     "Check your skill index before multi-step tasks — earned procedures prevent repeated mistakes.",
   ];
 

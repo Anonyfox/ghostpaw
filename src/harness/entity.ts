@@ -1,8 +1,10 @@
 import { getHistory } from "../core/chat/api/read/index.ts";
 import { executeTurn, streamTurn, type TurnResult } from "../core/chat/api/write/index.ts";
+import { getSession } from "../core/chat/get_session.ts";
 import { getConfig } from "../core/config/api/read/index.ts";
 import { MANDATORY_SOUL_IDS } from "../core/souls/api/read/index.ts";
 import { getSessionBriefing } from "../core/trail/api/read/index.ts";
+import type { DatabaseHandle } from "../lib/index.ts";
 import { defaultChatFactory } from "./chat_factory.ts";
 import { checkSpendLimit } from "./check_spend_limit.ts";
 import { assembleContext } from "./context.ts";
@@ -39,8 +41,9 @@ export function createEntity(options: EntityOptions): Entity {
 
   function buildTurnArgs(sessionId: number, content: string, opts?: EntityTurnOptions) {
     const model = resolveModel(db, opts?.model);
+    const channel = detectChannel(db, sessionId);
     const systemPrompt =
-      opts?.systemPrompt ?? assembleContext(db, workspace, { soulId: opts?.soulId });
+      opts?.systemPrompt ?? assembleContext(db, workspace, { soulId: opts?.soulId, channel });
     const isWarden = opts?.soulId === MANDATORY_SOUL_IDS.warden;
     const isChamberlain = opts?.soulId === MANDATORY_SOUL_IDS.chamberlain;
     const isMentor = opts?.soulId === MANDATORY_SOUL_IDS.mentor;
@@ -140,4 +143,13 @@ export function createEntity(options: EntityOptions): Entity {
       await toolSets.shutdown();
     },
   };
+}
+
+function detectChannel(db: DatabaseHandle, sessionId: number): string | undefined {
+  const session = getSession(db, sessionId);
+  if (!session) return undefined;
+  const prefix = session.key.split(":")[0];
+  if (prefix === "telegram") return "telegram";
+  if (prefix === "web") return "web";
+  return prefix === "cli" || !prefix ? "cli" : prefix;
 }

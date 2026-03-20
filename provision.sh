@@ -246,6 +246,12 @@ set -euo pipefail
 curl -fsSL "${INSTALL_URL}" | sh
 export PATH="\$HOME/.local/bin:\$PATH"
 
+# Source /etc/environment for node PATH (install.sh updates it on Linux)
+[ -f /etc/environment ] && . /etc/environment && export PATH
+
+# Ensure systemd --user works in non-interactive SSH
+export XDG_RUNTIME_DIR="\${XDG_RUNTIME_DIR:-/run/user/\$(id -u)}"
+
 # Store secrets
 $(printf '%b' "$SECRET_CMDS")
 
@@ -258,7 +264,7 @@ ok "ghostpaw installed and secrets stored"
 
 info "Verifying service..."
 
-VERIFY_OUTPUT=$(ssh "$HOST" "systemctl --user is-active ghostpaw.service 2>/dev/null || echo 'inactive'")
+VERIFY_OUTPUT=$(ssh "$HOST" "XDG_RUNTIME_DIR=\${XDG_RUNTIME_DIR:-/run/user/\$(id -u)} systemctl --user is-active ghostpaw.service 2>/dev/null || echo 'inactive'")
 
 if [ "$VERIFY_OUTPUT" = "active" ]; then
   ok "ghostpaw is running"

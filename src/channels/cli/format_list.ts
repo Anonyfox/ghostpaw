@@ -9,6 +9,7 @@ export function formatSecretsList(db: DatabaseHandle): string[] {
   const categories = [
     { title: "LLM", keys: status.filter((key) => key.category === "llm") },
     { title: "Search", keys: status.filter((key) => key.category === "search") },
+    { title: "Channels", keys: status.filter((key) => key.category === "telegram") },
   ];
 
   lines.push("");

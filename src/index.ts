@@ -286,10 +286,13 @@ const main = defineCommand({
     }
 
     log.info("shutting down");
+    const forceExit = setTimeout(() => process.exit(1), 8_000);
+    forceExit.unref();
     await scheduler.stop();
     if (telegramChannel) await telegramChannel.stop();
     if (httpServer) httpServer.close();
     await entity.flush();
+    clearTimeout(forceExit);
   },
   subCommands,
 });

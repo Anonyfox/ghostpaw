@@ -66,6 +66,7 @@ describe("startScheduler", () => {
 
   it("does not spawn disabled schedules", async () => {
     ensureDefaultSchedules(db);
+    db.prepare("UPDATE schedules SET enabled = 0 WHERE name = 'haunt'").run();
     db.prepare("UPDATE schedules SET next_run_at = 0").run();
 
     scheduler = startScheduler(db, ".");

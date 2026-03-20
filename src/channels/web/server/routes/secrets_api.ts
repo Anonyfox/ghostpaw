@@ -15,10 +15,6 @@ interface SecretInfo {
   isActiveSearch: boolean;
 }
 
-function isProtectedKey(key: string): boolean {
-  return key.toUpperCase().startsWith("WEB_UI_");
-}
-
 function json(ctx: RouteContext, status: number, data: unknown): void {
   ctx.res.writeHead(status, { "Content-Type": "application/json" });
   ctx.res.end(JSON.stringify(data));
@@ -55,11 +51,6 @@ export function createSecretsApiHandlers(db: DatabaseHandle) {
         return;
       }
 
-      if (isProtectedKey(key)) {
-        json(ctx, 403, { error: "Cannot modify internal keys." });
-        return;
-      }
-
       const result = setManagedSecret(db, key, value);
       if (!result.success) {
         json(ctx, 400, { error: result.error ?? "Value was empty after cleaning." });
@@ -71,10 +62,6 @@ export function createSecretsApiHandlers(db: DatabaseHandle) {
 
     remove(ctx: RouteContext): void {
       const key = ctx.params.key ?? "";
-      if (isProtectedKey(key)) {
-        json(ctx, 403, { error: "Cannot modify internal keys." });
-        return;
-      }
       deleteManagedSecret(db, key);
       json(ctx, 200, { ok: true });
     },
