@@ -1,6 +1,5 @@
-import { getHistory } from "../core/chat/api/read/index.ts";
+import { getHistory, getSession } from "../core/chat/api/read/index.ts";
 import { executeTurn, streamTurn, type TurnResult } from "../core/chat/api/write/index.ts";
-import { getSession } from "../core/chat/get_session.ts";
 import { getConfig } from "../core/config/api/read/index.ts";
 import { MANDATORY_SOUL_IDS } from "../core/souls/api/read/index.ts";
 import { getSessionBriefing } from "../core/trail/api/read/index.ts";

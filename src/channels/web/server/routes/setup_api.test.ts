@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
+import { setSecret } from "../../../../core/secrets/api/write/index.ts";
 import { initSecretsTable } from "../../../../core/secrets/runtime/index.ts";
-import { setSecret } from "../../../../core/secrets/set_secret.ts";
 import type { DatabaseHandle } from "../../../../lib/index.ts";
 import { openTestDatabase } from "../../../../lib/index.ts";
 import { createSetupApiHandlers } from "./setup_api.ts";

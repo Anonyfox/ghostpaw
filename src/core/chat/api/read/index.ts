@@ -29,6 +29,7 @@ export { getXPByQuest } from "../../get_xp_by_quest.ts";
 export type { ListDistillableOptions } from "../../list_distillable_session_ids.ts";
 export { listDistillableSessionIds } from "../../list_distillable_session_ids.ts";
 export { listSessions } from "../../list_sessions.ts";
+export { listStaleQuestSessionIds } from "../../list_stale_quest_session_ids.ts";
 export { lookupByChannelId, lookupByMessageId } from "../../lookup_channel_message.ts";
 export { openQuestSessionIds } from "../../open_quest_session_ids.ts";
 export type {
