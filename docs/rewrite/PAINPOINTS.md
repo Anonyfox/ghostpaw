@@ -133,6 +133,14 @@ These issues don't fail independently — they compound:
 
 The pain points above share a root cause: the systems were built top-down — designed for the agent ecosystem first, then fitted with tools and delegation after. The fix is to go the other direction. Rebuild each core system bottom-up in three phases, where each phase has a clear quality gate that must pass before the next begins.
 
+### Naming: Faculties
+
+These standalone systems are **faculties** — distinct cognitive systems with their own internal logic, data model, and domain expertise. The term comes from cognitive science: Fodor's modularity of mind describes mental faculties as encapsulated, domain-specific processing systems. That is exactly what these are.
+
+Memory is a faculty. Social awareness (pack) is a faculty. Temporal commitment (quests) is a faculty. Procedural knowledge (skills) is a faculty. Identity evolution (souls) is a faculty. Each is complete in itself, with its own internal richness, designed to work independently.
+
+The term avoids collision with every existing ghostpaw concept (skills, souls, traits, channels, tools) and fits the body metaphor already in the codebase ("the body ghostpaw thinks with"). Faculties are what a mind is made of.
+
 ### Phase 1: The Standalone System
 
 Rewrite the core module from scratch as a **perfectly engineered standalone system**. Not a ghostpaw subsystem — a standalone system that happens to use SQLite. The kind of thing you could hand to another developer and say "build an app on top of this."
