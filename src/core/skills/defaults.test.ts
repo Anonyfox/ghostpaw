@@ -5,11 +5,12 @@ import { DEFAULT_SKILLS } from "./defaults.ts";
 const VALID_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 describe("DEFAULT_SKILLS", () => {
-  it("contains both default skills", () => {
+  it("contains all default skills", () => {
     const names = Object.keys(DEFAULT_SKILLS);
     strictEqual(names.includes("effective-writing"), true);
+    strictEqual(names.includes("reverse-proxy"), true);
     strictEqual(names.includes("skill-mcp"), true);
-    strictEqual(names.length, 2);
+    strictEqual(names.length, 3);
   });
 
   for (const [name, skill] of Object.entries(DEFAULT_SKILLS)) {

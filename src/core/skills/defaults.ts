@@ -50,6 +50,130 @@ Three questions are enough: **Who are you? How do you think? What do you value?*
 Read your own text and notice: does it shift your attention, or does it just add to your knowledge? If it doesn't shift you, it won't shift them. Inhabiting looks like changed behavior. Acknowledging looks like compliance that fades.`,
   },
 
+  "reverse-proxy": {
+    description:
+      "Expose local services publicly with automatic HTTPS — domain routing, " +
+      "TLS certificates, and Caddy reverse proxy management. Read when making a " +
+      "service reachable from the internet, adding a domain, or managing public " +
+      "web infrastructure on a VPS.",
+    body: `# Reverse Proxy
+
+Expose local services to the public internet with automatic HTTPS. This is a gateway skill — it publishes what already runs. The services themselves are someone else's concern.
+
+## When This Applies
+
+A service runs on localhost and needs to be reachable from the internet. A domain needs routing to a backend. An HTTPS certificate needs provisioning. A VPS needs to serve multiple domains from one IP. If any of these are true, this skill applies.
+
+This does not apply to building websites, creating content, or writing application code.
+
+## Caddy
+
+The tool is Caddy — a single binary that handles reverse proxying, automatic TLS via Let's Encrypt, and static file serving. One Caddyfile manages unlimited domains, each with its own certificate, provisioned and renewed without intervention.
+
+### Install
+
+**Debian/Ubuntu:**
+
+\`\`\`bash
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install caddy
+\`\`\`
+
+**macOS:**
+
+\`\`\`bash
+brew install caddy
+\`\`\`
+
+Caddy runs as a systemd service on Linux. Config lives at \`/etc/caddy/Caddyfile\`. On macOS, run directly or as a brew service.
+
+### The Caddyfile
+
+Every domain is a block. Each block declares what happens to requests for that domain.
+
+**Reverse proxy** — expose a localhost service:
+
+\`\`\`
+app.example.com {
+    reverse_proxy localhost:3000
+}
+\`\`\`
+
+**Static files** — serve a directory:
+
+\`\`\`
+docs.example.com {
+    root * /var/www/docs
+    file_server
+}
+\`\`\`
+
+**Multiple domains** — one file, independent certs:
+
+\`\`\`
+app.example.com {
+    reverse_proxy localhost:3000
+}
+
+api.example.com {
+    reverse_proxy localhost:8080
+}
+
+docs.example.com {
+    root * /var/www/docs
+    file_server
+}
+\`\`\`
+
+HTTPS happens automatically. Caddy provisions Let's Encrypt certificates on first request, renews them before expiry, and redirects HTTP to HTTPS. No configuration needed.
+
+### Adding a Domain
+
+1. Point the domain's A record to the VPS IP
+2. Open ports 80 and 443: \`sudo ufw allow 80,443/tcp\`
+3. Verify DNS resolves: \`dig +short example.com\` — should return VPS IP
+4. Add a block to \`/etc/caddy/Caddyfile\`
+5. Validate: \`caddy validate --config /etc/caddy/Caddyfile\`
+6. Reload: \`sudo systemctl reload caddy\`
+7. Verify: \`curl -I https://example.com\` — 200 with valid TLS
+
+### Removing a Domain
+
+Delete the block from the Caddyfile, validate, reload. Caddy stops renewing the certificate automatically.
+
+### Operations
+
+\`\`\`bash
+sudo systemctl reload caddy                    # apply config (zero downtime)
+sudo systemctl status caddy                     # check running state
+journalctl -u caddy -n 50                       # recent logs
+caddy validate --config /etc/caddy/Caddyfile    # syntax check before reload
+\`\`\`
+
+### Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---------|-------------|-----|
+| Certificate fails to provision | DNS not pointing to VPS, or ports 80/443 blocked | \`dig +short domain\` and check firewall |
+| 502 Bad Gateway | Backend not running on proxied port | Start the service |
+| Connection refused | Caddy not running | \`sudo systemctl start caddy\` |
+| Config error on reload | Caddyfile syntax | \`caddy validate\` reports the line |
+
+### Ghostpaw
+
+Ghostpaw's web UI binds to \`127.0.0.1:3000\` by default. The Caddyfile entry:
+
+\`\`\`
+ghostpaw.example.com {
+    reverse_proxy localhost:3000
+}
+\`\`\`
+
+Caddy sends \`X-Forwarded-For\` and \`X-Forwarded-Proto\` headers automatically. Ghostpaw reads these for secure cookie handling behind the proxy.`,
+  },
+
   "skill-mcp": {
     description:
       "How to discover, use, and build skills around external MCP (Model Context Protocol) servers.",
