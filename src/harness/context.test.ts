@@ -109,7 +109,7 @@ describe("assembleContext", () => {
   it("includes tool guidance section", () => {
     const result = assembleContext(db, workspace);
     ok(result.includes("## Tools"));
-    ok(result.includes("delegate to the Warden"));
+    ok(result.includes("Always delegate:"));
   });
 
   it("sections are separated by double newlines", () => {
@@ -185,12 +185,12 @@ describe("assembleContext", () => {
 
   it("coordinator context mentions delegation to Warden", () => {
     const result = assembleContext(db, workspace);
-    ok(result.includes("delegate to the Warden"));
+    ok(result.includes("- Warden:"));
   });
 
   it("coordinator context mentions delegation to Chamberlain", () => {
     const result = assembleContext(db, workspace);
-    ok(result.includes("delegate to the Chamberlain"));
+    ok(result.includes("- Chamberlain:"));
   });
 
   it("chamberlain context includes soul, environment, and tool guidance", () => {

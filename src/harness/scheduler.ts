@@ -10,7 +10,7 @@ import {
 import type { DatabaseHandle } from "../lib/index.ts";
 import { log } from "../lib/terminal/index.ts";
 
-const TICK_MS = 30_000;
+const DEFAULT_TICK_MS = 30_000;
 const MAX_STDERR_BYTES = 1024;
 
 export interface SchedulerHandle {
@@ -18,7 +18,16 @@ export interface SchedulerHandle {
   readonly children: ReadonlyMap<number, ChildProcess>;
 }
 
-export function startScheduler(db: DatabaseHandle, workspace: string): SchedulerHandle {
+export interface SchedulerOptions {
+  tickMs?: number;
+}
+
+export function startScheduler(
+  db: DatabaseHandle,
+  workspace: string,
+  opts?: SchedulerOptions,
+): SchedulerHandle {
+  const tickMs = opts?.tickMs ?? DEFAULT_TICK_MS;
   const children = new Map<number, ChildProcess>();
   let timer: ReturnType<typeof setTimeout> | null = null;
   let stopped = false;
@@ -45,11 +54,11 @@ export function startScheduler(db: DatabaseHandle, workspace: string): Scheduler
     }
 
     if (!stopped) {
-      timer = setTimeout(tick, TICK_MS);
+      timer = setTimeout(tick, tickMs);
     }
   }
 
-  const jitter = Math.floor(Math.random() * TICK_MS);
+  const jitter = Math.floor(Math.random() * tickMs);
   timer = setTimeout(tick, jitter);
 
   return {
