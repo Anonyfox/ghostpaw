@@ -10,9 +10,28 @@ import {
 import { sendCommand } from "../../lib/supervisor.ts";
 import { log, style } from "../../lib/terminal/index.ts";
 
+function detectNpx(): boolean {
+  const script = process.argv[1] ?? "";
+  return script.includes("_npx") || script.includes("node_modules/.cache");
+}
+
 const install = defineCommand({
   meta: { name: "install", description: "Install ghostpaw as a system service" },
   async run() {
+    if (detectNpx()) {
+      log.error("cannot register a service from npx — the binary path is temporary");
+      console.log("");
+      console.log("  Install permanently first:");
+      console.log(`    ${style.cyan("npm install -g ghostpaw")}`);
+      console.log("    # or");
+      console.log(
+        `    ${style.cyan("curl -fsSL https://raw.githubusercontent.com/Anonyfox/ghostpaw/main/install.sh | sh")}`,
+      );
+      console.log("");
+      process.exitCode = 1;
+      return;
+    }
+
     const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
     const config = resolveServiceConfig(workspace);
     log.info(

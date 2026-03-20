@@ -172,8 +172,8 @@ And enables what Ghostpaw should be:
 
 - Starts in <1 second
 - Works anywhere Node 22.5+ runs (laptop, server, Raspberry Pi, CI)
-- State is one file that can be backed up with `cp ghostpaw.db ghostpaw.db.bak`
-- Debugging is `sqlite3 ghostpaw.db "SELECT * FROM logs WHERE level = 'error'"` — not correlating logs across services
+- State is one file that can be backed up with `cp .ghostpaw/ghostpaw.db ghostpaw.db.bak`
+- Debugging is `sqlite3 .ghostpaw/ghostpaw.db "SELECT * FROM logs WHERE level = 'error'"` — not correlating logs across services
 
 ### Don't Go Enterprisey
 
@@ -308,7 +308,7 @@ Dev dependencies (esbuild, typescript, etc.) are build-time only. All runtime de
 
 | Need            | Solution                    | Notes                                                                                             |
 | --------------- | --------------------------- | ------------------------------------------------------------------------------------------------- |
-| Database        | `node:sqlite`               | Sessions, messages, memory, runs, secrets, logs. One file: `ghostpaw.db`.                         |
+| Database        | `node:sqlite`               | Sessions, messages, memory, runs, secrets, logs. One file: `.ghostpaw/ghostpaw.db`.               |
 | HTTP server     | `node:http`                 | Built-in web control plane: password-authenticated UI with real-time chat, training, scouting, memory, sessions. SSE streaming. |
 | LLM calls       | chatoyant (bundled)         | Provider abstraction. Handles auth, streaming, tool calls for Anthropic/OpenAI/xAI/Google.        |
 | HTML extraction | magpie-html (bundled)       | Web page → clean readable text for the web_fetch tool.                                            |
@@ -810,7 +810,8 @@ Created automatically on first run — no separate `init` command needed. Ghostp
 ```
 ~/.ghostpaw/  (or wherever you run ghostpaw from — cwd IS the workspace)
   config.json             # models, cost controls
-  ghostpaw.db             # SQLite: sessions, messages, memory, runs, secrets, logs
+  .ghostpaw/
+    ghostpaw.db           # SQLite: sessions, messages, memory, runs, secrets, logs
   SOUL.md                 # personality/behavior (default provided, user customizes)
   agents/                 # agent profile .md files (for delegation)
   skills/                 # SKILL.md files (OpenClaw-compatible, index in prompt, read on demand)

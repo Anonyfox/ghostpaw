@@ -111,7 +111,7 @@ docker run --rm -it \
   ghcr.io/anonyfox/ghostpaw
 ```
 
-This mounts your current directory as the workspace. Ghostpaw stores its database (`ghostpaw.db`) and skills in the workspace directory.
+This mounts your current directory as the workspace. Ghostpaw stores its database (`.ghostpaw/ghostpaw.db`) and skills in the workspace directory.
 
 **Passing commands:**
 
@@ -185,7 +185,7 @@ There are three ways to provide the key, depending on your setup:
 
 ### Interactive (recommended for first time)
 
-Just run `ghostpaw`. If no key is configured, it detects this automatically and walks you through picking a provider and entering your key. The key is stored locally in `ghostpaw.db`, encrypted at rest, and never sent to the LLM in conversation.
+Just run `ghostpaw`. If no key is configured, it detects this automatically and walks you through picking a provider and entering your key. The key is stored locally in `.ghostpaw/ghostpaw.db`, encrypted at rest, and never sent to the LLM in conversation.
 
 ```bash
 ghostpaw
@@ -293,6 +293,16 @@ ghostpaw config set telegram_allowed_chat_ids "123456789,987654321"
 ```
 
 Find your chat ID by sending a message to your bot and checking `ghostpaw sessions list`.
+
+### VPS Quickstart
+
+To provision a fresh VPS (e.g. a DigitalOcean droplet) with one command from your laptop:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Anonyfox/ghostpaw/main/provision.sh | bash
+```
+
+The script walks you through SSH target, LLM provider, and optional channels (Telegram, web UI). It installs Node.js, ghostpaw, stores your secrets, and registers a system service — all in one pass. Pre-set env vars (`HOST`, `ANTHROPIC_API_KEY`, `TELEGRAM_BOT_TOKEN`, `WEB_UI_PASSWORD`) to skip prompts for automation.
 
 ---
 

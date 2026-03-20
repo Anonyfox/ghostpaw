@@ -30,7 +30,7 @@ Additional docs not tied to a single module:
 
 ## What's Built
 
-The runtime is fully operational. It builds to `dist/ghostpaw.mjs`, opens `ghostpaw.db`, and serves four channels simultaneously.
+The runtime is fully operational. It builds to `dist/ghostpaw.mjs`, opens `.ghostpaw/ghostpaw.db`, and serves four channels simultaneously.
 
 ### Core modules (`src/core/`)
 

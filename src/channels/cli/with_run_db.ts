@@ -22,10 +22,11 @@ import {
 import { initTrailTables } from "../../core/trail/runtime/index.ts";
 import type { DatabaseHandle } from "../../lib/index.ts";
 import { openDatabase } from "../../lib/index.ts";
+import { resolveDbPath } from "../../lib/resolve_db_path.ts";
 
 export async function withRunDb<T>(fn: (db: DatabaseHandle) => T | Promise<T>): Promise<T> {
   const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
-  const db = await openDatabase(resolve(workspace, "ghostpaw.db"));
+  const db = await openDatabase(resolveDbPath(workspace));
   initSecretsTable(db);
   initConfigTable(db);
   initChatTables(db);

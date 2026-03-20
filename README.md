@@ -179,7 +179,8 @@ Five layers: `lib/` (utilities) → `core/` (domain logic) → `tools/` (agent s
 
 ```
 ./                            # workspace directory
-  ghostpaw.db                 # SQLite: sessions, memory, souls, pack, quests, config, secrets
+  .ghostpaw/
+    ghostpaw.db               # SQLite: sessions, memory, souls, pack, quests, config, secrets
   skills/                     # procedural knowledge (markdown, git-versioned)
 ```
 

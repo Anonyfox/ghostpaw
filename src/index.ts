@@ -29,6 +29,7 @@ import {
 } from "./core/souls/runtime/index.ts";
 import { initTrailTables } from "./core/trail/runtime/index.ts";
 import { isEntrypoint, openDatabase, suppressWarnings } from "./lib/index.ts";
+import { resolveDbPath } from "./lib/resolve_db_path.ts";
 import { banner, log } from "./lib/terminal/index.ts";
 import { VERSION } from "./lib/version.ts";
 
@@ -81,7 +82,7 @@ const main = defineCommand({
     banner("ghostpaw", VERSION);
 
     const workspace = resolve(process.env.GHOSTPAW_WORKSPACE ?? ".");
-    const db = await openDatabase(resolve(workspace, "ghostpaw.db"));
+    const db = await openDatabase(resolveDbPath(workspace));
     initSecretsTable(db);
     initConfigTable(db);
     initChatTables(db);

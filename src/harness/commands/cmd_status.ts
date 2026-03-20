@@ -1,5 +1,5 @@
 import { statfsSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { resolveDbPath } from "../../lib/resolve_db_path.ts";
 import { serviceStatus } from "../../lib/service/index.ts";
 import { sendCommand } from "../../lib/supervisor.ts";
 import type { CommandContext, CommandResult } from "./types.ts";
@@ -36,7 +36,7 @@ function gatherDiskInfo(workspace: string): string {
 
 function gatherDbSize(workspace: string): string {
   try {
-    const info = statSync(join(workspace, "ghostpaw.db"));
+    const info = statSync(resolveDbPath(workspace));
     return formatBytes(info.size);
   } catch {
     return "unavailable"; // database file not yet created

@@ -4,7 +4,7 @@ Where things belong and how they relate. This document defines layers, modules, 
 
 ## The Deliverable
 
-One file: `dist/ghostpaw.mjs`. One database at runtime: `ghostpaw.db`. One process. Everything in `src/` compiles into the single artifact via esbuild. Default content (initial souls, built-in skills, web client assets) ships as TypeScript files inside their feature module folders — separated by feature, not by type.
+One file: `dist/ghostpaw.mjs`. One database at runtime: `.ghostpaw/ghostpaw.db`. One process. Everything in `src/` compiles into the single artifact via esbuild. Default content (initial souls, built-in skills, web client assets) ships as TypeScript files inside their feature module folders — separated by feature, not by type.
 
 ## Layers
 
@@ -238,7 +238,7 @@ The file tree always reflects actual complexity. Small things are small. Complex
 
 ## Database
 
-One SQLite file: `ghostpaw.db`. One connection. Managed in two layers:
+One SQLite file: `.ghostpaw/ghostpaw.db`. One connection. Managed in two layers:
 
 **`lib/` provides the connection.** A generic database module that opens the file, sets sane pragmas (WAL mode, foreign keys, journal size, synchronous mode), and exposes the connection handle. This module knows nothing about tables, features, or domain logic. It's pure infrastructure.
 

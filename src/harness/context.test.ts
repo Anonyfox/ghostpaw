@@ -124,8 +124,8 @@ describe("assembleContext", () => {
     const result = assembleContext(db, workspace);
     ok(result.includes("## Skills"));
     ok(result.includes("2 skills"));
-    ok(result.includes("skills/deploy/: Deploy the app."));
-    ok(result.includes("skills/testing/: Run test suite."));
+    ok(result.includes("skills/deploy/ [Apprentice]: Deploy the app."));
+    ok(result.includes("skills/testing/ [Apprentice]: Run test suite."));
   });
 
   it("omits Skills section when no skills exist", () => {

@@ -38,7 +38,7 @@ describe("withConfigDb", () => {
 
   it("creates database file in the workspace directory", async () => {
     await withConfigDb(() => {});
-    ok(existsSync(join(tmp, "ghostpaw.db")));
+    ok(existsSync(join(tmp, ".ghostpaw", "ghostpaw.db")));
   });
 
   it("closes database even when callback throws", async () => {
@@ -48,7 +48,7 @@ describe("withConfigDb", () => {
       }),
       /boom/,
     );
-    ok(existsSync(join(tmp, "ghostpaw.db")));
+    ok(existsSync(join(tmp, ".ghostpaw", "ghostpaw.db")));
   });
 
   it("handles async callbacks", async () => {

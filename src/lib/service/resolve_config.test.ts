@@ -1,4 +1,5 @@
 import { ok, strictEqual } from "node:assert";
+import { resolve } from "node:path";
 import { describe, it } from "node:test";
 import { resolveServiceConfig } from "./resolve_config.ts";
 
@@ -21,10 +22,9 @@ describe("resolveServiceConfig", () => {
     ok(config.workspace.startsWith("/"));
   });
 
-  it("sets ghostpawPath relative to workspace", () => {
+  it("uses the running script as ghostpawPath", () => {
     const config = resolveServiceConfig("/tmp/test");
-    ok(config.ghostpawPath.endsWith("ghostpaw.mjs"));
-    ok(config.ghostpawPath.startsWith("/tmp/test"));
+    strictEqual(config.ghostpawPath, resolve(process.argv[1]!));
   });
 
   it("includes experimental-sqlite flag for Node < 24", () => {

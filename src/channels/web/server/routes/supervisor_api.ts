@@ -1,6 +1,6 @@
 import { statfsSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { formatBytes, formatUptime } from "../../../../harness/commands/cmd_status.ts";
+import { resolveDbPath } from "../../../../lib/resolve_db_path.ts";
 import {
   installService,
   resolveServiceConfig,
@@ -36,7 +36,7 @@ function gatherDiskAndDb(workspace: string) {
   }
   let dbSize = 0;
   try {
-    dbSize = statSync(join(workspace, "ghostpaw.db")).size;
+    dbSize = statSync(resolveDbPath(workspace)).size;
   } catch {
     // database file not yet created or inaccessible
   }

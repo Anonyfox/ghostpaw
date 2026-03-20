@@ -34,10 +34,10 @@ describe("ensureDefaultSchedules", () => {
     strictEqual(after.intervalMs, 999_000);
   });
 
-  it("haunt is disabled by default", () => {
+  it("haunt is enabled by default", () => {
     ensureDefaultSchedules(db);
     const haunt = getScheduleByName(db, "haunt")!;
-    strictEqual(haunt.enabled, false);
+    strictEqual(haunt.enabled, true);
   });
 
   it("distill is enabled by default", () => {
