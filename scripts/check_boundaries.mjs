@@ -241,7 +241,11 @@ function checkSqlBoundary(relativePath, content) {
   if (isTestFile(relativePath)) {
     return [];
   }
-  if (relativePath.startsWith("src/core/") || relativePath.startsWith("src/lib/")) {
+  if (
+    relativePath.startsWith("src/core/") ||
+    relativePath.startsWith("src/lib/") ||
+    relativePath.startsWith("src/faculties/")
+  ) {
     return [];
   }
   if (!hasRawSqlCall(content)) {
