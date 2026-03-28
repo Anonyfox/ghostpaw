@@ -6,7 +6,7 @@ import { openMemoryDatabase } from "./core/db/open.ts";
 describe("createAgent", () => {
   it("returns an Agent with streamTurn and executeTurn methods", () => {
     const db = openMemoryDatabase();
-    const agent = createAgent(db, []);
+    const agent = createAgent({ db, tools: [] });
 
     assert.strictEqual(typeof agent.streamTurn, "function");
     assert.strictEqual(typeof agent.executeTurn, "function");

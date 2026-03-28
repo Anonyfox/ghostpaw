@@ -3,12 +3,25 @@ import { defineCommand, runMain } from "citty";
 import { createAgent } from "./agent.ts";
 import { executeRun } from "./channels/cli/run.ts";
 import { runTui } from "./channels/tui/tui.ts";
+import type { InterceptorContext } from "./core/chat/turn.ts";
+import { registerScribeSubsystem } from "./core/scribe/register.ts";
 import { registerBuiltins } from "./core/commands/builtins.ts";
 import { createRegistry } from "./core/commands/registry.ts";
-import { applyApiKeys, ensureApiKey, readConfig } from "./core/config/config.ts";
+import type { Config } from "./core/config/config.ts";
+import {
+  applyApiKeys,
+  applyModels,
+  ensureApiKey,
+  readConfig,
+  resolveModel,
+} from "./core/config/config.ts";
 import { openDatabase } from "./core/db/open.ts";
+import { openCodexDatabase } from "./core/db/open_codex.ts";
+import { createSubsystemRegistry } from "./core/interceptor/registry.ts";
+import { createDeflectionTools } from "./core/interceptor/self_call.ts";
 import { createTools } from "./core/tools/index.ts";
 import { ensureHome, resolveHome } from "./home.ts";
+import type { DatabaseHandle } from "./lib/database_handle.ts";
 import { VERSION } from "./lib/version.ts";
 
 function initShared(args: Record<string, unknown>) {
@@ -16,8 +29,18 @@ function initShared(args: Record<string, unknown>) {
   ensureHome(homePath);
   const config = readConfig(homePath);
   applyApiKeys(config);
+  applyModels(config);
+  config.model = resolveModel(config);
   const workspace = (args.workspace as string) || process.env.GHOSTPAW_WORKSPACE || process.cwd();
   return { homePath, config, workspace };
+}
+
+function buildInterceptorContext(config: Config, codexDb: DatabaseHandle): InterceptorContext {
+  const registry = createSubsystemRegistry();
+  registerScribeSubsystem(registry);
+  const subsystemDbs = new Map<string, DatabaseHandle>();
+  subsystemDbs.set("scribe", codexDb);
+  return { registry, config: config.interceptor, subsystemDbs };
 }
 
 const runCommand = defineCommand({
@@ -35,18 +58,24 @@ const runCommand = defineCommand({
     if (!ensureApiKey(config, homePath)) process.exit(1);
 
     const db = await openDatabase(homePath);
+    const codexDb = await openCodexDatabase(homePath);
     const scrubValues = Object.values(config.api_keys).filter(Boolean);
-    const tools = createTools(workspace, scrubValues);
-    const agent = createAgent(db, tools);
+    const interceptorCtx = buildInterceptorContext(config, codexDb);
+    const tools = [
+      ...createTools(workspace, scrubValues),
+      ...createDeflectionTools(interceptorCtx.registry),
+    ];
+    const agent = createAgent({ db, tools, interceptor: interceptorCtx });
 
     try {
-      await executeRun(db, agent, homePath, {
+      await executeRun(db, agent, config, {
         prompt: args.prompt as string | undefined,
         session: args.session as string | undefined,
         model: args.model as string | undefined,
         noStream: args["no-stream"] as boolean | undefined,
       });
     } finally {
+      codexDb.close();
       db.close();
     }
   },
@@ -158,19 +187,27 @@ const main = defineCommand({
 
     const config = readConfig(homePath);
     applyApiKeys(config);
+    applyModels(config);
+    config.model = resolveModel(config);
     if (!ensureApiKey(config, homePath)) process.exit(1);
 
     const workspace = (args.workspace as string) || process.env.GHOSTPAW_WORKSPACE || process.cwd();
     const db = await openDatabase(homePath);
+    const codexDb = await openCodexDatabase(homePath);
     const scrubValues = Object.values(config.api_keys).filter(Boolean);
-    const tools = createTools(workspace, scrubValues);
-    const agent = createAgent(db, tools);
+    const interceptorCtx = buildInterceptorContext(config, codexDb);
+    const tools = [
+      ...createTools(workspace, scrubValues),
+      ...createDeflectionTools(interceptorCtx.registry),
+    ];
+    const agent = createAgent({ db, tools, interceptor: interceptorCtx });
     const registry = createRegistry();
     registerBuiltins(registry);
 
     try {
-      await runTui(db, agent, registry, homePath);
+      await runTui(db, agent, registry, config, homePath);
     } finally {
+      codexDb.close();
       db.close();
     }
   },

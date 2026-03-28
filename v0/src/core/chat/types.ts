@@ -1,8 +1,14 @@
+export type SessionPurpose = "chat" | "ghost" | "subsystem_turn";
+export type MessageSource = "organic" | "synthetic";
+
 export interface Session {
   id: number;
   title: string | null;
   model: string;
   system_prompt: string;
+  purpose: SessionPurpose;
+  parent_session_id: number | null;
+  triggered_by_message_id: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -13,6 +19,7 @@ export interface MessageRow {
   ordinal: number;
   role: "user" | "assistant" | "tool";
   content: string;
+  source: MessageSource;
   tool_call_id: string | null;
   model: string | null;
   input_tokens: number | null;

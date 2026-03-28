@@ -1,11 +1,14 @@
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS sessions (
-  id            INTEGER PRIMARY KEY,
-  title         TEXT,
-  model         TEXT NOT NULL,
-  system_prompt TEXT NOT NULL,
-  created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-  updated_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  id                      INTEGER PRIMARY KEY,
+  title                   TEXT,
+  model                   TEXT NOT NULL,
+  system_prompt           TEXT NOT NULL,
+  purpose                 TEXT NOT NULL DEFAULT 'chat',
+  parent_session_id       INTEGER REFERENCES sessions(id),
+  triggered_by_message_id INTEGER,
+  created_at              TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  updated_at              TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 ) STRICT;
 
 CREATE TABLE IF NOT EXISTS messages (
@@ -14,6 +17,7 @@ CREATE TABLE IF NOT EXISTS messages (
   ordinal          INTEGER NOT NULL,
   role             TEXT NOT NULL CHECK (role IN ('user','assistant','tool')),
   content          TEXT NOT NULL DEFAULT '',
+  source           TEXT NOT NULL DEFAULT 'organic',
   tool_call_id     TEXT,
   model            TEXT,
   input_tokens     INTEGER,

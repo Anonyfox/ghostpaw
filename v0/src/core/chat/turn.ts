@@ -1,11 +1,21 @@
 import type { Tool } from "chatoyant";
 import { Chat } from "chatoyant";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
+import { chatConfigForModel } from "../../lib/detect_provider.ts";
+import type { InterceptorConfig } from "../config/config.ts";
+import { runInterceptor } from "../interceptor/interceptor.ts";
+import type { SubsystemRegistry } from "../interceptor/registry.ts";
 import { addMessage } from "./messages.ts";
 import { persistTurnMessages } from "./persist_turn.ts";
 import { reconstructMessages } from "./reconstruct.ts";
 import { getSession } from "./session.ts";
 import type { TurnOptions, TurnResult } from "./types.ts";
+
+export interface InterceptorContext {
+  registry: SubsystemRegistry;
+  config: InterceptorConfig;
+  subsystemDbs: Map<string, DatabaseHandle>;
+}
 
 function emptyResult(sessionId: number, content: string, model: string): TurnResult {
   return {
@@ -27,15 +37,28 @@ export async function* streamTurn(
   sessionId: number,
   content: string,
   options?: TurnOptions,
+  interceptor?: InterceptorContext,
 ): AsyncGenerator<string, TurnResult> {
   const session = getSession(db, sessionId);
   if (!session) return emptyResult(sessionId, "Session not found", "");
 
   const model = options?.model ?? session.model;
-  const userMessageId = addMessage(db, sessionId, "user", content);
+  const userMessageId = addMessage(db, sessionId, "user", content, { source: "organic" });
+
+  if (interceptor && session.purpose === "chat") {
+    await runInterceptor({
+      chatDb: db,
+      subsystemDbs: interceptor.subsystemDbs,
+      registry: interceptor.registry,
+      config: interceptor.config,
+      sessionId,
+      triggerMessageId: userMessageId,
+      model,
+    });
+  }
 
   const history = reconstructMessages(db, sessionId);
-  const chat = new Chat({ model });
+  const chat = new Chat(chatConfigForModel(model));
   chat.system(session.system_prompt);
   chat.addMessages(history);
   chat.addTools(tools);
@@ -110,8 +133,9 @@ export async function executeTurn(
   sessionId: number,
   content: string,
   options?: TurnOptions,
+  interceptor?: InterceptorContext,
 ): Promise<TurnResult> {
-  const gen = streamTurn(db, tools, sessionId, content, options);
+  const gen = streamTurn(db, tools, sessionId, content, options, interceptor);
   let result = await gen.next();
   while (!result.done) {
     result = await gen.next();

@@ -1,12 +1,12 @@
 import { createSession, getSession } from "../../core/chat/session.ts";
 import type { Agent } from "../../core/chat/types.ts";
-import { readConfig } from "../../core/config/config.ts";
+import type { Config } from "../../core/config/config.ts";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 
 export async function executeRun(
   db: DatabaseHandle,
   agent: Agent,
-  homePath: string,
+  config: Config,
   opts: {
     prompt?: string;
     session?: string;
@@ -30,7 +30,6 @@ export async function executeRun(
     return;
   }
 
-  const config = readConfig(homePath);
   let sessionId: number;
 
   if (opts.session) {

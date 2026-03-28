@@ -35,7 +35,8 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "chatoyant": "^0.6.0",
+    "@ghostpaw/codex": "^0.2.3",
+    "chatoyant": "^0.7.0",
     "citty": "^0.2.1",
     "magpie-html": "^0.2.3"
   }

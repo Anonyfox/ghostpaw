@@ -1,10 +1,30 @@
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
-import type { Session } from "./types.ts";
+import type { Session, SessionPurpose } from "./types.ts";
 
-export function createSession(db: DatabaseHandle, model: string, systemPrompt: string): Session {
+export interface CreateSessionOptions {
+  purpose?: SessionPurpose;
+  parentSessionId?: number;
+  triggeredByMessageId?: number;
+}
+
+export function createSession(
+  db: DatabaseHandle,
+  model: string,
+  systemPrompt: string,
+  opts?: CreateSessionOptions,
+): Session {
   const result = db
-    .prepare("INSERT INTO sessions (model, system_prompt) VALUES (?, ?)")
-    .run(model, systemPrompt);
+    .prepare(
+      `INSERT INTO sessions (model, system_prompt, purpose, parent_session_id, triggered_by_message_id)
+       VALUES (?, ?, ?, ?, ?)`,
+    )
+    .run(
+      model,
+      systemPrompt,
+      opts?.purpose ?? "chat",
+      opts?.parentSessionId ?? null,
+      opts?.triggeredByMessageId ?? null,
+    );
 
   const id = Number(result.lastInsertRowid);
   return getSession(db, id)!;

@@ -8,21 +8,28 @@ Every interaction follows the same structure. A chat is a **system prompt** that
 
 This is powered by [chatoyant](https://github.com/nicosResworworking/chatoyant), a provider-agnostic LLM library that handles streaming, tool execution, and the iterative generate→call→generate loop natively. The harness doesn't orchestrate tool calls — chatoyant does. The harness provides the tools, manages the context, and persists the results.
 
+## The Agent Loop
+
 ```mermaid
 graph TD
-    A[System Prompt] --> B[Message History]
-    B --> C[User Message]
-    C --> D[LLM Generate]
-    D --> E{Tool Calls?}
-    E -- yes --> F[Execute Tools]
-    F --> G[Fold Results into Context]
-    G --> D
-    E -- no --> H[Assistant Response]
-    H --> I[Persist to SQLite]
-    I --> J[Return to Channel]
+    A[User Message] --> B[Persist User Message]
+    B --> C{Interceptor Enabled?}
+    C -- no --> F
+    C -- yes --> D[Run Subsystems Concurrently]
+    D --> E[Persist Synthetic Entries]
+    E --> F[Reconstruct Full History from SQLite]
+    F --> G[LLM Generate — streaming, tool calls]
+    G --> H{Tool Calls?}
+    H -- yes --> I[Execute Tools]
+    I --> J[Fold Results into Context]
+    J --> G
+    H -- no --> K[Persist Turn Atomically]
+    K --> L[Return to Channel]
 ```
 
 A single turn can loop through the tool-call cycle many times. The agent reads a file, discovers it needs another, reads that, edits both, runs a test — all within one turn. The channel sees streaming text chunks as the final response forms. When the turn completes, everything is persisted atomically.
+
+The interceptor step is the key addition over a raw LLM loop. Before the LLM generates, registered subsystems run concurrently in child sessions. Their results are injected into the message history as synthetic tool call entries. The LLM sees them as prior tool results and naturally incorporates the information. See `INTERCEPTOR.md` for the full mechanics.
 
 ## Capabilities
 
@@ -36,29 +43,19 @@ Capabilities are the tools the agent can call. Each tool is a typed function wit
 
 **Augmentation** — `calc`, `datetime`. These compensate for known LLM weaknesses. LLMs hallucinate arithmetic and lose track of time. A deterministic calculator and a precise date/time engine eliminate both failure modes entirely.
 
-Together these ten tools make the agent capable of arbitrary local work from day one. No task requires leaving the agent to do manually what it could do with the tools it already has.
+**Subsystem deflection** — one `subsystem_<name>` tool per registered subsystem (e.g., `subsystem_scribe`). These prevent the LLM from calling subsystem tools directly. When the LLM sees synthetic tool results in its history and tries to invoke the tool itself, the deflection handler returns an instant message explaining the subsystem runs automatically. Zero-cost, one iteration, no child session.
 
-## The Agent Loop
+## Lossless Persistence
 
-The mechanical loop governs what happens on each turn and what persists between them.
-
-1. **User message arrives** — inserted into `messages` with the next ordinal.
-2. **History reconstruction** — all prior messages and their tool calls are loaded from SQLite and rebuilt into chatoyant's native `Message[]` format. This is the agent's memory of the conversation so far.
-3. **LLM generation** — chatoyant streams the response, executing tool calls as they arise. The harness provides streaming chunks and tool-status callbacks to the channel.
-4. **Persistence** — every new message (assistant responses, tool calls, tool results) is written to SQLite in a single transaction. Nothing is partially committed. If the process dies mid-turn, the last complete turn survives intact.
-5. **Result returned** — the channel receives the final content, token usage, cost, and model information.
-
-### Lossless Persistence
-
-The first and most fundamental augmentation to the agent loop. Every message, every tool call (name + arguments), and every tool result is stored in SQLite with foreign-key integrity and strict typing. The full conversation can be reconstructed exactly as chatoyant saw it — no lossy serialization, no summarization, no dropped fields.
+Every message, every tool call (name + arguments), and every tool result is stored in SQLite with foreign-key integrity and strict typing. The full conversation can be reconstructed exactly as chatoyant saw it — no lossy serialization, no summarization, no dropped fields.
 
 Three tables carry the state:
 
-- **sessions** — identity, model, system prompt, timestamps.
-- **messages** — ordered by `(session_id, ordinal)`. Roles are `user`, `assistant`, or `tool`. Usage and cost data live on assistant messages. Tool result messages carry `tool_call_id` linking them to the call they answered.
+- **sessions** — identity, model, system prompt, purpose (`chat` | `subsystem_turn`), parent linkage, timestamps.
+- **messages** — ordered by `(session_id, ordinal)`. Roles are `user`, `assistant`, or `tool`. Source is `organic` (user/LLM-produced) or `synthetic` (harness-injected). Usage and cost data live on assistant messages. Tool result messages carry `tool_call_id` linking them to the call they answered.
 - **tool_calls** — keyed by the provider-assigned `id`, linked to the assistant message that initiated them. Arguments are stored as the original JSON string from the provider — never parsed and re-serialized.
 
-This is not logging. This is the agent's working memory. Every subsequent turn reconstructs the full history from these tables. If the process restarts, the conversation continues exactly where it left off. The persistence layer is not an add-on — it is the mechanism by which the agent maintains continuity across turns, sessions, and restarts.
+This is not logging. This is the agent's working memory. Every subsequent turn reconstructs the full history from these tables via a single LEFT JOIN query. If the process restarts, the conversation continues exactly where it left off.
 
 ## Channels
 
@@ -68,8 +65,10 @@ Channels connect the agent to users and systems. The agent and session model are
 
 **CLI** — one-shot command execution. Accepts a prompt, returns the response and a `session:<id>` continuation token on stderr for machine consumption. Enables multi-turn interactions for scripts, pipelines, and automation without an interactive interface.
 
-Both channels drive the same `Agent` interface. Future channels (web, Telegram, API) plug into the same boundary without touching the loop or the persistence layer.
+Both channels drive the same `Agent` interface. Future channels (web, Telegram) plug into the same boundary without touching the loop or the persistence layer.
 
-## What's Next
+## What's Built
 
-The harness is deliberately minimal. It does exactly three things well: run the LLM loop with tool access, persist everything losslessly, and expose the agent through two channels. Every future addition — memory, identity, delegation, scheduling — layers on top of this foundation without replacing it. The harness grows by augmentation, not by rewrite.
+The harness is minimal but complete. It runs the LLM loop with tool access, persists everything losslessly, exposes the agent through two channels, and runs subsystem maintenance automatically via the interceptor. The first subsystem — the **scribe** (belief-based memory via `@ghostpaw/codex`) — is live and tested across five LLM providers.
+
+The interceptor is generic. Adding a second subsystem means implementing a `run()` function and registering it. The harness, the turn loop, the synthetic entry format, the context filtering, the configuration — all of it works for N subsystems without modification.

@@ -6,12 +6,25 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 import { addMessage } from "../chat/messages.ts";
 import { createSession } from "../chat/session.ts";
+import type { Config } from "../config/config.ts";
 import { writeConfig } from "../config/config.ts";
 import { openMemoryDatabase } from "../db/open.ts";
 import { registerBuiltins } from "./builtins.ts";
 import type { CommandRegistry } from "./registry.ts";
 import { createRegistry } from "./registry.ts";
 import type { CommandCtx } from "./types.ts";
+
+const STUB_INTERCEPTOR = { enabled: false, subsystems: {} } as const;
+function cfg(overrides: Partial<Config> = {}): Config {
+  return {
+    model: "test",
+    models: {},
+    system_prompt: "p",
+    api_keys: {},
+    interceptor: STUB_INTERCEPTOR,
+    ...overrides,
+  };
+}
 
 let db: DatabaseHandle;
 let tmpDir: string;
@@ -50,7 +63,7 @@ describe("help command", () => {
 
 describe("new command", () => {
   it("creates a new session", async () => {
-    writeConfig(tmpDir, { model: "test-model", system_prompt: "test", api_keys: {} });
+    writeConfig(tmpDir, cfg({ model: "test-model", system_prompt: "test" }));
     const result = await registry.execute("new", "", ctx());
     assert.ok(result.text.includes("Created session"));
     assert.ok(result.action);
@@ -73,13 +86,13 @@ describe("sessions command", () => {
 
 describe("model command", () => {
   it("shows current model when no args", async () => {
-    writeConfig(tmpDir, { model: "default-model", system_prompt: "p", api_keys: {} });
+    writeConfig(tmpDir, cfg({ model: "default-model" }));
     const result = await registry.execute("model", "", ctx());
     assert.ok(result.text.includes("default-model"));
   });
 
   it("changes model and updates config", async () => {
-    writeConfig(tmpDir, { model: "old", system_prompt: "p", api_keys: {} });
+    writeConfig(tmpDir, cfg({ model: "old" }));
     const session = createSession(db, "old", "p");
     const result = await registry.execute("model", "new-model", ctx(session.id));
     assert.ok(result.text.includes("new-model"));

@@ -1,5 +1,5 @@
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
-import type { MessageRow } from "./types.ts";
+import type { MessageRow, MessageSource } from "./types.ts";
 
 export function nextOrdinal(db: DatabaseHandle, sessionId: number): number {
   const row = db
@@ -15,6 +15,7 @@ export function addMessage(
   role: "user" | "assistant" | "tool",
   content: string,
   extra?: {
+    source?: MessageSource;
     toolCallId?: string;
     model?: string;
     inputTokens?: number;
@@ -27,15 +28,16 @@ export function addMessage(
   const ordinal = nextOrdinal(db, sessionId);
   const result = db
     .prepare(
-      `INSERT INTO messages (session_id, ordinal, role, content, tool_call_id, model,
+      `INSERT INTO messages (session_id, ordinal, role, content, source, tool_call_id, model,
         input_tokens, output_tokens, cached_tokens, reasoning_tokens, cost_usd)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       sessionId,
       ordinal,
       role,
       content,
+      extra?.source ?? "organic",
       extra?.toolCallId ?? null,
       extra?.model ?? null,
       extra?.inputTokens ?? null,

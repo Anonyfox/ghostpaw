@@ -1,6 +1,7 @@
 import type { Message } from "chatoyant";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 import { nextOrdinal } from "./messages.ts";
+import type { MessageSource } from "./types.ts";
 
 export interface UsageData {
   model?: string;
@@ -16,6 +17,7 @@ export function persistTurnMessages(
   sessionId: number,
   newMessages: Message[],
   usage?: UsageData,
+  source: MessageSource = "organic",
 ): number {
   let lastMessageId = -1;
   let ordinal = nextOrdinal(db, sessionId);
@@ -23,9 +25,9 @@ export function persistTurnMessages(
   db.exec("BEGIN");
   try {
     const insertMsg = db.prepare(
-      `INSERT INTO messages (session_id, ordinal, role, content, tool_call_id, model,
+      `INSERT INTO messages (session_id, ordinal, role, content, source, tool_call_id, model,
         input_tokens, output_tokens, cached_tokens, reasoning_tokens, cost_usd)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
 
     const insertToolCall = db.prepare(
@@ -42,6 +44,7 @@ export function persistTurnMessages(
         ordinal++,
         msg.role,
         msg.content ?? "",
+        source,
         msg.toolCallId ?? null,
         applyUsage ? (usage.model ?? null) : null,
         applyUsage ? (usage.inputTokens ?? null) : null,
