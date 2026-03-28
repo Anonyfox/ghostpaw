@@ -1,0 +1,42 @@
+{
+  "name": "ghostpaw",
+  "version": "0.0.1",
+  "description": "Single-process AI agent runtime. One compiled artifact, one SQLite database, one process.",
+  "type": "module",
+  "main": "./dist/ghostpaw.mjs",
+  "exports": {
+    ".": "./dist/ghostpaw.mjs"
+  },
+  "bin": {
+    "ghostpaw": "./dist/ghostpaw.mjs"
+  },
+  "files": [
+    "dist/ghostpaw.mjs"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch",
+    "start": "node dist/ghostpaw.mjs",
+    "test": "node --test --test-reporter=dot 'src/**/*.test.ts'",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check",
+    "lint:fix": "biome check --fix",
+    "format": "biome format --write",
+    "check": "biome check && tsc --noEmit"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@biomejs/biome": "2.4.4",
+    "@types/node": "^25.3.0",
+    "esbuild": "^0.27.3",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "chatoyant": "^0.6.0",
+    "citty": "^0.2.1",
+    "magpie-html": "^0.2.3"
+  }
+}

@@ -1,0 +1,27 @@
+import type { DatabaseHandle } from "../../lib/database_handle.ts";
+
+export type CommandCtx = {
+  db: DatabaseHandle;
+  homePath: string;
+  sessionId: number | null;
+};
+
+export type CommandResult = {
+  text: string;
+  action?:
+    | { type: "new_session"; sessionId: number }
+    | { type: "switch_session"; sessionId: number }
+    | { type: "model_changed"; model: string }
+    | { type: "undo"; removedCount: number }
+    | { type: "quit" };
+};
+
+export type Command = {
+  name: string;
+  description: string;
+  args?: string;
+  slash: boolean;
+  cli: boolean;
+  hidden?: boolean;
+  execute(ctx: CommandCtx, args: string): Promise<CommandResult>;
+};
