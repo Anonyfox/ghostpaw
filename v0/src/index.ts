@@ -3,7 +3,9 @@ import { defineCommand, runMain } from "citty";
 import { createAgent } from "./agent.ts";
 import { executeRun } from "./channels/cli/run.ts";
 import { runTui } from "./channels/tui/tui.ts";
+import { createSession } from "./core/chat/session.ts";
 import type { InterceptorContext, OneshotContext } from "./core/chat/turn.ts";
+import type { Agent } from "./core/chat/types.ts";
 import { registerBuiltins } from "./core/commands/builtins.ts";
 import { createRegistry } from "./core/commands/registry.ts";
 import type { Config } from "./core/config/config.ts";
@@ -16,11 +18,20 @@ import { createSubsystemRegistry } from "./core/interceptor/registry.ts";
 import { createDeflectionTools } from "./core/interceptor/self_call.ts";
 import { createOneshotRegistry } from "./core/oneshot/registry.ts";
 import { registerTitleOneshot } from "./core/oneshot/title.ts";
+import { ensureDefaultPulses } from "./core/pulse/defaults.ts";
+import { startPulse } from "./core/pulse/engine.ts";
+import type { RunAgentTask } from "./core/pulse/types.ts";
 import { registerScribeSubsystem } from "./core/scribe/register.ts";
 import { createTools } from "./core/tools/index.ts";
+import { createPulseTool } from "./core/tools/pulse.ts";
 import { ensureHome, resolveHome } from "./home.ts";
 import type { DatabaseHandle } from "./lib/database_handle.ts";
 import { VERSION } from "./lib/version.ts";
+
+const PULSE_HINT = `This is an autonomous scheduled task running in the background.
+There is no live user in this session. Execute the task fully -- do not ask
+questions or request clarification. Make reasonable decisions and proceed.
+If you need to notify the user, use the available communication tools.`;
 
 function initShared(args: Record<string, unknown>) {
   const homePath = resolveHome({ home: args.home as string | undefined });
@@ -54,6 +65,37 @@ function buildOneshotContext(config: Config): OneshotContext {
   return { registry, modelSmall: config.model_small, timeoutMs: 60_000 };
 }
 
+function createPulseRunAgentTask(db: DatabaseHandle, config: Config, agent: Agent): RunAgentTask {
+  return async (name, prompt, signal) => {
+    const systemPrompt = `${config.system_prompt}\n\n${PULSE_HINT}`;
+    const session = createSession(db, config.model, systemPrompt, {
+      purpose: "pulse",
+      title: name,
+    });
+    try {
+      const result = await Promise.race([
+        agent.executeTurn(session.id, prompt),
+        new Promise<never>((_, reject) => {
+          if (signal.aborted) return reject(new Error("aborted"));
+          signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+        }),
+      ]);
+      return {
+        exitCode: result.succeeded ? 0 : 1,
+        sessionId: session.id,
+        output: result.content.slice(0, 2048),
+        error: result.succeeded ? undefined : result.content.slice(0, 2048),
+      };
+    } catch (err) {
+      return {
+        exitCode: 1,
+        sessionId: session.id,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  };
+}
+
 const runCommand = defineCommand({
   meta: { name: "run", description: "Run a single turn against the LLM" },
   args: {
@@ -82,8 +124,11 @@ const runCommand = defineCommand({
     const tools = [
       ...createTools(workspace, scrubValues),
       ...createDeflectionTools(interceptorCtx.registry),
+      createPulseTool(db),
     ];
     const agent = createAgent({ db, tools, interceptor: interceptorCtx, oneshots: oneshotCtx });
+    ensureDefaultPulses(db);
+    const scheduler = startPulse(db, createPulseRunAgentTask(db, config, agent));
 
     try {
       await executeRun(db, agent, config, {
@@ -94,6 +139,7 @@ const runCommand = defineCommand({
         ghost: args.ghost as boolean | undefined,
       });
     } finally {
+      await scheduler.stop();
       affinityDb.close();
       codexDb.close();
       db.close();
@@ -222,14 +268,18 @@ const main = defineCommand({
     const tools = [
       ...createTools(workspace, scrubValues),
       ...createDeflectionTools(interceptorCtx.registry),
+      createPulseTool(db),
     ];
     const agent = createAgent({ db, tools, interceptor: interceptorCtx, oneshots: oneshotCtx });
+    ensureDefaultPulses(db);
+    const scheduler = startPulse(db, createPulseRunAgentTask(db, config, agent));
     const registry = createRegistry();
     registerBuiltins(registry);
 
     try {
       await runTui(db, agent, registry, config, homePath);
     } finally {
+      await scheduler.stop();
       affinityDb.close();
       codexDb.close();
       db.close();

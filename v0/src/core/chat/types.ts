@@ -1,4 +1,4 @@
-export type SessionPurpose = "chat" | "ghost" | "subsystem_turn" | "system";
+export type SessionPurpose = "chat" | "ghost" | "subsystem_turn" | "system" | "pulse";
 export type MessageSource = "organic" | "synthetic";
 
 export interface Session {

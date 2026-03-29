@@ -1,7 +1,6 @@
 import type { Tool } from "chatoyant";
 import { Chat } from "chatoyant";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
-import { chatConfigForModel } from "../../lib/detect_provider.ts";
 import type { InterceptorConfig } from "../config/config.ts";
 import { runInterceptor } from "../interceptor/interceptor.ts";
 import type { SubsystemRegistry } from "../interceptor/registry.ts";
@@ -80,7 +79,7 @@ export async function* streamTurn(
   }
 
   const history = reconstructMessages(db, sessionId);
-  const chat = new Chat(chatConfigForModel(model));
+  const chat = new Chat({ model });
   chat.system(session.system_prompt);
   chat.addMessages(history);
   chat.addTools(tools);

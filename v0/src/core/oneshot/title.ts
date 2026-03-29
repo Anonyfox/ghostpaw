@@ -1,5 +1,4 @@
 import { Chat, Message } from "chatoyant";
-import { chatConfigForModel } from "../../lib/detect_provider.ts";
 import { getMessages } from "../chat/messages.ts";
 import { createSession, getSession, renameSession } from "../chat/session.ts";
 import type { OneshotRegistry, OneshotRunOpts } from "./types.ts";
@@ -29,7 +28,7 @@ async function execute(opts: OneshotRunOpts): Promise<void> {
     triggeredByMessageId: opts.triggerMessageId,
   });
 
-  const chat = new Chat(chatConfigForModel(opts.model));
+  const chat = new Chat({ model: opts.model });
   chat.system(SYSTEM_PROMPT);
   chat.addMessage(new Message("user", buildPrompt(opts.userContent)));
 

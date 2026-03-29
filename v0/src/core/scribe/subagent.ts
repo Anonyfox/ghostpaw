@@ -1,7 +1,6 @@
 import { soul } from "@ghostpaw/codex";
 import type { Tool } from "chatoyant";
 import { Chat } from "chatoyant";
-import { chatConfigForModel } from "../../lib/detect_provider.ts";
 import { persistTurnMessages } from "../chat/persist_turn.ts";
 import { createSession } from "../chat/session.ts";
 import type { SubsystemResult, SubsystemRunOpts } from "../interceptor/registry.ts";
@@ -58,7 +57,7 @@ export async function runCodexSubagent(opts: SubsystemRunOpts): Promise<Subsyste
     triggeredByMessageId: triggerMessageId,
   });
 
-  const chat = new Chat(chatConfigForModel(model));
+  const chat = new Chat({ model });
   chat.system(systemPrompt);
   chat.addMessages(context);
   chat.addTools(codexTools);

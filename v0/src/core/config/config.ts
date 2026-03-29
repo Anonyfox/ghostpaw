@@ -1,5 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import type { ProviderId } from "chatoyant";
+import { isProviderActive } from "chatoyant";
 
 export interface SubsystemConfig {
   enabled: boolean;
@@ -43,12 +45,12 @@ const DEFAULT_INTERCEPTOR: InterceptorConfig = {
 
 const PROVIDERS: Record<string, { env: string; model: string; model_small: string }> = {
   anthropic: {
-    env: "API_KEY_ANTHROPIC",
+    env: "ANTHROPIC_API_KEY",
     model: "claude-sonnet-4-5",
     model_small: "claude-haiku-4-5",
   },
-  openai: { env: "API_KEY_OPENAI", model: "gpt-5.4", model_small: "gpt-5.4-mini" },
-  xai: { env: "API_KEY_XAI", model: "grok-4-1", model_small: "grok-4-1-fast-non-reasoning" },
+  openai: { env: "OPENAI_API_KEY", model: "gpt-5.4", model_small: "gpt-5.4-mini" },
+  xai: { env: "XAI_API_KEY", model: "grok-4-1", model_small: "grok-4-1-fast-non-reasoning" },
 };
 
 const DEFAULT_CONFIG: Config = {
@@ -128,12 +130,12 @@ export function applyApiKeys(config: Config): void {
 
 /**
  * Picks model + model_small for the first provider that has an active API key.
+ * Delegates key detection to chatoyant (checks both official and legacy env names).
  * Falls back to config values if no provider key is detected.
  */
 export function resolveModels(config: Config): { model: string; model_small: string } {
   for (const [provider, info] of Object.entries(PROVIDERS)) {
-    const hasKey = process.env[info.env] || config.api_keys[provider];
-    if (hasKey) {
+    if (isProviderActive(provider as ProviderId) || config.api_keys[provider]) {
       return { model: info.model, model_small: info.model_small };
     }
   }
@@ -141,8 +143,8 @@ export function resolveModels(config: Config): { model: string; model_small: str
 }
 
 export function ensureApiKey(config: Config, homePath: string): boolean {
-  for (const info of Object.values(PROVIDERS)) {
-    if (process.env[info.env]) return true;
+  for (const provider of Object.keys(PROVIDERS)) {
+    if (isProviderActive(provider as ProviderId)) return true;
   }
   if (Object.keys(config.api_keys).some((k) => config.api_keys[k])) return true;
 

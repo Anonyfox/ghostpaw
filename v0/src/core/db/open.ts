@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { join } from "node:path";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 import { loadSqlite } from "../../lib/load_sqlite.ts";
+import { PULSE_SCHEMA_SQL } from "../pulse/schema.ts";
 import { SCHEMA_SQL } from "./schema.ts";
 
 export async function openDatabase(homePath: string): Promise<DatabaseHandle> {
@@ -11,7 +12,9 @@ export async function openDatabase(homePath: string): Promise<DatabaseHandle> {
 
   db.exec("PRAGMA journal_mode = WAL");
   db.exec("PRAGMA foreign_keys = ON");
+  db.exec("PRAGMA busy_timeout = 5000");
   db.exec(SCHEMA_SQL);
+  db.exec(PULSE_SCHEMA_SQL);
 
   return {
     exec(sql: string) {
@@ -50,7 +53,9 @@ export function openMemoryDatabase(): DatabaseHandle {
   const db = new DatabaseSync(":memory:");
 
   db.exec("PRAGMA foreign_keys = ON");
+  db.exec("PRAGMA busy_timeout = 5000");
   db.exec(SCHEMA_SQL);
+  db.exec(PULSE_SCHEMA_SQL);
 
   return {
     exec(sql: string) {

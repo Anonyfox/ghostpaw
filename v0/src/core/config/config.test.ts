@@ -91,7 +91,7 @@ describe("applyApiKeys", () => {
   const originalEnv: Record<string, string | undefined> = {};
 
   beforeEach(() => {
-    for (const key of ["API_KEY_ANTHROPIC", "API_KEY_OPENAI"]) {
+    for (const key of ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"]) {
       originalEnv[key] = process.env[key];
       delete process.env[key];
     }
@@ -113,11 +113,11 @@ describe("applyApiKeys", () => {
       interceptor: STUB_INTERCEPTOR,
     };
     applyApiKeys(config);
-    assert.strictEqual(process.env.API_KEY_ANTHROPIC, "sk-test-123");
+    assert.strictEqual(process.env.ANTHROPIC_API_KEY, "sk-test-123");
   });
 
   it("does not overwrite existing env vars", () => {
-    process.env.API_KEY_ANTHROPIC = "existing";
+    process.env.ANTHROPIC_API_KEY = "existing";
     const config: Config = {
       model: "m",
       model_small: "ms",
@@ -126,13 +126,20 @@ describe("applyApiKeys", () => {
       interceptor: STUB_INTERCEPTOR,
     };
     applyApiKeys(config);
-    assert.strictEqual(process.env.API_KEY_ANTHROPIC, "existing");
+    assert.strictEqual(process.env.ANTHROPIC_API_KEY, "existing");
   });
 });
 
 describe("ensureApiKey", () => {
   const originalEnv: Record<string, string | undefined> = {};
-  const envKeys = ["API_KEY_ANTHROPIC", "API_KEY_OPENAI", "API_KEY_XAI"];
+  const envKeys = [
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "XAI_API_KEY",
+    "API_KEY_ANTHROPIC",
+    "API_KEY_OPENAI",
+    "API_KEY_XAI",
+  ];
 
   beforeEach(() => {
     for (const key of envKeys) {
@@ -148,8 +155,20 @@ describe("ensureApiKey", () => {
     }
   });
 
-  it("returns true when env var is set", () => {
-    process.env.API_KEY_ANTHROPIC = "sk-test";
+  it("returns true when official env var is set", () => {
+    process.env.ANTHROPIC_API_KEY = "sk-test";
+    const config: Config = {
+      model: "m",
+      model_small: "ms",
+      system_prompt: "p",
+      api_keys: {},
+      interceptor: STUB_INTERCEPTOR,
+    };
+    assert.strictEqual(ensureApiKey(config, tmpDir), true);
+  });
+
+  it("returns true when legacy env var is set", () => {
+    process.env.API_KEY_OPENAI = "sk-test";
     const config: Config = {
       model: "m",
       model_small: "ms",
@@ -185,9 +204,17 @@ describe("ensureApiKey", () => {
 
 describe("resolveModels", () => {
   const originalEnv: Record<string, string | undefined> = {};
+  const envKeys = [
+    "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
+    "XAI_API_KEY",
+    "API_KEY_ANTHROPIC",
+    "API_KEY_OPENAI",
+    "API_KEY_XAI",
+  ];
 
   beforeEach(() => {
-    for (const key of ["API_KEY_ANTHROPIC", "API_KEY_OPENAI", "API_KEY_XAI"]) {
+    for (const key of envKeys) {
       originalEnv[key] = process.env[key];
       delete process.env[key];
     }
@@ -200,8 +227,8 @@ describe("resolveModels", () => {
     }
   });
 
-  it("returns provider defaults when API key is present", () => {
-    process.env.API_KEY_OPENAI = "sk-test";
+  it("returns provider defaults when official env key is present", () => {
+    process.env.OPENAI_API_KEY = "sk-test";
     const config: Config = {
       model: "fallback",
       model_small: "fallback-small",
@@ -212,6 +239,20 @@ describe("resolveModels", () => {
     const result = resolveModels(config);
     assert.strictEqual(result.model, "gpt-5.4");
     assert.strictEqual(result.model_small, "gpt-5.4-mini");
+  });
+
+  it("returns provider defaults when legacy env key is present", () => {
+    process.env.API_KEY_XAI = "xai-test";
+    const config: Config = {
+      model: "fallback",
+      model_small: "fallback-small",
+      system_prompt: "p",
+      api_keys: {},
+      interceptor: STUB_INTERCEPTOR,
+    };
+    const result = resolveModels(config);
+    assert.strictEqual(result.model, "grok-4-1");
+    assert.strictEqual(result.model_small, "grok-4-1-fast-non-reasoning");
   });
 
   it("falls back to config values when no provider match", () => {
