@@ -1,11 +1,12 @@
 import type { Tool } from "chatoyant";
 import { Chat } from "chatoyant";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
-import type { InterceptorConfig } from "../config/config.ts";
 import { runInterceptor } from "../interceptor/interceptor.ts";
 import type { SubsystemRegistry } from "../interceptor/registry.ts";
 import { fireOneshots } from "../oneshot/runner.ts";
 import type { OneshotRegistry } from "../oneshot/types.ts";
+import type { InterceptorConfig } from "../settings/build_config.ts";
+import { getSettingInt } from "../settings/get.ts";
 import { addMessage } from "./messages.ts";
 import { persistTurnMessages } from "./persist_turn.ts";
 import { reconstructMessages } from "./reconstruct.ts";
@@ -88,7 +89,7 @@ export async function* streamTurn(
 
   try {
     const stream = chat.stream({
-      maxIterations: options?.maxIterations ?? 25,
+      maxIterations: options?.maxIterations ?? getSettingInt("GHOSTPAW_MAX_TURN_ITERATIONS") ?? 25,
       temperature: options?.temperature,
       reasoning: options?.reasoning,
       onToolCallStart: options?.onToolCallStart

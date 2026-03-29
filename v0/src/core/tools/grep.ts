@@ -1,9 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { relative, resolve } from "node:path";
 import { createTool, Schema } from "chatoyant";
+import { getSettingInt } from "../settings/get.ts";
 import { resolvePath } from "./resolve_path.ts";
 
-const DEFAULT_MAX_RESULTS = 20;
 const MAX_OUTPUT_BYTES = 200_000;
 const EXCLUDE_DIRS = [".git", "node_modules", ".next", "dist", "build", "coverage", "__pycache__"];
 
@@ -170,7 +170,9 @@ export function createGrepTool(workspace: string) {
       const { fullPath } = resolvePath(workspace, targetPath);
 
       const maxResults =
-        maxResultsArg && maxResultsArg > 0 ? Math.min(maxResultsArg, 100) : DEFAULT_MAX_RESULTS;
+        maxResultsArg && maxResultsArg > 0
+          ? Math.min(maxResultsArg, 100)
+          : (getSettingInt("GHOSTPAW_GREP_MAX_RESULTS") ?? 20);
       const useRg = detectRg();
 
       let rawOutput = "";

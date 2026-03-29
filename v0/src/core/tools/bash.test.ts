@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
+import { clearSecretRegistry, registerSecretKey } from "../settings/scrub.ts";
 import { createBashTool } from "./bash.ts";
 
 let workDir: string;
@@ -15,10 +16,12 @@ async function exec(args: Record<string, unknown>) {
 beforeEach(() => {
   workDir = mkdtempSync(join(tmpdir(), "ghostpaw-bash-"));
   bashTool = createBashTool(workDir);
+  clearSecretRegistry();
 });
 
 afterEach(() => {
   rmSync(workDir, { recursive: true, force: true });
+  clearSecretRegistry();
 });
 
 describe("Bash tool", () => {
@@ -102,27 +105,33 @@ describe("Bash tool", () => {
   });
 
   it("scrubs known API key values from stdout", async () => {
-    bashTool = createBashTool(workDir, ["sk-ant-test-secret-value-12345678"]);
+    process.env.TEST_SCRUB_KEY = "sk-ant-test-secret-value-12345678";
+    registerSecretKey("TEST_SCRUB_KEY");
     const result = (await exec({
       command: "echo sk-ant-test-secret-value-12345678",
     })) as { stdout: string };
     strictEqual(result.stdout.includes("sk-ant-test-secret-value-12345678"), false);
     ok(result.stdout.includes("***"));
+    delete process.env.TEST_SCRUB_KEY;
   });
 
   it("scrubs known API key values from stderr", async () => {
-    bashTool = createBashTool(workDir, ["tvly-test-secret-value-87654321"]);
+    process.env.TEST_SCRUB_KEY2 = "tvly-test-secret-value-87654321";
+    registerSecretKey("TEST_SCRUB_KEY2");
     const result = (await exec({
       command: "echo tvly-test-secret-value-87654321 >&2",
     })) as { stderr: string };
     strictEqual(result.stderr.includes("tvly-test-secret-value-87654321"), false);
     ok(result.stderr.includes("***"));
+    delete process.env.TEST_SCRUB_KEY2;
   });
 
   it("does not scrub short values (under 8 chars)", async () => {
-    bashTool = createBashTool(workDir, ["short"]);
+    process.env.TEST_SHORT_KEY = "short";
+    registerSecretKey("TEST_SHORT_KEY");
     const result = (await exec({ command: "echo short" })) as { stdout: string };
     ok(result.stdout.includes("short"));
+    delete process.env.TEST_SHORT_KEY;
   });
 
   it("uses cwd parameter for working directory", async () => {

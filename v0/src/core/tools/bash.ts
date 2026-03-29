@@ -1,10 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { platform } from "node:os";
 import { createTool, Schema } from "chatoyant";
+import { getSettingInt } from "../settings/get.ts";
+import { getSecretValues } from "../settings/scrub.ts";
 import { resolvePath } from "./resolve_path.ts";
-
-const DEFAULT_TIMEOUT_S = 120;
-const MAX_OUTPUT_BYTES = 100_000;
 
 function scrubSecrets(text: string, scrubValues: string[]): string {
   if (!text) return text;
@@ -15,10 +14,6 @@ function scrubSecrets(text: string, scrubValues: string[]): string {
     }
   }
   return result;
-}
-
-function truncate(s: string): string {
-  return s.length > MAX_OUTPUT_BYTES ? s.slice(0, MAX_OUTPUT_BYTES) : s;
 }
 
 class BashParams extends Schema {
@@ -32,20 +27,20 @@ class BashParams extends Schema {
     optional: true,
   });
   timeout = Schema.Integer({
-    description: `Timeout in seconds (default: ${DEFAULT_TIMEOUT_S}). Command is killed if it exceeds this.`,
+    description:
+      "Timeout in seconds (default: from settings). Command is killed if it exceeds this.",
     optional: true,
   });
 }
 
-export function createBashTool(workspace: string, scrubValues: string[] = []) {
+export function createBashTool(workspace: string) {
   return createTool({
     name: "bash",
     description:
       "Execute a shell command. The working directory is the workspace root. Output is " +
-      `automatically truncated at ${MAX_OUTPUT_BYTES} bytes and API key values are scrubbed. ` +
-      `Default timeout: ${DEFAULT_TIMEOUT_S}s. Prefer dedicated tools (read, write, edit, ` +
-      "grep, ls) for file operations — bash is for git, npm, build commands, and anything " +
-      "the other tools cannot do.",
+      "automatically truncated and API key values are scrubbed. " +
+      "Prefer dedicated tools (read, write, edit, grep, ls) for file operations — bash " +
+      "is for git, npm, build commands, and anything the other tools cannot do.",
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new BashParams() as any,
     execute: async ({ args }) => {
@@ -59,25 +54,32 @@ export function createBashTool(workspace: string, scrubValues: string[] = []) {
         return { error: "Command cannot be empty", exitCode: 1, stdout: "", stderr: "" };
       }
 
+      const defaultTimeout = getSettingInt("GHOSTPAW_BASH_TIMEOUT_S") ?? 120;
+      const maxOutput = getSettingInt("GHOSTPAW_BASH_MAX_OUTPUT") ?? 100_000;
       const effectiveCwd = cwd ? resolvePath(workspace, cwd).fullPath : workspace;
-      const timeoutMs = (timeout && timeout > 0 ? timeout : DEFAULT_TIMEOUT_S) * 1000;
+      const timeoutMs = (timeout && timeout > 0 ? timeout : defaultTimeout) * 1000;
 
       const isWindows = platform() === "win32";
       const shell = isWindows ? "cmd.exe" : "/bin/sh";
       const shellArgs = isWindows ? ["/d", "/s", "/c", command] : ["-c", command];
 
+      const truncate = (s: string): string => (s.length > maxOutput ? s.slice(0, maxOutput) : s);
+
       const result = spawnSync(shell, shellArgs, {
         cwd: effectiveCwd,
         timeout: timeoutMs,
-        maxBuffer: MAX_OUTPUT_BYTES * 2,
+        maxBuffer: maxOutput * 2,
         encoding: "utf-8",
         stdio: ["pipe", "pipe", "pipe"],
       });
 
+      const currentScrubValues = getSecretValues();
       const timedOut = result.signal === "SIGTERM";
-      const stdout = scrubSecrets(truncate(result.stdout ?? ""), scrubValues);
-      const stderr = scrubSecrets(truncate(result.stderr ?? ""), scrubValues);
-      const wasTruncated = (result.stdout?.length ?? 0) > MAX_OUTPUT_BYTES;
+      const rawStdout = result.stdout ?? "";
+      const rawStderr = result.stderr ?? "";
+      const stdout = scrubSecrets(truncate(rawStdout), currentScrubValues);
+      const stderr = scrubSecrets(truncate(rawStderr), currentScrubValues);
+      const wasTruncated = rawStdout.length > maxOutput || rawStderr.length > maxOutput;
 
       if (timedOut) {
         return {
@@ -86,7 +88,7 @@ export function createBashTool(workspace: string, scrubValues: string[] = []) {
           stderr,
           truncated: wasTruncated,
           timedOut: true,
-          error: `Command timed out after ${timeout ?? DEFAULT_TIMEOUT_S}s`,
+          error: `Command timed out after ${timeout ?? defaultTimeout}s`,
         };
       }
 

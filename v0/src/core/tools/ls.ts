@@ -1,10 +1,9 @@
 import { readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { createTool, Schema } from "chatoyant";
+import { getSettingInt } from "../settings/get.ts";
 import { resolvePath } from "./resolve_path.ts";
 
-const MAX_ENTRIES = 500;
-const MAX_DEPTH = 5;
 const SKIP_DIRS = new Set([
   ".git",
   "node_modules",
@@ -67,8 +66,9 @@ function walkDir(
   currentDepth: number,
   entries: LsEntry[],
   filter: RegExp | null,
+  maxEntries: number,
 ): void {
-  if (currentDepth > maxDepth || entries.length >= MAX_ENTRIES) return;
+  if (currentDepth > maxDepth || entries.length >= maxEntries) return;
 
   let items: string[];
   try {
@@ -80,7 +80,7 @@ function walkDir(
   items.sort();
 
   for (const item of items) {
-    if (entries.length >= MAX_ENTRIES) break;
+    if (entries.length >= maxEntries) break;
 
     const fullPath = join(currentPath, item);
     let stat: ReturnType<typeof statSync> | null;
@@ -97,7 +97,7 @@ function walkDir(
 
     if (filter) {
       if (isDir) {
-        walkDir(basePath, fullPath, maxDepth, currentDepth + 1, entries, filter);
+        walkDir(basePath, fullPath, maxDepth, currentDepth + 1, entries, filter, maxEntries);
         continue;
       }
       if (!filter.test(item)) continue;
@@ -110,7 +110,7 @@ function walkDir(
     });
 
     if (isDir && currentDepth < maxDepth) {
-      walkDir(basePath, fullPath, maxDepth, currentDepth + 1, entries, filter);
+      walkDir(basePath, fullPath, maxDepth, currentDepth + 1, entries, filter, maxEntries);
     }
   }
 }
@@ -136,9 +136,11 @@ export function createLsTool(workspace: string) {
         glob?: string;
       };
 
+      const maxEntries = getSettingInt("GHOSTPAW_LS_MAX_ENTRIES") ?? 500;
+      const maxDepth = getSettingInt("GHOSTPAW_LS_MAX_DEPTH") ?? 5;
       const targetPath = dirPath || ".";
       const { fullPath } = resolvePath(workspace, targetPath);
-      const depth = Math.max(0, Math.min(depthArg && depthArg > 0 ? depthArg : 2, MAX_DEPTH));
+      const depth = Math.max(0, Math.min(depthArg && depthArg > 0 ? depthArg : 2, maxDepth));
 
       let stat: ReturnType<typeof statSync>;
       try {
@@ -153,9 +155,9 @@ export function createLsTool(workspace: string) {
 
       const filter = glob ? globToRegex(glob) : null;
       const entries: LsEntry[] = [];
-      walkDir(fullPath, fullPath, depth, 0, entries, filter);
+      walkDir(fullPath, fullPath, depth, 0, entries, filter, maxEntries);
 
-      const truncated = entries.length >= MAX_ENTRIES;
+      const truncated = entries.length >= maxEntries;
       const result: Record<string, unknown> = {
         entries,
         total: entries.length,

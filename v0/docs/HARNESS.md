@@ -107,9 +107,19 @@ Channels connect the agent to users and systems. The agent and session model are
 
 Both channels drive the same `Agent` interface. Future channels (web, Telegram) plug into the same boundary without touching the loop or the persistence layer. Pulse runs independently of all channels — it fires on timers whether or not any channel is active.
 
+## Settings
+
+A single SQLite table stores every configuration value and every secret. The canonical key is the environment variable name — `ANTHROPIC_API_KEY`, `GHOSTPAW_MODEL`, `GHOSTPAW_BASH_TIMEOUT_S` — no mapping layer, no translation. At boot, environment variables sync into the database; the database then pushes all settings (including code defaults for unset keys) into `process.env`. Every change via tool, slash command, or CLI updates both the database and `process.env` atomically. Child processes inherit the full environment. No restart required for any setting change — it takes effect immediately across the entire process tree.
+
+Secrets are marked at the key level. Their values never appear in tool output (masked as `***`), and an in-memory registry scrubs them from bash stdout/stderr before the LLM sees it. Input cleaning strips whitespace, quotes, and `export VAR=` syntax. Cross-slot validation catches wrong-provider keys (an Anthropic key pasted into the OpenAI slot). The attack surface is structural: the LLM can reference keys by name but never reads secret values — they resolve at the point of use.
+
+Every write creates a new row linked to its predecessor in a per-key chain. Source tracking records `user`, `chat`, or `env`. Undo walks the chain backward one step. Reset deletes the chain, returning to the code default. This immutable provenance is [what research identifies](https://arxiv.org/abs/2505.18279) as the key requirement for auditable shared state in multi-agent systems, and [SQLite transactions prevent the 95% deadlock rate](https://arxiv.org/abs/2602.13255) that emerges when LLM agents compete for shared state without external coordination.
+
+Three model tiers — `GHOSTPAW_MODEL_SMALL`, `GHOSTPAW_MODEL`, `GHOSTPAW_MODEL_LARGE` — auto-resolve per provider on boot. Today they define a global default. When the quest system provides per-task complexity estimation and independent sessions, they become the routing targets for [per-task model selection](https://arxiv.org/abs/2601.19402) — trivial work on the small model, hard reasoning on the large, everything else on the default. The settings infrastructure is the menu; the quest dispatcher will be the router.
+
 ## What's Built
 
-The harness is minimal but complete. It runs the LLM loop with tool access, persists everything losslessly, exposes the agent through two channels, augments every turn via the interceptor, and schedules autonomous work via the pulse engine.
+The harness is minimal but complete. It runs the LLM loop with tool access, persists everything losslessly, exposes the agent through two channels, augments every turn via the interceptor, schedules autonomous work via the pulse engine, and manages all operational state through a unified settings layer.
 
 **Interceptor subsystems** (synchronous, every turn):
 
@@ -125,3 +135,9 @@ Both run concurrently on every turn. The interceptor is generic — adding a thi
 - **Shell pulses** — user/LLM-created. Run bash commands on a schedule. Backups, monitoring, external integrations.
 
 Three scheduling modes (interval, cron, one-off), CAS at-most-once locking, 5-concurrent-dispatch cap, per-job timeouts, startup recovery. The `pulse` tool gives the LLM full CRUD management. See `PULSE.md` for full detail.
+
+**Settings** (operational infrastructure):
+
+- **29 known keys** — model tiers, provider secrets, tool limits, interceptor config, pulse tuning. Code defaults apply without database rows; explicit overrides are attributed and reversible.
+- **Secrets** — 7 provider/channel keys with output scrubbing, input cleaning, cross-slot validation. Masked in all tool output and list views.
+- **Surfaces** — `settings` LLM tool, `/config` and `/secret` slash commands, `ghostpaw config` and `ghostpaw secret` CLI with interactive masked input for secrets.

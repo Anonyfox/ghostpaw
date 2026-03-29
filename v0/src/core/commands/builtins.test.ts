@@ -6,25 +6,12 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 import { addMessage } from "../chat/messages.ts";
 import { createSession } from "../chat/session.ts";
-import type { Config } from "../config/config.ts";
-import { writeConfig } from "../config/config.ts";
 import { openMemoryDatabase } from "../db/open.ts";
+import { clearSecretRegistry } from "../settings/scrub.ts";
 import { registerBuiltins } from "./builtins.ts";
 import type { CommandRegistry } from "./registry.ts";
 import { createRegistry } from "./registry.ts";
 import type { CommandCtx } from "./types.ts";
-
-const STUB_INTERCEPTOR = { enabled: false, subsystems: {} } as const;
-function cfg(overrides: Partial<Config> = {}): Config {
-  return {
-    model: "test",
-    model_small: "test-small",
-    system_prompt: "p",
-    api_keys: {},
-    interceptor: STUB_INTERCEPTOR,
-    ...overrides,
-  };
-}
 
 let db: DatabaseHandle;
 let tmpDir: string;
@@ -35,11 +22,15 @@ beforeEach(() => {
   tmpDir = mkdtempSync(join(tmpdir(), "ghostpaw-cmd-test-"));
   registry = createRegistry();
   registerBuiltins(registry);
+  clearSecretRegistry();
 });
 
 afterEach(() => {
   db.close();
   rmSync(tmpDir, { recursive: true, force: true });
+  clearSecretRegistry();
+  delete process.env.GHOSTPAW_MODEL;
+  delete process.env.GHOSTPAW_MODEL_SMALL;
 });
 
 function ctx(sessionId: number | null = null): CommandCtx {
@@ -63,7 +54,6 @@ describe("help command", () => {
 
 describe("new command", () => {
   it("creates a new session", async () => {
-    writeConfig(tmpDir, cfg({ model: "test-model", system_prompt: "test" }));
     const result = await registry.execute("new", "", ctx());
     assert.ok(result.text.includes("Created session"));
     assert.ok(result.action);
@@ -85,18 +75,54 @@ describe("sessions command", () => {
 });
 
 describe("model command", () => {
-  it("shows current model when no args", async () => {
-    writeConfig(tmpDir, cfg({ model: "default-model" }));
+  it("shows default model when no args and no session", async () => {
+    process.env.GHOSTPAW_MODEL = "default-model";
     const result = await registry.execute("model", "", ctx());
     assert.ok(result.text.includes("default-model"));
   });
 
-  it("changes model and updates config", async () => {
-    writeConfig(tmpDir, cfg({ model: "old" }));
+  it("changes model and updates settings", async () => {
     const session = createSession(db, "old", "p");
     const result = await registry.execute("model", "new-model", ctx(session.id));
     assert.ok(result.text.includes("new-model"));
     assert.strictEqual(result.action!.type, "model_changed");
+    assert.strictEqual(process.env.GHOSTPAW_MODEL, "new-model");
+  });
+});
+
+describe("config command", () => {
+  it("lists config values with no args", async () => {
+    const result = await registry.execute("config", "", ctx());
+    assert.ok(result.text.length > 0);
+  });
+
+  it("gets a config value", async () => {
+    process.env.GHOSTPAW_MODEL = "test-model";
+    const result = await registry.execute("config", "model", ctx());
+    assert.ok(result.text.includes("test-model"));
+  });
+
+  it("sets a config value", async () => {
+    const result = await registry.execute("config", "model gpt-5.4", ctx());
+    assert.ok(result.text.includes("Set GHOSTPAW_MODEL"));
+    assert.strictEqual(process.env.GHOSTPAW_MODEL, "gpt-5.4");
+  });
+});
+
+describe("secret command", () => {
+  afterEach(() => {
+    delete process.env.ANTHROPIC_API_KEY;
+  });
+
+  it("lists secrets with no args", async () => {
+    const result = await registry.execute("secret", "", ctx());
+    assert.ok(typeof result.text === "string");
+  });
+
+  it("sets a secret value", async () => {
+    const result = await registry.execute("secret", "ANTHROPIC_API_KEY sk-ant-test1234", ctx());
+    assert.ok(result.text.includes("Set ANTHROPIC_API_KEY"));
+    assert.strictEqual(process.env.ANTHROPIC_API_KEY, "sk-ant-test1234");
   });
 });
 

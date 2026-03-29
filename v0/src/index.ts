@@ -8,8 +8,6 @@ import type { InterceptorContext, OneshotContext } from "./core/chat/turn.ts";
 import type { Agent } from "./core/chat/types.ts";
 import { registerBuiltins } from "./core/commands/builtins.ts";
 import { createRegistry } from "./core/commands/registry.ts";
-import type { Config } from "./core/config/config.ts";
-import { applyApiKeys, ensureApiKey, readConfig, resolveModels } from "./core/config/config.ts";
 import { openDatabase } from "./core/db/open.ts";
 import { openAffinityDatabase } from "./core/db/open_affinity.ts";
 import { openCodexDatabase } from "./core/db/open_codex.ts";
@@ -22,10 +20,19 @@ import { ensureDefaultPulses } from "./core/pulse/defaults.ts";
 import { startPulse } from "./core/pulse/engine.ts";
 import type { RunAgentTask } from "./core/pulse/types.ts";
 import { registerScribeSubsystem } from "./core/scribe/register.ts";
+import { applySettingsToEnv } from "./core/settings/apply_settings_to_env.ts";
+import type { Config } from "./core/settings/build_config.ts";
+import { buildConfig } from "./core/settings/build_config.ts";
+import { ensureApiKey } from "./core/settings/ensure_api_key.ts";
+import { getSettingInt } from "./core/settings/get.ts";
+import { resolveModels } from "./core/settings/resolve_models.ts";
+import { syncEnvToSettings } from "./core/settings/sync_env_to_settings.ts";
 import { createTools } from "./core/tools/index.ts";
 import { createPulseTool } from "./core/tools/pulse.ts";
+import { createSettingsTool } from "./core/tools/settings.ts";
 import { ensureHome, resolveHome } from "./home.ts";
 import type { DatabaseHandle } from "./lib/database_handle.ts";
+import { readSecret } from "./lib/read_secret.ts";
 import { VERSION } from "./lib/version.ts";
 
 const PULSE_HINT = `This is an autonomous scheduled task running in the background.
@@ -36,13 +43,14 @@ If you need to notify the user, use the available communication tools.`;
 function initShared(args: Record<string, unknown>) {
   const homePath = resolveHome({ home: args.home as string | undefined });
   ensureHome(homePath);
-  const config = readConfig(homePath);
-  applyApiKeys(config);
-  const resolved = resolveModels(config);
-  config.model = resolved.model;
-  config.model_small = resolved.model_small;
   const workspace = (args.workspace as string) || process.env.GHOSTPAW_WORKSPACE || process.cwd();
-  return { homePath, config, workspace };
+  return { homePath, workspace };
+}
+
+async function initSettings(db: DatabaseHandle): Promise<void> {
+  syncEnvToSettings(db);
+  applySettingsToEnv(db);
+  resolveModels(db);
 }
 
 function buildInterceptorContext(
@@ -62,7 +70,11 @@ function buildInterceptorContext(
 function buildOneshotContext(config: Config): OneshotContext {
   const registry = createOneshotRegistry();
   registerTitleOneshot(registry);
-  return { registry, modelSmall: config.model_small, timeoutMs: 60_000 };
+  return {
+    registry,
+    modelSmall: config.model_small,
+    timeoutMs: getSettingInt("GHOSTPAW_ONESHOT_TIMEOUT_MS") ?? 60_000,
+  };
 }
 
 function createPulseRunAgentTask(db: DatabaseHandle, config: Config, agent: Agent): RunAgentTask {
@@ -112,19 +124,21 @@ const runCommand = defineCommand({
     },
   },
   async run({ args }) {
-    const { homePath, config, workspace } = initShared(args);
-    if (!ensureApiKey(config, homePath)) process.exit(1);
-
+    const { homePath, workspace } = initShared(args);
     const db = await openDatabase(homePath);
+    await initSettings(db);
+    if (!ensureApiKey(homePath)) process.exit(1);
+
+    const config = buildConfig();
     const codexDb = await openCodexDatabase(homePath);
     const affinityDb = await openAffinityDatabase(homePath);
-    const scrubValues = Object.values(config.api_keys).filter(Boolean);
     const interceptorCtx = buildInterceptorContext(config, codexDb, affinityDb);
     const oneshotCtx = buildOneshotContext(config);
     const tools = [
-      ...createTools(workspace, scrubValues),
+      ...createTools(workspace),
       ...createDeflectionTools(interceptorCtx.registry),
       createPulseTool(db),
+      createSettingsTool(db),
     ];
     const agent = createAgent({ db, tools, interceptor: interceptorCtx, oneshots: oneshotCtx });
     ensureDefaultPulses(db);
@@ -155,6 +169,7 @@ const sessionsCommand = defineCommand({
   async run({ args }) {
     const { homePath } = initShared(args);
     const db = await openDatabase(homePath);
+    await initSettings(db);
     const registry = createRegistry();
     registerBuiltins(registry);
     try {
@@ -166,7 +181,7 @@ const sessionsCommand = defineCommand({
   },
 });
 
-const modelCommand = defineCommand({
+const modelCliCommand = defineCommand({
   meta: { name: "model", description: "Show or change the default model" },
   args: {
     home: { type: "string", description: "Ghostpaw home directory" },
@@ -175,6 +190,7 @@ const modelCommand = defineCommand({
   async run({ args }) {
     const { homePath } = initShared(args);
     const db = await openDatabase(homePath);
+    await initSettings(db);
     const registry = createRegistry();
     registerBuiltins(registry);
     try {
@@ -187,21 +203,59 @@ const modelCommand = defineCommand({
   },
 });
 
-const configCommand = defineCommand({
-  meta: { name: "config", description: "Show or edit config" },
+const configCliCommand = defineCommand({
+  meta: { name: "config", description: "List, get, set, reset, or undo config values" },
   args: {
     home: { type: "string", description: "Ghostpaw home directory" },
-    key: { type: "positional", description: "Config key", required: false },
-    value: { type: "positional", description: "Config value", required: false },
+    key: { type: "positional", description: "Config key or action (undo/reset)", required: false },
+    value: { type: "positional", description: "Config value or target key", required: false },
   },
   async run({ args }) {
     const { homePath } = initShared(args);
     const db = await openDatabase(homePath);
+    await initSettings(db);
     const registry = createRegistry();
     registerBuiltins(registry);
     try {
       const configArgs = [args.key, args.value].filter(Boolean).join(" ");
       const result = await registry.execute("config", configArgs, {
+        db,
+        homePath,
+        sessionId: null,
+      });
+      console.log(result.text);
+    } finally {
+      db.close();
+    }
+  },
+});
+
+const secretCliCommand = defineCommand({
+  meta: { name: "secret", description: "List, get, set, reset, or undo secrets" },
+  args: {
+    home: { type: "string", description: "Ghostpaw home directory" },
+    key: { type: "positional", description: "Secret key or action (undo/reset)", required: false },
+    value: { type: "positional", description: "Secret value or target key", required: false },
+  },
+  async run({ args }) {
+    const { homePath } = initShared(args);
+    const db = await openDatabase(homePath);
+    await initSettings(db);
+    const registry = createRegistry();
+    registerBuiltins(registry);
+    try {
+      let { key, value } = args;
+      const actionKeywords = new Set(["undo", "reset", "list"]);
+      if (key && !actionKeywords.has(key) && !value) {
+        value = await readSecret(`${key}: `);
+        if (!value) {
+          console.error("error: no value provided");
+          process.exitCode = 1;
+          return;
+        }
+      }
+      const secretArgs = [key, value].filter(Boolean).join(" ");
+      const result = await registry.execute("secret", secretArgs, {
         db,
         homePath,
         sessionId: null,
@@ -232,12 +286,12 @@ const main = defineCommand({
   subCommands: {
     run: runCommand,
     sessions: sessionsCommand,
-    model: modelCommand,
-    config: configCommand,
+    model: modelCliCommand,
+    config: configCliCommand,
+    secret: secretCliCommand,
   },
   async run({ args }) {
-    // citty falls through to parent run() after a subcommand — bail out
-    const subCmds = new Set(["run", "sessions", "model", "config"]);
+    const subCmds = new Set(["run", "sessions", "model", "config", "secret"]);
     const firstPositional = process.argv.slice(2).find((a) => !a.startsWith("-"));
     if (firstPositional && subCmds.has(firstPositional)) return;
 
@@ -251,24 +305,21 @@ const main = defineCommand({
     const homePath = resolveHome({ home: args.home as string | undefined });
     ensureHome(homePath);
 
-    const config = readConfig(homePath);
-    applyApiKeys(config);
-    const resolved = resolveModels(config);
-    config.model = resolved.model;
-    config.model_small = resolved.model_small;
-    if (!ensureApiKey(config, homePath)) process.exit(1);
-
-    const workspace = (args.workspace as string) || process.env.GHOSTPAW_WORKSPACE || process.cwd();
     const db = await openDatabase(homePath);
+    await initSettings(db);
+    if (!ensureApiKey(homePath)) process.exit(1);
+
+    const config = buildConfig();
+    const workspace = (args.workspace as string) || process.env.GHOSTPAW_WORKSPACE || process.cwd();
     const codexDb = await openCodexDatabase(homePath);
     const affinityDb = await openAffinityDatabase(homePath);
-    const scrubValues = Object.values(config.api_keys).filter(Boolean);
     const interceptorCtx = buildInterceptorContext(config, codexDb, affinityDb);
     const oneshotCtx = buildOneshotContext(config);
     const tools = [
-      ...createTools(workspace, scrubValues),
+      ...createTools(workspace),
       ...createDeflectionTools(interceptorCtx.registry),
       createPulseTool(db),
+      createSettingsTool(db),
     ];
     const agent = createAgent({ db, tools, interceptor: interceptorCtx, oneshots: oneshotCtx });
     ensureDefaultPulses(db);

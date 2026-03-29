@@ -1,16 +1,15 @@
 import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
+import { getSettingInt } from "../settings/get.ts";
 import { runBuiltin } from "./builtins.ts";
 import { claimPulse } from "./claim.ts";
 import { cap, completeRun } from "./complete.ts";
 import { nextCronRun } from "./cron.ts";
 import type { Pulse, RunAgentTask } from "./types.ts";
 
-const MAX_CONCURRENT = 5;
 const MAX_OUTPUT = 2048;
 const ONE_OFF_SENTINEL = "9999-12-31T23:59:59.000Z";
-const TICK_MS = 60_000;
 const STOP_WAIT_MS = 5000;
 const PRUNE_EVERY_TICKS = 60;
 
@@ -60,8 +59,9 @@ function resetStalePulses(db: DatabaseHandle): void {
 }
 
 function pruneRunHistory(db: DatabaseHandle): void {
+  const days = getSettingInt("GHOSTPAW_PULSE_HISTORY_DAYS") ?? 7;
   db.prepare(
-    "DELETE FROM pulse_runs WHERE created_at < strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days')",
+    `DELETE FROM pulse_runs WHERE created_at < strftime('%Y-%m-%dT%H:%M:%fZ','now','-${days} days')`,
   ).run();
 }
 
@@ -254,7 +254,7 @@ export function startPulse(db: DatabaseHandle, runAgentTask: RunAgentTask): Puls
       tickCount++;
       handleTimeouts(db, active);
 
-      const slotsAvailable = MAX_CONCURRENT - active.size;
+      const slotsAvailable = (getSettingInt("GHOSTPAW_PULSE_MAX_CONCURRENT") ?? 5) - active.size;
       if (slotsAvailable <= 0) {
         return;
       }
@@ -298,7 +298,7 @@ export function startPulse(db: DatabaseHandle, runAgentTask: RunAgentTask): Puls
 
   timer = setInterval(() => {
     void guardedTick();
-  }, TICK_MS);
+  }, getSettingInt("GHOSTPAW_PULSE_TICK_MS") ?? 60_000);
   void guardedTick();
 
   return {

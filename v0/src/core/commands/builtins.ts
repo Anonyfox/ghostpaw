@@ -1,6 +1,13 @@
 import { deleteFromOrdinal, getMessages } from "../chat/messages.ts";
 import { createSession, getSession, listSessions, updateSessionModel } from "../chat/session.ts";
-import { readConfig, writeConfig } from "../config/config.ts";
+import { buildConfig } from "../settings/build_config.ts";
+import { canonicalizeKey } from "../settings/canonicalize.ts";
+import { getSetting } from "../settings/get.ts";
+import { KNOWN_SETTINGS } from "../settings/known.ts";
+import { listSettings } from "../settings/list.ts";
+import { resetSetting } from "../settings/reset.ts";
+import { setSetting } from "../settings/set.ts";
+import { undoSetting } from "../settings/undo.ts";
 import type { CommandRegistry } from "./registry.ts";
 import type { Command } from "./types.ts";
 
@@ -22,7 +29,7 @@ const newCommand: Command = {
   slash: true,
   cli: false,
   async execute(ctx) {
-    const config = readConfig(ctx.homePath);
+    const config = buildConfig();
     const session = createSession(ctx.db, config.model, config.system_prompt);
     return {
       text: `Created session ${session.id}`,
@@ -75,7 +82,7 @@ const switchCommand: Command = {
 
 const modelCommand: Command = {
   name: "model",
-  description: "Show or change the model (updates session AND config default)",
+  description: "Show or change the model (updates session AND default setting)",
   args: "[model_name]",
   slash: true,
   cli: true,
@@ -86,17 +93,14 @@ const modelCommand: Command = {
         const session = getSession(ctx.db, ctx.sessionId);
         if (session) return { text: `Current model: ${session.model}` };
       }
-      const config = readConfig(ctx.homePath);
-      return { text: `Default model: ${config.model}` };
+      return { text: `Default model: ${getSetting("GHOSTPAW_MODEL") ?? "claude-sonnet-4-5"}` };
     }
 
     if (ctx.sessionId) {
       updateSessionModel(ctx.db, ctx.sessionId, modelName);
     }
 
-    const config = readConfig(ctx.homePath);
-    config.model = modelName;
-    writeConfig(ctx.homePath, config);
+    setSetting(ctx.db, "model", modelName);
 
     return {
       text: `Model changed to ${modelName}`,
@@ -141,44 +145,97 @@ const undoCommand: Command = {
   },
 };
 
+function formatSettingsList(
+  db: import("../../lib/database_handle.ts").DatabaseHandle,
+  secretOnly: boolean,
+): string {
+  const entries = listSettings(db);
+  const filtered = secretOnly ? entries.filter((e) => e.secret) : entries.filter((e) => !e.secret);
+  if (filtered.length === 0) return secretOnly ? "No secrets configured." : "No config values set.";
+
+  let currentCategory = "";
+  const lines: string[] = [];
+  for (const e of filtered) {
+    if (e.category !== currentCategory) {
+      if (lines.length > 0) lines.push("");
+      lines.push(`[${e.category}]`);
+      currentCategory = e.category;
+    }
+    const defaultTag = e.isDefault ? " (default)" : "";
+    lines.push(`  ${e.key} = ${e.value}${defaultTag}`);
+  }
+  return lines.join("\n");
+}
+
+function executeSettingsCrud(
+  db: import("../../lib/database_handle.ts").DatabaseHandle,
+  args: string,
+  defaultSecret: boolean,
+): string {
+  const parts = args.trim().split(/\s+/);
+  const rawKey = parts[0];
+  const rawValue = parts.slice(1).join(" ");
+
+  if (!rawKey || rawKey === "") {
+    return formatSettingsList(db, defaultSecret);
+  }
+
+  if (!rawValue) {
+    if (rawKey === "undo") {
+      return "Usage: /config undo <key> or /secret undo <key>";
+    }
+    if (rawKey === "reset") {
+      return "Usage: /config reset <key> or /secret reset <key>";
+    }
+    const key = canonicalizeKey(rawKey);
+    const known = KNOWN_SETTINGS[key];
+    const val = getSetting(key);
+    if (val === undefined && !known) return `Unknown setting: ${key}`;
+    const isSecret = known?.secret ?? false;
+    const display = isSecret ? "***" : (val ?? known?.defaultValue ?? "(not set)");
+    return `${key} = ${display}`;
+  }
+
+  if (rawKey === "undo") {
+    const key = canonicalizeKey(rawValue);
+    const result = undoSetting(db, key);
+    if (!result.undone) return `Nothing to undo for: ${key}`;
+    const current = getSetting(key);
+    return `Undone ${key} -> ${current ?? "(default)"}`;
+  }
+
+  if (rawKey === "reset") {
+    const key = canonicalizeKey(rawValue);
+    const result = resetSetting(db, key);
+    if (result.deleted === 0) return `No setting found: ${key}`;
+    return `Reset ${key} to default (${result.deleted} entries cleared)`;
+  }
+
+  const result = setSetting(db, rawKey, rawValue, { secret: defaultSecret });
+  let msg = `Set ${result.key} = ${rawValue}`;
+  if (result.warning) msg += `\nWarning: ${result.warning}`;
+  return msg;
+}
+
 const configCommand: Command = {
   name: "config",
-  description: "Show or edit config values",
-  args: "[key] [value]",
-  slash: false,
+  description: "List, get, set, reset, or undo config values",
+  args: "[key|undo|reset] [value|key]",
+  slash: true,
   cli: true,
   async execute(ctx, args) {
-    const parts = args.trim().split(/\s+/);
-    const config = readConfig(ctx.homePath);
+    return { text: executeSettingsCrud(ctx.db, args, false) };
+  },
+};
 
-    if (!parts[0] || parts[0] === "") {
-      return { text: JSON.stringify(config, null, 2) };
-    }
-
-    const key = parts[0];
-    const value = parts.slice(1).join(" ");
-
-    if (!value) {
-      const val = (config as unknown as Record<string, unknown>)[key];
-      if (val === undefined) return { text: `Unknown config key: ${key}` };
-      return { text: `${key} = ${JSON.stringify(val)}` };
-    }
-
-    if (key === "model") {
-      config.model = value;
-    } else if (key === "system_prompt") {
-      config.system_prompt = value;
-    } else if (key.startsWith("api_keys.")) {
-      const provider = key.slice("api_keys.".length);
-      config.api_keys[provider] = value;
-    } else {
-      return {
-        text: `Unknown config key: ${key}. Valid: model, system_prompt, api_keys.<provider>`,
-      };
-    }
-
-    writeConfig(ctx.homePath, config);
-    return { text: `Set ${key} = ${value}` };
+const secretCommand: Command = {
+  name: "secret",
+  description: "List, get, set, reset, or undo secrets",
+  args: "[key|undo|reset] [value|key]",
+  slash: true,
+  cli: true,
+  async execute(ctx, args) {
+    return { text: executeSettingsCrud(ctx.db, args, true) };
   },
 };
 
@@ -230,5 +287,6 @@ export function registerBuiltins(registry: CommandRegistry): void {
   registry.register(undoCommand);
   registry.register(ghostCommand);
   registry.register(configCommand);
+  registry.register(secretCommand);
   registry.register(quitCommand);
 }

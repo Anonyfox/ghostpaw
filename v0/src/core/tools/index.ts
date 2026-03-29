@@ -10,14 +10,14 @@ import { createWebFetchTool } from "./web_fetch.ts";
 import { createWebSearchTool } from "./web_search/index.ts";
 import { createWriteTool } from "./write.ts";
 
-export function createTools(workspace: string, scrubValues: string[] = []): Tool[] {
+export function createTools(workspace: string): Tool[] {
   return [
     createReadTool(workspace),
     createWriteTool(workspace),
     createEditTool(workspace),
     createLsTool(workspace),
     createGrepTool(workspace),
-    createBashTool(workspace, scrubValues),
+    createBashTool(workspace),
     createCalcTool(),
     createDatetimeTool(),
     createWebSearchTool(),

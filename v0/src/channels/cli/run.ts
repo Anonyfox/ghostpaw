@@ -1,6 +1,6 @@
 import { createSession, getSession } from "../../core/chat/session.ts";
 import type { Agent } from "../../core/chat/types.ts";
-import type { Config } from "../../core/config/config.ts";
+import type { Config } from "../../core/settings/build_config.ts";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 
 export async function executeRun(

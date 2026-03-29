@@ -2,8 +2,8 @@ import assert from "node:assert";
 import { describe, it } from "node:test";
 import { addMessage } from "../chat/messages.ts";
 import { createSession } from "../chat/session.ts";
-import type { InterceptorConfig } from "../config/config.ts";
 import { openMemoryDatabase } from "../db/open.ts";
+import type { InterceptorConfig } from "../settings/build_config.ts";
 import { runInterceptor } from "./interceptor.ts";
 import { createSubsystemRegistry } from "./registry.ts";
 

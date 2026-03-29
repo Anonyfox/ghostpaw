@@ -2,7 +2,7 @@ import * as readline from "node:readline";
 import { createSession, getSession, listSessions } from "../../core/chat/session.ts";
 import type { Agent, TurnResult } from "../../core/chat/types.ts";
 import type { CommandRegistry } from "../../core/commands/registry.ts";
-import type { Config } from "../../core/config/config.ts";
+import type { Config } from "../../core/settings/build_config.ts";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 import { bold, cyan, dim, gray, green, yellow } from "../../lib/terminal/style.ts";
 import { VERSION } from "../../lib/version.ts";

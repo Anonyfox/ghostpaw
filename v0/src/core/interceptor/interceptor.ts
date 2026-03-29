@@ -1,7 +1,7 @@
 import { Message } from "chatoyant";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 import { nextOrdinal } from "../chat/messages.ts";
-import type { InterceptorConfig } from "../config/config.ts";
+import type { InterceptorConfig } from "../settings/build_config.ts";
 import { filterContextForSubsystem } from "./context_filter.ts";
 import type { SubsystemDefinition, SubsystemRegistry } from "./registry.ts";
 
