@@ -4,14 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { Config, InterceptorConfig } from "./config.ts";
-import {
-  applyApiKeys,
-  applyModels,
-  ensureApiKey,
-  readConfig,
-  resolveModel,
-  writeConfig,
-} from "./config.ts";
+import { applyApiKeys, ensureApiKey, readConfig, resolveModels, writeConfig } from "./config.ts";
 
 const STUB_INTERCEPTOR: InterceptorConfig = {
   enabled: false,
@@ -33,6 +26,8 @@ describe("readConfig", () => {
     const config = readConfig(tmpDir);
     assert.strictEqual(typeof config.model, "string");
     assert.ok(config.model.length > 0);
+    assert.strictEqual(typeof config.model_small, "string");
+    assert.ok(config.model_small.length > 0);
     assert.strictEqual(typeof config.system_prompt, "string");
     assert.ok(config.system_prompt.length > 0);
     assert.deepStrictEqual(config.api_keys, {});
@@ -41,7 +36,7 @@ describe("readConfig", () => {
   it("reads back written config", () => {
     const config: Config = {
       model: "custom-model",
-      models: { anthropic: "claude-test" },
+      model_small: "custom-small",
       system_prompt: "Custom prompt",
       api_keys: { anthropic: "sk-test" },
       interceptor: STUB_INTERCEPTOR,
@@ -49,9 +44,39 @@ describe("readConfig", () => {
     writeConfig(tmpDir, config);
     const loaded = readConfig(tmpDir);
     assert.strictEqual(loaded.model, "custom-model");
-    assert.strictEqual(loaded.models.anthropic, "claude-test");
+    assert.strictEqual(loaded.model_small, "custom-small");
     assert.strictEqual(loaded.system_prompt, "Custom prompt");
     assert.strictEqual(loaded.api_keys.anthropic, "sk-test");
+  });
+
+  it("default config includes subsystem knobs", () => {
+    const config = readConfig(tmpDir);
+    const scribe = config.interceptor.subsystems.scribe;
+    assert.strictEqual(scribe.enabled, true);
+    assert.strictEqual(scribe.lookback, 3);
+    assert.strictEqual(scribe.max_iterations, 15);
+    assert.strictEqual(scribe.timeout_ms, 60000);
+
+    const innkeeper = config.interceptor.subsystems.innkeeper;
+    assert.strictEqual(innkeeper.enabled, true);
+    assert.strictEqual(innkeeper.max_iterations, 15);
+  });
+
+  it("partial subsystem override merges with defaults", () => {
+    const path = join(tmpDir, "config.json");
+    writeFileSync(
+      path,
+      JSON.stringify({
+        interceptor: { subsystems: { scribe: { max_iterations: 5 } } },
+      }),
+      "utf-8",
+    );
+    const config = readConfig(tmpDir);
+    const scribe = config.interceptor.subsystems.scribe;
+    assert.strictEqual(scribe.max_iterations, 5);
+    assert.strictEqual(scribe.enabled, true);
+    assert.strictEqual(scribe.lookback, 3);
+    assert.strictEqual(scribe.timeout_ms, 60000);
   });
 
   it("handles malformed JSON gracefully", () => {
@@ -82,7 +107,7 @@ describe("applyApiKeys", () => {
   it("sets environment variables from config", () => {
     const config: Config = {
       model: "m",
-      models: {},
+      model_small: "ms",
       system_prompt: "p",
       api_keys: { anthropic: "sk-test-123" },
       interceptor: STUB_INTERCEPTOR,
@@ -95,7 +120,7 @@ describe("applyApiKeys", () => {
     process.env.API_KEY_ANTHROPIC = "existing";
     const config: Config = {
       model: "m",
-      models: {},
+      model_small: "ms",
       system_prompt: "p",
       api_keys: { anthropic: "sk-new" },
       interceptor: STUB_INTERCEPTOR,
@@ -107,13 +132,7 @@ describe("applyApiKeys", () => {
 
 describe("ensureApiKey", () => {
   const originalEnv: Record<string, string | undefined> = {};
-  const envKeys = [
-    "API_KEY_ANTHROPIC",
-    "API_KEY_OPENAI",
-    "API_KEY_XAI",
-    "API_KEY_GOOGLE",
-    "API_KEY_GROQ",
-  ];
+  const envKeys = ["API_KEY_ANTHROPIC", "API_KEY_OPENAI", "API_KEY_XAI"];
 
   beforeEach(() => {
     for (const key of envKeys) {
@@ -133,7 +152,7 @@ describe("ensureApiKey", () => {
     process.env.API_KEY_ANTHROPIC = "sk-test";
     const config: Config = {
       model: "m",
-      models: {},
+      model_small: "ms",
       system_prompt: "p",
       api_keys: {},
       interceptor: STUB_INTERCEPTOR,
@@ -144,7 +163,7 @@ describe("ensureApiKey", () => {
   it("returns true when config has a key", () => {
     const config: Config = {
       model: "m",
-      models: {},
+      model_small: "ms",
       system_prompt: "p",
       api_keys: { anthropic: "sk-test" },
       interceptor: STUB_INTERCEPTOR,
@@ -155,7 +174,7 @@ describe("ensureApiKey", () => {
   it("returns false when no keys at all", () => {
     const config: Config = {
       model: "m",
-      models: {},
+      model_small: "ms",
       system_prompt: "p",
       api_keys: {},
       interceptor: STUB_INTERCEPTOR,
@@ -164,48 +183,7 @@ describe("ensureApiKey", () => {
   });
 });
 
-describe("applyModels", () => {
-  const originalEnv: Record<string, string | undefined> = {};
-
-  beforeEach(() => {
-    originalEnv.MODEL_ANTHROPIC = process.env.MODEL_ANTHROPIC;
-    delete process.env.MODEL_ANTHROPIC;
-  });
-
-  afterEach(() => {
-    if (originalEnv.MODEL_ANTHROPIC !== undefined)
-      process.env.MODEL_ANTHROPIC = originalEnv.MODEL_ANTHROPIC;
-    else delete process.env.MODEL_ANTHROPIC;
-  });
-
-  it("reads model from env into config.models", () => {
-    process.env.MODEL_ANTHROPIC = "claude-test";
-    const config: Config = {
-      model: "m",
-      models: {},
-      system_prompt: "p",
-      api_keys: {},
-      interceptor: STUB_INTERCEPTOR,
-    };
-    applyModels(config);
-    assert.strictEqual(config.models.anthropic, "claude-test");
-  });
-
-  it("env var overrides existing models entry", () => {
-    process.env.MODEL_ANTHROPIC = "claude-env";
-    const config: Config = {
-      model: "m",
-      models: { anthropic: "claude-config" },
-      system_prompt: "p",
-      api_keys: {},
-      interceptor: STUB_INTERCEPTOR,
-    };
-    applyModels(config);
-    assert.strictEqual(config.models.anthropic, "claude-env");
-  });
-});
-
-describe("resolveModel", () => {
+describe("resolveModels", () => {
   const originalEnv: Record<string, string | undefined> = {};
 
   beforeEach(() => {
@@ -222,37 +200,43 @@ describe("resolveModel", () => {
     }
   });
 
-  it("returns per-provider model when API key is present", () => {
+  it("returns provider defaults when API key is present", () => {
     process.env.API_KEY_OPENAI = "sk-test";
     const config: Config = {
       model: "fallback",
-      models: { openai: "gpt-test" },
+      model_small: "fallback-small",
       system_prompt: "p",
       api_keys: {},
       interceptor: STUB_INTERCEPTOR,
     };
-    assert.strictEqual(resolveModel(config), "gpt-test");
+    const result = resolveModels(config);
+    assert.strictEqual(result.model, "gpt-5.4");
+    assert.strictEqual(result.model_small, "gpt-5.4-mini");
   });
 
-  it("falls back to config.model when no provider match", () => {
+  it("falls back to config values when no provider match", () => {
     const config: Config = {
       model: "fallback",
-      models: { openai: "gpt-test" },
+      model_small: "fallback-small",
       system_prompt: "p",
       api_keys: {},
       interceptor: STUB_INTERCEPTOR,
     };
-    assert.strictEqual(resolveModel(config), "fallback");
+    const result = resolveModels(config);
+    assert.strictEqual(result.model, "fallback");
+    assert.strictEqual(result.model_small, "fallback-small");
   });
 
   it("uses api_keys from config for resolution", () => {
     const config: Config = {
       model: "fallback",
-      models: { xai: "grok-test" },
+      model_small: "fallback-small",
       system_prompt: "p",
       api_keys: { xai: "xai-key" },
       interceptor: STUB_INTERCEPTOR,
     };
-    assert.strictEqual(resolveModel(config), "grok-test");
+    const result = resolveModels(config);
+    assert.strictEqual(result.model, "grok-4-1");
+    assert.strictEqual(result.model_small, "grok-4-1-fast-non-reasoning");
   });
 });

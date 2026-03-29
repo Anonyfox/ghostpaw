@@ -4,21 +4,17 @@ import { createAgent } from "./agent.ts";
 import { executeRun } from "./channels/cli/run.ts";
 import { runTui } from "./channels/tui/tui.ts";
 import type { InterceptorContext } from "./core/chat/turn.ts";
-import { registerScribeSubsystem } from "./core/scribe/register.ts";
 import { registerBuiltins } from "./core/commands/builtins.ts";
 import { createRegistry } from "./core/commands/registry.ts";
 import type { Config } from "./core/config/config.ts";
-import {
-  applyApiKeys,
-  applyModels,
-  ensureApiKey,
-  readConfig,
-  resolveModel,
-} from "./core/config/config.ts";
+import { applyApiKeys, ensureApiKey, readConfig, resolveModels } from "./core/config/config.ts";
 import { openDatabase } from "./core/db/open.ts";
+import { openAffinityDatabase } from "./core/db/open_affinity.ts";
 import { openCodexDatabase } from "./core/db/open_codex.ts";
+import { registerInnkeeperSubsystem } from "./core/innkeeper/register.ts";
 import { createSubsystemRegistry } from "./core/interceptor/registry.ts";
 import { createDeflectionTools } from "./core/interceptor/self_call.ts";
+import { registerScribeSubsystem } from "./core/scribe/register.ts";
 import { createTools } from "./core/tools/index.ts";
 import { ensureHome, resolveHome } from "./home.ts";
 import type { DatabaseHandle } from "./lib/database_handle.ts";
@@ -29,18 +25,25 @@ function initShared(args: Record<string, unknown>) {
   ensureHome(homePath);
   const config = readConfig(homePath);
   applyApiKeys(config);
-  applyModels(config);
-  config.model = resolveModel(config);
+  const resolved = resolveModels(config);
+  config.model = resolved.model;
+  config.model_small = resolved.model_small;
   const workspace = (args.workspace as string) || process.env.GHOSTPAW_WORKSPACE || process.cwd();
   return { homePath, config, workspace };
 }
 
-function buildInterceptorContext(config: Config, codexDb: DatabaseHandle): InterceptorContext {
+function buildInterceptorContext(
+  config: Config,
+  codexDb: DatabaseHandle,
+  affinityDb: DatabaseHandle,
+): InterceptorContext {
   const registry = createSubsystemRegistry();
   registerScribeSubsystem(registry);
+  registerInnkeeperSubsystem(registry);
   const subsystemDbs = new Map<string, DatabaseHandle>();
   subsystemDbs.set("scribe", codexDb);
-  return { registry, config: config.interceptor, subsystemDbs };
+  subsystemDbs.set("innkeeper", affinityDb);
+  return { registry, config: config.interceptor, subsystemDbs, modelSmall: config.model_small };
 }
 
 const runCommand = defineCommand({
@@ -52,6 +55,11 @@ const runCommand = defineCommand({
     session: { type: "string", alias: "s", description: "Continue session by ID" },
     model: { type: "string", alias: "m", description: "Override model" },
     "no-stream": { type: "boolean", description: "Wait for full response", default: false },
+    ghost: {
+      type: "boolean",
+      description: "Bypass subsystem interceptors for this turn",
+      default: false,
+    },
   },
   async run({ args }) {
     const { homePath, config, workspace } = initShared(args);
@@ -59,8 +67,9 @@ const runCommand = defineCommand({
 
     const db = await openDatabase(homePath);
     const codexDb = await openCodexDatabase(homePath);
+    const affinityDb = await openAffinityDatabase(homePath);
     const scrubValues = Object.values(config.api_keys).filter(Boolean);
-    const interceptorCtx = buildInterceptorContext(config, codexDb);
+    const interceptorCtx = buildInterceptorContext(config, codexDb, affinityDb);
     const tools = [
       ...createTools(workspace, scrubValues),
       ...createDeflectionTools(interceptorCtx.registry),
@@ -73,8 +82,10 @@ const runCommand = defineCommand({
         session: args.session as string | undefined,
         model: args.model as string | undefined,
         noStream: args["no-stream"] as boolean | undefined,
+        ghost: args.ghost as boolean | undefined,
       });
     } finally {
+      affinityDb.close();
       codexDb.close();
       db.close();
     }
@@ -187,15 +198,17 @@ const main = defineCommand({
 
     const config = readConfig(homePath);
     applyApiKeys(config);
-    applyModels(config);
-    config.model = resolveModel(config);
+    const resolved = resolveModels(config);
+    config.model = resolved.model;
+    config.model_small = resolved.model_small;
     if (!ensureApiKey(config, homePath)) process.exit(1);
 
     const workspace = (args.workspace as string) || process.env.GHOSTPAW_WORKSPACE || process.cwd();
     const db = await openDatabase(homePath);
     const codexDb = await openCodexDatabase(homePath);
+    const affinityDb = await openAffinityDatabase(homePath);
     const scrubValues = Object.values(config.api_keys).filter(Boolean);
-    const interceptorCtx = buildInterceptorContext(config, codexDb);
+    const interceptorCtx = buildInterceptorContext(config, codexDb, affinityDb);
     const tools = [
       ...createTools(workspace, scrubValues),
       ...createDeflectionTools(interceptorCtx.registry),
@@ -207,6 +220,7 @@ const main = defineCommand({
     try {
       await runTui(db, agent, registry, config, homePath);
     } finally {
+      affinityDb.close();
       codexDb.close();
       db.close();
     }

@@ -17,6 +17,7 @@ interface TuiState {
   streaming: boolean;
   streamAbort: AbortController | null;
   toolStatus: string;
+  ghostMode: boolean;
 }
 
 function getSize(): { rows: number; cols: number } {
@@ -56,8 +57,9 @@ function paint(state: TuiState, inputState: ReturnType<typeof createInputState>)
   buf += ansi.cursorTo(rows - 1, 1);
   buf += ansi.clearLine;
   const session = `session:${state.sessionId}`;
+  const ghostTag = state.ghostMode ? ` ${dim("|")} ${yellow("ghost")}` : "";
   const status = state.toolStatus || (state.streaming ? "streaming..." : "ready");
-  const statusLine = ` ${dim(session)} ${dim("|")} ${dim(status)}`;
+  const statusLine = ` ${dim(session)}${ghostTag} ${dim("|")} ${dim(status)}`;
   buf += statusLine.slice(0, cols);
 
   buf += ansi.cursorTo(rows, 1);
@@ -79,7 +81,6 @@ export async function runTui(
   config: Config,
   homePath: string,
 ): Promise<void> {
-
   const sessions = listSessions(db);
   let session =
     sessions.length > 0
@@ -93,6 +94,7 @@ export async function runTui(
     streaming: false,
     streamAbort: null,
     toolStatus: "",
+    ghostMode: false,
   };
 
   const inputState = createInputState();
@@ -132,6 +134,17 @@ export async function runTui(
           pushLines(state, bold(`Session ${session.id} | ${session.model}`), c);
           pushLines(state, "", c);
         }
+        if (result.action.type === "ghost_toggle") {
+          state.ghostMode = !state.ghostMode;
+          pushLines(
+            state,
+            dim(
+              `Ghost mode ${state.ghostMode ? "on" : "off"} — subsystem interceptors ${state.ghostMode ? "bypassed" : "active"}`,
+            ),
+            c,
+          );
+          pushLines(state, "", c);
+        }
         if (result.action.type === "quit") {
           cleanup();
           process.exit(0);
@@ -156,6 +169,7 @@ export async function runTui(
     let streamedContent = "";
     try {
       const stream = agent.streamTurn(state.sessionId, text, {
+        ghost: state.ghostMode,
         onToolCallStart: (calls) => {
           state.toolStatus = calls.map((c) => `${c.name}...`).join(", ");
           paint(state, inputState);

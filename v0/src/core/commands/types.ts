@@ -13,6 +13,7 @@ export type CommandResult = {
     | { type: "switch_session"; sessionId: number }
     | { type: "model_changed"; model: string }
     | { type: "undo"; removedCount: number }
+    | { type: "ghost_toggle" }
     | { type: "quit" };
 };
 

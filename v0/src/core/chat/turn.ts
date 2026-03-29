@@ -15,6 +15,7 @@ export interface InterceptorContext {
   registry: SubsystemRegistry;
   config: InterceptorConfig;
   subsystemDbs: Map<string, DatabaseHandle>;
+  modelSmall: string;
 }
 
 function emptyResult(sessionId: number, content: string, model: string): TurnResult {
@@ -45,7 +46,7 @@ export async function* streamTurn(
   const model = options?.model ?? session.model;
   const userMessageId = addMessage(db, sessionId, "user", content, { source: "organic" });
 
-  if (interceptor && session.purpose === "chat") {
+  if (interceptor && session.purpose === "chat" && !options?.ghost) {
     await runInterceptor({
       chatDb: db,
       subsystemDbs: interceptor.subsystemDbs,
@@ -53,7 +54,7 @@ export async function* streamTurn(
       config: interceptor.config,
       sessionId,
       triggerMessageId: userMessageId,
-      model,
+      modelSmall: interceptor.modelSmall,
     });
   }
 

@@ -42,6 +42,7 @@ export interface TurnOptions {
   maxIterations?: number;
   temperature?: number;
   reasoning?: "off" | "low" | "medium" | "high";
+  ghost?: boolean;
   onToolCallStart?: (calls: ToolCallInfo[]) => void;
   onToolCallComplete?: (results: ToolResultInfo[]) => void;
 }

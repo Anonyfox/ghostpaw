@@ -182,6 +182,16 @@ const configCommand: Command = {
   },
 };
 
+const ghostCommand: Command = {
+  name: "ghost",
+  description: "Toggle ghost mode (bypass subsystem interceptors)",
+  slash: true,
+  cli: false,
+  async execute() {
+    return { text: "", action: { type: "ghost_toggle" } };
+  },
+};
+
 const quitCommand: Command = {
   name: "quit",
   description: "Exit the application",
@@ -218,6 +228,7 @@ export function registerBuiltins(registry: CommandRegistry): void {
   registry.register(switchCommand);
   registry.register(modelCommand);
   registry.register(undoCommand);
+  registry.register(ghostCommand);
   registry.register(configCommand);
   registry.register(quitCommand);
 }

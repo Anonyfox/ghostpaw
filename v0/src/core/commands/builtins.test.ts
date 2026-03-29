@@ -18,7 +18,7 @@ const STUB_INTERCEPTOR = { enabled: false, subsystems: {} } as const;
 function cfg(overrides: Partial<Config> = {}): Config {
   return {
     model: "test",
-    models: {},
+    model_small: "test-small",
     system_prompt: "p",
     api_keys: {},
     interceptor: STUB_INTERCEPTOR,

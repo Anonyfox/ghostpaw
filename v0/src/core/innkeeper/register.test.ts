@@ -1,17 +1,17 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
 import { createSubsystemRegistry } from "../interceptor/registry.ts";
-import { registerScribeSubsystem } from "./register.ts";
+import { registerInnkeeperSubsystem } from "./register.ts";
 
-describe("registerScribeSubsystem", () => {
-  it("registers the scribe subsystem in the registry", () => {
+describe("registerInnkeeperSubsystem", () => {
+  it("registers the innkeeper subsystem in the registry", () => {
     const registry = createSubsystemRegistry();
-    registerScribeSubsystem(registry);
+    registerInnkeeperSubsystem(registry);
 
-    assert.deepStrictEqual(registry.names(), ["scribe"]);
-    const def = registry.get("scribe");
+    assert.deepStrictEqual(registry.names(), ["innkeeper"]);
+    const def = registry.get("innkeeper");
     assert.ok(def);
-    assert.strictEqual(def.name, "scribe");
+    assert.strictEqual(def.name, "innkeeper");
     assert.strictEqual(def.defaultLookback, 3);
     assert.strictEqual(def.defaultTimeoutMs, 60000);
     assert.strictEqual(typeof def.run, "function");

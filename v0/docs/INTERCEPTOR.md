@@ -23,11 +23,12 @@ Prefix caching is the key constraint. Providers cache the system prompt and prio
 The LLM sees:
 
 ```
-[system prompt]                                       ← cached, never changes
-[user₁] [assistant₁] ... [userN₋₁] [assistantN₋₁]   ← cached, prior turns
-[userN]                                               ← new user message
-[assistant: tool_calls=[subsystem_scribe]]            ← synthetic, harness-generated
-[tool: scribe result summary]                         ← synthetic
+[system prompt]                                                    ← cached, never changes
+[user₁] [assistant₁] ... [userN₋₁] [assistantN₋₁]                ← cached, prior turns
+[userN]                                                            ← new user message
+[assistant: tool_calls=[subsystem_scribe, subsystem_innkeeper]]    ← synthetic, harness-generated
+[tool: scribe result summary]                                      ← synthetic
+[tool: innkeeper result summary]                                   ← synthetic
 → LLM generates actual response here
 ```
 
@@ -105,7 +106,7 @@ The `source` column distinguishes synthetic entries (`'synthetic'`) from organic
 
 ### Deflection Tools
 
-The main LLM sees tools named `subsystem_scribe` (etc.) in its history and might try to call them directly. The harness registers these as real tools with instant handlers that return:
+The main LLM sees tools named `subsystem_scribe`, `subsystem_innkeeper` (etc.) in its history and might try to call them directly. The harness registers these as real tools with instant handlers that return:
 
 > "This subsystem runs automatically every turn. Its latest results are already in your context above. You do not need to call it."
 
@@ -132,11 +133,14 @@ Child sessions are regular session rows with `purpose = 'subsystem_turn'` and pa
 ```
 Session #3 (chat)
   ├── message #140 (user, organic): "Had a great weekend hiking with Sarah"
-  ├── message #141 (assistant, synthetic): tool_calls=[subsystem_scribe]
-  │     └── child session #47 (subsystem_turn, parent=#3, triggered_by=#140)
-  │           └── [scribe's own messages and tool calls against codex.db]
+  ├── message #141 (assistant, synthetic): tool_calls=[subsystem_scribe, subsystem_innkeeper]
+  │     ├── child session #47 (subsystem_turn, parent=#3, triggered_by=#140)
+  │     │     └── [scribe's own messages and tool calls against codex.db]
+  │     └── child session #48 (subsystem_turn, parent=#3, triggered_by=#140)
+  │           └── [innkeeper's own messages and tool calls against affinity.db]
   ├── message #142 (tool, synthetic): scribe summary
-  ├── message #143 (assistant, organic): actual agent response
+  ├── message #143 (tool, synthetic): innkeeper summary
+  ├── message #144 (assistant, organic): actual agent response
   └── ...
 ```
 
@@ -147,7 +151,8 @@ Session #3 (chat)
   "interceptor": {
     "enabled": true,
     "subsystems": {
-      "scribe": { "enabled": true, "lookback": 3, "timeout_ms": 10000 }
+      "scribe": { "enabled": true, "lookback": 3, "timeout_ms": 10000 },
+      "innkeeper": { "enabled": true, "lookback": 3, "timeout_ms": 12000 }
     }
   }
 }
@@ -158,29 +163,35 @@ Session #3 (chat)
 - **lookback** — how many recent user messages to include in the child context window. Falls back to the subsystem's `defaultLookback`.
 - **timeout_ms** — maximum wall-clock time per subsystem. Falls back to `defaultTimeoutMs`.
 
-All fields have sensible defaults. The minimal config to enable the scribe is `{ "interceptor": { "enabled": true } }` — the subsystem default config fills in the rest.
+All fields have sensible defaults. The minimal config to enable both subsystems is `{ "interceptor": { "enabled": true } }` — the subsystem default configs fill in the rest.
 
 ## Cost Profile
 
-Measured across five LLM providers (Claude Haiku, GPT-5.4-mini, GPT-5.4-nano, Grok 4.1 fast, Grok 4.1 fast-reasoning) with the scribe subsystem:
+Measured across five LLM providers (Claude Haiku, GPT-5.4-mini, GPT-5.4-nano, Grok 4.1 fast, Grok 4.1 fast-reasoning):
 
-- **Latency overhead**: 1-4 seconds per turn, depending on model speed and how many tool calls the scribe makes.
-- **Token cost**: 500-3000 tokens per child session (input + output across 1-3 LLM roundtrips). With cheap models this is fractions of a cent per turn.
-- **Context overhead**: 50-150 tokens per synthetic entry in the main conversation. Negligible against modern context windows.
+- **Latency overhead**: 1-4 seconds per turn per subsystem, depending on model speed and tool call count. With two subsystems running concurrently, wall-clock latency is bounded by the slower one — not doubled.
+- **Token cost**: 500-3000 tokens per child session (input + output across 1-3 LLM roundtrips). Two subsystems with cheap models is still under $0.01 per turn.
+- **Context overhead**: 50-150 tokens per synthetic entry in the main conversation. Two subsystems add 100-300 tokens — negligible against modern context windows.
 
-The overhead scales linearly with the number of enabled subsystems. With N subsystems running concurrently, wall-clock latency is bounded by the slowest one.
+The overhead scales linearly with the number of enabled subsystems. Latency is bounded by the slowest because they run in parallel.
 
 ## Adding a Subsystem
 
+This path has been walked twice — scribe (`src/core/scribe/`) and innkeeper (`src/core/innkeeper/`). The pattern:
+
 1. Create a directory under `src/core/` for the subsystem.
-2. Implement a `run(opts: SubsystemRunOpts): Promise<SubsystemResult>` function that:
-   - Creates a child session via `createSession(chatDb, model, systemPrompt, { purpose: "subsystem_turn", ... })`.
-   - Instantiates a `Chat`, loads the provided context, adds the subsystem's tools.
-   - Runs `chat.generate()`.
-   - Persists the turn via `persistTurnMessages()`.
-   - Returns `{ sessionId, summary, succeeded }`.
-3. Create a register function that calls `registry.register({ name, defaultLookback, defaultTimeoutMs, run })`.
-4. Call the register function from the entry point (e.g., `src/index.ts`).
-5. Add the subsystem's config entry to `DEFAULT_INTERCEPTOR.subsystems` in `config.ts`.
+2. `bridge.ts` — bridge the upstream package's tool definitions to chatoyant `Tool` format.
+3. `skills.ts` — wrap the upstream package's workflow skills as a single chatoyant tool.
+4. `subagent.ts` — implement `run(opts: SubsystemRunOpts): Promise<SubsystemResult>`:
+   - Build a system prompt from the upstream soul + subsystem identity + output format.
+   - Create a child session via `createSession(chatDb, model, systemPrompt, { purpose: "subsystem_turn", ... })`.
+   - Instantiate a `Chat`, load the provided context, add the subsystem's tools.
+   - Run `chat.generate()`.
+   - Persist the turn via `persistTurnMessages()`.
+   - Return `{ sessionId, summary, succeeded }`.
+5. `register.ts` — call `registry.register({ name, defaultLookback, defaultTimeoutMs, run })`.
+6. `open_<name>.ts` in `src/core/db/` — open the subsystem's SQLite database, run schema init.
+7. Wire into `src/index.ts` — import, open db, register subsystem, add db to `subsystemDbs` map.
+8. Add the subsystem's config entry to `DEFAULT_INTERCEPTOR.subsystems` in `config.ts`.
 
 The interceptor, context filter, synthetic persistence, deflection tools, and configuration all work for N subsystems without modification.

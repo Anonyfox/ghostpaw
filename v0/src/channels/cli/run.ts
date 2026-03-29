@@ -12,6 +12,7 @@ export async function executeRun(
     session?: string;
     model?: string;
     noStream?: boolean;
+    ghost?: boolean;
   },
 ): Promise<void> {
   let prompt = opts.prompt;
@@ -47,10 +48,11 @@ export async function executeRun(
 
   const model = opts.model;
   const noStream = opts.noStream ?? false;
+  const ghost = opts.ghost ?? false;
 
   try {
     if (noStream) {
-      const result = await agent.executeTurn(sessionId, prompt, { model });
+      const result = await agent.executeTurn(sessionId, prompt, { model, ghost });
       process.stderr.write(`session:${result.sessionId}\n`);
       if (!result.succeeded) {
         process.stderr.write(`${result.content}\n`);
@@ -60,7 +62,7 @@ export async function executeRun(
       process.stdout.write(result.content);
       process.stdout.write("\n");
     } else {
-      const stream = agent.streamTurn(sessionId, prompt, { model });
+      const stream = agent.streamTurn(sessionId, prompt, { model, ghost });
       let result = await stream.next();
       while (!result.done) {
         process.stdout.write(result.value);

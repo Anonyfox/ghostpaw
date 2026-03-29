@@ -43,7 +43,7 @@ Capabilities are the tools the agent can call. Each tool is a typed function wit
 
 **Augmentation** — `calc`, `datetime`. These compensate for known LLM weaknesses. LLMs hallucinate arithmetic and lose track of time. A deterministic calculator and a precise date/time engine eliminate both failure modes entirely.
 
-**Subsystem deflection** — one `subsystem_<name>` tool per registered subsystem (e.g., `subsystem_scribe`). These prevent the LLM from calling subsystem tools directly. When the LLM sees synthetic tool results in its history and tries to invoke the tool itself, the deflection handler returns an instant message explaining the subsystem runs automatically. Zero-cost, one iteration, no child session.
+**Subsystem deflection** — one `subsystem_<name>` tool per registered subsystem (e.g., `subsystem_scribe`, `subsystem_innkeeper`). These prevent the LLM from calling subsystem tools directly. When the LLM sees synthetic tool results in its history and tries to invoke the tool itself, the deflection handler returns an instant message explaining the subsystem runs automatically. Zero-cost, one iteration, no child session.
 
 ## Lossless Persistence
 
@@ -69,6 +69,9 @@ Both channels drive the same `Agent` interface. Future channels (web, Telegram) 
 
 ## What's Built
 
-The harness is minimal but complete. It runs the LLM loop with tool access, persists everything losslessly, exposes the agent through two channels, and runs subsystem maintenance automatically via the interceptor. The first subsystem — the **scribe** (belief-based memory via `@ghostpaw/codex`) — is live and tested across five LLM providers.
+The harness is minimal but complete. It runs the LLM loop with tool access, persists everything losslessly, exposes the agent through two channels, and runs subsystem maintenance automatically via the interceptor. Two subsystems are live:
 
-The interceptor is generic. Adding a second subsystem means implementing a `run()` function and registering it. The harness, the turn loop, the synthetic entry format, the context filtering, the configuration — all of it works for N subsystems without modification.
+- **Scribe** — belief-based memory via `@ghostpaw/codex`. Maintains a store of atomic beliefs extracted from conversation, with recall, revision, and supersession. Tested across five LLM providers.
+- **Innkeeper** — social graph via `@ghostpaw/affinity`. Maintains contacts, relationships, interactions, commitments, and recurring dates. Knows every face and every story that passes through.
+
+Both run concurrently on every turn. The interceptor is generic — adding a third subsystem means implementing a `run()` function and registering it. The harness, the turn loop, the synthetic entry format, the context filtering, the configuration — all of it works for N subsystems without modification.

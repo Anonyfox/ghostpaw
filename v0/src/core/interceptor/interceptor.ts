@@ -18,7 +18,7 @@ export interface InterceptorOptions {
   config: InterceptorConfig;
   sessionId: number;
   triggerMessageId: number;
-  model: string;
+  modelSmall: string;
 }
 
 /**
@@ -63,9 +63,13 @@ function buildSubsystemContext(
 async function runOneSubsystem(
   def: SubsystemDefinition,
   opts: InterceptorOptions,
-  subsystemConfig: { lookback: number; timeout_ms: number },
+  subsystemConfig: {
+    lookback: number;
+    max_iterations: number;
+    timeout_ms: number;
+  },
 ): Promise<SyntheticEntry | null> {
-  const { chatDb, subsystemDbs, sessionId, triggerMessageId, model } = opts;
+  const { chatDb, subsystemDbs, sessionId, triggerMessageId, modelSmall } = opts;
   const db = subsystemDbs.get(def.name);
   if (!db) return null;
 
@@ -75,12 +79,13 @@ async function runOneSubsystem(
   if (context.length === 0) return null;
 
   const result = await def.run({
-    codexDb: db,
+    db,
     chatDb,
     parentSessionId: sessionId,
     triggerMessageId,
     context,
-    model,
+    model: modelSmall,
+    maxIterations: subsystemConfig.max_iterations,
     timeoutMs: subsystemConfig.timeout_ms,
   });
 
@@ -117,6 +122,7 @@ export async function runInterceptor(opts: InterceptorOptions): Promise<Syntheti
     tasks.push(
       runOneSubsystem(def, opts, {
         lookback: subConfig.lookback ?? def.defaultLookback,
+        max_iterations: subConfig.max_iterations ?? 15,
         timeout_ms: subConfig.timeout_ms ?? def.defaultTimeoutMs,
       }).catch((err) => {
         console.error(

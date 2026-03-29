@@ -5,7 +5,7 @@ export function registerScribeSubsystem(registry: SubsystemRegistry): void {
   registry.register({
     name: "scribe",
     defaultLookback: 3,
-    defaultTimeoutMs: 10000,
+    defaultTimeoutMs: 60000,
     run: runCodexSubagent,
   });
 }

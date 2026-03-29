@@ -1,18 +1,19 @@
-import type { CodexDb } from "@ghostpaw/codex";
-import { tools } from "@ghostpaw/codex";
+import { tools } from "@ghostpaw/affinity";
 import type { Tool } from "chatoyant";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 
 /**
- * Bridges a codex CodexToolDefinition into a chatoyant-compatible Tool.
+ * Bridges an affinity AffinityToolDefinition into a chatoyant-compatible Tool.
  *
  * Chatoyant's Chat class only uses four surface methods from Tool at runtime:
  * .name, .description, .getParametersSchema(), .executeCall(). We create a
  * duck-typed object that satisfies these without fighting the Schema system,
- * since codex already provides inputSchema as standard JSON Schema.
+ * since affinity already provides inputSchema as standard JSON Schema.
  */
-function bridgeCodexTool(toolDef: (typeof tools.codexTools)[number], db: DatabaseHandle): Tool {
-  const codexDb = db as unknown as CodexDb;
+function bridgeAffinityTool(
+  toolDef: (typeof tools.affinityTools)[number],
+  db: DatabaseHandle,
+): Tool {
   return {
     name: toolDef.name,
     description: toolDef.description,
@@ -25,8 +26,8 @@ function bridgeCodexTool(toolDef: (typeof tools.codexTools)[number], db: Databas
     async executeCall(call: { id: string; name: string; args: unknown }) {
       let raw: unknown;
       try {
-        // biome-ignore lint/suspicious/noExplicitAny: codex handler expects specific union type from LLM-parsed args
-        raw = toolDef.handler(codexDb, call.args as any);
+        // biome-ignore lint/suspicious/noExplicitAny: affinity handler expects specific union type from LLM-parsed args
+        raw = toolDef.handler(db as any, call.args as any);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         return { id: call.id, result: msg, success: false };
@@ -34,15 +35,20 @@ function bridgeCodexTool(toolDef: (typeof tools.codexTools)[number], db: Databas
       const result = typeof raw === "string" ? raw : (JSON.stringify(raw) ?? "{}");
       const ok =
         typeof raw === "object" && raw !== null && "ok" in raw ? (raw as { ok: boolean }).ok : true;
-      return { id: call.id, result, error: ok ? undefined : result, success: ok };
+      return {
+        id: call.id,
+        result,
+        error: ok ? undefined : result,
+        success: ok,
+      };
     },
     // biome-ignore lint/suspicious/noExplicitAny: duck-typed shim — unused by chatoyant runtime
   } as any;
 }
 
-export function bridgeCodexTools(db: DatabaseHandle): Tool[] {
-  return tools.codexTools.map((toolDef) =>
+export function bridgeAffinityTools(db: DatabaseHandle): Tool[] {
+  return tools.affinityTools.map((toolDef) =>
     // biome-ignore lint/suspicious/noExplicitAny: heterogeneous tool definitions
-    bridgeCodexTool(toolDef as any, db),
+    bridgeAffinityTool(toolDef as any, db),
   );
 }

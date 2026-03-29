@@ -93,6 +93,42 @@ describe("executeTurn", () => {
     assert.strictEqual(rows[0].content, "Ping");
   });
 
+  it("ghost mode produces no synthetic messages even with interceptor context", async () => {
+    const interceptorRan = { value: false };
+    const fakeInterceptor = {
+      registry: {
+        register() {},
+        get() {
+          return undefined;
+        },
+        list() {
+          interceptorRan.value = true;
+          return [];
+        },
+        names() {
+          return [];
+        },
+      },
+      config: { enabled: true, subsystems: {} },
+      subsystemDbs: new Map(),
+      modelSmall: "small-model",
+    };
+
+    const result = await executeTurn(
+      db,
+      [],
+      sessionId,
+      "Ghost test",
+      { ghost: true },
+      fakeInterceptor,
+    );
+
+    assert.strictEqual(result.succeeded, true);
+    const rows = getMessages(db, sessionId);
+    const synthetic = rows.filter((r) => r.source === "synthetic");
+    assert.strictEqual(synthetic.length, 0);
+  });
+
   it("returns failure when the session does not exist", async () => {
     const result = await executeTurn(db, [], 999_999, "Hi");
 

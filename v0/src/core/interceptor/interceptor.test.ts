@@ -25,7 +25,7 @@ describe("runInterceptor", () => {
       config,
       sessionId: session.id,
       triggerMessageId: 1,
-      model: "m",
+      modelSmall: "m-small",
     });
 
     assert.strictEqual(entries.length, 0);
@@ -47,7 +47,7 @@ describe("runInterceptor", () => {
       config,
       sessionId: session.id,
       triggerMessageId: 1,
-      model: "m",
+      modelSmall: "m-small",
     });
 
     assert.strictEqual(entries.length, 0);
@@ -61,7 +61,9 @@ describe("runInterceptor", () => {
 
     const config: InterceptorConfig = {
       enabled: true,
-      subsystems: { test: { enabled: false, lookback: 3, timeout_ms: 5000 } },
+      subsystems: {
+        test: { enabled: false, lookback: 3, max_iterations: 15, timeout_ms: 5000 },
+      },
     };
     const registry = createSubsystemRegistry();
     registry.register({
@@ -78,7 +80,7 @@ describe("runInterceptor", () => {
       config,
       sessionId: session.id,
       triggerMessageId: 1,
-      model: "m",
+      modelSmall: "m-small",
     });
 
     assert.strictEqual(entries.length, 0);

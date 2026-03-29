@@ -2,12 +2,13 @@ import type { Message } from "chatoyant";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 
 export interface SubsystemRunOpts {
-  codexDb: DatabaseHandle;
+  db: DatabaseHandle;
   chatDb: DatabaseHandle;
   parentSessionId: number;
   triggerMessageId: number;
   context: Message[];
   model: string;
+  maxIterations: number;
   timeoutMs: number;
 }
 

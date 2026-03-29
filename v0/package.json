@@ -35,6 +35,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@ghostpaw/affinity": "^0.1.6",
     "@ghostpaw/codex": "^0.2.3",
     "chatoyant": "^0.7.0",
     "citty": "^0.2.1",
