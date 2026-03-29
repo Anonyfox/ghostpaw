@@ -56,11 +56,20 @@ describe("listSessions", () => {
     assert.deepStrictEqual(listSessions(db), []);
   });
 
-  it("lists all sessions with message counts", () => {
+  it("lists all chat sessions with message counts", () => {
     createSession(db, "m1", "p1");
     createSession(db, "m2", "p2");
     const list = listSessions(db);
     assert.strictEqual(list.length, 2);
+  });
+
+  it("excludes system and subsystem_turn sessions", () => {
+    createSession(db, "m1", "p1");
+    createSession(db, "m2", "p2", { purpose: "system", title: "generate-title" });
+    createSession(db, "m3", "p3", { purpose: "subsystem_turn" });
+    const list = listSessions(db);
+    assert.strictEqual(list.length, 1);
+    assert.strictEqual(list[0].model, "m1");
   });
 });
 

@@ -3,7 +3,7 @@ import { defineCommand, runMain } from "citty";
 import { createAgent } from "./agent.ts";
 import { executeRun } from "./channels/cli/run.ts";
 import { runTui } from "./channels/tui/tui.ts";
-import type { InterceptorContext } from "./core/chat/turn.ts";
+import type { InterceptorContext, OneshotContext } from "./core/chat/turn.ts";
 import { registerBuiltins } from "./core/commands/builtins.ts";
 import { createRegistry } from "./core/commands/registry.ts";
 import type { Config } from "./core/config/config.ts";
@@ -14,6 +14,8 @@ import { openCodexDatabase } from "./core/db/open_codex.ts";
 import { registerInnkeeperSubsystem } from "./core/innkeeper/register.ts";
 import { createSubsystemRegistry } from "./core/interceptor/registry.ts";
 import { createDeflectionTools } from "./core/interceptor/self_call.ts";
+import { createOneshotRegistry } from "./core/oneshot/registry.ts";
+import { registerTitleOneshot } from "./core/oneshot/title.ts";
 import { registerScribeSubsystem } from "./core/scribe/register.ts";
 import { createTools } from "./core/tools/index.ts";
 import { ensureHome, resolveHome } from "./home.ts";
@@ -46,6 +48,12 @@ function buildInterceptorContext(
   return { registry, config: config.interceptor, subsystemDbs, modelSmall: config.model_small };
 }
 
+function buildOneshotContext(config: Config): OneshotContext {
+  const registry = createOneshotRegistry();
+  registerTitleOneshot(registry);
+  return { registry, modelSmall: config.model_small, timeoutMs: 60_000 };
+}
+
 const runCommand = defineCommand({
   meta: { name: "run", description: "Run a single turn against the LLM" },
   args: {
@@ -70,11 +78,12 @@ const runCommand = defineCommand({
     const affinityDb = await openAffinityDatabase(homePath);
     const scrubValues = Object.values(config.api_keys).filter(Boolean);
     const interceptorCtx = buildInterceptorContext(config, codexDb, affinityDb);
+    const oneshotCtx = buildOneshotContext(config);
     const tools = [
       ...createTools(workspace, scrubValues),
       ...createDeflectionTools(interceptorCtx.registry),
     ];
-    const agent = createAgent({ db, tools, interceptor: interceptorCtx });
+    const agent = createAgent({ db, tools, interceptor: interceptorCtx, oneshots: oneshotCtx });
 
     try {
       await executeRun(db, agent, config, {
@@ -209,11 +218,12 @@ const main = defineCommand({
     const affinityDb = await openAffinityDatabase(homePath);
     const scrubValues = Object.values(config.api_keys).filter(Boolean);
     const interceptorCtx = buildInterceptorContext(config, codexDb, affinityDb);
+    const oneshotCtx = buildOneshotContext(config);
     const tools = [
       ...createTools(workspace, scrubValues),
       ...createDeflectionTools(interceptorCtx.registry),
     ];
-    const agent = createAgent({ db, tools, interceptor: interceptorCtx });
+    const agent = createAgent({ db, tools, interceptor: interceptorCtx, oneshots: oneshotCtx });
     const registry = createRegistry();
     registerBuiltins(registry);
 

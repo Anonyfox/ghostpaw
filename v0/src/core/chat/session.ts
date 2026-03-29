@@ -3,6 +3,7 @@ import type { Session, SessionPurpose } from "./types.ts";
 
 export interface CreateSessionOptions {
   purpose?: SessionPurpose;
+  title?: string;
   parentSessionId?: number;
   triggeredByMessageId?: number;
 }
@@ -15,10 +16,11 @@ export function createSession(
 ): Session {
   const result = db
     .prepare(
-      `INSERT INTO sessions (model, system_prompt, purpose, parent_session_id, triggered_by_message_id)
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO sessions (title, model, system_prompt, purpose, parent_session_id, triggered_by_message_id)
+       VALUES (?, ?, ?, ?, ?, ?)`,
     )
     .run(
+      opts?.title ?? null,
       model,
       systemPrompt,
       opts?.purpose ?? "chat",
@@ -39,7 +41,7 @@ export function listSessions(db: DatabaseHandle): Session[] {
   return db
     .prepare(
       "SELECT s.*, (SELECT COUNT(*) FROM messages m WHERE m.session_id = s.id) AS message_count " +
-        "FROM sessions s ORDER BY s.updated_at DESC",
+        "FROM sessions s WHERE s.purpose = 'chat' ORDER BY s.updated_at DESC",
     )
     .all() as unknown as Session[];
 }

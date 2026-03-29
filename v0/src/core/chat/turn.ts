@@ -5,6 +5,8 @@ import { chatConfigForModel } from "../../lib/detect_provider.ts";
 import type { InterceptorConfig } from "../config/config.ts";
 import { runInterceptor } from "../interceptor/interceptor.ts";
 import type { SubsystemRegistry } from "../interceptor/registry.ts";
+import { fireOneshots } from "../oneshot/runner.ts";
+import type { OneshotRegistry } from "../oneshot/types.ts";
 import { addMessage } from "./messages.ts";
 import { persistTurnMessages } from "./persist_turn.ts";
 import { reconstructMessages } from "./reconstruct.ts";
@@ -16,6 +18,12 @@ export interface InterceptorContext {
   config: InterceptorConfig;
   subsystemDbs: Map<string, DatabaseHandle>;
   modelSmall: string;
+}
+
+export interface OneshotContext {
+  registry: OneshotRegistry;
+  modelSmall: string;
+  timeoutMs: number;
 }
 
 function emptyResult(sessionId: number, content: string, model: string): TurnResult {
@@ -39,12 +47,25 @@ export async function* streamTurn(
   content: string,
   options?: TurnOptions,
   interceptor?: InterceptorContext,
+  oneshots?: OneshotContext,
 ): AsyncGenerator<string, TurnResult> {
   const session = getSession(db, sessionId);
   if (!session) return emptyResult(sessionId, "Session not found", "");
 
   const model = options?.model ?? session.model;
   const userMessageId = addMessage(db, sessionId, "user", content, { source: "organic" });
+
+  let oneshotPromise: Promise<void> | undefined;
+  if (oneshots && session.purpose === "chat" && !options?.ghost) {
+    oneshotPromise = fireOneshots(oneshots.registry, {
+      db,
+      sessionId,
+      triggerMessageId: userMessageId,
+      userContent: content,
+      model: oneshots.modelSmall,
+      timeoutMs: oneshots.timeoutMs,
+    });
+  }
 
   if (interceptor && session.purpose === "chat" && !options?.ghost) {
     await runInterceptor({
@@ -109,6 +130,8 @@ export async function* streamTurn(
   const finalContent =
     newMessages.length > 0 ? (newMessages[newMessages.length - 1].content ?? "") : "";
 
+  if (oneshotPromise) await oneshotPromise;
+
   return {
     succeeded: true,
     sessionId,
@@ -135,8 +158,9 @@ export async function executeTurn(
   content: string,
   options?: TurnOptions,
   interceptor?: InterceptorContext,
+  oneshots?: OneshotContext,
 ): Promise<TurnResult> {
-  const gen = streamTurn(db, tools, sessionId, content, options, interceptor);
+  const gen = streamTurn(db, tools, sessionId, content, options, interceptor, oneshots);
   let result = await gen.next();
   while (!result.done) {
     result = await gen.next();
