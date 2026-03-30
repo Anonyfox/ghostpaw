@@ -27,6 +27,7 @@ beforeEach(() => {
       model: "test-model",
       model_small: "test-model-small",
       delegation_timeout_ms: 60_000,
+      pulse_stop_wait_ms: 1_200_000,
     },
     soulIds,
   } as RuntimeContext;

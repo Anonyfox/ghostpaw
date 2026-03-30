@@ -6,13 +6,20 @@ import { runProcessor } from "./processor.ts";
 import { buildShardsPrompt, SHARDS_SYSTEM_PROMPT } from "./shards_prompt.ts";
 
 const PROCESSOR_NAME = "shards";
+const MIN_SHARD_LENGTH = 50;
+const GARBAGE_PATTERN = /^\(.*\)$|^\[.*\]$|^#\s|^>\s/;
 
-function parseShardTexts(output: string): string[] {
+export function parseShardTexts(output: string): string[] {
   if (output.trim() === "(none)") return [];
   return output
     .split(/\n\n+/)
     .map((s) => s.trim())
-    .filter((s) => s.length > 0 && s !== "(none)");
+    .filter((s) => {
+      if (s.length < MIN_SHARD_LENGTH) return false;
+      if (s === "(none)") return false;
+      if (GARBAGE_PATTERN.test(s)) return false;
+      return true;
+    });
 }
 
 export async function runShardsProcessor(

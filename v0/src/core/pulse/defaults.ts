@@ -65,6 +65,16 @@ export const DEFAULT_PULSES: Array<{
     enabled: 1,
     next_run_at: DEFERRED_NEXT,
   },
+  {
+    name: "tend",
+    type: "builtin",
+    command: "tend",
+    interval_ms: 3_600_000,
+    cron_expr: null,
+    timeout_ms: 300_000,
+    enabled: 1,
+    next_run_at: DEFERRED_NEXT,
+  },
 ];
 
 export function ensureDefaultPulses(db: DatabaseHandle): void {

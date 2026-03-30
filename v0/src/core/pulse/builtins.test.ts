@@ -5,11 +5,18 @@ import type { RuntimeContext } from "../../runtime.ts";
 import { addMessage } from "../chat/messages.ts";
 import { sealSessionTail } from "../chat/seal_session_tail.ts";
 import { createSession } from "../chat/session.ts";
+import { openMemoryAffinityDatabase } from "../db/open_affinity.ts";
 import { openMemoryDatabase } from "../db/open.ts";
 import { openMemorySoulsDatabase } from "../db/open_souls.ts";
 import { writeImpression } from "../shade/write_impression.ts";
 import { bootstrapSouls } from "../souls/bootstrap.ts";
-import { attuneHandler, heartbeatHandler, runBuiltin, sealSweepHandler } from "./builtins.ts";
+import {
+  attuneHandler,
+  heartbeatHandler,
+  runBuiltin,
+  sealSweepHandler,
+  tendHandler,
+} from "./builtins.ts";
 import { ensureDefaultPulses } from "./defaults.ts";
 
 function makeCtx(db: ReturnType<typeof openMemoryDatabase>): RuntimeContext {
@@ -204,9 +211,10 @@ describe("shade builtin wiring", () => {
   });
 
   it("shade_shards handler processes impressions via runBuiltin", async () => {
+    const shardText = "The agent showed a systematic bias toward caution when handling identity conflicts.";
     mock.method(Chat.prototype, "generate", async function generate(this: Chat) {
-      this.addMessage(new Message("assistant", "A shard observation."));
-      return "A shard observation.";
+      this.addMessage(new Message("assistant", shardText));
+      return shardText;
     });
 
     const db = openMemoryDatabase();
@@ -284,6 +292,56 @@ describe("attune builtin wiring", () => {
     assert.strictEqual(parsed.phase, "maintenance");
 
     db.close();
+    soulsDb.close();
+  });
+});
+
+describe("tend builtin wiring", () => {
+  it("tendHandler returns maintenance phase when no contacts exist", async () => {
+    const db = openMemoryDatabase();
+    const soulsDb = openMemorySoulsDatabase();
+    const affinityDb = await openMemoryAffinityDatabase();
+    const soulIds = bootstrapSouls(soulsDb);
+    const ctx = {
+      db,
+      affinityDb,
+      soulsDb,
+      config: { model: "test-model", model_small: "test-model" },
+      soulIds,
+    } as unknown as RuntimeContext;
+
+    const result = await tendHandler(ctx, new AbortController().signal);
+    assert.strictEqual(result.exitCode, 0);
+    const parsed = JSON.parse(result.output ?? "{}");
+    assert.strictEqual(parsed.phase, "maintenance");
+    assert.strictEqual(parsed.duplicates, 0);
+    assert.strictEqual(parsed.driftItems, 0);
+
+    db.close();
+    affinityDb.close();
+    soulsDb.close();
+  });
+
+  it("tend is registered in BUILTINS and callable via runBuiltin", async () => {
+    const db = openMemoryDatabase();
+    const soulsDb = openMemorySoulsDatabase();
+    const affinityDb = await openMemoryAffinityDatabase();
+    const soulIds = bootstrapSouls(soulsDb);
+    const ctx = {
+      db,
+      affinityDb,
+      soulsDb,
+      config: { model: "test-model", model_small: "test-model" },
+      soulIds,
+    } as unknown as RuntimeContext;
+
+    const result = await runBuiltin(ctx, "tend", new AbortController().signal);
+    assert.strictEqual(result.exitCode, 0);
+    const parsed = JSON.parse(result.output ?? "{}");
+    assert.strictEqual(parsed.phase, "maintenance");
+
+    db.close();
+    affinityDb.close();
     soulsDb.close();
   });
 });

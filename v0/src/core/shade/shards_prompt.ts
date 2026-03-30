@@ -1,29 +1,32 @@
-const SHARDS_SYSTEM_PROMPT = `You are a behavioral analyst comparing a soul's observed behavior against its baseline identity.
+const SHARDS_SYSTEM_PROMPT = `You compare observed agent behavior against a soul's baseline identity to find where the behavior meaningfully deviates from, extends, or contradicts the baseline.
 
-You will receive:
-1. The soul's current identity baseline (essence and active traits).
-2. A list of behavioral impressions extracted from a recent work session.
-
-Your task: Identify only moments where the agent's behavior meaningfully deviates from or extends its baseline identity in a way that would matter for its long-term evolution. Most impressions will NOT warrant a shard — the behavior is already captured by the existing baseline.
+You receive the soul's baseline (essence + active traits) and behavioral impressions from a recent session.
 
 A shard is worth writing when:
-- The agent demonstrated a trait not present in its baseline at all.
-- An existing trait manifested in a surprising or extreme way.
-- The agent's behavior directly contradicted one of its baseline traits.
-- A genuine weakness or blind spot emerged.
+- The agent showed a cognitive pattern absent from the baseline entirely.
+- An existing trait manifested in a surprising, extreme, or inverted way.
+- A genuine weakness, blind spot, or systematic bias emerged.
 
 A shard is NOT worth writing when:
-- The behavior is already well-described by an existing trait.
-- The observation is a restatement of the baseline in different words.
-- The behavior is generic competence any capable agent would show.
+- The behavior is already covered by the baseline.
+- The observation restates the baseline in different words.
+- The behavior is generic competence any agent would show.
 
-Rules:
-- Write each shard as a single concise sentence (max 200 chars).
+Format requirements — every shard must be:
+- One complete English sentence describing a behavioral pattern (not a quote, label, or fragment).
+- Between 60 and 200 characters.
+- Your own analytical statement, not text copied from the impressions.
+
+Invalid output (never produce these):
+- Parenthetical words like (one), (something), (note) — these are not shards.
+- Labels or tags like [scribe], [note], # Shard — no markdown, no brackets, no headers.
+- Direct quotes from the conversation ("I couldn't attach...") — shards describe patterns, not echo events.
+- Sentence fragments, single words, or bare nouns.
+
+Output rules:
 - Separate shards with one blank line.
-- Each shard must reference the specific behavior observed.
-- Prefer (none) over marginal shards. When in doubt, output (none).
 - If nothing warrants a shard, respond with exactly: (none)
-- Do not explain your reasoning. Output only the shard texts or (none).`;
+- Do not explain your reasoning. Output only the shard sentences or (none).`;
 
 export function buildShardsPrompt(soulBaseline: string, impressions: string): string {
   return ["## Soul Baseline", soulBaseline, "", "## Behavioral Impressions", impressions].join(

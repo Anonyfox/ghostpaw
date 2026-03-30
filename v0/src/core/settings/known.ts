@@ -221,6 +221,13 @@ export const KNOWN_SETTINGS: Record<string, KnownSetting> = {
     category: "pulse",
     description: "Days of pulse run history to retain",
   },
+  GHOSTPAW_PULSE_STOP_WAIT_MS: {
+    defaultValue: "1200000",
+    type: "integer",
+    secret: false,
+    category: "pulse",
+    description: "Maximum time to wait for active pulse jobs during shutdown (default 20 minutes)",
+  },
 
   // --- tools ---
   GHOSTPAW_GREP_MAX_RESULTS: {

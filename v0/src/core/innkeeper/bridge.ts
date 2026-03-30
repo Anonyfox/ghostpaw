@@ -2,6 +2,30 @@ import { tools } from "@ghostpaw/affinity";
 import type { Tool } from "chatoyant";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 
+// biome-ignore lint/suspicious/noExplicitAny: bridge-layer argument normalization for LLM-generated JSON
+type AnyArgs = Record<string, any>;
+
+/**
+ * LLMs commonly flatten `target.contact.contactId` to `target.contactId`
+ * when calling manage_attribute. Normalize the flat form into what the
+ * handler expects before it hits the schema validator.
+ */
+export function normalizeAttributeArgs(args: AnyArgs): AnyArgs {
+  const target = args.target;
+  if (!target || typeof target !== "object") return args;
+  if (target.kind === "contact" && !target.contact && target.contactId != null) {
+    return { ...args, target: { kind: "contact", contact: { contactId: target.contactId } } };
+  }
+  if (target.kind === "link" && !target.link && target.linkId != null) {
+    return { ...args, target: { kind: "link", link: { linkId: target.linkId } } };
+  }
+  return args;
+}
+
+const ARG_NORMALIZERS: Record<string, (args: AnyArgs) => AnyArgs> = {
+  manage_attribute: normalizeAttributeArgs,
+};
+
 /**
  * Bridges an affinity AffinityToolDefinition into a chatoyant-compatible Tool.
  *
@@ -26,8 +50,10 @@ function bridgeAffinityTool(
     async executeCall(call: { id: string; name: string; args: unknown }) {
       let raw: unknown;
       try {
+        const normalizer = ARG_NORMALIZERS[call.name];
+        const args = normalizer ? normalizer(call.args as AnyArgs) : call.args;
         // biome-ignore lint/suspicious/noExplicitAny: affinity handler expects specific union type from LLM-parsed args
-        raw = toolDef.handler(db as any, call.args as any);
+        raw = toolDef.handler(db as any, args as any);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         return { id: call.id, result: msg, success: false };

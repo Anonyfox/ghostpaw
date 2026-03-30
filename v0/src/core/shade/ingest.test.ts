@@ -7,10 +7,20 @@ import { sealMessage } from "../chat/seal_message.ts";
 import { sealSessionTail } from "../chat/seal_session_tail.ts";
 import { createSession } from "../chat/session.ts";
 import { openMemoryDatabase } from "../db/open.ts";
-import { runShadeIngest } from "./ingest.ts";
-import { loadSegmentMessages } from "./load_segment_messages.ts";
+import { parseImpressionCount, runShadeIngest } from "./ingest.ts";
+import { formatSegmentForIngest } from "./ingest_prompt.ts";
+import { loadSegmentMessages, loadSegmentToolInfo } from "./load_segment_messages.ts";
 import { readUningestedSegments } from "./read_uningested_segments.ts";
 import { writeImpression } from "./write_impression.ts";
+
+function addToolCall(db: DatabaseHandle, msgId: number, callId: string, name: string): void {
+  db.prepare("INSERT INTO tool_calls (id, message_id, name, arguments) VALUES (?, ?, ?, ?)").run(
+    callId,
+    msgId,
+    name,
+    "{}",
+  );
+}
 
 function patchChatGenerate(response: string): void {
   mock.method(Chat.prototype, "generate", async function generate(this: Chat) {
@@ -183,14 +193,16 @@ describe("loadSegmentMessages", () => {
     assert.strictEqual(msgs[1].role, "assistant");
   });
 
-  it("excludes tool messages", () => {
+  it("includes tool messages alongside user and assistant", () => {
     const session = createSession(db, "m", "p", { purpose: "chat", soulId: 1 });
     addMessage(db, session.id, "user", "hello");
     addMessage(db, session.id, "tool", "tool result", { toolCallId: "tc1" });
     const lastId = addMessage(db, session.id, "assistant", "done");
 
     const msgs = loadSegmentMessages(db, session.id, lastId);
-    assert.strictEqual(msgs.length, 2, "tool messages should be excluded");
+    assert.strictEqual(msgs.length, 3, "tool messages should be included");
+    assert.strictEqual(msgs[1].role, "tool");
+    assert.strictEqual(msgs[1].tool_call_id, "tc1");
   });
 
   it("loads only second segment when first is already ingested", () => {
@@ -240,7 +252,7 @@ describe("loadSegmentMessages", () => {
     assert.strictEqual(msgs[0].content, "compaction summary");
   });
 
-  it("returns empty when no user/assistant messages in range", () => {
+  it("returns tool-only messages when no user/assistant in range", () => {
     const session = createSession(db, "m", "p", { purpose: "chat", soulId: 1 });
     const boundary1 = addMessage(db, session.id, "tool", "tool only", { toolCallId: "tc1" });
 
@@ -255,7 +267,19 @@ describe("loadSegmentMessages", () => {
 
     const boundary2 = addMessage(db, session.id, "tool", "tool again", { toolCallId: "tc2" });
     const msgs = loadSegmentMessages(db, session.id, boundary2);
-    assert.strictEqual(msgs.length, 0);
+    assert.strictEqual(msgs.length, 1, "tool message should be returned");
+    assert.strictEqual(msgs[0].role, "tool");
+  });
+
+  it("populates msg_id on all returned messages", () => {
+    const session = createSession(db, "m", "p", { purpose: "chat", soulId: 1 });
+    addMessage(db, session.id, "user", "hello");
+    const lastId = addMessage(db, session.id, "assistant", "hi");
+
+    const msgs = loadSegmentMessages(db, session.id, lastId);
+    for (const m of msgs) {
+      assert.ok(typeof m.msg_id === "number" && m.msg_id > 0, "msg_id should be populated");
+    }
   });
 });
 
@@ -479,5 +503,181 @@ describe("runShadeIngest", () => {
       impression_count: number;
     };
     assert.strictEqual(row.impression_count, 0);
+  });
+
+  it("skips tool-only segments without calling LLM", async () => {
+    const session = createSession(db, "m", "p", { purpose: "chat", soulId: 1 });
+    addMessage(db, session.id, "tool", '{"summary":"result"}', { toolCallId: "tc1" });
+    sealSessionTail(db, session.id);
+
+    const result = await runShadeIngest(db, "test-model", new AbortController().signal);
+    assert.strictEqual(result.skipped, 1);
+    assert.strictEqual(result.ingested, 0);
+
+    const noShade = db
+      .prepare("SELECT COUNT(*) as c FROM sessions WHERE purpose = 'shade'")
+      .get() as { c: number };
+    assert.strictEqual(noShade.c, 0, "no LLM call for tool-only segment");
+  });
+});
+
+describe("parseImpressionCount", () => {
+  it("returns 0 for (none)", () => {
+    assert.strictEqual(parseImpressionCount("(none)"), 0);
+  });
+
+  it("returns 0 for (none) with whitespace", () => {
+    assert.strictEqual(parseImpressionCount("  (none)  "), 0);
+  });
+
+  it("counts paragraphs separated by blank lines", () => {
+    assert.strictEqual(parseImpressionCount("first\n\nsecond\n\nthird"), 3);
+  });
+
+  it("filters out (none) paragraphs in mixed output", () => {
+    assert.strictEqual(parseImpressionCount("(none)\n\nActual impression here"), 1);
+  });
+
+  it("filters multiple (none) paragraphs", () => {
+    assert.strictEqual(parseImpressionCount("(none)\n\n(none)\n\nReal observation"), 1);
+  });
+
+  it("returns 1 for single paragraph", () => {
+    assert.strictEqual(parseImpressionCount("One observation."), 1);
+  });
+});
+
+describe("loadSegmentToolInfo", () => {
+  it("returns empty maps when no tool calls exist", () => {
+    const session = createSession(db, "m", "p", { purpose: "chat", soulId: 1 });
+    addMessage(db, session.id, "user", "hello");
+    const lastId = addMessage(db, session.id, "assistant", "hi");
+
+    const msgs = loadSegmentMessages(db, session.id, lastId);
+    const info = loadSegmentToolInfo(db, msgs);
+    assert.strictEqual(info.calledBy.size, 0);
+    assert.strictEqual(info.nameOf.size, 0);
+  });
+
+  it("maps assistant messages to their tool call names", () => {
+    const session = createSession(db, "m", "p", { purpose: "chat", soulId: 1 });
+    const asstId = addMessage(db, session.id, "assistant", "");
+    addToolCall(db, asstId, "tc1", "search_affinity");
+    addToolCall(db, asstId, "tc2", "manage_contact");
+    addMessage(db, session.id, "tool", '{"summary":"found"}', { toolCallId: "tc1" });
+    const lastId = addMessage(db, session.id, "tool", '{"summary":"created"}', {
+      toolCallId: "tc2",
+    });
+
+    const msgs = loadSegmentMessages(db, session.id, lastId);
+    const info = loadSegmentToolInfo(db, msgs);
+
+    assert.deepStrictEqual(info.calledBy.get(asstId), ["search_affinity", "manage_contact"]);
+    assert.strictEqual(info.nameOf.get("tc1"), "search_affinity");
+    assert.strictEqual(info.nameOf.get("tc2"), "manage_contact");
+  });
+
+  it("handles multiple assistant messages independently", () => {
+    const session = createSession(db, "m", "p", { purpose: "chat", soulId: 1 });
+    const a1 = addMessage(db, session.id, "assistant", "");
+    addToolCall(db, a1, "tc1", "recall_codex");
+    addMessage(db, session.id, "tool", '{"summary":"recalled"}', { toolCallId: "tc1" });
+    const a2 = addMessage(db, session.id, "assistant", "");
+    addToolCall(db, a2, "tc2", "store_codex");
+    const lastId = addMessage(db, session.id, "tool", '{"summary":"stored"}', {
+      toolCallId: "tc2",
+    });
+
+    const msgs = loadSegmentMessages(db, session.id, lastId);
+    const info = loadSegmentToolInfo(db, msgs);
+
+    assert.deepStrictEqual(info.calledBy.get(a1), ["recall_codex"]);
+    assert.deepStrictEqual(info.calledBy.get(a2), ["store_codex"]);
+  });
+});
+
+describe("formatSegmentForIngest", () => {
+  it("renders user and assistant messages normally without tool info", () => {
+    const msgs = [
+      { msg_id: 1, role: "user", content: "hello", is_compaction: 0, tool_call_id: null },
+      { msg_id: 2, role: "assistant", content: "hi", is_compaction: 0, tool_call_id: null },
+    ];
+    const output = formatSegmentForIngest(msgs);
+    assert.ok(output.includes("user: hello"));
+    assert.ok(output.includes("assistant: hi"));
+  });
+
+  it("extracts summary from JSON tool results", () => {
+    const msgs = [
+      { msg_id: 1, role: "assistant", content: "", is_compaction: 0, tool_call_id: null },
+      {
+        msg_id: 2,
+        role: "tool",
+        content: '{"ok":true,"summary":"Found 3 contacts."}',
+        is_compaction: 0,
+        tool_call_id: "tc1",
+      },
+    ];
+    const toolInfo = {
+      calledBy: new Map([[1, ["search_affinity"]]]),
+      nameOf: new Map([["tc1", "search_affinity"]]),
+    };
+    const output = formatSegmentForIngest(msgs, toolInfo);
+    assert.ok(output.includes("[tool result: search_affinity] Found 3 contacts."));
+  });
+
+  it("labels assistant messages with called tool names", () => {
+    const msgs = [
+      { msg_id: 1, role: "assistant", content: "", is_compaction: 0, tool_call_id: null },
+    ];
+    const toolInfo = {
+      calledBy: new Map([[1, ["search_affinity", "search_affinity", "manage_contact"]]]),
+      nameOf: new Map(),
+    };
+    const output = formatSegmentForIngest(msgs, toolInfo);
+    assert.ok(output.includes("assistant (called: search_affinity x2, manage_contact):"));
+  });
+
+  it("renders compaction summaries with their label regardless of tool info", () => {
+    const msgs = [
+      {
+        msg_id: 1,
+        role: "assistant",
+        content: "compacted",
+        is_compaction: 1,
+        tool_call_id: null,
+      },
+    ];
+    const output = formatSegmentForIngest(msgs);
+    assert.ok(output.includes("[compaction summary]: compacted"));
+  });
+
+  it("falls back to raw content for non-JSON tool results", () => {
+    const msgs = [
+      {
+        msg_id: 1,
+        role: "tool",
+        content: "plain text error",
+        is_compaction: 0,
+        tool_call_id: "tc1",
+      },
+    ];
+    const output = formatSegmentForIngest(msgs);
+    assert.ok(output.includes("[tool result: unknown] plain text error"));
+  });
+
+  it("caps tool result summaries at 200 chars", () => {
+    const longSummary = "x".repeat(300);
+    const msgs = [
+      {
+        msg_id: 1,
+        role: "tool",
+        content: `{"summary":"${longSummary}"}`,
+        is_compaction: 0,
+        tool_call_id: "tc1",
+      },
+    ];
+    const output = formatSegmentForIngest(msgs);
+    assert.ok(output.length < 350, "should be capped");
   });
 });

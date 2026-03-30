@@ -1,13 +1,13 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
 import { openMemoryAffinityDatabase } from "../db/open_affinity.ts";
-import { bridgeAffinityTools } from "./bridge.ts";
+import { bridgeAffinityTools, normalizeAttributeArgs } from "./bridge.ts";
 
 describe("bridgeAffinityTools", () => {
-  it("returns 11 bridged tools", () => {
-    const db = openMemoryAffinityDatabase();
+  it("returns 12 bridged tools", async () => {
+    const db = await openMemoryAffinityDatabase();
     const tools = bridgeAffinityTools(db);
-    assert.strictEqual(tools.length, 11);
+    assert.strictEqual(tools.length, 12);
     db.close();
   });
 
@@ -47,5 +47,38 @@ describe("bridgeAffinityTools", () => {
     assert.strictEqual((result as { success: boolean }).success, true);
 
     db.close();
+  });
+});
+
+describe("normalizeAttributeArgs", () => {
+  it("rewrites flat target.contactId into nested target.contact.contactId", () => {
+    const args = { action: "set", target: { kind: "contact", contactId: 5 }, name: "role", value: "CTO" };
+    const result = normalizeAttributeArgs(args);
+    assert.deepStrictEqual(result.target, { kind: "contact", contact: { contactId: 5 } });
+    assert.strictEqual(result.name, "role");
+    assert.strictEqual(result.value, "CTO");
+  });
+
+  it("rewrites flat target.linkId into nested target.link.linkId", () => {
+    const args = { action: "set", target: { kind: "link", linkId: 3 }, name: "note", value: "test" };
+    const result = normalizeAttributeArgs(args);
+    assert.deepStrictEqual(result.target, { kind: "link", link: { linkId: 3 } });
+  });
+
+  it("passes through already-correct nested structure", () => {
+    const args = {
+      action: "set",
+      target: { kind: "contact", contact: { contactId: 5 } },
+      name: "role",
+      value: "CTO",
+    };
+    const result = normalizeAttributeArgs(args);
+    assert.deepStrictEqual(result, args);
+  });
+
+  it("passes through when target is missing", () => {
+    const args = { action: "set", name: "x", value: "y" };
+    const result = normalizeAttributeArgs(args);
+    assert.deepStrictEqual(result, args);
   });
 });

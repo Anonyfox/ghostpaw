@@ -11,7 +11,6 @@ import type { Pulse, RunAgentTask } from "./types.ts";
 
 const MAX_OUTPUT = 2048;
 const ONE_OFF_SENTINEL = "9999-12-31T23:59:59.000Z";
-const STOP_WAIT_MS = 5000;
 const PRUNE_EVERY_TICKS = 60;
 
 export interface PulseEngineHandle {
@@ -241,6 +240,7 @@ function dispatchShell(db: DatabaseHandle, pulse: Pulse, active: Map<number, Act
 
 export function startPulse(ctx: RuntimeContext, runAgentTask: RunAgentTask): PulseEngineHandle {
   const db = ctx.db;
+  const stopWaitMs = ctx.config.pulse_stop_wait_ms;
   resetStalePulses(db);
   pruneRunHistory(db);
 
@@ -317,7 +317,7 @@ export function startPulse(ctx: RuntimeContext, runAgentTask: RunAgentTask): Pul
         }
         if (entry.killTimer) clearTimeout(entry.killTimer);
       }
-      const deadline = Date.now() + STOP_WAIT_MS;
+      const deadline = Date.now() + stopWaitMs;
       while (active.size > 0 && Date.now() < deadline) {
         await new Promise((r) => setTimeout(r, 100));
       }

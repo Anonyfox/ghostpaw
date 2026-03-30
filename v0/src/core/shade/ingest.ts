@@ -1,16 +1,16 @@
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 import { runInternalOneshot } from "../oneshot/internal_runner.ts";
 import { buildIngestPrompt, INGEST_SYSTEM_PROMPT } from "./ingest_prompt.ts";
-import { loadSegmentMessages } from "./load_segment_messages.ts";
+import { loadSegmentMessages, loadSegmentToolInfo } from "./load_segment_messages.ts";
 import { readUningestedSegments } from "./read_uningested_segments.ts";
 import { writeImpression } from "./write_impression.ts";
 
-function parseImpressionCount(text: string): number {
+export function parseImpressionCount(text: string): number {
   if (text.trim() === "(none)") return 0;
   return text
     .split(/\n\n+/)
     .map((s) => s.trim())
-    .filter(Boolean).length;
+    .filter((s) => s.length > 0 && s !== "(none)").length;
 }
 
 export async function runShadeIngest(
@@ -26,7 +26,8 @@ export async function runShadeIngest(
     if (signal.aborted) break;
 
     const messages = loadSegmentMessages(db, seg.session_id, seg.sealed_msg_id);
-    if (messages.length === 0) {
+    const hasAgentContent = messages.some((m) => m.role === "user" || m.role === "assistant");
+    if (!hasAgentContent) {
       writeImpression(db, {
         sessionId: seg.session_id,
         sealedMsgId: seg.sealed_msg_id,
@@ -39,7 +40,8 @@ export async function runShadeIngest(
       continue;
     }
 
-    const userPrompt = buildIngestPrompt(messages);
+    const toolInfo = loadSegmentToolInfo(db, messages);
+    const userPrompt = buildIngestPrompt(messages, toolInfo);
 
     const result = await runInternalOneshot({
       db,

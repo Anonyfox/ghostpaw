@@ -7,7 +7,7 @@ import { startPulse } from "./engine.ts";
 import type { RunAgentTask } from "./types.ts";
 
 function makeCtx(db: ReturnType<typeof openMemoryDatabase>): RuntimeContext {
-  return { db } as unknown as RuntimeContext;
+  return { db, config: { pulse_stop_wait_ms: 5000 } } as unknown as RuntimeContext;
 }
 
 function tick(ms = 20): Promise<void> {

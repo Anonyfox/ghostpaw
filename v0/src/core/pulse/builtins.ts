@@ -1,6 +1,7 @@
 import type { RuntimeContext } from "../../runtime.ts";
 import { listUnsealedStaleSessions } from "../chat/list_unsealed_stale_sessions.ts";
 import { sealSessionTail } from "../chat/seal_session_tail.ts";
+import { runTend } from "../innkeeper/tend.ts";
 import { runShadeIngest } from "../shade/ingest.ts";
 import { runShardsProcessor } from "../shade/shards.ts";
 import { runAttune } from "../souls/attune.ts";
@@ -86,12 +87,21 @@ export async function attuneHandler(ctx: RuntimeContext, signal: AbortSignal): P
   };
 }
 
+export async function tendHandler(ctx: RuntimeContext, signal: AbortSignal): Promise<JobResult> {
+  const result = await runTend(ctx, signal);
+  return {
+    exitCode: 0,
+    output: JSON.stringify(result),
+  };
+}
+
 export const BUILTINS: Record<string, BuiltinHandler> = {
   heartbeat: heartbeatHandler,
   seal_sweep: sealSweepHandler,
   shade_ingest: shadeIngestHandler,
   shade_shards: shadeShardsHandler,
   attune: attuneHandler,
+  tend: tendHandler,
 };
 
 export async function runBuiltin(

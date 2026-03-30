@@ -30,6 +30,7 @@ const dummyCtx: CommandCtx = {
     model_large: "test-large",
     compaction_threshold: 180_000,
     delegation_timeout_ms: 3_600_000,
+    pulse_stop_wait_ms: 1_200_000,
     interceptor: {
       enabled: false,
       subsystems: {},

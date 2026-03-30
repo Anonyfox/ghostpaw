@@ -7,7 +7,7 @@ import { createSession } from "../chat/session.ts";
 import { openMemoryDatabase } from "../db/open.ts";
 import { openMemorySoulsDatabase } from "../db/open_souls.ts";
 import { bootstrapSouls } from "../souls/bootstrap.ts";
-import { runShardsProcessor } from "./shards.ts";
+import { parseShardTexts, runShardsProcessor } from "./shards.ts";
 import { writeImpression } from "./write_impression.ts";
 
 function patchChatGenerate(response: string): void {
@@ -47,6 +47,67 @@ function seedImpression(soulId: number): void {
   });
 }
 
+describe("parseShardTexts", () => {
+  it("returns empty array for (none)", () => {
+    assert.deepStrictEqual(parseShardTexts("(none)"), []);
+    assert.deepStrictEqual(parseShardTexts("  (none)  "), []);
+  });
+
+  it("filters out parenthetical near-misses like (one), (something)", () => {
+    const output =
+      "(one)\n\nThe agent showed a systematic bias toward caution when handling identity conflicts.\n\n(something)";
+    const result = parseShardTexts(output);
+    assert.strictEqual(result.length, 1);
+    assert.ok(result[0].includes("systematic bias"));
+  });
+
+  it("filters out bracket labels like [scribe], [note]", () => {
+    const output =
+      "[scribe] Nothing noteworthy this turn.\n\nThe agent proactively restructured ambiguous input before processing it.";
+    const result = parseShardTexts(output);
+    assert.strictEqual(result.length, 1);
+    assert.ok(result[0].includes("proactively restructured"));
+  });
+
+  it("filters out markdown headers", () => {
+    const output =
+      "# Shard the agent captured identities without reconciling ambiguity showing breadth over validation.\n\nThe agent defaulted to creating separate contacts rather than resolving ambiguity through search.";
+    const result = parseShardTexts(output);
+    assert.strictEqual(result.length, 1);
+    assert.ok(result[0].includes("defaulted to creating"));
+  });
+
+  it("filters out shards shorter than 50 characters", () => {
+    const output = "Too short.\n\nThe agent demonstrated careful disambiguation when multiple contacts shared similar names.";
+    const result = parseShardTexts(output);
+    assert.strictEqual(result.length, 1);
+    assert.ok(result[0].includes("careful disambiguation"));
+  });
+
+  it("keeps valid shards that meet all criteria", () => {
+    const output =
+      "The agent showed a consistent preference for creating new records over merging existing ones.\n\nA clear bias toward preserving ambiguity emerged when handling overlapping identities.";
+    const result = parseShardTexts(output);
+    assert.strictEqual(result.length, 2);
+  });
+
+  it("filters out blockquote fragments", () => {
+    const output =
+      "> Some quoted text from the agent about identity.\n\nThe agent consistently chose breadth over depth when storing contact attributes.";
+    const result = parseShardTexts(output);
+    assert.strictEqual(result.length, 1);
+    assert.ok(result[0].includes("breadth over depth"));
+  });
+
+  it("filters (none) paragraphs from mixed output", () => {
+    const output =
+      "(none)\n\nThe agent preserved ambiguous identities instead of auto-merging when names partially overlapped.";
+    const result = parseShardTexts(output);
+    assert.strictEqual(result.length, 1);
+    assert.ok(result[0].includes("preserved ambiguous"));
+  });
+});
+
 describe("runShardsProcessor", () => {
   it("returns zero processed when no impressions exist", async () => {
     patchChatGenerate("(none)");
@@ -62,7 +123,7 @@ describe("runShardsProcessor", () => {
 
   it("processes an impression and deposits shards with correct content", async () => {
     patchChatGenerate(
-      "Demonstrated unusual precision when analyzing requirements.\n\nShowed initiative beyond explicit task scope.",
+      "The agent demonstrated unusual precision when analyzing ambiguous requirements.\n\nThe agent showed initiative beyond explicit task scope by restructuring inputs.",
     );
     seedImpression(ghostpawId);
 
@@ -81,9 +142,12 @@ describe("runShardsProcessor", () => {
     assert.strictEqual(shards.length, 2);
     assert.strictEqual(
       shards[0].content,
-      "Demonstrated unusual precision when analyzing requirements.",
+      "The agent demonstrated unusual precision when analyzing ambiguous requirements.",
     );
-    assert.strictEqual(shards[1].content, "Showed initiative beyond explicit task scope.");
+    assert.strictEqual(
+      shards[1].content,
+      "The agent showed initiative beyond explicit task scope by restructuring inputs.",
+    );
   });
 
   it("handles (none) response — no shards deposited", async () => {
@@ -105,7 +169,7 @@ describe("runShardsProcessor", () => {
   });
 
   it("creates a shade-purpose session for the processor oneshot", async () => {
-    patchChatGenerate("A notable pattern observed.");
+    patchChatGenerate("The agent created parallel contact records instead of merging under ambiguity.");
     seedImpression(ghostpawId);
 
     await runShardsProcessor(db, soulsDb, "test-model", new AbortController().signal);
@@ -117,7 +181,7 @@ describe("runShardsProcessor", () => {
   });
 
   it("records shade_run with result_count", async () => {
-    patchChatGenerate("One shard-worthy observation.");
+    patchChatGenerate("The agent consistently chose caution over action when facing ambiguous inputs.");
     seedImpression(ghostpawId);
 
     await runShardsProcessor(db, soulsDb, "test-model", new AbortController().signal);
@@ -130,7 +194,7 @@ describe("runShardsProcessor", () => {
   });
 
   it("is idempotent: running twice does not re-process", async () => {
-    patchChatGenerate("One observation.");
+    patchChatGenerate("The agent defaulted to creating separate records rather than resolving identity ambiguity.");
     seedImpression(ghostpawId);
 
     await runShardsProcessor(db, soulsDb, "test-model", new AbortController().signal);
@@ -159,11 +223,12 @@ describe("runShardsProcessor", () => {
       ingestSessionId: null,
     });
 
+    const shardText = "The agent showed a consistent preference for creating new records over merging.";
     const ac = new AbortController();
     mock.method(Chat.prototype, "generate", async function generate(this: Chat) {
-      this.addMessage(new Message("assistant", "A shard."));
+      this.addMessage(new Message("assistant", shardText));
       ac.abort();
-      return "A shard.";
+      return shardText;
     });
 
     const result = await runShardsProcessor(db, soulsDb, "test-model", ac.signal);
@@ -178,7 +243,7 @@ describe("runShardsProcessor", () => {
   });
 
   it("processes impressions for different souls with correct attribution", async () => {
-    patchChatGenerate("Shard for this soul.");
+    patchChatGenerate("The agent demonstrated distinct reasoning patterns when handling identity conflicts.");
     seedImpression(ghostpawId);
 
     const soulIds = bootstrapSouls(soulsDb);
