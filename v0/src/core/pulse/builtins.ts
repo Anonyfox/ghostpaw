@@ -1,10 +1,18 @@
-import type { DatabaseHandle } from "../../lib/database_handle.ts";
+import type { RuntimeContext } from "../../runtime.ts";
+import { listUnsealedStaleSessions } from "../chat/list_unsealed_stale_sessions.ts";
+import { sealSessionTail } from "../chat/seal_session_tail.ts";
+import { runShadeIngest } from "../shade/ingest.ts";
+import { runShardsProcessor } from "../shade/shards.ts";
+import { runAttune } from "../souls/attune.ts";
 import type { BuiltinHandler, JobResult } from "./types.ts";
 
+const STALE_AFTER_MINUTES = 360;
+
 export async function heartbeatHandler(
-  db: DatabaseHandle,
+  ctx: RuntimeContext,
   _signal: AbortSignal,
 ): Promise<JobResult> {
+  const { db } = ctx;
   const untitled = db
     .prepare("SELECT COUNT(*) as c FROM sessions WHERE purpose = 'chat' AND title IS NULL")
     .get() as { c: number };
@@ -32,12 +40,65 @@ export async function heartbeatHandler(
   };
 }
 
+export async function sealSweepHandler(
+  ctx: RuntimeContext,
+  _signal: AbortSignal,
+): Promise<JobResult> {
+  const { db } = ctx;
+  const stale = listUnsealedStaleSessions(db, STALE_AFTER_MINUTES);
+  let sealed = 0;
+  for (const s of stale) {
+    sealed += sealSessionTail(db, s.id);
+  }
+  return {
+    exitCode: 0,
+    output: JSON.stringify({ stale_sessions_found: stale.length, messages_sealed: sealed }),
+  };
+}
+
+export async function shadeIngestHandler(
+  ctx: RuntimeContext,
+  signal: AbortSignal,
+): Promise<JobResult> {
+  const result = await runShadeIngest(ctx.db, ctx.config.model_small, signal);
+  return {
+    exitCode: 0,
+    output: JSON.stringify(result),
+  };
+}
+
+export async function shadeShardsHandler(
+  ctx: RuntimeContext,
+  signal: AbortSignal,
+): Promise<JobResult> {
+  const result = await runShardsProcessor(ctx.db, ctx.soulsDb, ctx.config.model_small, signal);
+  return {
+    exitCode: 0,
+    output: JSON.stringify(result),
+  };
+}
+
+export async function attuneHandler(
+  ctx: RuntimeContext,
+  signal: AbortSignal,
+): Promise<JobResult> {
+  const result = await runAttune(ctx, signal);
+  return {
+    exitCode: 0,
+    output: JSON.stringify(result),
+  };
+}
+
 export const BUILTINS: Record<string, BuiltinHandler> = {
   heartbeat: heartbeatHandler,
+  seal_sweep: sealSweepHandler,
+  shade_ingest: shadeIngestHandler,
+  shade_shards: shadeShardsHandler,
+  attune: attuneHandler,
 };
 
 export async function runBuiltin(
-  db: DatabaseHandle,
+  ctx: RuntimeContext,
   command: string,
   signal: AbortSignal,
 ): Promise<JobResult> {
@@ -45,5 +106,5 @@ export async function runBuiltin(
   if (!handler) {
     return { exitCode: 1, error: `unknown builtin: ${command}` };
   }
-  return handler(db, signal);
+  return handler(ctx, signal);
 }

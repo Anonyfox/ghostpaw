@@ -1,8 +1,6 @@
-import type { DatabaseHandle } from "../../lib/database_handle.ts";
+import type { RuntimeContext } from "../../runtime.ts";
 
-export type CommandCtx = {
-  db: DatabaseHandle;
-  homePath: string;
+export type CommandCtx = RuntimeContext & {
   sessionId: number | null;
 };
 

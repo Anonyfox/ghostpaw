@@ -1,6 +1,7 @@
 import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
+import type { RuntimeContext } from "../../runtime.ts";
 import { getSettingInt } from "../settings/get.ts";
 import { runBuiltin } from "./builtins.ts";
 import { claimPulse } from "./claim.ts";
@@ -140,17 +141,17 @@ function handleTimeouts(db: DatabaseHandle, active: Map<number, ActiveEntry>): v
 }
 
 async function dispatchBuiltin(
-  db: DatabaseHandle,
+  ctx: RuntimeContext,
   pulse: Pulse,
   active: Map<number, ActiveEntry>,
 ): Promise<void> {
   const ac = new AbortController();
   active.set(pulse.id, { abort: ac, aborted: false });
   try {
-    const result = await runBuiltin(db, pulse.command, ac.signal);
-    safeComplete(db, pulse.id, result);
+    const result = await runBuiltin(ctx, pulse.command, ac.signal);
+    safeComplete(ctx.db, pulse.id, result);
   } catch (err) {
-    safeComplete(db, pulse.id, {
+    safeComplete(ctx.db, pulse.id, {
       exitCode: 1,
       error: err instanceof Error ? err.message : String(err),
     });
@@ -238,7 +239,8 @@ function dispatchShell(db: DatabaseHandle, pulse: Pulse, active: Map<number, Act
   }
 }
 
-export function startPulse(db: DatabaseHandle, runAgentTask: RunAgentTask): PulseEngineHandle {
+export function startPulse(ctx: RuntimeContext, runAgentTask: RunAgentTask): PulseEngineHandle {
+  const db = ctx.db;
   resetStalePulses(db);
   pruneRunHistory(db);
 
@@ -267,7 +269,7 @@ export function startPulse(db: DatabaseHandle, runAgentTask: RunAgentTask): Puls
         }
 
         if (pulse.type === "builtin") {
-          void dispatchBuiltin(db, pulse, active).catch((err) =>
+          void dispatchBuiltin(ctx, pulse, active).catch((err) =>
             console.error("[pulse] unhandled builtin:", err),
           );
         } else if (pulse.type === "agent") {

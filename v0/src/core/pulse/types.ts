@@ -1,4 +1,4 @@
-import type { DatabaseHandle } from "../../lib/database_handle.ts";
+import type { RuntimeContext } from "../../runtime.ts";
 
 export type PulseType = "builtin" | "agent" | "shell";
 
@@ -36,7 +36,7 @@ export interface PulseRun {
   created_at: string;
 }
 
-export type BuiltinHandler = (db: DatabaseHandle, signal: AbortSignal) => Promise<JobResult>;
+export type BuiltinHandler = (ctx: RuntimeContext, signal: AbortSignal) => Promise<JobResult>;
 
 export interface JobResult {
   exitCode: number;

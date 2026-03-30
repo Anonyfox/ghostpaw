@@ -18,7 +18,22 @@ function dummyCommand(name: string, overrides?: Partial<Command>): Command {
 
 const dummyCtx: CommandCtx = {
   db: {} as CommandCtx["db"],
+  codexDb: {} as CommandCtx["codexDb"],
+  affinityDb: {} as CommandCtx["affinityDb"],
+  soulsDb: {} as CommandCtx["soulsDb"],
+  soulIds: { ghostpaw: 1, scribe: 2, innkeeper: 3, mentor: 4 },
   homePath: "/tmp",
+  workspace: "/tmp",
+  config: {
+    model: "test-model",
+    model_small: "test-small",
+    model_large: "test-large",
+    compaction_threshold: 180_000,
+    interceptor: {
+      enabled: false,
+      subsystems: {},
+    },
+  },
   sessionId: null,
 };
 

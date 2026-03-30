@@ -7,9 +7,10 @@ import { fireOneshots } from "../oneshot/runner.ts";
 import type { OneshotRegistry } from "../oneshot/types.ts";
 import type { InterceptorConfig } from "../settings/build_config.ts";
 import { getSettingInt } from "../settings/get.ts";
+import { compactSession } from "./compact_session.ts";
 import { addMessage } from "./messages.ts";
 import { persistTurnMessages } from "./persist_turn.ts";
-import { reconstructMessages } from "./reconstruct.ts";
+import { reconstructActiveHistory } from "./reconstruct.ts";
 import { getSession } from "./session.ts";
 import type { TurnOptions, TurnResult } from "./types.ts";
 
@@ -53,6 +54,12 @@ export async function* streamTurn(
   if (!session) return emptyResult(sessionId, "Session not found", "");
 
   const model = options?.model ?? session.model;
+
+  const compactionThreshold = getSettingInt("GHOSTPAW_COMPACTION_THRESHOLD") ?? 180_000;
+  if (compactionThreshold > 0) {
+    await compactSession(db, sessionId, model, compactionThreshold);
+  }
+
   const userMessageId = addMessage(db, sessionId, "user", content, { source: "organic" });
 
   let oneshotPromise: Promise<void> | undefined;
@@ -79,7 +86,7 @@ export async function* streamTurn(
     });
   }
 
-  const history = reconstructMessages(db, sessionId);
+  const history = reconstructActiveHistory(db, sessionId);
   const chat = new Chat({ model });
   chat.system(session.system_prompt);
   chat.addMessages(history);

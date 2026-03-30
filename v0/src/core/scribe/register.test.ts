@@ -1,12 +1,26 @@
 import assert from "node:assert";
-import { describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
+import type { DatabaseHandle } from "../../lib/database_handle.ts";
+import { openMemorySoulsDatabase } from "../db/open_souls.ts";
 import { createSubsystemRegistry } from "../interceptor/registry.ts";
+import { bootstrapSouls } from "../souls/bootstrap.ts";
 import { registerScribeSubsystem } from "./register.ts";
 
+let soulsDb: DatabaseHandle;
+
+beforeEach(() => {
+  soulsDb = openMemorySoulsDatabase();
+});
+
+afterEach(() => {
+  soulsDb.close();
+});
+
 describe("registerScribeSubsystem", () => {
-  it("registers the scribe subsystem in the registry", () => {
+  it("registers the scribe subsystem in the registry with correct metadata", () => {
+    const ids = bootstrapSouls(soulsDb);
     const registry = createSubsystemRegistry();
-    registerScribeSubsystem(registry);
+    registerScribeSubsystem(registry, soulsDb, ids.scribe);
 
     assert.deepStrictEqual(registry.names(), ["scribe"]);
     const def = registry.get("scribe");

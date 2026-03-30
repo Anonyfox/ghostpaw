@@ -1,9 +1,14 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
+import type { RuntimeContext } from "../../runtime.ts";
 import { openMemoryDatabase } from "../db/open.ts";
 import { ensureDefaultPulses } from "./defaults.ts";
 import { startPulse } from "./engine.ts";
 import type { RunAgentTask } from "./types.ts";
+
+function makeCtx(db: ReturnType<typeof openMemoryDatabase>): RuntimeContext {
+  return { db } as unknown as RuntimeContext;
+}
 
 function tick(ms = 20): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -18,7 +23,7 @@ describe("startPulse", () => {
        next_run_at = '2099-01-01T00:00:00.000Z' WHERE name = 'heartbeat'`,
     ).run();
 
-    const scheduler = startPulse(db, async () => ({ exitCode: 0 }));
+    const scheduler = startPulse(makeCtx(db), async () => ({ exitCode: 0 }));
     await scheduler.stop();
 
     const row = db
@@ -41,7 +46,7 @@ describe("startPulse", () => {
        next_run_at = '2099-01-01T00:00:00.000Z' WHERE name = 'heartbeat'`,
     ).run();
 
-    const scheduler = startPulse(db, async () => ({ exitCode: 0 }));
+    const scheduler = startPulse(makeCtx(db), async () => ({ exitCode: 0 }));
     await scheduler.stop();
 
     const run = db
@@ -59,7 +64,7 @@ describe("startPulse", () => {
       "UPDATE pulses SET next_run_at = '2000-01-01T00:00:00.000Z' WHERE name = 'heartbeat'",
     ).run();
 
-    const scheduler = startPulse(db, async () => ({ exitCode: 0 }));
+    const scheduler = startPulse(makeCtx(db), async () => ({ exitCode: 0 }));
     await tick(50);
     await scheduler.stop();
 
@@ -87,7 +92,7 @@ describe("startPulse", () => {
       return { exitCode: 0, sessionId: null, output: "done" };
     };
 
-    const scheduler = startPulse(db, mockAgent);
+    const scheduler = startPulse(makeCtx(db), mockAgent);
     await tick(50);
     await scheduler.stop();
 
@@ -116,7 +121,7 @@ describe("startPulse", () => {
       throw new Error("LLM exploded");
     };
 
-    const scheduler = startPulse(db, mockAgent);
+    const scheduler = startPulse(makeCtx(db), mockAgent);
     await tick(50);
     await scheduler.stop();
 
@@ -144,7 +149,7 @@ describe("startPulse", () => {
     const before = db.prepare("SELECT COUNT(*) as c FROM pulse_runs").get() as { c: number };
     assert.strictEqual(before.c, 1);
 
-    const scheduler = startPulse(db, async () => ({ exitCode: 0 }));
+    const scheduler = startPulse(makeCtx(db), async () => ({ exitCode: 0 }));
     await scheduler.stop();
 
     const after = db.prepare("SELECT COUNT(*) as c FROM pulse_runs").get() as { c: number };
@@ -154,7 +159,7 @@ describe("startPulse", () => {
   it("stop resolves even with no active jobs", async () => {
     const db = openMemoryDatabase();
     ensureDefaultPulses(db);
-    const scheduler = startPulse(db, async () => ({ exitCode: 0 }));
+    const scheduler = startPulse(makeCtx(db), async () => ({ exitCode: 0 }));
     await scheduler.stop();
   });
 });

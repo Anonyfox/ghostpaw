@@ -1,7 +1,9 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
 import { openMemoryDatabase } from "../db/open.ts";
-import { openMemoryAffinityDatabase } from "../db/open_affinity.ts";
+import { openMemorySoulsDatabase } from "../db/open_souls.ts";
+import { bootstrapSouls } from "../souls/bootstrap.ts";
+import { renderSoul } from "../souls/render.ts";
 
 describe("innkeeper subagent module", () => {
   it("can import runAffinitySubagent", async () => {
@@ -9,16 +11,22 @@ describe("innkeeper subagent module", () => {
     assert.strictEqual(typeof runAffinitySubagent, "function");
   });
 
-  it("builds a system prompt with affinity soul foundation", async () => {
-    const { soul } = await import("@ghostpaw/affinity");
-    const soulPrompt = soul.renderAffinitySoulPromptFoundation();
-    assert.strictEqual(typeof soulPrompt, "string");
-    assert.ok(soulPrompt.length > 100);
+  it("runAffinitySubagent accepts soulsDb and innkeeperId as parameters", async () => {
+    const { runAffinitySubagent } = await import("./subagent.ts");
+    assert.strictEqual(runAffinitySubagent.length, 3, "should take opts, soulsDb, innkeeperId");
+  });
+
+  it("renders a non-empty soul prompt for innkeeper ID", () => {
+    const soulsDb = openMemorySoulsDatabase();
+    const ids = bootstrapSouls(soulsDb);
+    const rendered = renderSoul(soulsDb, ids.innkeeper);
+    assert.ok(rendered.length > 100, "innkeeper soul should render to substantial text");
+    assert.ok(rendered.includes("Innkeeper"), "rendered soul should mention Innkeeper");
+    soulsDb.close();
   });
 
   it("child session is created with subsystem_turn purpose", async () => {
     const chatDb = openMemoryDatabase();
-    const affinityDb = openMemoryAffinityDatabase();
     const { createSession } = await import("../chat/session.ts");
 
     const session = createSession(chatDb, "m", "p", {
@@ -32,6 +40,5 @@ describe("innkeeper subagent module", () => {
     assert.strictEqual(session.triggered_by_message_id, 42);
 
     chatDb.close();
-    affinityDb.close();
   });
 });

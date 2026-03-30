@@ -64,17 +64,13 @@ describe("settings/resolve_models", () => {
     assert.strictEqual(row.value, "claude-sonnet-4-5");
 
     const smallRow = db
-      .prepare(
-        "SELECT value FROM settings WHERE key = 'GHOSTPAW_MODEL_SMALL' AND next_id IS NULL",
-      )
+      .prepare("SELECT value FROM settings WHERE key = 'GHOSTPAW_MODEL_SMALL' AND next_id IS NULL")
       .get() as { value: string } | undefined;
     assert.ok(smallRow, "resolveModels should have written model_small too");
     assert.strictEqual(smallRow.value, "claude-haiku-4-5");
 
     const largeRow = db
-      .prepare(
-        "SELECT value FROM settings WHERE key = 'GHOSTPAW_MODEL_LARGE' AND next_id IS NULL",
-      )
+      .prepare("SELECT value FROM settings WHERE key = 'GHOSTPAW_MODEL_LARGE' AND next_id IS NULL")
       .get() as { value: string } | undefined;
     assert.ok(largeRow, "resolveModels should have written model_large too");
     assert.strictEqual(largeRow.value, "claude-opus-4-5");

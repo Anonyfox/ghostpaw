@@ -3,8 +3,8 @@ import { describe, it } from "node:test";
 import { KNOWN_SETTINGS, PROVIDER_KEYS, PROVIDER_MODELS } from "./known.ts";
 
 describe("settings/known", () => {
-  it("has 29 known keys", () => {
-    assert.strictEqual(Object.keys(KNOWN_SETTINGS).length, 29);
+  it("has 30 known keys", () => {
+    assert.strictEqual(Object.keys(KNOWN_SETTINGS).length, 30);
   });
 
   it("all keys are UPPER_SNAKE_CASE", () => {

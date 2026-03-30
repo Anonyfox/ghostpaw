@@ -89,6 +89,14 @@ export const KNOWN_SETTINGS: Record<string, KnownSetting> = {
     description: "Heavyweight model for complex reasoning and high-stakes tasks",
   },
 
+  GHOSTPAW_COMPACTION_THRESHOLD: {
+    defaultValue: "180000",
+    type: "integer",
+    secret: false,
+    category: "agent",
+    description: "Token count at which automatic chat compaction fires (0 disables)",
+  },
+
   // --- agent ---
   GHOSTPAW_MAX_TURN_ITERATIONS: {
     defaultValue: "25",

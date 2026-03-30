@@ -12,18 +12,7 @@ interface JoinedRow {
   tc_args: string | null;
 }
 
-export function reconstructMessages(db: DatabaseHandle, sessionId: number): Message[] {
-  const rows = db
-    .prepare(
-      `SELECT m.id, m.ordinal, m.role, m.content, m.tool_call_id,
-              tc.id AS tc_id, tc.name AS tc_name, tc.arguments AS tc_args
-       FROM messages m
-       LEFT JOIN tool_calls tc ON tc.message_id = m.id
-       WHERE m.session_id = ?
-       ORDER BY m.ordinal, tc.id`,
-    )
-    .all(sessionId) as unknown as JoinedRow[];
-
+function rowsToMessages(rows: JoinedRow[]): Message[] {
   type GroupedMsg = {
     role: "user" | "assistant" | "tool";
     content: string;
@@ -61,4 +50,41 @@ export function reconstructMessages(db: DatabaseHandle, sessionId: number): Mess
     }
     return new Message("assistant", g.content);
   });
+}
+
+const JOIN_SELECT = `
+  SELECT m.id, m.ordinal, m.role, m.content, m.tool_call_id,
+         tc.id AS tc_id, tc.name AS tc_name, tc.arguments AS tc_args
+  FROM messages m
+  LEFT JOIN tool_calls tc ON tc.message_id = m.id`;
+
+export function reconstructMessages(db: DatabaseHandle, sessionId: number): Message[] {
+  const rows = db
+    .prepare(`${JOIN_SELECT} WHERE m.session_id = ? ORDER BY m.ordinal, tc.id`)
+    .all(sessionId) as unknown as JoinedRow[];
+  return rowsToMessages(rows);
+}
+
+export function reconstructActiveHistory(db: DatabaseHandle, sessionId: number): Message[] {
+  const sessionRow = db
+    .prepare("SELECT head_message_id FROM sessions WHERE id = ?")
+    .get(sessionId) as { head_message_id: number | null } | undefined;
+
+  const headId = sessionRow?.head_message_id;
+  if (!headId) {
+    return reconstructMessages(db, sessionId);
+  }
+
+  const headRow = db.prepare("SELECT ordinal FROM messages WHERE id = ?").get(headId) as
+    | { ordinal: number }
+    | undefined;
+
+  if (!headRow) {
+    return reconstructMessages(db, sessionId);
+  }
+
+  const rows = db
+    .prepare(`${JOIN_SELECT} WHERE m.session_id = ? AND m.ordinal >= ? ORDER BY m.ordinal, tc.id`)
+    .all(sessionId, headRow.ordinal) as unknown as JoinedRow[];
+  return rowsToMessages(rows);
 }

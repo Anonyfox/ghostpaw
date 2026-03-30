@@ -17,6 +17,8 @@ export function addMessage(
   extra?: {
     source?: MessageSource;
     toolCallId?: string;
+    parentId?: number;
+    isCompaction?: boolean;
     model?: string;
     inputTokens?: number;
     outputTokens?: number;
@@ -28,9 +30,10 @@ export function addMessage(
   const ordinal = nextOrdinal(db, sessionId);
   const result = db
     .prepare(
-      `INSERT INTO messages (session_id, ordinal, role, content, source, tool_call_id, model,
+      `INSERT INTO messages (session_id, ordinal, role, content, source, tool_call_id,
+        parent_id, is_compaction, model,
         input_tokens, output_tokens, cached_tokens, reasoning_tokens, cost_usd)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       sessionId,
@@ -39,6 +42,8 @@ export function addMessage(
       content,
       extra?.source ?? "organic",
       extra?.toolCallId ?? null,
+      extra?.parentId ?? null,
+      extra?.isCompaction ? 1 : 0,
       extra?.model ?? null,
       extra?.inputTokens ?? null,
       extra?.outputTokens ?? null,

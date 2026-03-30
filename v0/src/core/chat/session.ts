@@ -6,6 +6,7 @@ export interface CreateSessionOptions {
   title?: string;
   parentSessionId?: number;
   triggeredByMessageId?: number;
+  soulId?: number;
 }
 
 export function createSession(
@@ -16,8 +17,8 @@ export function createSession(
 ): Session {
   const result = db
     .prepare(
-      `INSERT INTO sessions (title, model, system_prompt, purpose, parent_session_id, triggered_by_message_id)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO sessions (title, model, system_prompt, purpose, parent_session_id, triggered_by_message_id, soul_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       opts?.title ?? null,
@@ -26,6 +27,7 @@ export function createSession(
       opts?.purpose ?? "chat",
       opts?.parentSessionId ?? null,
       opts?.triggeredByMessageId ?? null,
+      opts?.soulId ?? null,
     );
 
   const id = Number(result.lastInsertRowid);

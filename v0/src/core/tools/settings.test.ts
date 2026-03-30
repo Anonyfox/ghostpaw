@@ -162,10 +162,7 @@ describe("tools/settings", () => {
   });
 
   it("reset returns error for non-existent key", async () => {
-    const result = (await exec({ action: "reset", key: "nonexistent" })) as Record<
-      string,
-      unknown
-    >;
+    const result = (await exec({ action: "reset", key: "nonexistent" })) as Record<string, unknown>;
     assert.ok(result.error);
     assert.strictEqual(result.action, "reset");
   });

@@ -1,6 +1,5 @@
 import { deleteFromOrdinal, getMessages } from "../chat/messages.ts";
 import { createSession, getSession, listSessions, updateSessionModel } from "../chat/session.ts";
-import { buildConfig } from "../settings/build_config.ts";
 import { canonicalizeKey } from "../settings/canonicalize.ts";
 import { getSetting } from "../settings/get.ts";
 import { KNOWN_SETTINGS } from "../settings/known.ts";
@@ -8,6 +7,7 @@ import { listSettings } from "../settings/list.ts";
 import { resetSetting } from "../settings/reset.ts";
 import { setSetting } from "../settings/set.ts";
 import { undoSetting } from "../settings/undo.ts";
+import { renderSoul } from "../souls/render.ts";
 import type { CommandRegistry } from "./registry.ts";
 import type { Command } from "./types.ts";
 
@@ -29,8 +29,10 @@ const newCommand: Command = {
   slash: true,
   cli: false,
   async execute(ctx) {
-    const config = buildConfig();
-    const session = createSession(ctx.db, config.model, config.system_prompt);
+    const systemPrompt = renderSoul(ctx.soulsDb, ctx.soulIds.ghostpaw);
+    const session = createSession(ctx.db, ctx.config.model, systemPrompt, {
+      soulId: ctx.soulIds.ghostpaw,
+    });
     return {
       text: `Created session ${session.id}`,
       action: { type: "new_session", sessionId: session.id },

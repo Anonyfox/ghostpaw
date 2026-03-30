@@ -64,6 +64,9 @@ export function filterContextForSubsystem(
           content: jr.content,
           source: jr.source as "organic" | "synthetic",
           tool_call_id: jr.tool_call_id,
+          parent_id: null,
+          is_compaction: 0,
+          sealed_at: null,
           model: null,
           input_tokens: null,
           output_tokens: null,
@@ -74,8 +77,8 @@ export function filterContextForSubsystem(
         },
         tcEntries: [],
       };
-      if (jr.tc_id && jr.tc_name) current.tcEntries.push({ id: jr.tc_id, name: jr.tc_name });
-      groups.push(current);
+      if (jr.tc_id && jr.tc_name) current!.tcEntries.push({ id: jr.tc_id, name: jr.tc_name });
+      groups.push(current!);
       currentId = jr.id;
     } else if (jr.tc_id && jr.tc_name && current) {
       current.tcEntries.push({ id: jr.tc_id, name: jr.tc_name });

@@ -2,12 +2,9 @@ import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createTool, Schema } from "chatoyant";
+import { estimateTokens } from "chatoyant/tokens";
 
 const TOKEN_INLINE_THRESHOLD = 3000;
-
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
-}
 
 class WebFetchParams extends Schema {
   url = Schema.String({

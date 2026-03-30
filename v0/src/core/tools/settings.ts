@@ -53,13 +53,18 @@ export function createSettingsTool(db: DatabaseHandle) {
     // biome-ignore lint/suspicious/noExplicitAny: chatoyant SchemaInstance index-signature limitation
     parameters: new SettingsParams() as any,
     execute: async ({ args }) => {
-      const { key, value, secret } = args as {
+      const {
+        action: rawAction,
+        key,
+        value,
+        secret,
+      } = args as {
         action: string;
         key?: string;
         value?: string;
         secret?: boolean;
       };
-      const action = String(args.action ?? "")
+      const action = String(rawAction ?? "")
         .trim()
         .toLowerCase();
 

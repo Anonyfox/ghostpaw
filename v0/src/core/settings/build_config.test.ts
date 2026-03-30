@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import { afterEach, describe, it } from "node:test";
-import { buildConfig, DEFAULT_SYSTEM_PROMPT } from "./build_config.ts";
+import { buildConfig } from "./build_config.ts";
 
 describe("settings/build_config", () => {
   afterEach(() => {
@@ -23,7 +23,6 @@ describe("settings/build_config", () => {
     assert.strictEqual(config.model, "claude-sonnet-4-5");
     assert.strictEqual(config.model_small, "claude-haiku-4-5");
     assert.strictEqual(config.model_large, "claude-opus-4-5");
-    assert.strictEqual(config.system_prompt, DEFAULT_SYSTEM_PROMPT);
     assert.strictEqual(config.interceptor.enabled, true);
     assert.strictEqual(config.interceptor.subsystems.scribe.lookback, 3);
   });
@@ -40,10 +39,5 @@ describe("settings/build_config", () => {
     const config = buildConfig();
     assert.strictEqual(config.interceptor.enabled, false);
     assert.strictEqual(config.interceptor.subsystems.scribe.lookback, 10);
-  });
-
-  it("system_prompt is always the default constant", () => {
-    const config = buildConfig();
-    assert.ok(config.system_prompt.includes("Ghostpaw"));
   });
 });

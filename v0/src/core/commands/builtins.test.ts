@@ -4,21 +4,35 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
+import type { SoulIds } from "../../runtime.ts";
 import { addMessage } from "../chat/messages.ts";
 import { createSession } from "../chat/session.ts";
 import { openMemoryDatabase } from "../db/open.ts";
+import { openMemoryAffinityDatabase } from "../db/open_affinity.ts";
+import { openMemoryCodexDatabase } from "../db/open_codex.ts";
+import { openMemorySoulsDatabase } from "../db/open_souls.ts";
+import { buildConfig } from "../settings/build_config.ts";
 import { clearSecretRegistry } from "../settings/scrub.ts";
+import { bootstrapSouls } from "../souls/bootstrap.ts";
 import { registerBuiltins } from "./builtins.ts";
 import type { CommandRegistry } from "./registry.ts";
 import { createRegistry } from "./registry.ts";
 import type { CommandCtx } from "./types.ts";
 
 let db: DatabaseHandle;
+let codexDb: DatabaseHandle;
+let affinityDb: DatabaseHandle;
+let soulsDb: DatabaseHandle;
+let soulIds: SoulIds;
 let tmpDir: string;
 let registry: CommandRegistry;
 
 beforeEach(() => {
   db = openMemoryDatabase();
+  codexDb = openMemoryCodexDatabase();
+  affinityDb = openMemoryAffinityDatabase();
+  soulsDb = openMemorySoulsDatabase();
+  soulIds = bootstrapSouls(soulsDb);
   tmpDir = mkdtempSync(join(tmpdir(), "ghostpaw-cmd-test-"));
   registry = createRegistry();
   registerBuiltins(registry);
@@ -26,6 +40,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  soulsDb.close();
+  affinityDb.close();
+  codexDb.close();
   db.close();
   rmSync(tmpDir, { recursive: true, force: true });
   clearSecretRegistry();
@@ -34,7 +51,17 @@ afterEach(() => {
 });
 
 function ctx(sessionId: number | null = null): CommandCtx {
-  return { db, homePath: tmpDir, sessionId };
+  return {
+    db,
+    codexDb,
+    affinityDb,
+    soulsDb,
+    soulIds,
+    homePath: tmpDir,
+    workspace: process.cwd(),
+    config: buildConfig(),
+    sessionId,
+  };
 }
 
 describe("help command", () => {
@@ -53,11 +80,18 @@ describe("help command", () => {
 });
 
 describe("new command", () => {
-  it("creates a new session", async () => {
+  it("creates a new session with a soul-backed system prompt", async () => {
     const result = await registry.execute("new", "", ctx());
     assert.ok(result.text.includes("Created session"));
     assert.ok(result.action);
     assert.strictEqual(result.action!.type, "new_session");
+    // Verify the created session has a non-empty system prompt from the ghostpaw soul
+    const sessionId = (result.action as { type: "new_session"; sessionId: number }).sessionId;
+    const row = db.prepare("SELECT system_prompt FROM sessions WHERE id = ?").get(sessionId) as
+      | { system_prompt: string }
+      | undefined;
+    assert.ok(row?.system_prompt, "session must have a system prompt");
+    assert.ok(row.system_prompt.includes("Ghostpaw"), "system prompt should contain soul content");
   });
 });
 

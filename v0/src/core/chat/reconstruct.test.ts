@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 import { openMemoryDatabase } from "../db/open.ts";
 import { addMessage } from "./messages.ts";
-import { reconstructMessages } from "./reconstruct.ts";
+import { reconstructActiveHistory, reconstructMessages } from "./reconstruct.ts";
 import { createSession } from "./session.ts";
 
 let db: DatabaseHandle;
@@ -148,5 +148,74 @@ describe("reconstructMessages", () => {
 
     assert.strictEqual(msgs[5].role, "assistant");
     assert.strictEqual(msgs[5].content, "Done. file1 contains stuff.");
+  });
+});
+
+describe("reconstructActiveHistory", () => {
+  it("returns full history when no head_message_id is set", () => {
+    addMessage(db, sessionId, "user", "hello");
+    addMessage(db, sessionId, "assistant", "hi");
+
+    const msgs = reconstructActiveHistory(db, sessionId);
+    assert.strictEqual(msgs.length, 2);
+  });
+
+  it("returns only messages from head onwards when head_message_id is set", () => {
+    addMessage(db, sessionId, "user", "first message");
+    addMessage(db, sessionId, "assistant", "first reply");
+    const headId = addMessage(db, sessionId, "assistant", "compaction summary", {
+      isCompaction: true,
+    });
+    addMessage(db, sessionId, "user", "after compaction");
+    addMessage(db, sessionId, "assistant", "after reply");
+
+    db.prepare("UPDATE sessions SET head_message_id = ? WHERE id = ?").run(headId, sessionId);
+
+    const msgs = reconstructActiveHistory(db, sessionId);
+    assert.strictEqual(msgs.length, 3, "should include compaction summary and later messages");
+    assert.strictEqual(msgs[0].role, "assistant");
+    assert.strictEqual(msgs[0].content, "compaction summary");
+  });
+
+  it("falls back to full history if head message is missing", () => {
+    addMessage(db, sessionId, "user", "hello");
+    db.prepare("UPDATE sessions SET head_message_id = 99999 WHERE id = ?").run(sessionId);
+
+    const msgs = reconstructActiveHistory(db, sessionId);
+    assert.strictEqual(msgs.length, 1);
+  });
+
+  it("returns empty for session with no messages and no head", () => {
+    const msgs = reconstructActiveHistory(db, sessionId);
+    assert.strictEqual(msgs.length, 0);
+  });
+
+  it("includes tool calls and tool results in active window after compaction", () => {
+    addMessage(db, sessionId, "user", "old");
+    addMessage(db, sessionId, "assistant", "old reply");
+    const headId = addMessage(db, sessionId, "assistant", "compaction summary", {
+      isCompaction: true,
+    });
+    db.prepare("UPDATE sessions SET head_message_id = ? WHERE id = ?").run(headId, sessionId);
+
+    addMessage(db, sessionId, "user", "do something");
+    const aId = addMessage(db, sessionId, "assistant", "");
+    db.prepare("INSERT INTO tool_calls (id, message_id, name, arguments) VALUES (?, ?, ?, ?)").run(
+      "call_x",
+      aId,
+      "bash",
+      "{}",
+    );
+    addMessage(db, sessionId, "tool", "result", { toolCallId: "call_x" });
+    addMessage(db, sessionId, "assistant", "done");
+
+    const msgs = reconstructActiveHistory(db, sessionId);
+    assert.strictEqual(msgs.length, 5);
+    assert.strictEqual(msgs[0].content, "compaction summary");
+    assert.strictEqual(msgs[1].role, "user");
+    assert.strictEqual(msgs[2].role, "assistant");
+    assert.ok(msgs[2].toolCalls && msgs[2].toolCalls.length === 1);
+    assert.strictEqual(msgs[3].role, "tool");
+    assert.strictEqual(msgs[4].role, "assistant");
   });
 });

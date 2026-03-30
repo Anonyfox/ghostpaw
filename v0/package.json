@@ -37,6 +37,7 @@
   "dependencies": {
     "@ghostpaw/affinity": "^0.1.6",
     "@ghostpaw/codex": "^0.2.3",
+    "@ghostpaw/souls": "^0.2.1",
     "chatoyant": "^0.8.0",
     "citty": "^0.2.1",
     "magpie-html": "^0.2.3"

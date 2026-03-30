@@ -2,10 +2,10 @@ import * as readline from "node:readline";
 import { createSession, getSession, listSessions } from "../../core/chat/session.ts";
 import type { Agent, TurnResult } from "../../core/chat/types.ts";
 import type { CommandRegistry } from "../../core/commands/registry.ts";
-import type { Config } from "../../core/settings/build_config.ts";
-import type { DatabaseHandle } from "../../lib/database_handle.ts";
+import { renderSoul } from "../../core/souls/render.ts";
 import { bold, cyan, dim, gray, green, yellow } from "../../lib/terminal/style.ts";
 import { VERSION } from "../../lib/version.ts";
+import type { RuntimeContext } from "../../runtime.ts";
 import { ansi } from "./ansi.ts";
 import { createInputState, handleKeypress, type KeyInfo, renderInputLine } from "./key_input.ts";
 import { wrapText } from "./wrap_text.ts";
@@ -75,17 +75,18 @@ function paint(state: TuiState, inputState: ReturnType<typeof createInputState>)
 }
 
 export async function runTui(
-  db: DatabaseHandle,
+  ctx: RuntimeContext,
   agent: Agent,
   registry: CommandRegistry,
-  config: Config,
-  homePath: string,
 ): Promise<void> {
+  const { db } = ctx;
   const sessions = listSessions(db);
   let session =
     sessions.length > 0
       ? getSession(db, sessions[0].id)!
-      : createSession(db, config.model, config.system_prompt);
+      : createSession(db, ctx.config.model, renderSoul(ctx.soulsDb, ctx.soulIds.ghostpaw), {
+          soulId: ctx.soulIds.ghostpaw,
+        });
 
   const state: TuiState = {
     sessionId: session.id,
@@ -120,8 +121,8 @@ export async function runTui(
 
     const parsed = registry.parseSlash(text);
     if (parsed) {
-      const ctx = { db, homePath, sessionId: state.sessionId };
-      const result = await registry.execute(parsed.name, parsed.args, ctx);
+      const cmdCtx = { ...ctx, sessionId: state.sessionId };
+      const result = await registry.execute(parsed.name, parsed.args, cmdCtx);
 
       pushLines(state, dim(`/${parsed.name}: ${result.text}`), c);
       pushLines(state, "", c);

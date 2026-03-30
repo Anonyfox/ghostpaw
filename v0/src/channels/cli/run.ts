@@ -1,12 +1,11 @@
 import { createSession, getSession } from "../../core/chat/session.ts";
 import type { Agent } from "../../core/chat/types.ts";
-import type { Config } from "../../core/settings/build_config.ts";
-import type { DatabaseHandle } from "../../lib/database_handle.ts";
+import { renderSoul } from "../../core/souls/render.ts";
+import type { RuntimeContext } from "../../runtime.ts";
 
 export async function executeRun(
-  db: DatabaseHandle,
+  ctx: RuntimeContext,
   agent: Agent,
-  config: Config,
   opts: {
     prompt?: string;
     session?: string;
@@ -35,14 +34,17 @@ export async function executeRun(
 
   if (opts.session) {
     sessionId = Number.parseInt(opts.session, 10);
-    const session = getSession(db, sessionId);
+    const session = getSession(ctx.db, sessionId);
     if (!session) {
       process.stderr.write(`error: session ${sessionId} not found\n`);
       process.exitCode = 1;
       return;
     }
   } else {
-    const session = createSession(db, config.model, config.system_prompt);
+    const systemPrompt = renderSoul(ctx.soulsDb, ctx.soulIds.ghostpaw);
+    const session = createSession(ctx.db, ctx.config.model, systemPrompt, {
+      soulId: ctx.soulIds.ghostpaw,
+    });
     sessionId = session.id;
   }
 
