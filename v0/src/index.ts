@@ -9,6 +9,7 @@ import type { InterceptorContext, OneshotContext } from "./core/chat/turn.ts";
 import type { Agent } from "./core/chat/types.ts";
 import { registerBuiltins } from "./core/commands/builtins.ts";
 import { createRegistry } from "./core/commands/registry.ts";
+import { createDelegationTools } from "./core/delegation/build_tools.ts";
 import { registerInnkeeperSubsystem } from "./core/innkeeper/register.ts";
 import { createSubsystemRegistry } from "./core/interceptor/registry.ts";
 import { createDeflectionTools } from "./core/interceptor/self_call.ts";
@@ -124,6 +125,7 @@ const runCommand = defineCommand({
     const tools = [
       ...createTools(workspace),
       ...createDeflectionTools(interceptorCtx.registry),
+      ...createDelegationTools(ctx, workspace),
       createPulseTool(ctx.db),
       createSettingsTool(ctx.db),
     ];
@@ -297,6 +299,7 @@ const main = defineCommand({
     const tools = [
       ...createTools(workspace),
       ...createDeflectionTools(interceptorCtx.registry),
+      ...createDelegationTools(ctx, workspace),
       createPulseTool(ctx.db),
       createSettingsTool(ctx.db),
     ];

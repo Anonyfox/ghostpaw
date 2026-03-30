@@ -7,7 +7,7 @@ import type { Config } from "./core/settings/build_config.ts";
 import { buildConfig } from "./core/settings/build_config.ts";
 import { resolveModels } from "./core/settings/resolve_models.ts";
 import { syncEnvToSettings } from "./core/settings/sync_env_to_settings.ts";
-import { bootstrapSouls } from "./core/souls/bootstrap.ts";
+import { bootstrapBuiltinCustomSouls, bootstrapSouls } from "./core/souls/bootstrap.ts";
 import type { DatabaseHandle } from "./lib/database_handle.ts";
 
 export interface SoulIds {
@@ -41,6 +41,7 @@ export async function initRuntime(homePath: string, workspace: string): Promise<
   ]);
 
   const soulIds = bootstrapSouls(soulsDb);
+  bootstrapBuiltinCustomSouls(soulsDb);
   const config = buildConfig();
 
   return { homePath, workspace, db, codexDb, affinityDb, soulsDb, config, soulIds };

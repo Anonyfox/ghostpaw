@@ -1,5 +1,5 @@
 import type { Tool } from "chatoyant";
-import { Chat } from "chatoyant";
+import { Chat, Message } from "chatoyant";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 import { persistTurnMessages } from "../chat/persist_turn.ts";
 import { sealSessionTail } from "../chat/seal_session_tail.ts";
@@ -8,6 +8,20 @@ import type { SubsystemResult, SubsystemRunOpts } from "../interceptor/registry.
 import { renderSoul } from "../souls/render.ts";
 import { bridgeCodexTools } from "./bridge.ts";
 import { createCodexSkillsTool } from "./skills.ts";
+
+const OBSERVATION_DIRECTIVE = `TASK — The messages above are conversation context \
+between a user and the main assistant. You are the Scribe subsystem — an observer, \
+not a participant.
+
+Scan for facts, beliefs, preferences, and knowledge worth capturing. Use your tools \
+to recall, store, revise, or forget beliefs as appropriate.
+
+Do NOT answer the user's question. Do NOT help with their task. Do NOT write code or \
+explanations outside your domain. ONLY maintain the belief store, then write your \
+[scribe] summary.
+
+If nothing in the conversation is worth capturing, respond exactly: \
+[scribe] Nothing noteworthy this turn.`;
 
 export async function runCodexSubagent(
   opts: SubsystemRunOpts,
@@ -38,20 +52,24 @@ export async function runCodexSubagent(
   const chat = new Chat({ model });
   chat.system(systemPrompt);
   chat.addMessages(context);
+  chat.addMessage(new Message("user", OBSERVATION_DIRECTIVE));
   chat.addTools(codexTools);
 
   const preCount = chat.messages.length;
 
+  let timer: ReturnType<typeof setTimeout>;
   try {
     await Promise.race([
       chat.generate({ maxIterations }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("subsystem timeout")), timeoutMs),
-      ),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("subsystem timeout")), timeoutMs);
+      }),
     ]);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { sessionId: session.id, summary: `[scribe] Error: ${msg}`, succeeded: false };
+  } finally {
+    clearTimeout(timer!);
   }
 
   const newMessages = chat.messages.slice(preCount);
@@ -71,9 +89,18 @@ export async function runCodexSubagent(
 
   sealSessionTail(chatDb, session.id);
 
-  return {
-    sessionId: session.id,
-    summary: finalContent || "[scribe] Nothing noteworthy this turn.",
-    succeeded: true,
-  };
+  const fallback = "[scribe] Nothing noteworthy this turn.";
+
+  if (!finalContent) {
+    return { sessionId: session.id, summary: fallback, succeeded: true };
+  }
+
+  if (!finalContent.includes("[scribe]")) {
+    console.error(
+      "[interceptor] scribe response violated protocol — discarding off-protocol output",
+    );
+    return { sessionId: session.id, summary: fallback, succeeded: true };
+  }
+
+  return { sessionId: session.id, summary: finalContent, succeeded: true };
 }

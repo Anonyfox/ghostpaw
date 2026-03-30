@@ -1,10 +1,10 @@
-import type { Tool } from "chatoyant";
 import {
   type SoulsDb,
   type SoulsToolDefinition,
-  type ToolResult,
   tools as soulsToolsNs,
+  type ToolResult,
 } from "@ghostpaw/souls";
+import type { Tool } from "chatoyant";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 
 /**
@@ -25,10 +25,7 @@ class BridgedSoulsTool {
   private readonly handler: (db: SoulsDb, input: unknown) => ToolResult;
   private readonly db: SoulsDb;
 
-  constructor(
-    def: SoulsToolDefinition<unknown, unknown>,
-    db: SoulsDb,
-  ) {
+  constructor(def: SoulsToolDefinition<unknown, unknown>, db: SoulsDb) {
     this.name = def.name;
     this.description = def.description;
     this.schema = def.inputSchema as Record<string, unknown>;
@@ -64,7 +61,5 @@ class BridgedSoulsTool {
  */
 export function createMentorTools(soulsDb: DatabaseHandle): Tool[] {
   const db = soulsDb as unknown as SoulsDb;
-  return soulsToolsNs.soulsTools.map(
-    (def) => new BridgedSoulsTool(def, db) as unknown as Tool,
-  );
+  return soulsToolsNs.soulsTools.map((def) => new BridgedSoulsTool(def, db) as unknown as Tool);
 }

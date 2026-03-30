@@ -78,10 +78,7 @@ export async function shadeShardsHandler(
   };
 }
 
-export async function attuneHandler(
-  ctx: RuntimeContext,
-  signal: AbortSignal,
-): Promise<JobResult> {
+export async function attuneHandler(ctx: RuntimeContext, signal: AbortSignal): Promise<JobResult> {
   const result = await runAttune(ctx, signal);
   return {
     exitCode: 0,

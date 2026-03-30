@@ -1,12 +1,13 @@
 import type { OneshotRegistry, OneshotRunOpts } from "./types.ts";
 
 function withTimeout(promise: Promise<void>, ms: number, name: string): Promise<void> {
+  let timer: ReturnType<typeof setTimeout>;
   return Promise.race([
     promise,
-    new Promise<void>((_, reject) =>
-      setTimeout(() => reject(new Error(`oneshot '${name}' timed out after ${ms}ms`)), ms),
-    ),
-  ]);
+    new Promise<void>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`oneshot '${name}' timed out after ${ms}ms`)), ms);
+    }),
+  ]).finally(() => clearTimeout(timer!));
 }
 
 export async function fireOneshots(registry: OneshotRegistry, opts: OneshotRunOpts): Promise<void> {

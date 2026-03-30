@@ -11,7 +11,6 @@ import { writeImpression } from "../shade/write_impression.ts";
 import { bootstrapSouls } from "../souls/bootstrap.ts";
 import { attuneHandler, heartbeatHandler, runBuiltin, sealSweepHandler } from "./builtins.ts";
 import { ensureDefaultPulses } from "./defaults.ts";
-import type { SoulIds } from "../../runtime.ts";
 
 function makeCtx(db: ReturnType<typeof openMemoryDatabase>): RuntimeContext {
   return { db } as unknown as RuntimeContext;

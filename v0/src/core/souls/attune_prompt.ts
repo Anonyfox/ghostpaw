@@ -4,10 +4,7 @@ import type { CrystallizationRecord } from "@ghostpaw/souls";
  * Builds the user prompt for a mentor agent session given a crystallization record.
  * The mentor receives this as its task and uses its tools to inspect, decide, and act.
  */
-export function buildAttunePrompt(
-  record: CrystallizationRecord,
-  soulName: string,
-): string {
+export function buildAttunePrompt(record: CrystallizationRecord, soulName: string): string {
   return [
     `Soul "${soulName}" (id ${record.soulId}) has crossed the crystallization threshold.`,
     "",

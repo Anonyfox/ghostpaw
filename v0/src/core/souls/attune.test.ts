@@ -1,13 +1,13 @@
 import assert from "node:assert";
 import { afterEach, beforeEach, describe, it, mock } from "node:test";
-import { Chat, Message } from "chatoyant";
 import { read, type SoulsDb, write } from "@ghostpaw/souls";
-import type { RuntimeContext, SoulIds } from "../../runtime.ts";
+import { Chat, Message } from "chatoyant";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
+import type { RuntimeContext, SoulIds } from "../../runtime.ts";
 import { openMemoryDatabase } from "../db/open.ts";
 import { openMemorySoulsDatabase } from "../db/open_souls.ts";
-import { bootstrapSouls } from "./bootstrap.ts";
 import { runAttune } from "./attune.ts";
+import { bootstrapSouls } from "./bootstrap.ts";
 
 const MS_PER_DAY = 86_400_000;
 
@@ -33,11 +33,7 @@ const DIVERSE_CONTENTS = [
   "Rewrote the entire solution mid-stream when realizing the initial design would not scale.",
 ];
 
-function depositReadyShards(
-  sDb: DatabaseHandle,
-  soulId: number,
-  count = 10,
-): void {
+function depositReadyShards(sDb: DatabaseHandle, soulId: number, count = 10): void {
   const baseTime = Date.now() - 3 * MS_PER_DAY;
   const db = sDb as unknown as SoulsDb;
   for (let i = 0; i < count; i++) {
@@ -45,20 +41,16 @@ function depositReadyShards(
       content: DIVERSE_CONTENTS[i % DIVERSE_CONTENTS.length],
       source: `source-${i % 4}`,
       soulIds: [soulId],
-      now: baseTime + i * (2 * MS_PER_DAY) / count,
+      now: baseTime + (i * (2 * MS_PER_DAY)) / count,
     });
   }
 }
 
 function patchChatStream(response: string): void {
-  mock.method(
-    Chat.prototype,
-    "stream",
-    async function* stream(this: Chat) {
-      this.addMessage(new Message("assistant", response));
-      yield response;
-    },
-  );
+  mock.method(Chat.prototype, "stream", async function* stream(this: Chat) {
+    this.addMessage(new Message("assistant", response));
+    yield response;
+  });
 }
 
 let db: DatabaseHandle;
@@ -163,9 +155,7 @@ describe("runAttune — Phase 2 (refinement)", () => {
 
     assert.ok(result.sessionId);
     const sealed = db
-      .prepare(
-        "SELECT COUNT(*) as c FROM messages WHERE session_id = ? AND sealed_at IS NOT NULL",
-      )
+      .prepare("SELECT COUNT(*) as c FROM messages WHERE session_id = ? AND sealed_at IS NOT NULL")
       .get(result.sessionId) as { c: number };
 
     assert.ok(sealed.c > 0, "session should have sealed messages");
@@ -196,13 +186,10 @@ describe("runAttune — Phase 2 (refinement)", () => {
   });
 
   it("does not stamp attuned when the LLM turn fails", async () => {
-    mock.method(
-      Chat.prototype,
-      "stream",
-      async function* stream(this: Chat) {
-        throw new Error("API timeout");
-      },
-    );
+    mock.method(Chat.prototype, "stream", async function* stream(this: Chat) {
+      yield "";
+      throw new Error("API timeout");
+    });
     depositReadyShards(soulsDb, soulIds.ghostpaw);
 
     const signal = new AbortController().signal;
@@ -215,13 +202,10 @@ describe("runAttune — Phase 2 (refinement)", () => {
   });
 
   it("seals the session even when the LLM turn fails", async () => {
-    mock.method(
-      Chat.prototype,
-      "stream",
-      async function* stream(this: Chat) {
-        throw new Error("API timeout");
-      },
-    );
+    mock.method(Chat.prototype, "stream", async function* stream(this: Chat) {
+      yield "";
+      throw new Error("API timeout");
+    });
     depositReadyShards(soulsDb, soulIds.ghostpaw);
 
     const signal = new AbortController().signal;
@@ -229,9 +213,7 @@ describe("runAttune — Phase 2 (refinement)", () => {
 
     assert.ok(result.sessionId);
     const sealed = db
-      .prepare(
-        "SELECT COUNT(*) as c FROM messages WHERE session_id = ? AND sealed_at IS NOT NULL",
-      )
+      .prepare("SELECT COUNT(*) as c FROM messages WHERE session_id = ? AND sealed_at IS NOT NULL")
       .get(result.sessionId) as { c: number };
     assert.ok(sealed.c > 0, "session should have sealed messages even after failure");
   });

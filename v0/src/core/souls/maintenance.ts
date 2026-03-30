@@ -1,4 +1,4 @@
-import { read, type MaintenanceResult, type SoulsDb } from "@ghostpaw/souls";
+import { type MaintenanceResult, read, type SoulsDb } from "@ghostpaw/souls";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 
 export type { MaintenanceResult };

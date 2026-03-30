@@ -1,7 +1,7 @@
 import { read, type SoulsDb, write } from "@ghostpaw/souls";
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 import type { SoulIds } from "../../runtime.ts";
-import { INTERNAL_SOUL_BLUEPRINTS } from "./default_souls.ts";
+import { BUILTIN_CUSTOM_BLUEPRINTS, INTERNAL_SOUL_BLUEPRINTS } from "./default_souls.ts";
 
 function db(h: DatabaseHandle): SoulsDb {
   return h as unknown as SoulsDb;
@@ -47,4 +47,25 @@ export function bootstrapSouls(soulsDb: DatabaseHandle): SoulIds {
   }
 
   return ids as SoulIds;
+}
+
+export function bootstrapBuiltinCustomSouls(soulsDb: DatabaseHandle): void {
+  const existing = read.listSouls(db(soulsDb));
+  const bySlug = new Map(existing.filter((s) => s.slug !== null).map((s) => [s.slug!, s]));
+
+  for (const blueprint of BUILTIN_CUSTOM_BLUEPRINTS) {
+    if (bySlug.has(blueprint.slug)) continue;
+    const created = write.createSoul(db(soulsDb), {
+      name: blueprint.name,
+      description: blueprint.description,
+      essence: blueprint.essence,
+      slug: blueprint.slug,
+    });
+    for (const trait of blueprint.traits) {
+      write.addTrait(db(soulsDb), created.id, {
+        principle: trait.principle,
+        provenance: trait.provenance,
+      });
+    }
+  }
 }

@@ -18,10 +18,7 @@ export interface AttuneResult {
   readySoulsCount: number;
 }
 
-export async function runAttune(
-  ctx: RuntimeContext,
-  signal: AbortSignal,
-): Promise<AttuneResult> {
+export async function runAttune(ctx: RuntimeContext, signal: AbortSignal): Promise<AttuneResult> {
   const maintenance = runMaintenance(ctx.soulsDb);
 
   if (maintenance.readySouls.length === 0) {

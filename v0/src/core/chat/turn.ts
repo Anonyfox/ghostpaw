@@ -93,6 +93,7 @@ export async function* streamTurn(
   chat.addTools(tools);
 
   const preCount = chat.messages.length;
+  let toolRoundJustCompleted = false;
 
   try {
     const stream = chat.stream({
@@ -102,19 +103,21 @@ export async function* streamTurn(
       onToolCallStart: options?.onToolCallStart
         ? (calls) => options.onToolCallStart!(calls.map((c) => ({ id: c.id, name: c.name })))
         : undefined,
-      onToolCallComplete: options?.onToolCallComplete
-        ? (results) =>
-            options.onToolCallComplete!(
-              results.map((r) => ({
-                callId: r.id,
-                name: "",
-                success: r.success,
-              })),
-            )
-        : undefined,
+      onToolCallComplete: (results) => {
+        toolRoundJustCompleted = true;
+        if (options?.onToolCallComplete) {
+          options.onToolCallComplete(
+            results.map((r) => ({ callId: r.id, name: "", success: r.success })),
+          );
+        }
+      },
     });
 
     for await (const chunk of stream) {
+      if (toolRoundJustCompleted && chunk.length > 0) {
+        yield "\n\n";
+        toolRoundJustCompleted = false;
+      }
       yield chunk;
     }
   } catch (err) {

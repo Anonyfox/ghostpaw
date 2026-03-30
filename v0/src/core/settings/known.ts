@@ -126,6 +126,13 @@ export const KNOWN_SETTINGS: Record<string, KnownSetting> = {
     category: "agent",
     description: "Timeout for oneshot operations (title generation, etc.)",
   },
+  GHOSTPAW_DELEGATION_TIMEOUT_MS: {
+    defaultValue: "3600000",
+    type: "integer",
+    secret: false,
+    category: "agent",
+    description: "Timeout for delegation tool execution (delegate and ask_mentor) in milliseconds",
+  },
 
   // --- interceptor ---
   GHOSTPAW_INTERCEPTOR_ENABLED: {

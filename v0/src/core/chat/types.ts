@@ -1,4 +1,11 @@
-export type SessionPurpose = "chat" | "ghost" | "subsystem_turn" | "system" | "pulse" | "shade";
+export type SessionPurpose =
+  | "chat"
+  | "ghost"
+  | "subsystem_turn"
+  | "system"
+  | "pulse"
+  | "shade"
+  | "delegate";
 export type MessageSource = "organic" | "synthetic";
 
 export interface Session {

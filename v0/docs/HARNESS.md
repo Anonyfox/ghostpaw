@@ -1,179 +1,120 @@
 # Harness
 
-A harness turns a raw LLM into a working agent. The LLM alone is stateless — it receives text and produces text, forgetting everything between calls. A harness wraps that core capability with five concerns: **capabilities** that extend what the agent can do, a **synchronous loop** that governs how each interaction runs, an **asynchronous pulse** that gives the agent temporal autonomy between conversations, a **retrospective shade** that extracts signal from completed work, and **channels** that connect the agent to the outside world.
+The harness is what makes a single `.mjs` file a self-improving multi-agent runtime.
 
-Three enhancement layers handle three temporal orientations. The interceptor augments the present turn with transparent subsystem maintenance. The pulse fires scheduled work between conversations. The shade processes finished work after the fact — sealing completed segments, extracting behavioral impressions, and feeding them to independent processors. Together they make ghostpaw an agent that improves during conversation, acts between conversations, and learns from everything it has done.
+**The exoskeleton** makes the raw LLM loop work properly. One file, one process. `node ghostpaw.mjs` — no containers, no external databases, no compile toolchain. Self-bootstraps on first run. Persistence, session management, compaction, streaming, tool execution, four channels. Pure infrastructure, zero extra tokens. Functionally equivalent to what larger agent frameworks ship, but engineered from the ground up so no tokens are wasted on anything that doesn't require intelligence.
 
-But the deepest consequence is none of these layers alone — it's the closed loop between them. Shade extracts behavioral evidence from completed sessions. Pulse-driven attunement crystallizes that evidence into trait refinements via a dedicated mentor agent. And those refined traits feed back into `renderSoul()`, which produces the system prompt for every future session. The system prompt on day 30 is genuinely different from day 1 — not because someone edited a configuration, but because the agent's own behavioral history drove identity evolution. This is not within-session improvement. It is cross-session compounding.
+**The investment loops** spend additional tokens — transparently, on cheap models — to make every future turn better. Interceptors enrich context so the main model needs less reasoning. Shade extracts behavioral evidence so system prompts evolve. Delegation routes to specialists so the right identity handles each task. All loops run on small models (GPT-mini, Claude Haiku class). All loops have on/off switches. The upfront cost is real but modest, and it compounds: better context means fewer tool calls, better traits mean better first-pass answers, better routing means less wasted reasoning. The system pays for itself.
 
-## The Core Mechanic
+## Exoskeleton
 
-Every interaction follows the same structure. A chat is a **system prompt** that sets the agent's identity and behavior, a **message history** of alternating user and assistant turns, and **tool calls** the assistant makes in between. The system prompt is fixed for the duration of a session but evolves between sessions — each new session calls `renderSoul()` to produce a prompt that reflects the soul's current traits, which are themselves the product of behavioral evidence from all prior sessions. The message history grows with every turn. Tool calls let the agent act on the world — read files, run code, search the web — and fold the results back into the conversation before producing its final response.
+Node 24+, `node:sqlite`, single `.mjs` artifact. Bootstraps on first run — creates home directory, initializes databases, seeds souls and schedules. One process, SQLite for all state, no network hops. The world's most widespread runtime, the largest package ecosystem, and a delivery model that ships as a script — no signing, no containers, no compile toolchain on the host.
 
-This is powered by [chatoyant](https://github.com/nicosResworworking/chatoyant), a provider-agnostic LLM library that handles streaming, tool execution, and the iterative generate→call→generate loop natively. The harness doesn't orchestrate tool calls — chatoyant does. The harness provides the tools, manages the context, and persists the results.
-
-## The Agent Loop
+**Agent loop** — receive message, reconstruct history from SQLite, stream LLM generation with iterative tool calls, persist everything atomically. A single turn can loop through dozens of tool calls (read file → discover dependency → read that → edit both → run test) before producing a final response. Powered by [chatoyant](https://github.com/nicosResworworking/chatoyant) for provider-agnostic streaming and tool execution.
 
 ```mermaid
 graph TD
-    A[User Message] --> B[Persist User Message]
-    B --> C{Interceptor Enabled?}
-    C -- no --> F
-    C -- yes --> D[Run Subsystems Concurrently]
-    D --> E[Persist Synthetic Entries]
-    E --> F[Reconstruct Full History from SQLite]
-    F --> G[LLM Generate — streaming, tool calls]
-    G --> H{Tool Calls?}
-    H -- yes --> I[Execute Tools]
-    I --> J[Fold Results into Context]
-    J --> G
-    H -- no --> K[Persist Turn Atomically]
-    K --> L[Return to Channel]
+    A[User Message] --> B[Persist]
+    B --> C[Reconstruct History from SQLite]
+    C --> D[LLM Generate — streaming, tool calls]
+    D --> E{Tool Calls?}
+    E -- yes --> F[Execute Tools]
+    F --> D
+    E -- no --> G[Persist Turn Atomically]
+    G --> H[Return to Channel]
 ```
 
-A single turn can loop through the tool-call cycle many times. The agent reads a file, discovers it needs another, reads that, edits both, runs a test — all within one turn. The channel sees streaming text chunks as the final response forms. When the turn completes, everything is persisted atomically.
+**Persistence** — every message, tool call, and tool result stored in SQLite with foreign-key integrity. Full conversations reconstruct exactly as the LLM saw them. Sessions carry identity, model, system prompt, purpose, and soul attribution. Process restarts continue exactly where they left off.
 
-The interceptor step is the key addition over a raw LLM loop. Before the LLM generates, registered subsystems run concurrently in child sessions. Their results are injected into the message history as synthetic tool call entries. The LLM sees them as prior tool results and naturally incorporates the information. See `INTERCEPTOR.md` for the full mechanics.
+**Compaction** — bounded-replay summarization at configurable token thresholds. Long conversations compress without losing context. The pre-compaction segment is sealed as shade input — nothing is wasted.
 
-## Pulse
+**Channels** — TUI (interactive terminal, streaming, tool status), CLI (one-shot, machine-consumable), Web (Preact SPA with WebSocket streaming), Telegram (long-polling with background notifications). All drive the same `Agent` interface. Pulse runs independently of all channels.
 
-The pulse engine runs alongside the agent loop as an in-process scheduler. Every 60 seconds it checks the `pulses` table for due work, claims it via compare-and-swap, and dispatches it by type. The agent loop handles what happens during a conversation. Pulse handles what happens between conversations — or in parallel with them.
+**Settings** — single SQLite table keyed by env var name. Boot syncs env → DB → `process.env`. Changes take effect immediately. Secrets masked in all output, scrubbed from bash stdout/stderr. Immutable write chain with predecessor linkage — undo, reset, full audit trail. This provenance model is [what research identifies](https://arxiv.org/abs/2505.18279) as the key requirement for auditable shared state, and [SQLite transactions prevent the 95% deadlock rate](https://arxiv.org/abs/2602.13255) that emerges when LLM agents compete for shared state.
 
-```mermaid
-graph TD
-    Timer["60s tick"] --> Timeouts["Handle timeouts"]
-    Timeouts --> Due["Fetch due pulses"]
-    Due --> Claim["CAS claim"]
-    Claim --> Type{"Dispatch by type"}
-    Type -- builtin --> Builtin["In-process handler"]
-    Type -- agent --> Agent["Create pulse session, full agent turn"]
-    Type -- shell --> Shell["spawn /bin/sh -c"]
-    Builtin --> Record["Record in pulse_runs"]
-    Agent --> Record
-    Shell --> Record
-    Record --> Wait["Wait for next tick"]
-```
+**Capabilities** — the tool surface:
 
-Three execution modes serve different cost/capability tradeoffs:
+| Tool                                  | Domain                                                                                             |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `read`, `write`, `edit`, `ls`, `grep` | Filesystem                                                                                         |
+| `bash`                                | Shell execution with timeout and secret scrubbing                                                  |
+| `web_search`, `web_fetch`             | Web search and content extraction                                                                  |
+| `calc`, `datetime`                    | Deterministic math and time — [compensates known LLM weaknesses](https://arxiv.org/abs/2410.05229) |
+| `sense`                               | Proprioceptive text quality measurement                                                            |
+| `pulse`                               | CRUD on scheduled background tasks                                                                 |
+| `settings`                            | Read/write operational settings                                                                    |
 
-**Builtin** pulses are in-process TypeScript functions — zero tokens, zero spawn overhead. The default heartbeat is a builtin that runs every 5 minutes, proving the agent is alive through mechanical metrics (session counts, failing pulses, DB page count) without burning LLM budget. This is the key architectural difference from systems like OpenClaw, whose heartbeat reads a static checklist through the LLM on every cycle — [60–80% of tokens wasted](https://arxiv.org/abs/2509.21224) on "nothing to report," [$720+/month](https://www.zenrows.com/blog/ai-agent-cost) at default intervals.
+## Investment Loops
 
-**Agent** pulses create a `purpose: "pulse"` chat session and execute a full agent turn with all tools. Each has a specific prompt and a specific schedule — the LLM gets a focused task, not a vague mandate. Agent pulses persist to the same session/message substrate as conversation turns, so their work is visible, auditable, and can feed into future context.
+Each loop is a small, transparent token investment on a cheap model that compounds into better performance of the main LLM. Every loop has an on/off switch. Every loop is designed so the cost stays negligible relative to the primary interaction.
 
-**Shell** pulses spawn child processes with stdout/stderr capture, PID tracking, and kill escalation. The heaviest mode but the most capable — anything the system can run, pulse can schedule.
+### Interceptors — enrich the present turn
 
-Safety is enforced at every level: CAS at-most-once claiming, 5-concurrent-dispatch cap, per-job timeouts with SIGTERM→SIGKILL escalation, memory-bounded output capture (2KB), startup stale-run recovery, and automatic 7-day history pruning.
+Before the main model generates, registered subsystems run concurrently in child sessions on the small model. Their summaries are injected as synthetic tool-call entries — the main model sees them as prior tool results and naturally uses the information.
 
-The `pulse` tool gives the LLM full CRUD management over schedules — all operations by numeric ID. Builtins are protected from deletion and command mutation. See `PULSE.md` for full detail on the scheduling model, safety mechanisms, schema, and implementation.
+| Subsystem     | Package                                                        | What it gives the main model                                    |
+| ------------- | -------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Scribe**    | [`@ghostpaw/codex`](https://github.com/GhostPawJS/codex)       | Recalled beliefs, facts, preferences from prior conversations   |
+| **Innkeeper** | [`@ghostpaw/affinity`](https://github.com/GhostPawJS/affinity) | Social context — who people are, how they relate, what happened |
 
-## Shade
+The ROI: when the main model already knows the user's preferences and who "Sarah" is, it doesn't need to ask clarifying questions or make wrong assumptions. Fewer wasted turns, fewer tool calls to look things up, better first-pass answers.
 
-The shade is the retrospective layer. It doesn't augment the current turn or fire independent tasks — it processes work that's already done, extracting what was notable about *how* the agent operated.
+Adding a third subsystem means implementing a `run()` function and registering it. See `INTERCEPTOR.md`.
+
+### Delegation — route to the right identity
+
+The coordinator soul routes specialist work to other souls via tool calls.
+
+**`delegate`** — routes to any custom soul by ID. Tool description dynamically lists available specialists — the LLM reads and decides. The delegate runs in a foreground child session with its own evolved system prompt, full shared tools, and a 100-iteration budget.
+
+**`ask_mentor`** — routes to the built-in mentor for soul lifecycle management (creating specialists, refining traits, leveling up). The mentor gets only its specialized [`@ghostpaw/souls`](https://github.com/GhostPawJS/souls) tools — hard-scoped to its domain.
+
+| Tool         | Domain                                 | Notes                                           |
+| ------------ | -------------------------------------- | ----------------------------------------------- |
+| `delegate`   | Route to custom specialist souls by ID | Dynamic discovery via tool description          |
+| `ask_mentor` | Soul management                        | Mentor-only tools, no filesystem/web/delegation |
+
+The ROI: a JS Engineer soul with traits earned from 50 coding sessions produces better code than the generalist coordinator attempting it directly. The coordinator spends one tool call to delegate; the specialist handles it with domain-evolved identity. Better results, often fewer total tokens.
+
+### Shade — learn from the past
+
+The retrospective layer processes completed work after the fact, extracting what was behaviorally notable.
 
 ```mermaid
 graph LR
-    Done["Completed work"] -->|"sealed_at"| Seal["Sealed segments"]
-    Seal -->|"shade_ingest"| Impressions["shade_impressions"]
-    Impressions -->|"processors"| Output["Shards, scores, ..."]
+    Done["Completed sessions"] -->|seal| Sealed["Sealed segments"]
+    Sealed -->|ingest| Impressions["Lean impressions"]
+    Impressions -->|process| Shards["Soul shards"]
+    Shards -->|crystallize| Attune["Mentor refines traits"]
+    Attune -->|renderSoul| Prompt["Next session's system prompt"]
 ```
 
-The seal mechanism marks completed work as immutable. Three triggers: mechanical seals at subsystem/pulse return and compaction boundaries, plus a scheduled sweep for stale chat sessions. Only sessions with soul attribution and substantive purpose (`chat`, `subsystem_turn`, `pulse`) are eligible — infrastructure sessions are structurally exempt.
+**Sealing** marks work as immutable — mechanical seals at subsystem/pulse return, scheduled sweep for stale sessions. Sessions with soul attribution and substantive purpose (`chat`, `subsystem_turn`, `pulse`, `delegate`) qualify.
 
-The two-stage architecture separates the expensive full-session read (ingestion) from the cheap per-processor work. The ingestion oneshot runs once per sealed segment and persists lean plaintext impressions. Each downstream processor reads only those impressions — typically 100–500 tokens — plus whatever domain context it needs. Adding a new processor retroactively bootstraps over all existing impressions without re-reading any session content.
+**Ingestion** runs a cheap-model oneshot per sealed segment. High notability bar — competent execution is expected, not notable. Only genuine behavioral signals pass: course corrections, reasoning leaps, failures, autonomous judgment. Most segments produce zero impressions.
 
-The notability bar is deliberately high. Most segments produce zero impressions. Competent execution of instructions is expected, not notable. Only genuine behavioral signals pass: course corrections, boundary-setting, reasoning leaps, clear failures, autonomous judgment calls.
+**Processing** is pluggable. The first processor deposits shards via [`@ghostpaw/souls`](https://github.com/GhostPawJS/souls). Shards accumulate. When evidence converges across independent channels over time, crystallization readiness triggers the attune pulse — a full mentor session that reviews evidence and refines traits. The mentor's own sessions are processed by shade too, enabling recursive self-improvement.
 
-The first processor, `shade_shards`, deposits soul shards via `@ghostpaw/souls` — behavioral evidence that accumulates until crystallization readiness triggers the attune pulse. That pulse invokes a full mentor agent session with specialized soul-management tools to review evidence, refine traits, and advance the soul's evolutionary level. The mentor's own sessions are processed by shade in turn, enabling recursive self-improvement of the refinement process itself. The processor framework is generic: any builtin pulse can register as a consumer with its own name, its own interval, and its own exactly-once completion tracking. See `SHADE.md` for full detail on sealing, ingestion, the processor contract, and schema.
+The ROI: the system prompt on day 30 is genuinely different from day 1. Not because someone edited configuration, but because accumulated behavioral evidence drove identity evolution. Better system prompts mean the model needs fewer tokens to understand its role and produce the right kind of output. See `SHADE.md`.
 
-## Capabilities
+### Pulse — act between conversations
 
-Capabilities are the tools the agent can call. Each tool is a typed function with a name, description, parameter schema, and execute handler. The LLM sees the name and description, decides when to call it, and receives structured results.
+In-process scheduler. Every 60s, checks for due work, claims via compare-and-swap, dispatches. Three modes: **builtin** (in-process TypeScript, zero tokens), **agent** (full LLM turn with tools), **shell** (spawned child process).
 
-**Filesystem** — `read`, `write`, `edit`, `ls`, `grep`. Full read/write access to the local filesystem. The agent can navigate, inspect, create, and modify files and directories.
+| Pulse        | Type    | Interval | Token cost                                                     |
+| ------------ | ------- | -------- | -------------------------------------------------------------- |
+| heartbeat    | builtin | 5m       | Zero — mechanical health metrics only                          |
+| seal_sweep   | builtin | 1h       | Zero — marks stale sessions for shade                          |
+| shade_ingest | builtin | 15m      | Small model — extract impressions from sealed work             |
+| shade_shards | builtin | 30m      | Small model — deposit shards from impressions                  |
+| attune       | builtin | 5m       | Zero unless crystallization ready, then small model for mentor |
 
-**Shell** — `bash`. Arbitrary command execution with timeout, output capture, and secret scrubbing.
+The heartbeat proves the agent is alive without burning LLM budget. This avoids the [60–80% token waste](https://arxiv.org/abs/2509.21224) of systems that route "nothing to report" through the LLM on every cycle.
 
-**Web** — `web_search`, `web_fetch`. Search the web via configurable providers (Brave, Tavily, Serper, DuckDuckGo) and fetch/extract page content.
+Safety: CAS at-most-once locking, 5-concurrent cap, per-job timeouts with SIGTERM→SIGKILL escalation, startup recovery. See `PULSE.md`.
 
-**Scheduling** — `pulse`. List, create, update, enable, disable, and delete scheduled background tasks. Agent-type pulses run stored prompts as autonomous turns; shell-type pulses run bash commands. All operations by numeric ID.
+## The Compound Effect
 
-**Augmentation** — `calc`, `datetime`. These compensate for known LLM weaknesses. LLMs hallucinate arithmetic and lose track of time. A deterministic calculator and a precise date/time engine eliminate both failure modes entirely.
+None of these loops exist in isolation. The interceptors give the main model richer context this turn. The shade feeds evidence into soul evolution, which improves the system prompt for the next session. Delegation routes work to specialists whose own shade-driven evolution makes them better at their domain. The mentor — itself a soul that accumulates shards — gets better at refining other souls.
 
-**Subsystem deflection** — one `subsystem_<name>` tool per registered subsystem (e.g., `subsystem_scribe`, `subsystem_innkeeper`). These prevent the LLM from calling subsystem tools directly. When the LLM sees synthetic tool results in its history and tries to invoke the tool itself, the deflection handler returns an instant message explaining the subsystem runs automatically. Zero-cost, one iteration, no child session.
-
-## Lossless Persistence
-
-Every message, every tool call (name + arguments), and every tool result is stored in SQLite with foreign-key integrity and strict typing. The full conversation can be reconstructed exactly as chatoyant saw it — no lossy serialization, no summarization, no dropped fields.
-
-Three core tables carry the chat state:
-
-- **sessions** — identity, model, system prompt, purpose (`chat` | `subsystem_turn` | `system` | `pulse` | `shade`), parent linkage, soul attribution (`soul_id`), timestamps. Pulse sessions are linked via `pulse_runs.session_id`. Shade sessions track ingestion/processing cost with `parent_session_id` pointing to the source.
-- **messages** — ordered by `(session_id, ordinal)`. Roles are `user`, `assistant`, or `tool`. Source is `organic` (user/LLM-produced) or `synthetic` (harness-injected). Usage and cost data live on assistant messages. Tool result messages carry `tool_call_id` linking them to the call they answered. `sealed_at` marks completed segment boundaries. `is_compaction` flags summary messages from bounded-replay compaction. `parent_id` links compaction summaries to their predecessor for future tree-style history.
-- **tool_calls** — keyed by the provider-assigned `id`, linked to the assistant message that initiated them. Arguments are stored as the original JSON string from the provider — never parsed and re-serialized.
-
-Two additional tables carry the pulse state:
-
-- **pulses** — schedule definition and runtime state machine. Type, command, interval/cron/one-off scheduling, timeout, enabled flag, running state with PID tracking, run count, and last exit code.
-- **pulse_runs** — append-only run history with timing, exit code, output, error, and optional session linkage for agent runs. Pruned automatically after 7 days.
-
-Two tables carry the shade state:
-
-- **shade_impressions** — one row per ingested sealed segment. Lean plaintext impressions with soul attribution, impression count, and ingestion session linkage for cost tracking.
-- **shade_runs** — per-processor completion tracking. Each (impression, processor) pair has exactly one `done` row. Non-done rows are reclaimed unconditionally on the next sweep.
-
-This is not logging. This is the agent's working memory. Every subsequent turn reconstructs the full history from the chat tables via a single LEFT JOIN query. The pulse tables track the agent's autonomous lifecycle. The shade tables accumulate behavioral evidence from completed work. If the process restarts, conversations continue exactly where they left off, stale pulse runs are recovered cleanly, and shade ingestion resumes from where it stopped.
-
-## Channels
-
-Channels connect the agent to users and systems. The agent and session model are channel-agnostic — channels manage their own session references and presentation, but the underlying turn execution is identical regardless of how the user arrived.
-
-**TUI** — interactive terminal interface with alt-screen rendering, streaming output, scroll, tool status indicators, and slash commands. The default when a TTY is detected.
-
-**CLI** — one-shot command execution. Accepts a prompt, returns the response and a `session:<id>` continuation token on stderr for machine consumption. Enables multi-turn interactions for scripts, pipelines, and automation without an interactive interface.
-
-Both channels drive the same `Agent` interface. Future channels (web, Telegram) plug into the same boundary without touching the loop or the persistence layer. Pulse runs independently of all channels — it fires on timers whether or not any channel is active.
-
-## Settings
-
-A single SQLite table stores every configuration value and every secret. The canonical key is the environment variable name — `ANTHROPIC_API_KEY`, `GHOSTPAW_MODEL`, `GHOSTPAW_BASH_TIMEOUT_S` — no mapping layer, no translation. At boot, environment variables sync into the database; the database then pushes all settings (including code defaults for unset keys) into `process.env`. Every change via tool, slash command, or CLI updates both the database and `process.env` atomically. Child processes inherit the full environment. No restart required for any setting change — it takes effect immediately across the entire process tree.
-
-Secrets are marked at the key level. Their values never appear in tool output (masked as `***`), and an in-memory registry scrubs them from bash stdout/stderr before the LLM sees it. Input cleaning strips whitespace, quotes, and `export VAR=` syntax. Cross-slot validation catches wrong-provider keys (an Anthropic key pasted into the OpenAI slot). The attack surface is structural: the LLM can reference keys by name but never reads secret values — they resolve at the point of use.
-
-Every write creates a new row linked to its predecessor in a per-key chain. Source tracking records `user`, `chat`, or `env`. Undo walks the chain backward one step. Reset deletes the chain, returning to the code default. This immutable provenance is [what research identifies](https://arxiv.org/abs/2505.18279) as the key requirement for auditable shared state in multi-agent systems, and [SQLite transactions prevent the 95% deadlock rate](https://arxiv.org/abs/2602.13255) that emerges when LLM agents compete for shared state without external coordination.
-
-Three model tiers — `GHOSTPAW_MODEL_SMALL`, `GHOSTPAW_MODEL`, `GHOSTPAW_MODEL_LARGE` — auto-resolve per provider on boot. Today they define a global default. When the quest system provides per-task complexity estimation and independent sessions, they become the routing targets for [per-task model selection](https://arxiv.org/abs/2601.19402) — trivial work on the small model, hard reasoning on the large, everything else on the default. The settings infrastructure is the menu; the quest dispatcher will be the router.
-
-## What's Built
-
-The harness is minimal but complete. It runs the LLM loop with tool access, persists everything losslessly, exposes the agent through two channels, augments every turn via the interceptor, schedules autonomous work via the pulse engine, extracts behavioral signal via the shade, evolves identity across sessions via the attune cycle, and manages all operational state through a unified settings layer.
-
-**Interceptor subsystems** (synchronous, every turn):
-
-- **Scribe** — belief-based memory via `@ghostpaw/codex`. Maintains a store of atomic beliefs extracted from conversation, with recall, revision, and supersession. Tested across five LLM providers.
-- **Innkeeper** — social graph via `@ghostpaw/affinity`. Maintains contacts, relationships, interactions, commitments, and recurring dates. Knows every face and every story that passes through.
-
-Both run concurrently on every turn. The interceptor is generic — adding a third subsystem means implementing a `run()` function and registering it. The harness, the turn loop, the synthetic entry format, the context filtering, the configuration — all of it works for N subsystems without modification.
-
-**Pulse engine** (asynchronous, scheduled):
-
-- **Heartbeat** — builtin, every 5 minutes, zero tokens. Mechanical health check: session counts, failing pulses, DB page count.
-- **Seal sweep** — builtin, hourly. Seals the tail of stale sessions (>6h since last activity) to make them available for shade ingestion.
-- **Attune** — builtin, every 5 minutes. Phase 1 is pure SQL: runs shard maintenance (fading exhausted shards) and checks crystallization readiness. If no soul is ready, returns immediately — zero tokens. Phase 2 creates a mentor agent session with `@ghostpaw/souls` tools, reviews evidence, and refines traits. The mentor session has `purpose: "pulse"` with the mentor's own `soul_id`, so shade processes it too.
-- **Agent pulses** — user/LLM-created. Run stored prompts as full agent turns on a schedule. Autonomous reasoning tasks with all tool access.
-- **Shell pulses** — user/LLM-created. Run bash commands on a schedule. Backups, monitoring, external integrations.
-
-Three scheduling modes (interval, cron, one-off), CAS at-most-once locking, 5-concurrent-dispatch cap, per-job timeouts, startup recovery. The `pulse` tool gives the LLM full CRUD management. See `PULSE.md` for full detail.
-
-**Shade** (retrospective, post-hoc):
-
-- **Ingestion** — builtin pulse, every 15 minutes. Seals sealed segments into lean behavioral impressions via cheap-model oneshot. High notability bar: most segments produce zero impressions.
-- **Shard processor** — builtin pulse, every 30 minutes. Compares impressions against soul baselines and deposits behavioral shards via `@ghostpaw/souls`. Shards accumulate until crystallization thresholds are met, then feed the attune pulse's mentor agent. First consumer of the generic processor framework.
-- **Compaction** — bounded-replay summarization at configurable token threshold. Creates a summary message, advances the replay head, and seals the pre-compaction segment as a shade input.
-
-The shade is infrastructure, not a feature. Sealed segments and structured impressions are primitives that any future processor can build on — quality scoring, skill extraction, cost analysis — without re-reading any session content. See `SHADE.md` for full detail.
-
-**Settings** (operational infrastructure):
-
-- **30 known keys** — model tiers, provider secrets, tool limits, interceptor config, pulse tuning. Code defaults apply without database rows; explicit overrides are attributed and reversible.
-- **Secrets** — 7 provider/channel keys with output scrubbing, input cleaning, cross-slot validation. Masked in all tool output and list views.
-- **Surfaces** — `settings` LLM tool, `/config` and `/secret` slash commands, `ghostpaw config` and `ghostpaw secret` CLI with interactive masked input for secrets.
+Every loop feeds every other loop. The token investment is front-loaded and small. The returns compound.

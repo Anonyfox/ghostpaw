@@ -1,6 +1,6 @@
 import type { DatabaseHandle } from "../../lib/database_handle.ts";
 
-const SEALABLE_PURPOSES = ["chat", "subsystem_turn", "pulse"] as const;
+const SEALABLE_PURPOSES = ["chat", "subsystem_turn", "pulse", "delegate"] as const;
 
 export function sealSessionTail(db: DatabaseHandle, sessionId: number): number {
   const session = db.prepare("SELECT purpose, soul_id FROM sessions WHERE id = ?").get(sessionId) as
